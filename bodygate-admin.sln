@@ -1,0 +1,50 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bridge", "bridge", "{68BF4094-9419-05A7-776B-98D5B493D877}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bridge-v2", "bridge-v2", "{E19DED89-7954-A9FB-2EC1-AB09205A879E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backup-funzionante", "backup-funzionante", "{538546CC-AEA3-4891-7115-4FAB6A4B6274}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BodyGateBridge", "bridge\BodyGateBridge.csproj", "{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BodyGateBridge", "bridge-v2\BodyGateBridge.csproj", "{4536FA2E-8884-7A5D-2634-EB6D680D9624}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bridge", "bridge", "{488E744F-0D1B-4BAF-01CA-3501664E4BDB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BodyGateBridge", "backup-funzionante\bridge\BodyGateBridge.csproj", "{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4536FA2E-8884-7A5D-2634-EB6D680D9624}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4536FA2E-8884-7A5D-2634-EB6D680D9624}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4536FA2E-8884-7A5D-2634-EB6D680D9624}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4536FA2E-8884-7A5D-2634-EB6D680D9624}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B808E4E3-4A5F-E16A-CDAA-C6ABD5991498} = {68BF4094-9419-05A7-776B-98D5B493D877}
+		{4536FA2E-8884-7A5D-2634-EB6D680D9624} = {E19DED89-7954-A9FB-2EC1-AB09205A879E}
+		{488E744F-0D1B-4BAF-01CA-3501664E4BDB} = {538546CC-AEA3-4891-7115-4FAB6A4B6274}
+		{6AFAD7B9-ABD3-D4F4-4EBE-55DEFBDA5A89} = {488E744F-0D1B-4BAF-01CA-3501664E4BDB}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5204E9EF-8566-46F4-A66A-778F8308CF24}
+	EndGlobalSection
+EndGlobal

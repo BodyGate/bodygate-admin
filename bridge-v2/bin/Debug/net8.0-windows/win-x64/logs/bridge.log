@@ -1,0 +1,485 @@
+[2026-05-12 16:42:49] ====================================
+[2026-05-12 16:42:49] BodyGate Bridge V3.2 avviato
+[2026-05-12 16:42:49] Controller: 192.168.1.251:8000
+[2026-05-12 16:42:49] Bridge HTTP: http://localhost:5050/open
+[2026-05-12 16:42:49] BodyGate API: http://localhost:3000/api/access/check
+[2026-05-12 16:42:49] Modalita: badge centralina -> verifica BodyGate -> apertura tornello
+[2026-05-12 16:42:49] ACCESSO CONSENTITO solo con BodyGate allowed=true
+[2026-05-12 16:42:49] ACCESSO NEGATO se BodyGate allowed=false o API offline
+[2026-05-12 16:42:49] OpenDoor False gestito come WARNING tecnico
+[2026-05-12 16:42:49] Open retry: 3 tentativi
+[2026-05-12 16:42:49] ====================================
+[2026-05-12 16:42:49] Connessione controller: True
+[2026-05-12 16:42:49] HTTP server avviato su http://localhost:5050/
+[2026-05-12 16:43:18] ================================
+[2026-05-12 16:43:18] BADGE CENTRALINA
+[2026-05-12 16:43:18] Badge: 9340243
+[2026-05-12 16:43:18] Reader: 0
+[2026-05-12 16:43:18] Door: 1
+[2026-05-12 16:43:18] EventType: 1
+[2026-05-12 16:43:18] Data/Ora evento: 12/11/2004 15:56:04
+[2026-05-12 16:43:18] ================================
+[2026-05-12 16:43:18] Verifica BodyGate per badge: 9340243
+[2026-05-12 16:43:19] Risposta BodyGate: {"ok":true,"allowed":true,"reason":"Accesso consentito","customer_id":"1413a4d9-53bc-4a4d-8ba9-fc5df91341cf","badge_code":"4c008e8553","controller_code":"9340243"}
+[2026-05-12 16:43:19] ACCESSO AUTORIZZATO DA BODYGATE: 9340243
+[2026-05-12 16:43:19] Attesa prima apertura: 500 ms
+[2026-05-12 16:43:19] Tentativo apertura 1/3
+[2026-05-12 16:43:19] Invio OpenDoor...
+[2026-05-12 16:43:20] Risultato OpenDoor SDK: False
+[2026-05-12 16:43:20] WARNING tecnico: OpenDoor ha restituito False al tentativo 1
+[2026-05-12 16:43:20] Il comando risulta comunque inviato alla SDK.
+[2026-05-12 16:43:20] LastError tcpNet: 3
+[2026-05-12 16:43:20] LastError controller: 3
+[2026-05-12 16:43:20] Tentativo apertura 2/3
+[2026-05-12 16:43:20] Invio OpenDoor...
+[2026-05-12 16:43:21] Risultato OpenDoor SDK: False
+[2026-05-12 16:43:21] WARNING tecnico: OpenDoor ha restituito False al tentativo 2
+[2026-05-12 16:43:21] Il comando risulta comunque inviato alla SDK.
+[2026-05-12 16:43:21] LastError tcpNet: 3
+[2026-05-12 16:43:21] LastError controller: 3
+[2026-05-12 16:43:21] Tentativo apertura 3/3
+[2026-05-12 16:43:21] Invio OpenDoor...
+[2026-05-12 16:43:22] Risultato OpenDoor SDK: False
+[2026-05-12 16:43:22] WARNING tecnico: OpenDoor ha restituito False al tentativo 3
+[2026-05-12 16:43:22] Il comando risulta comunque inviato alla SDK.
+[2026-05-12 16:43:22] LastError tcpNet: 3
+[2026-05-12 16:43:22] LastError controller: 3
+[2026-05-12 16:43:22] WARNING tecnico finale: tutti i tentativi OpenDoor hanno restituito False, ma almeno un comando e stato inviato.
+[2026-05-12 16:43:22] ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: 9340243
+[2026-05-12 16:43:22] Nota: BodyGate allowed=true e comando OpenDoor inviato. Il tornello puo aprire fisicamente anche se la SDK restituisce False.
+[2026-05-12 16:43:34] ================================
+[2026-05-12 16:43:34] BADGE CENTRALINA
+[2026-05-12 16:43:34] Badge: 6406251
+[2026-05-12 16:43:34] Reader: 0
+[2026-05-12 16:43:34] Door: 1
+[2026-05-12 16:43:34] EventType: 1
+[2026-05-12 16:43:34] Data/Ora evento: 12/11/2004 15:56:20
+[2026-05-12 16:43:34] ================================
+[2026-05-12 16:43:34] Verifica BodyGate per badge: 6406251
+[2026-05-12 16:43:35] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:43:35] ACCESSO NEGATO DA BODYGATE: 6406251
+[2026-05-12 16:43:35] Motivo: Badge non valido o non attivo
+[2026-05-12 16:43:43] ================================
+[2026-05-12 16:43:43] BADGE CENTRALINA
+[2026-05-12 16:43:43] Badge: 11836141
+[2026-05-12 16:43:43] Reader: 0
+[2026-05-12 16:43:43] Door: 1
+[2026-05-12 16:43:43] EventType: 1
+[2026-05-12 16:43:43] Data/Ora evento: 12/11/2004 15:56:30
+[2026-05-12 16:43:43] ================================
+[2026-05-12 16:43:43] Verifica BodyGate per badge: 11836141
+[2026-05-12 16:43:44] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:43:44] ACCESSO NEGATO DA BODYGATE: 11836141
+[2026-05-12 16:43:44] Motivo: Badge non valido o non attivo
+[2026-05-12 16:49:02] ====================================
+[2026-05-12 16:49:02] BodyGate Bridge V3.3 avviato
+[2026-05-12 16:49:02] Controller: 192.168.1.251:8000
+[2026-05-12 16:49:02] Bridge HTTP: http://localhost:5050/open
+[2026-05-12 16:49:02] BodyGate API: http://localhost:3000/api/access/check
+[2026-05-12 16:49:02] Modalita: badge centralina -> verifica BodyGate -> apertura tornello
+[2026-05-12 16:49:02] ACCESSO CONSENTITO solo con BodyGate allowed=true
+[2026-05-12 16:49:02] ACCESSO NEGATO se BodyGate allowed=false o API offline
+[2026-05-12 16:49:02] OpenDoor False gestito come WARNING tecnico
+[2026-05-12 16:49:02] Retry apertura solo se comando NON inviato
+[2026-05-12 16:49:02] ====================================
+[2026-05-12 16:49:02] Connessione controller: True
+[2026-05-12 16:49:02] HTTP server avviato su http://localhost:5050/
+[2026-05-12 17:33:36] ====================================
+[2026-05-12 17:33:36] BodyGate Bridge V3.4 avviato
+[2026-05-12 17:33:36] Controller: 192.168.1.251:8000
+[2026-05-12 17:33:36] Bridge HTTP: http://localhost:5050/open
+[2026-05-12 17:33:36] BodyGate Check API: http://localhost:3000/api/access/check
+[2026-05-12 17:33:36] BodyGate Log API: http://localhost:3000/api/access/log
+[2026-05-12 17:33:36] Modalita: badge centralina -> verifica BodyGate -> apertura tornello -> log Supabase
+[2026-05-12 17:33:36] ACCESSO CONSENTITO solo con BodyGate allowed=true
+[2026-05-12 17:33:36] ACCESSO NEGATO se BodyGate allowed=false o API offline
+[2026-05-12 17:33:36] OpenDoor False gestito come WARNING tecnico
+[2026-05-12 17:33:36] Retry apertura solo se comando NON inviato
+[2026-05-12 17:33:36] ====================================
+[2026-05-12 17:33:36] Connessione controller: True
+[2026-05-12 17:33:37] HTTP server avviato su http://localhost:5050/
+[2026-05-12 17:33:37] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:37] Connessione controller: True
+[2026-05-12 17:33:39] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:39] Connessione controller: True
+[2026-05-12 17:33:40] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:40] Connessione controller: True
+[2026-05-12 17:33:41] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:41] Connessione controller: True
+[2026-05-12 17:33:42] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:42] Connessione controller: True
+[2026-05-12 17:33:43] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:43] Connessione controller: True
+[2026-05-12 17:33:44] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:44] Connessione controller: True
+[2026-05-12 17:33:45] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:45] Connessione controller: True
+[2026-05-12 17:33:46] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:46] Connessione controller: True
+[2026-05-12 17:33:47] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:47] Connessione controller: True
+[2026-05-12 17:33:48] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:48] Connessione controller: True
+[2026-05-12 17:33:49] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:49] Connessione controller: True
+[2026-05-12 17:33:50] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:50] Connessione controller: True
+[2026-05-12 17:33:51] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:51] Connessione controller: True
+[2026-05-12 17:33:52] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:52] Connessione controller: True
+[2026-05-12 17:33:53] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:53] Connessione controller: True
+[2026-05-12 17:33:54] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:54] Connessione controller: True
+[2026-05-12 17:33:55] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:55] Connessione controller: True
+[2026-05-12 17:33:56] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:56] Connessione controller: True
+[2026-05-12 17:33:57] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:57] Connessione controller: True
+[2026-05-12 17:33:58] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:58] Connessione controller: True
+[2026-05-12 17:33:59] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:33:59] Connessione controller: True
+[2026-05-12 17:34:00] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:34:00] Connessione controller: True
+[2026-05-12 17:34:01] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:34:01] Connessione controller: True
+[2026-05-12 17:34:02] Watchdog: controller non connesso, tento riconnessione...
+[2026-05-12 17:34:02] Connessione controller: True
+[2026-05-12 17:34:13] ====================================
+[2026-05-12 17:34:13] BodyGate Bridge V3.4 avviato
+[2026-05-12 17:34:13] Controller: 192.168.1.251:8000
+[2026-05-12 17:34:13] Bridge HTTP: http://localhost:5050/open
+[2026-05-12 17:34:13] BodyGate Check API: http://localhost:3000/api/access/check
+[2026-05-12 17:34:13] BodyGate Log API: http://localhost:3000/api/access/log
+[2026-05-12 17:34:13] Modalita: badge centralina -> verifica BodyGate -> apertura tornello -> log Supabase
+[2026-05-12 17:34:13] ACCESSO CONSENTITO solo con BodyGate allowed=true
+[2026-05-12 17:34:13] ACCESSO NEGATO se BodyGate allowed=false o API offline
+[2026-05-12 17:34:13] OpenDoor False gestito come WARNING tecnico
+[2026-05-12 17:34:13] Retry apertura solo se comando NON inviato
+[2026-05-12 17:34:13] ====================================
+[2026-05-12 17:34:13] Connessione controller: True
+[2026-05-12 17:34:13] HTTP server avviato su http://localhost:5050/
+[2026-05-12 17:36:56] ================================
+[2026-05-12 17:36:56] BADGE CENTRALINA
+[2026-05-12 17:36:56] Badge: 6406251
+[2026-05-12 17:36:56] Reader: 0
+[2026-05-12 17:36:56] Door: 1
+[2026-05-12 17:36:56] EventType: 1
+[2026-05-12 17:36:56] Data/Ora evento: 12/11/2004 16:49:42
+[2026-05-12 17:36:56] ================================
+[2026-05-12 17:36:56] Verifica BodyGate per badge: 6406251
+[2026-05-12 17:36:57] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 17:36:57] ACCESSO NEGATO DA BODYGATE: 6406251
+[2026-05-12 17:36:57] Motivo: Badge non valido o non attivo
+[2026-05-12 17:36:57] Errore invio log accesso. HTTP 500: {"ok":false,"error":"SUPABASE_SERVICE_ROLE_KEY mancante nel file .env.local"}
+[2026-05-12 17:37:03] ================================
+[2026-05-12 17:37:03] BADGE CENTRALINA
+[2026-05-12 17:37:03] Badge: 9340243
+[2026-05-12 17:37:03] Reader: 0
+[2026-05-12 17:37:03] Door: 1
+[2026-05-12 17:37:03] EventType: 1
+[2026-05-12 17:37:03] Data/Ora evento: 12/11/2004 16:49:49
+[2026-05-12 17:37:03] ================================
+[2026-05-12 17:37:03] Verifica BodyGate per badge: 9340243
+[2026-05-12 17:37:04] Risposta BodyGate: {"ok":true,"allowed":true,"reason":"Accesso consentito","customer_id":"1413a4d9-53bc-4a4d-8ba9-fc5df91341cf","badge_code":"4c008e8553","controller_code":"9340243"}
+[2026-05-12 17:37:04] ACCESSO AUTORIZZATO DA BODYGATE: 9340243
+[2026-05-12 17:37:04] Attesa prima apertura: 500 ms
+[2026-05-12 17:37:04] Tentativo apertura 1/3
+[2026-05-12 17:37:04] Invio OpenDoor...
+[2026-05-12 17:37:05] Risultato OpenDoor SDK: False
+[2026-05-12 17:37:05] WARNING tecnico: OpenDoor ha restituito False al tentativo 1
+[2026-05-12 17:37:05] Comando OpenDoor inviato. Stop retry per evitare impulsi multipli.
+[2026-05-12 17:37:05] LastError tcpNet: 3
+[2026-05-12 17:37:05] LastError controller: 3
+[2026-05-12 17:37:05] ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: 9340243
+[2026-05-12 17:37:05] Nota: BodyGate allowed=true e comando OpenDoor inviato una sola volta.
+[2026-05-12 17:37:05] Nessun retry eseguito per evitare impulsi multipli al tornello.
+[2026-05-12 17:37:05] Errore invio log accesso. HTTP 500: {"ok":false,"error":"SUPABASE_SERVICE_ROLE_KEY mancante nel file .env.local"}
+[2026-05-12 17:41:31] ================================
+[2026-05-12 17:41:31] BADGE CENTRALINA
+[2026-05-12 17:41:31] Badge: 6406251
+[2026-05-12 17:41:31] Reader: 0
+[2026-05-12 17:41:31] Door: 1
+[2026-05-12 17:41:31] EventType: 1
+[2026-05-12 17:41:31] Data/Ora evento: 12/11/2004 16:54:16
+[2026-05-12 17:41:31] ================================
+[2026-05-12 17:41:31] Verifica BodyGate per badge: 6406251
+[2026-05-12 17:41:31] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 17:41:31] ACCESSO NEGATO DA BODYGATE: 6406251
+[2026-05-12 17:41:31] Motivo: Badge non valido o non attivo
+[2026-05-12 17:41:31] Errore invio log accesso. HTTP 500: {"ok":false,"error":"Could not find the 'allowed' column of 'access_logs' in the schema cache"}
+[2026-05-12 17:41:34] ================================
+[2026-05-12 17:41:34] BADGE CENTRALINA
+[2026-05-12 17:41:34] Badge: 9340243
+[2026-05-12 17:41:34] Reader: 0
+[2026-05-12 17:41:34] Door: 1
+[2026-05-12 17:41:34] EventType: 1
+[2026-05-12 17:41:34] Data/Ora evento: 12/11/2004 16:54:20
+[2026-05-12 17:41:34] ================================
+[2026-05-12 17:41:34] Verifica BodyGate per badge: 9340243
+[2026-05-12 17:41:35] Risposta BodyGate: {"ok":true,"allowed":true,"reason":"Accesso consentito","customer_id":"1413a4d9-53bc-4a4d-8ba9-fc5df91341cf","badge_code":"4c008e8553","controller_code":"9340243"}
+[2026-05-12 17:41:35] ACCESSO AUTORIZZATO DA BODYGATE: 9340243
+[2026-05-12 17:41:35] Attesa prima apertura: 500 ms
+[2026-05-12 17:41:35] Tentativo apertura 1/3
+[2026-05-12 17:41:35] Invio OpenDoor...
+[2026-05-12 17:41:35] Risultato OpenDoor SDK: False
+[2026-05-12 17:41:35] WARNING tecnico: OpenDoor ha restituito False al tentativo 1
+[2026-05-12 17:41:35] Comando OpenDoor inviato. Stop retry per evitare impulsi multipli.
+[2026-05-12 17:41:35] LastError tcpNet: 3
+[2026-05-12 17:41:35] LastError controller: 3
+[2026-05-12 17:41:35] ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: 9340243
+[2026-05-12 17:41:35] Nota: BodyGate allowed=true e comando OpenDoor inviato una sola volta.
+[2026-05-12 17:41:35] Nessun retry eseguito per evitare impulsi multipli al tornello.
+[2026-05-12 17:41:36] Errore invio log accesso. HTTP 500: {"ok":false,"error":"Could not find the 'allowed' column of 'access_logs' in the schema cache"}
+[2026-05-12 17:43:23] ================================
+[2026-05-12 17:43:23] BADGE CENTRALINA
+[2026-05-12 17:43:23] Badge: 1060472759
+[2026-05-12 17:43:23] Reader: 0
+[2026-05-12 17:43:23] Door: 1
+[2026-05-12 17:43:23] EventType: 1
+[2026-05-12 17:43:23] Data/Ora evento: 12/11/2004 16:56:09
+[2026-05-12 17:43:23] ================================
+[2026-05-12 17:43:23] Verifica BodyGate per badge: 1060472759
+[2026-05-12 17:43:24] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 17:43:24] ACCESSO NEGATO DA BODYGATE: 1060472759
+[2026-05-12 17:43:24] Motivo: Badge non valido o non attivo
+[2026-05-12 17:43:24] Errore invio log accesso. HTTP 500: {"ok":false,"error":"Could not find the 'allowed' column of 'access_logs' in the schema cache"}
+[2026-05-12 17:53:16] ================================
+[2026-05-12 17:53:16] BADGE CENTRALINA
+[2026-05-12 17:53:16] Badge: 292002
+[2026-05-12 17:53:16] Reader: 0
+[2026-05-12 17:53:16] Door: 1
+[2026-05-12 17:53:16] EventType: 1
+[2026-05-12 17:53:16] Data/Ora evento: 12/11/2004 17:06:02
+[2026-05-12 17:53:16] ================================
+[2026-05-12 17:53:16] Verifica BodyGate per badge: 292002
+[2026-05-12 17:53:16] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 17:53:16] ACCESSO NEGATO DA BODYGATE: 292002
+[2026-05-12 17:53:16] Motivo: Badge non valido o non attivo
+[2026-05-12 17:53:16] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 17:53:21] ================================
+[2026-05-12 17:53:21] BADGE CENTRALINA
+[2026-05-12 17:53:21] Badge: 292002
+[2026-05-12 17:53:21] Reader: 0
+[2026-05-12 17:53:21] Door: 1
+[2026-05-12 17:53:21] EventType: 1
+[2026-05-12 17:53:21] Data/Ora evento: 12/11/2004 17:06:06
+[2026-05-12 17:53:21] ================================
+[2026-05-12 17:53:21] Verifica BodyGate per badge: 292002
+[2026-05-12 17:53:21] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 17:53:21] ACCESSO NEGATO DA BODYGATE: 292002
+[2026-05-12 17:53:21] Motivo: Badge non valido o non attivo
+[2026-05-12 17:53:21] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:08:07] ================================
+[2026-05-12 18:08:07] BADGE CENTRALINA
+[2026-05-12 18:08:07] Badge: 10478648
+[2026-05-12 18:08:07] Reader: 0
+[2026-05-12 18:08:07] Door: 1
+[2026-05-12 18:08:07] EventType: 1
+[2026-05-12 18:08:07] Data/Ora evento: 12/11/2004 17:20:53
+[2026-05-12 18:08:07] ================================
+[2026-05-12 18:08:07] Verifica BodyGate per badge: 10478648
+[2026-05-12 18:08:07] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:08:07] ACCESSO NEGATO DA BODYGATE: 10478648
+[2026-05-12 18:08:07] Motivo: Badge non valido o non attivo
+[2026-05-12 18:08:07] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:08:10] ================================
+[2026-05-12 18:08:10] BADGE CENTRALINA
+[2026-05-12 18:08:10] Badge: 10478648
+[2026-05-12 18:08:10] Reader: 0
+[2026-05-12 18:08:10] Door: 1
+[2026-05-12 18:08:10] EventType: 1
+[2026-05-12 18:08:10] Data/Ora evento: 12/11/2004 17:20:56
+[2026-05-12 18:08:10] ================================
+[2026-05-12 18:08:10] Verifica BodyGate per badge: 10478648
+[2026-05-12 18:08:10] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:08:10] ACCESSO NEGATO DA BODYGATE: 10478648
+[2026-05-12 18:08:10] Motivo: Badge non valido o non attivo
+[2026-05-12 18:08:10] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:08:14] ================================
+[2026-05-12 18:08:14] BADGE CENTRALINA
+[2026-05-12 18:08:14] Badge: 10478648
+[2026-05-12 18:08:14] Reader: 0
+[2026-05-12 18:08:14] Door: 1
+[2026-05-12 18:08:14] EventType: 1
+[2026-05-12 18:08:14] Data/Ora evento: 12/11/2004 17:20:59
+[2026-05-12 18:08:14] ================================
+[2026-05-12 18:08:14] Verifica BodyGate per badge: 10478648
+[2026-05-12 18:08:14] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:08:14] ACCESSO NEGATO DA BODYGATE: 10478648
+[2026-05-12 18:08:14] Motivo: Badge non valido o non attivo
+[2026-05-12 18:08:14] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:09:59] ================================
+[2026-05-12 18:09:59] BADGE CENTRALINA
+[2026-05-12 18:09:59] Badge: 2769131
+[2026-05-12 18:09:59] Reader: 0
+[2026-05-12 18:09:59] Door: 1
+[2026-05-12 18:09:59] EventType: 1
+[2026-05-12 18:09:59] Data/Ora evento: 12/11/2004 17:22:45
+[2026-05-12 18:09:59] ================================
+[2026-05-12 18:09:59] Verifica BodyGate per badge: 2769131
+[2026-05-12 18:09:59] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:09:59] ACCESSO NEGATO DA BODYGATE: 2769131
+[2026-05-12 18:09:59] Motivo: Badge non valido o non attivo
+[2026-05-12 18:09:59] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:15:20] ================================
+[2026-05-12 18:15:20] BADGE CENTRALINA
+[2026-05-12 18:15:20] Badge: 13201310
+[2026-05-12 18:15:20] Reader: 0
+[2026-05-12 18:15:20] Door: 1
+[2026-05-12 18:15:20] EventType: 1
+[2026-05-12 18:15:20] Data/Ora evento: 12/11/2004 17:28:06
+[2026-05-12 18:15:20] ================================
+[2026-05-12 18:15:20] Verifica BodyGate per badge: 13201310
+[2026-05-12 18:15:20] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:15:20] ACCESSO NEGATO DA BODYGATE: 13201310
+[2026-05-12 18:15:20] Motivo: Badge non valido o non attivo
+[2026-05-12 18:15:21] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:15:25] ================================
+[2026-05-12 18:15:25] BADGE CENTRALINA
+[2026-05-12 18:15:25] Badge: 13201310
+[2026-05-12 18:15:25] Reader: 0
+[2026-05-12 18:15:25] Door: 1
+[2026-05-12 18:15:25] EventType: 1
+[2026-05-12 18:15:25] Data/Ora evento: 12/11/2004 17:28:11
+[2026-05-12 18:15:25] ================================
+[2026-05-12 18:15:25] Verifica BodyGate per badge: 13201310
+[2026-05-12 18:15:25] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:15:25] ACCESSO NEGATO DA BODYGATE: 13201310
+[2026-05-12 18:15:25] Motivo: Badge non valido o non attivo
+[2026-05-12 18:15:25] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:17:11] ================================
+[2026-05-12 18:17:11] BADGE CENTRALINA
+[2026-05-12 18:17:11] Badge: 13734560
+[2026-05-12 18:17:11] Reader: 0
+[2026-05-12 18:17:11] Door: 1
+[2026-05-12 18:17:11] EventType: 1
+[2026-05-12 18:17:11] Data/Ora evento: 12/11/2004 17:29:57
+[2026-05-12 18:17:11] ================================
+[2026-05-12 18:17:11] Verifica BodyGate per badge: 13734560
+[2026-05-12 18:17:11] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:17:11] ACCESSO NEGATO DA BODYGATE: 13734560
+[2026-05-12 18:17:11] Motivo: Badge non valido o non attivo
+[2026-05-12 18:17:12] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:17:14] Badge duplicato ignorato: 13734560
+[2026-05-12 18:24:00] ================================
+[2026-05-12 18:24:00] BADGE CENTRALINA
+[2026-05-12 18:24:00] Badge: 13503889
+[2026-05-12 18:24:00] Reader: 0
+[2026-05-12 18:24:00] Door: 1
+[2026-05-12 18:24:00] EventType: 1
+[2026-05-12 18:24:00] Data/Ora evento: 12/11/2004 17:36:46
+[2026-05-12 18:24:00] ================================
+[2026-05-12 18:24:00] Verifica BodyGate per badge: 13503889
+[2026-05-12 18:24:00] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:24:00] ACCESSO NEGATO DA BODYGATE: 13503889
+[2026-05-12 18:24:00] Motivo: Badge non valido o non attivo
+[2026-05-12 18:24:01] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:24:06] ================================
+[2026-05-12 18:24:06] BADGE CENTRALINA
+[2026-05-12 18:24:06] Badge: 13503889
+[2026-05-12 18:24:06] Reader: 0
+[2026-05-12 18:24:06] Door: 1
+[2026-05-12 18:24:06] EventType: 1
+[2026-05-12 18:24:06] Data/Ora evento: 12/11/2004 17:36:52
+[2026-05-12 18:24:06] ================================
+[2026-05-12 18:24:06] Verifica BodyGate per badge: 13503889
+[2026-05-12 18:24:06] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:24:06] ACCESSO NEGATO DA BODYGATE: 13503889
+[2026-05-12 18:24:06] Motivo: Badge non valido o non attivo
+[2026-05-12 18:24:07] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:24:07] Badge duplicato ignorato: 13503889
+[2026-05-12 18:24:13] ================================
+[2026-05-12 18:24:13] BADGE CENTRALINA
+[2026-05-12 18:24:13] Badge: 13503889
+[2026-05-12 18:24:13] Reader: 0
+[2026-05-12 18:24:13] Door: 1
+[2026-05-12 18:24:13] EventType: 1
+[2026-05-12 18:24:13] Data/Ora evento: 12/11/2004 17:36:59
+[2026-05-12 18:24:13] ================================
+[2026-05-12 18:24:13] Verifica BodyGate per badge: 13503889
+[2026-05-12 18:24:13] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:24:13] ACCESSO NEGATO DA BODYGATE: 13503889
+[2026-05-12 18:24:13] Motivo: Badge non valido o non attivo
+[2026-05-12 18:24:13] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:24:48] ================================
+[2026-05-12 18:24:48] BADGE CENTRALINA
+[2026-05-12 18:24:48] Badge: 13503889
+[2026-05-12 18:24:48] Reader: 0
+[2026-05-12 18:24:48] Door: 1
+[2026-05-12 18:24:48] EventType: 1
+[2026-05-12 18:24:48] Data/Ora evento: 12/11/2004 17:37:34
+[2026-05-12 18:24:48] ================================
+[2026-05-12 18:24:48] Verifica BodyGate per badge: 13503889
+[2026-05-12 18:24:48] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:24:48] ACCESSO NEGATO DA BODYGATE: 13503889
+[2026-05-12 18:24:48] Motivo: Badge non valido o non attivo
+[2026-05-12 18:24:49] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:31:20] ================================
+[2026-05-12 18:31:20] BADGE CENTRALINA
+[2026-05-12 18:31:20] Badge: 6393594
+[2026-05-12 18:31:20] Reader: 0
+[2026-05-12 18:31:20] Door: 1
+[2026-05-12 18:31:20] EventType: 1
+[2026-05-12 18:31:20] Data/Ora evento: 12/11/2004 17:44:06
+[2026-05-12 18:31:20] ================================
+[2026-05-12 18:31:20] Verifica BodyGate per badge: 6393594
+[2026-05-12 18:31:20] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:31:20] ACCESSO NEGATO DA BODYGATE: 6393594
+[2026-05-12 18:31:20] Motivo: Badge non valido o non attivo
+[2026-05-12 18:31:20] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:31:24] ================================
+[2026-05-12 18:31:24] BADGE CENTRALINA
+[2026-05-12 18:31:24] Badge: 6393594
+[2026-05-12 18:31:24] Reader: 0
+[2026-05-12 18:31:24] Door: 1
+[2026-05-12 18:31:24] EventType: 1
+[2026-05-12 18:31:24] Data/Ora evento: 12/11/2004 17:44:10
+[2026-05-12 18:31:24] ================================
+[2026-05-12 18:31:24] Verifica BodyGate per badge: 6393594
+[2026-05-12 18:31:24] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:31:24] ACCESSO NEGATO DA BODYGATE: 6393594
+[2026-05-12 18:31:24] Motivo: Badge non valido o non attivo
+[2026-05-12 18:31:24] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:31:33] ================================
+[2026-05-12 18:31:33] BADGE CENTRALINA
+[2026-05-12 18:31:33] Badge: 6374399
+[2026-05-12 18:31:33] Reader: 0
+[2026-05-12 18:31:33] Door: 1
+[2026-05-12 18:31:33] EventType: 1
+[2026-05-12 18:31:33] Data/Ora evento: 12/11/2004 17:44:19
+[2026-05-12 18:31:33] ================================
+[2026-05-12 18:31:33] Verifica BodyGate per badge: 6374399
+[2026-05-12 18:31:34] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:31:34] ACCESSO NEGATO DA BODYGATE: 6374399
+[2026-05-12 18:31:34] Motivo: Badge non valido o non attivo
+[2026-05-12 18:31:34] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:32:02] ================================
+[2026-05-12 18:32:02] BADGE CENTRALINA
+[2026-05-12 18:32:02] Badge: 6393594
+[2026-05-12 18:32:02] Reader: 0
+[2026-05-12 18:32:02] Door: 1
+[2026-05-12 18:32:02] EventType: 1
+[2026-05-12 18:32:02] Data/Ora evento: 12/11/2004 17:44:48
+[2026-05-12 18:32:02] ================================
+[2026-05-12 18:32:02] Verifica BodyGate per badge: 6393594
+[2026-05-12 18:32:02] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:32:02] ACCESSO NEGATO DA BODYGATE: 6393594
+[2026-05-12 18:32:02] Motivo: Badge non valido o non attivo
+[2026-05-12 18:32:02] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}
+[2026-05-12 18:32:10] ================================
+[2026-05-12 18:32:10] BADGE CENTRALINA
+[2026-05-12 18:32:10] Badge: 6374399
+[2026-05-12 18:32:10] Reader: 0
+[2026-05-12 18:32:10] Door: 1
+[2026-05-12 18:32:10] EventType: 1
+[2026-05-12 18:32:10] Data/Ora evento: 12/11/2004 17:44:56
+[2026-05-12 18:32:10] ================================
+[2026-05-12 18:32:10] Verifica BodyGate per badge: 6374399
+[2026-05-12 18:32:10] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 18:32:10] ACCESSO NEGATO DA BODYGATE: 6374399
+[2026-05-12 18:32:10] Motivo: Badge non valido o non attivo
+[2026-05-12 18:32:10] Errore invio log accesso. HTTP 500: {"ok":false,"error":"null value in column \"result\" of relation \"access_logs\" violates not-null constraint"}

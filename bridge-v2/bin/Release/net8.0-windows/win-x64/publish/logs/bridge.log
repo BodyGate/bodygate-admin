@@ -1,0 +1,89 @@
+[2026-05-12 16:01:51] ====================================
+[2026-05-12 16:01:51] BodyGate Bridge V3 avviato
+[2026-05-12 16:01:51] Controller: 192.168.1.251:8000
+[2026-05-12 16:01:51] BodyGate API: http://localhost:3000/api/access/check
+[2026-05-12 16:01:51] Fallback se API offline: ACCESSO NEGATO
+[2026-05-12 16:01:51] ====================================
+[2026-05-12 16:01:51] Connessione controller: True
+[2026-05-12 16:01:51] HTTP server avviato su http://localhost:5050/
+[2026-05-12 16:02:27] ================================
+[2026-05-12 16:02:27] BADGE CENTRALINA
+[2026-05-12 16:02:27] Badge: 9340243
+[2026-05-12 16:02:27] Reader: 0
+[2026-05-12 16:02:27] Door: 1
+[2026-05-12 16:02:27] EventType: 1
+[2026-05-12 16:02:27] Data/Ora evento: 12/11/2004 15:15:13
+[2026-05-12 16:02:27] ================================
+[2026-05-12 16:02:27] Verifica BodyGate per badge: 9340243
+[2026-05-12 16:02:29] Risposta BodyGate: {"ok":true,"allowed":true,"reason":"Accesso consentito","customer_id":"1413a4d9-53bc-4a4d-8ba9-fc5df91341cf","badge_code":"4c008e8553","controller_code":"9340243"}
+[2026-05-12 16:02:29] Invio OpenDoor...
+[2026-05-12 16:02:29] Risultato OpenDoor: False
+[2026-05-12 16:02:29] ACCESSO AUTORIZZATO MA APERTURA FALLITA: 9340243
+[2026-05-12 16:07:23] ================================
+[2026-05-12 16:07:23] BADGE CENTRALINA
+[2026-05-12 16:07:23] Badge: 12775350
+[2026-05-12 16:07:23] Reader: 0
+[2026-05-12 16:07:23] Door: 1
+[2026-05-12 16:07:23] EventType: 1
+[2026-05-12 16:07:23] Data/Ora evento: 12/11/2004 15:20:09
+[2026-05-12 16:07:23] ================================
+[2026-05-12 16:07:23] Verifica BodyGate per badge: 12775350
+[2026-05-12 16:07:24] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:07:24] ACCESSO NEGATO DA BODYGATE: 12775350
+[2026-05-12 16:07:28] ================================
+[2026-05-12 16:07:28] BADGE CENTRALINA
+[2026-05-12 16:07:28] Badge: 12775350
+[2026-05-12 16:07:28] Reader: 0
+[2026-05-12 16:07:28] Door: 1
+[2026-05-12 16:07:28] EventType: 1
+[2026-05-12 16:07:28] Data/Ora evento: 12/11/2004 15:20:14
+[2026-05-12 16:07:28] ================================
+[2026-05-12 16:07:28] Verifica BodyGate per badge: 12775350
+[2026-05-12 16:07:28] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:07:28] ACCESSO NEGATO DA BODYGATE: 12775350
+[2026-05-12 16:07:32] ================================
+[2026-05-12 16:07:32] BADGE CENTRALINA
+[2026-05-12 16:07:32] Badge: 12775350
+[2026-05-12 16:07:32] Reader: 0
+[2026-05-12 16:07:32] Door: 1
+[2026-05-12 16:07:32] EventType: 1
+[2026-05-12 16:07:32] Data/Ora evento: 12/11/2004 15:20:18
+[2026-05-12 16:07:32] ================================
+[2026-05-12 16:07:32] Verifica BodyGate per badge: 12775350
+[2026-05-12 16:07:32] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:07:32] ACCESSO NEGATO DA BODYGATE: 12775350
+[2026-05-12 16:08:01] ================================
+[2026-05-12 16:08:01] BADGE CENTRALINA
+[2026-05-12 16:08:01] Badge: 5278714
+[2026-05-12 16:08:01] Reader: 0
+[2026-05-12 16:08:01] Door: 1
+[2026-05-12 16:08:01] EventType: 1
+[2026-05-12 16:08:01] Data/Ora evento: 12/11/2004 15:20:47
+[2026-05-12 16:08:01] ================================
+[2026-05-12 16:08:01] Verifica BodyGate per badge: 5278714
+[2026-05-12 16:08:01] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:08:01] ACCESSO NEGATO DA BODYGATE: 5278714
+[2026-05-12 16:08:06] ================================
+[2026-05-12 16:08:06] BADGE CENTRALINA
+[2026-05-12 16:08:06] Badge: 5278714
+[2026-05-12 16:08:06] Reader: 0
+[2026-05-12 16:08:06] Door: 1
+[2026-05-12 16:08:06] EventType: 1
+[2026-05-12 16:08:06] Data/Ora evento: 12/11/2004 15:20:52
+[2026-05-12 16:08:06] ================================
+[2026-05-12 16:08:06] Verifica BodyGate per badge: 5278714
+[2026-05-12 16:08:06] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:08:06] ACCESSO NEGATO DA BODYGATE: 5278714
+[2026-05-12 16:08:40] Invio OpenDoor...
+[2026-05-12 16:08:40] Risultato OpenDoor: True
+[2026-05-12 16:13:45] ================================
+[2026-05-12 16:13:45] BADGE CENTRALINA
+[2026-05-12 16:13:45] Badge: 13739389
+[2026-05-12 16:13:45] Reader: 0
+[2026-05-12 16:13:45] Door: 1
+[2026-05-12 16:13:45] EventType: 1
+[2026-05-12 16:13:45] Data/Ora evento: 12/11/2004 15:26:31
+[2026-05-12 16:13:45] ================================
+[2026-05-12 16:13:45] Verifica BodyGate per badge: 13739389
+[2026-05-12 16:13:45] Risposta BodyGate: {"ok":false,"allowed":false,"reason":"Badge non valido o non attivo"}
+[2026-05-12 16:13:45] ACCESSO NEGATO DA BODYGATE: 13739389
