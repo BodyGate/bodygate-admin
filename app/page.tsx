@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { supabase } from "./lib/supabaseClient";
+import TurnstilePanel from "./components/dashboard/TurnstilePanel";
 
 type Customer = {
   id: string;
@@ -56,7 +57,7 @@ export default function DashboardHome() {
 
       alert(data?.message || "Comando inviato");
       await checkBridgeStatus();
-    } catch (error) {
+    } catch {
       alert("Bridge non raggiungibile. Verifica che sia avviato.");
       setBridgeOnline(false);
     } finally {
@@ -142,6 +143,7 @@ export default function DashboardHome() {
       window.clearInterval(interval);
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stats = useMemo(() => {
@@ -189,52 +191,14 @@ export default function DashboardHome() {
       </div>
 
       <div style={mainGridStyle}>
-        <section style={panelStyle}>
-          <div style={panelHeaderStyle}>
-            <div>
-              <h2 style={sectionTitleStyle}>Controllo tornello</h2>
-              <p style={sectionTextStyle}>
-                Azioni rapide per reception e test accessi.
-              </p>
-            </div>
-
-            <div style={bridgeOnline ? miniBadgeStyle : miniBadgeDangerStyle}>
-              {bridgeOnline ? "Bridge online" : "Bridge offline"}
-            </div>
-          </div>
-
-          <div style={buttonRowStyle}>
-            <button
-              style={primaryButtonStyle}
-              onClick={() => callBridge("open-in", "open-in")}
-              disabled={actionLoading !== ""}
-            >
-              {actionLoading === "open-in" ? "Apertura..." : "Apri tornello"}
-            </button>
-
-            <button
-              style={warningButtonStyle}
-              onClick={() => callBridge("stop", "stop")}
-              disabled={actionLoading !== ""}
-            >
-              {actionLoading === "stop" ? "Attivo..." : "Lockdown"}
-            </button>
-
-            <button
-              style={secondaryButtonStyle}
-              onClick={() => callBridge("unlock", "unlock")}
-              disabled={actionLoading !== ""}
-            >
-              {actionLoading === "unlock" ? "Sblocco..." : "Sblocca"}
-            </button>
-          </div>
-
-          <div style={lockdown ? lockdownStyle : normalStyle}>
-            {lockdown
-              ? "STOP ATTIVO: aperture manuali bloccate. I badge validi continuano a funzionare."
-              : "Sistema in modalità normale."}
-          </div>
-        </section>
+        <TurnstilePanel
+          bridgeOnline={bridgeOnline}
+          lockdown={lockdown}
+          actionLoading={actionLoading}
+          onOpen={() => callBridge("open-in", "open-in")}
+          onStop={() => callBridge("stop", "stop")}
+          onUnlock={() => callBridge("unlock", "unlock")}
+        />
 
         <section style={panelStyle}>
           <h2 style={sectionTitleStyle}>Stato sistema</h2>
@@ -330,9 +294,9 @@ function StatusRow({ label, value, ok }: { label: string; value: string; ok?: bo
   );
 }
 
-const pageStyle: React.CSSProperties = { color: "var(--text)" };
+const pageStyle: CSSProperties = { color: "var(--text)" };
 
-const heroStyle: React.CSSProperties = {
+const heroStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
@@ -346,7 +310,7 @@ const heroStyle: React.CSSProperties = {
   boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
 };
 
-const eyebrowStyle: React.CSSProperties = {
+const eyebrowStyle: CSSProperties = {
   color: "var(--accent)",
   fontSize: "13px",
   fontWeight: 800,
@@ -354,7 +318,7 @@ const eyebrowStyle: React.CSSProperties = {
   letterSpacing: "1px",
 };
 
-const titleStyle: React.CSSProperties = {
+const titleStyle: CSSProperties = {
   color: "var(--text)",
   fontSize: "42px",
   lineHeight: "1.05",
@@ -362,14 +326,14 @@ const titleStyle: React.CSSProperties = {
   letterSpacing: "-2px",
 };
 
-const subtitleStyle: React.CSSProperties = {
+const subtitleStyle: CSSProperties = {
   color: "var(--muted)",
   fontSize: "16px",
   margin: 0,
   maxWidth: "620px",
 };
 
-const systemBadgeStyle: React.CSSProperties = {
+const systemBadgeStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
@@ -383,14 +347,14 @@ const systemBadgeStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const systemBadgeDangerStyle: React.CSSProperties = {
+const systemBadgeDangerStyle: CSSProperties = {
   ...systemBadgeStyle,
   background: "rgba(239,68,68,0.12)",
   color: "var(--danger)",
   border: "1px solid rgba(239,68,68,0.25)",
 };
 
-const dotStyle: React.CSSProperties = {
+const dotStyle: CSSProperties = {
   width: "9px",
   height: "9px",
   borderRadius: "50%",
@@ -398,20 +362,20 @@ const dotStyle: React.CSSProperties = {
   boxShadow: "0 0 16px var(--success)",
 };
 
-const dotDangerStyle: React.CSSProperties = {
+const dotDangerStyle: CSSProperties = {
   ...dotStyle,
   background: "var(--danger)",
   boxShadow: "0 0 16px var(--danger)",
 };
 
-const gridStatsStyle: React.CSSProperties = {
+const gridStatsStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
   gap: "18px",
   marginBottom: "24px",
 };
 
-const cardStyle: React.CSSProperties = {
+const cardStyle: CSSProperties = {
   background: "linear-gradient(180deg, #181818, #101010)",
   border: "1px solid var(--border)",
   borderRadius: "28px",
@@ -423,33 +387,33 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 12px 35px rgba(0,0,0,0.28)",
 };
 
-const cardTitleStyle: React.CSSProperties = {
+const cardTitleStyle: CSSProperties = {
   color: "var(--muted)",
   fontSize: "14px",
   fontWeight: 700,
   marginBottom: "12px",
 };
 
-const cardValueStyle: React.CSSProperties = {
+const cardValueStyle: CSSProperties = {
   color: "var(--text)",
   fontSize: "42px",
   fontWeight: 900,
   letterSpacing: "-2px",
 };
 
-const cardNoteStyle: React.CSSProperties = {
+const cardNoteStyle: CSSProperties = {
   color: "var(--muted)",
   fontSize: "13px",
 };
 
-const mainGridStyle: React.CSSProperties = {
+const mainGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "24px",
   marginBottom: "24px",
 };
 
-const panelStyle: React.CSSProperties = {
+const panelStyle: CSSProperties = {
   background: "linear-gradient(180deg, #181818, #101010)",
   border: "1px solid var(--border)",
   borderRadius: "28px",
@@ -457,105 +421,26 @@ const panelStyle: React.CSSProperties = {
   boxShadow: "0 12px 35px rgba(0,0,0,0.28)",
 };
 
-const panelHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "16px",
-};
-
-const sectionTitleStyle: React.CSSProperties = {
+const sectionTitleStyle: CSSProperties = {
   color: "var(--text)",
   fontSize: "22px",
   margin: "0 0 10px",
   letterSpacing: "-0.5px",
 };
 
-const sectionTextStyle: React.CSSProperties = {
+const sectionTextStyle: CSSProperties = {
   color: "var(--muted)",
   margin: "0 0 22px",
   lineHeight: 1.6,
 };
 
-const miniBadgeStyle: React.CSSProperties = {
-  background: "rgba(34,197,94,0.10)",
-  color: "var(--success)",
-  border: "1px solid rgba(34,197,94,0.25)",
-  borderRadius: "999px",
-  padding: "8px 12px",
-  fontSize: "12px",
-  fontWeight: 800,
-  whiteSpace: "nowrap",
-};
-
-const miniBadgeDangerStyle: React.CSSProperties = {
-  ...miniBadgeStyle,
-  background: "rgba(239,68,68,0.10)",
-  color: "var(--danger)",
-  border: "1px solid rgba(239,68,68,0.25)",
-};
-
-const buttonRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
-};
-
-const baseButtonStyle: React.CSSProperties = {
-  border: "none",
-  color: "white",
-  padding: "14px 20px",
-  borderRadius: "18px",
-  fontWeight: 800,
-  fontSize: "15px",
-  cursor: "pointer",
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: "linear-gradient(to right, #ef4444, #dc2626)",
-};
-
-const warningButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: "linear-gradient(to right, #f59e0b, #d97706)",
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...baseButtonStyle,
-  background: "var(--panel-2)",
-  border: "1px solid var(--border)",
-};
-
-const lockdownStyle: React.CSSProperties = {
-  marginTop: "18px",
-  padding: "12px 14px",
-  borderRadius: "16px",
-  background: "rgba(245,158,11,0.12)",
-  border: "1px solid rgba(245,158,11,0.28)",
-  color: "#fbbf24",
-  fontSize: "13px",
-  fontWeight: 800,
-};
-
-const normalStyle: React.CSSProperties = {
-  marginTop: "18px",
-  padding: "12px 14px",
-  borderRadius: "16px",
-  background: "rgba(34,197,94,0.10)",
-  border: "1px solid rgba(34,197,94,0.25)",
-  color: "var(--success)",
-  fontSize: "13px",
-  fontWeight: 800,
-};
-
-const statusListStyle: React.CSSProperties = {
+const statusListStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "14px",
 };
 
-const statusRowStyle: React.CSSProperties = {
+const statusRowStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "16px",
@@ -563,7 +448,7 @@ const statusRowStyle: React.CSSProperties = {
   paddingBottom: "12px",
 };
 
-const emptyStyle: React.CSSProperties = {
+const emptyStyle: CSSProperties = {
   color: "var(--muted)",
   border: "1px dashed var(--border)",
   borderRadius: "18px",
@@ -571,14 +456,14 @@ const emptyStyle: React.CSSProperties = {
   marginBottom: "18px",
 };
 
-const logsListStyle: React.CSSProperties = {
+const logsListStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "10px",
   marginBottom: "18px",
 };
 
-const logRowStyle: React.CSSProperties = {
+const logRowStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "14px",
@@ -588,20 +473,20 @@ const logRowStyle: React.CSSProperties = {
   border: "1px solid var(--border)",
 };
 
-const mutedSmallStyle: React.CSSProperties = {
+const mutedSmallStyle: CSSProperties = {
   color: "var(--muted)",
   fontSize: "12px",
   marginTop: "5px",
 };
 
-const logStatusStyle = (allowed: boolean): React.CSSProperties => ({
+const logStatusStyle = (allowed: boolean): CSSProperties => ({
   display: "inline-block",
   color: allowed ? "var(--success)" : "var(--danger)",
   fontWeight: 900,
   fontSize: "13px",
 });
 
-const linkButtonStyle: React.CSSProperties = {
+const linkButtonStyle: CSSProperties = {
   display: "inline-block",
   background: "linear-gradient(to right, #ef4444, #dc2626)",
   color: "white",
@@ -611,13 +496,13 @@ const linkButtonStyle: React.CSSProperties = {
   textDecoration: "none",
 };
 
-const quickLinksStyle: React.CSSProperties = {
+const quickLinksStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "12px",
 };
 
-const quickLinkStyle: React.CSSProperties = {
+const quickLinkStyle: CSSProperties = {
   background: "var(--panel-2)",
   color: "var(--text)",
   border: "1px solid var(--border)",
