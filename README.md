@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BodyGate
 
-## Getting Started
+## Enterprise Fitness Operating System
 
-First, run the development server:
+BodyGate is a next-generation fitness management platform designed to unify:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Gym CRM
+- Smart Access Control
+- Training Platform
+- Athlete App
+- Hardware Integration
+- Realtime Monitoring
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The project combines modern web technologies with real hardware access control systems to create a complete enterprise-grade fitness ecosystem.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Main Features
 
-## Learn More
+## Smart Access Control
 
-To learn more about Next.js, take a look at the following resources:
+- Badge verification
+- NFC support
+- QR access ready
+- Realtime access validation
+- Turnstile integration
+- Medical certificate validation
+- Membership fee validation
+- Subscription validation
+- Customer block system
+- Realtime presence monitoring
+- Access logs
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Gym CRM
 
-## Deploy on Vercel
+- Customer management
+- Membership fees
+- Subscription plans
+- Customer notes
+- Internal blocks
+- Access history
+- Realtime dashboard
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Training Platform
+
+### Live Workout Engine
+- Workout sessions
+- Exercise tracking
+- Set completion
+- Reps / Weight tracking
+- Progress %
+- Workout summary
+
+### Training Features
+- Program builder
+- Exercise library
+- Rest timer
+- PR Engine
+- AI progression system
+- Exercise media system
+- Coach tips
+- Machine setup notes
+- Tutorial videos
+
+### Athlete App
+Routes:
+- `/training`
+- `/training/programs`
+- `/training/workouts/[sessionId]`
+- `/training/library`
+- `/training/athlete`
+
+---
+
+# Technology Stack
+
+## Frontend
+- Next.js App Router
+- React
+- TypeScript
+- Tailwind CSS
+
+## Backend
+- Next.js API Routes
+- Supabase PostgreSQL
+- Realtime subscriptions
+
+## Hardware Integration
+- TCP/IP access controllers
+- Wiegand support
+- BodyGate Access Bridge (.NET 8 C#)
+- Turnstile integration
+
+---
+
+# Current Architecture
+
+```text
+Reader / Smart Terminal
+↓
+TCP/IP Controller
+↓
+BodyGate Access Bridge (.NET 8)
+↓
+BodyGate API
+↓
+Supabase Database
+↓
+Access Decision
+↓
+OpenDoor()
+↓
+Turnstile
