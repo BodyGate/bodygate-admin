@@ -83,6 +83,25 @@ export async function POST(req: Request) {
       });
     }
 
+    async function markPresenceInside() {
+      await supabase
+        .from("gym_presence")
+        .update({
+          is_inside: false,
+          exited_at: new Date().toISOString(),
+        })
+        .eq("customer_id", customerId)
+        .eq("is_inside", true);
+
+      await supabase.from("gym_presence").insert({
+        customer_id: customerId,
+        branch_id: branchId,
+        badge_code: badge,
+        is_inside: true,
+        source: "turnstile",
+      });
+    }
+
     if (!branchId) {
       await logAccess(false, "Cliente non associato a nessuna sede");
 
@@ -191,6 +210,7 @@ export async function POST(req: Request) {
     }
 
     await logAccess(true, "Accesso consentito");
+    await markPresenceInside();
 
     return NextResponse.json({
       ok: true,

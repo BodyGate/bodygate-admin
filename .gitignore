@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# BodyGate Bridge Logs
+*.log
+logs/
+bridge/**/logs/
+
+# .NET build
+bin/
+obj/
+
+# temp
+tmp/
+temp/
+
+# local runtime files
+*.db-shm
+*.db-wal
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini

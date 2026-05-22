@@ -10,11 +10,7 @@ import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 type Customer = any;
 type Plan = any;
 
-export default function CustomerDetailsClient({
-  customerId,
-}: {
-  customerId: string;
-}) {
+export default function CustomerDetailsClient({ customerId }: { customerId: string }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -63,16 +59,18 @@ export default function CustomerDetailsClient({
 
       setCustomer(customerData);
 
-      if (customerData.branch_id) {
-        const { data: plansData } = await supabase
-          .from("subscription_plans")
-          .select("*")
-          .eq("branch_id", customerData.branch_id)
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true });
+      let plansQuery = supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
 
-        setPlans(plansData || []);
+      if (customerData.branch_id) {
+        plansQuery = plansQuery.eq("branch_id", customerData.branch_id);
       }
+
+      const { data: plansData } = await plansQuery;
+      setPlans(plansData || []);
 
       const { data: subs } = await supabase
         .from("customer_subscriptions")
@@ -159,30 +157,88 @@ export default function CustomerDetailsClient({
     { label: "Data nascita", value: customer?.birth_date || "-" },
   ];
 
+  async function getCashPaymentMethodId() {
+    const { data } = await supabase
+      .from("payment_methods")
+      .select("id")
+      .eq("method_key", "cash")
+      .maybeSingle();
+
+    return data?.id || null;
+  }
+
   async function renewMembershipFee() {
     if (!customer?.branch_id) return alert("Cliente senza sede.");
 
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + 365);
 
+    const membershipAmount = 10;
+    const paymentMethodId = await getCashPaymentMethodId();
+
+    const { data: payment, error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        customer_id: customerId,
+        payment_method_id: paymentMethodId,
+        amount: membershipAmount,
+        payment_type: "membership_fee",
+        description: "Quota associativa annuale",
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        created_by: "admin@bodygate.it",
+      })
+      .select("id")
+      .single();
+
+    if (paymentError) {
+      alert("Errore registrazione pagamento quota associativa.");
+      return;
+    }
+
+    await supabase.from("cash_movements").insert({
+      movement_type: "income",
+      amount: membershipAmount,
+      category: "membership_fee",
+      description: "Incasso quota associativa",
+      payment_id: payment?.id || null,
+      created_by: "admin@bodygate.it",
+      movement_at: new Date().toISOString(),
+    });
+
     await supabase.from("customer_membership_fees").insert({
       customer_id: customerId,
       branch_id: customer.branch_id,
-      amount: 10,
+      amount: membershipAmount,
       valid_from: today,
       valid_until: validUntil.toISOString().slice(0, 10),
       payment_method: "cash",
+    });
+
+    await supabase.from("audit_logs").insert({
+      staff_email: "admin@bodygate.it",
+      staff_name: "Admin BodyGate",
+      action: "membership_fee_renewed",
+      entity_type: "customer",
+      entity_id: customerId,
+      details: {
+        customer_name: customerName,
+        amount: membershipAmount,
+        valid_until: validUntil.toISOString().slice(0, 10),
+      },
     });
 
     await supabase.from("customer_timeline").insert({
       customer_id: customerId,
       type: "membership",
       title: "Quota associativa rinnovata",
-      description: `Quota €10 valida fino al ${validUntil.toISOString().slice(0, 10)}`,
+      description: `Quota €${membershipAmount} valida fino al ${validUntil
+        .toISOString()
+        .slice(0, 10)}`,
     });
 
     await loadAll();
-    alert("Quota associativa rinnovata.");
+    alert("Quota associativa rinnovata e pagamento registrato.");
   }
 
   async function renewSubscription() {
@@ -192,31 +248,84 @@ export default function CustomerDetailsClient({
     const plan = plans.find((p) => p.id === selectedPlanId);
     if (!plan) return alert("Piano non trovato.");
 
+    const finalPrice = Number(plan.promo_price || plan.price || 0);
+
+    if (!finalPrice || finalPrice <= 0) {
+      return alert("Prezzo piano non valido.");
+    }
+
     const end = new Date();
-    end.setDate(end.getDate() + Number(plan.duration_days));
+    end.setDate(end.getDate() + Number(plan.duration_days || 0));
+
+    const paymentMethodId = await getCashPaymentMethodId();
+
+    const { data: payment, error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        customer_id: customerId,
+        payment_method_id: paymentMethodId,
+        amount: finalPrice,
+        payment_type: "subscription",
+        description: `Abbonamento ${plan.name}`,
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        created_by: "admin@bodygate.it",
+      })
+      .select("id")
+      .single();
+
+    if (paymentError) {
+      alert("Errore registrazione pagamento abbonamento.");
+      return;
+    }
+
+    await supabase.from("cash_movements").insert({
+      movement_type: "income",
+      amount: finalPrice,
+      category: "subscription",
+      description: `Incasso ${plan.name}`,
+      payment_id: payment?.id || null,
+      created_by: "admin@bodygate.it",
+      movement_at: new Date().toISOString(),
+    });
 
     await supabase.from("customer_subscriptions").insert({
       customer_id: customerId,
       branch_id: customer.branch_id,
       plan_id: plan.id,
-      amount: plan.price,
+      amount: finalPrice,
       starts_at: today,
       ends_at: end.toISOString().slice(0, 10),
       is_active: true,
       payment_method: "cash",
     });
 
+    await supabase.from("audit_logs").insert({
+      staff_email: "admin@bodygate.it",
+      staff_name: "Admin BodyGate",
+      action: "subscription_renewed",
+      entity_type: "customer",
+      entity_id: customerId,
+      details: {
+        customer_name: customerName,
+        plan_name: plan.name,
+        amount: finalPrice,
+        valid_until: end.toISOString().slice(0, 10),
+      },
+    });
+
     await supabase.from("customer_timeline").insert({
       customer_id: customerId,
       type: "subscription",
       title: "Abbonamento rinnovato",
-      description: `${plan.name} - €${plan.price} - valido fino al ${end
+      description: `${plan.name} - €${finalPrice} - valido fino al ${end
         .toISOString()
         .slice(0, 10)}`,
     });
 
+    setSelectedPlanId("");
     await loadAll();
-    alert("Abbonamento rinnovato.");
+    alert("Abbonamento rinnovato e pagamento registrato.");
   }
 
   async function addNote() {
@@ -686,7 +795,7 @@ export default function CustomerDetailsClient({
 
       <div className="grid">
         <div className="card">
-          <h2>Rinnovo rapido</h2>
+          <h2>Rinnovo rapido + pagamento</h2>
 
           <button onClick={renewMembershipFee}>
             Rinnova quota associativa 10€
@@ -700,7 +809,8 @@ export default function CustomerDetailsClient({
               <option value="">Seleziona abbonamento</option>
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
-                  {plan.name} - €{plan.price} - {plan.duration_days} giorni
+                  {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} -{" "}
+                  {plan.duration_days} giorni
                 </option>
               ))}
             </select>
@@ -724,9 +834,7 @@ export default function CustomerDetailsClient({
             <button onClick={addBlock}>Blocca</button>
           </div>
 
-          {blocks.length === 0 && (
-            <p className="empty">Nessun blocco presente.</p>
-          )}
+          {blocks.length === 0 && <p className="empty">Nessun blocco presente.</p>}
 
           {blocks.map((block) => (
             <div className="row" key={block.id}>
@@ -738,10 +846,7 @@ export default function CustomerDetailsClient({
               </div>
 
               {block.is_active && (
-                <button
-                  className="secondary-btn"
-                  onClick={() => disableBlock(block.id)}
-                >
+                <button className="secondary-btn" onClick={() => disableBlock(block.id)}>
                   Sblocca
                 </button>
               )}
@@ -752,9 +857,7 @@ export default function CustomerDetailsClient({
 
       <div className="grid">
         <HistoryCard title="Storico abbonamenti">
-          {subscriptions.length === 0 && (
-            <p className="empty">Nessun abbonamento.</p>
-          )}
+          {subscriptions.length === 0 && <p className="empty">Nessun abbonamento.</p>}
 
           {subscriptions.map((sub) => (
             <InfoRow
@@ -798,9 +901,7 @@ export default function CustomerDetailsClient({
             </button>
           </div>
 
-          {notes.length === 0 && (
-            <p className="empty">Nessuna nota interna.</p>
-          )}
+          {notes.length === 0 && <p className="empty">Nessuna nota interna.</p>}
 
           {notes.map((note) => (
             <div className="row" key={note.id}>
@@ -815,9 +916,7 @@ export default function CustomerDetailsClient({
         </div>
 
         <HistoryCard title="Ultimi accessi">
-          {accessLogs.length === 0 && (
-            <p className="empty">Nessun accesso registrato.</p>
-          )}
+          {accessLogs.length === 0 && <p className="empty">Nessun accesso registrato.</p>}
 
           {accessLogs.map((log) => (
             <InfoRow
@@ -849,9 +948,7 @@ function StatusBox({
   return (
     <div className="status-box">
       <div className="status-label">{label}</div>
-      <div className={`status-value ${ok ? "ok-text" : "ko-text"}`}>
-        {value}
-      </div>
+      <div className={`status-value ${ok ? "ok-text" : "ko-text"}`}>{value}</div>
 
       <style jsx>{`
         .ok-text {
@@ -866,13 +963,7 @@ function StatusBox({
   );
 }
 
-function HistoryCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+function HistoryCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="card">
       <h2>{title}</h2>
