@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 
@@ -102,7 +102,7 @@ export default function ReceptionDashboard() {
     return date.toISOString().slice(0, 10);
   }
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const today = todayString();
@@ -167,10 +167,12 @@ export default function ReceptionDashboard() {
     setLogs((logsData || []) as AccessLog[]);
     setCertificates((certificatesData || []) as Certificate[]);
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
-    loadData();
+    const bootstrap = window.setTimeout(() => {
+      void loadData();
+    }, 0);
 
     const channel = supabase
       .channel("reception_dashboard_live")
@@ -191,9 +193,10 @@ export default function ReceptionDashboard() {
       )
       .subscribe();
     return () => {
+      window.clearTimeout(bootstrap);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadData]);
 
   function setQuickField<K extends keyof QuickCreateForm>(
     key: K,
