@@ -63,9 +63,11 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 | `/api/subscriptions/check-expired` | `GET`/job | nessuno | elenco/conta scaduti | `customer_subscriptions` | parziale |
 | `/api/customers/[id]/documents/create` | `POST` | metadati documento | record documento | documenti cliente | parziale |
 | `/api/customers/[id]/payments/[paymentId]/receipt/create` | `POST` | payload ricevuta | ricevuta creata | pagamenti/ricevute | parziale |
+| `/api/customers/list` | `GET` | nessuno | elenco clienti CRM ordinato | `customers` | completo |
 | `/api/admin/test` | `GET` | nessuno | health/admin test | nessuna tabella | parziale |
 
 ### Note operative API
+- `/customers` ora carica i dati tramite API server-side `/api/customers/list` (service role) per evitare risposte vuote dovute a RLS/sessione client anon.
 - Il middleware lascia pubblica `/api/access/check` per consentire chiamata bridge locale.
 - Le API bridge (`/api/bridge/status`, `/api/turnstile/open`) dipendono da `http://localhost:5050`.
 
