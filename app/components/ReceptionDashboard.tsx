@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 
@@ -27,6 +27,21 @@ type AccessLog = {
     first_name?: string | null;
     last_name?: string | null;
   } | null;
+};
+
+type QuickCreateForm = {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  tax_code: string;
+  badge_code: string;
+  controller_code: string;
+  medical_valid_from: string;
+  medical_valid_until: string;
+  membership_valid_until: string;
+  subscription_starts_at: string;
+  subscription_ends_at: string;
 };
 
 type Certificate = {
@@ -66,6 +81,26 @@ export default function ReceptionDashboard() {
   });
   const [bridgeLoading, setBridgeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [savingQuick, setSavingQuick] = useState(false);
+  const [quickError, setQuickError] = useState("");
+  const [quickSuccess, setQuickSuccess] = useState("");
+  const [quickWarnings, setQuickWarnings] = useState<string[]>([]);
+
+  const [quickForm, setQuickForm] = useState<QuickCreateForm>({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    email: "",
+    tax_code: "",
+    badge_code: "",
+    controller_code: "",
+    medical_valid_from: "",
+    medical_valid_until: "",
+    membership_valid_until: "",
+    subscription_starts_at: "",
+    subscription_ends_at: "",
+  });
 
   function getName(item: {
     full_name?: string | null;
@@ -87,7 +122,7 @@ export default function ReceptionDashboard() {
     return date.toISOString().slice(0, 10);
   }
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const today = todayString();
@@ -152,7 +187,7 @@ export default function ReceptionDashboard() {
     setLogs((logsData || []) as AccessLog[]);
     setCertificates((certificatesData || []) as Certificate[]);
     setLoading(false);
-  }
+  }, []);
 
   async function loadBridgeStatus() {
     setBridgeLoading(true);
@@ -244,11 +279,184 @@ useEffect(() => {
         () => loadData()
       )
       .subscribe();
-
     return () => {
+      window.clearTimeout(bootstrap);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadData]);
+
+  function setQuickField<K extends keyof QuickCreateForm>(
+    key: K,
+    value: QuickCreateForm[K]
+  ) {
+    setQuickForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function resetQuickForm() {
+    setQuickForm({
+      first_name: "",
+      last_name: "",
+      phone: "",
+      email: "",
+      tax_code: "",
+      badge_code: "",
+      controller_code: "",
+      medical_valid_from: "",
+      medical_valid_until: "",
+      membership_valid_until: "",
+      subscription_starts_at: "",
+      subscription_ends_at: "",
+    });
+    setQuickWarnings([]);
+    setQuickError("");
+  }
+
+  function isMissingTableError(message: string) {
+    const lower = message.toLowerCase();
+    return lower.includes("does not exist") || lower.includes("42p01") || lower.includes("relation");
+  }
+
+  async function submitQuickCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    setQuickError("");
+    setQuickSuccess("");
+    setQuickWarnings([]);
+
+    const firstName = quickForm.first_name.trim();
+    const lastName = quickForm.last_name.trim();
+
+    if (!firstName || !lastName) {
+      setQuickError("Nome e cognome sono obbligatori.");
+      return;
+    }
+
+    const badgeCode = quickForm.badge_code.trim();
+    const controllerCode = quickForm.controller_code.trim();
+
+    if (!badgeCode && !controllerCode) {
+      setQuickError(
+        "Inserisci almeno badge code o controller code per creare la credenziale di accesso."
+      );
+      return;
+    }
+
+    if (quickForm.medical_valid_from && quickForm.medical_valid_until && quickForm.medical_valid_until < quickForm.medical_valid_from) {
+      setQuickError("La data fine certificato non può essere precedente alla data inizio.");
+      return;
+    }
+
+    if (quickForm.subscription_starts_at && quickForm.subscription_ends_at && quickForm.subscription_ends_at < quickForm.subscription_starts_at) {
+      setQuickError("La data fine abbonamento non può essere precedente alla data inizio.");
+      return;
+    }
+
+    setSavingQuick(true);
+
+    const warnings: string[] = [];
+
+    const customerPayload: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`.trim(),
+      phone: quickForm.phone.trim() || null,
+      email: quickForm.email.trim() || null,
+      tax_code: quickForm.tax_code.trim() || null,
+      active: true,
+    };
+
+    if (quickForm.medical_valid_until) {
+      customerPayload.medical_certificate_end_date = quickForm.medical_valid_until;
+      customerPayload.medical_certificate_end = quickForm.medical_valid_until;
+    }
+
+    const { data: customer, error: customerError } = await supabase
+      .from("customers")
+      .insert(customerPayload)
+      .select("id")
+      .single();
+
+    if (customerError || !customer) {
+      setQuickError(`Errore creazione cliente: ${customerError?.message || "cliente non creato"}`);
+      setSavingQuick(false);
+      return;
+    }
+
+    const customerId = customer.id;
+
+    const accessCredentialPayload = {
+      customer_id: customerId,
+      code: badgeCode || controllerCode,
+      controller_code: controllerCode || null,
+      status: "active",
+    };
+
+    const { error: credentialError } = await supabase
+      .from("access_credentials")
+      .insert(accessCredentialPayload);
+
+    if (credentialError) {
+      if (isMissingTableError(credentialError.message)) {
+        warnings.push("Tabella access_credentials non trovata: credenziale accesso non salvata.");
+      } else {
+        setQuickError(
+          `Cliente creato ma credenziale accesso non salvata: ${credentialError.message}`
+        );
+        setSavingQuick(false);
+        return;
+      }
+    }
+
+    if (quickForm.medical_valid_from && quickForm.medical_valid_until) {
+      const { error: certError } = await supabase.from("medical_certificates").insert({
+        customer_id: customerId,
+        valid_from: quickForm.medical_valid_from,
+        valid_until: quickForm.medical_valid_until,
+        expiry_date: quickForm.medical_valid_until,
+        status: "valid",
+        certificate_type: "non_agonistico",
+      });
+
+      if (certError) {
+        if (isMissingTableError(certError.message)) {
+          warnings.push("Tabella medical_certificates non trovata: certificato salvato solo su customers.");
+        } else {
+          warnings.push(`Certificato non inserito: ${certError.message}`);
+        }
+      }
+    }
+
+    if (quickForm.membership_valid_until) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error: membershipError } = await supabase.from("customer_membership_fees").insert({
+        customer_id: customerId,
+        valid_from: today,
+        valid_until: quickForm.membership_valid_until,
+      });
+      if (membershipError) {
+        warnings.push(`Quota associativa non inserita: ${membershipError.message}`);
+      }
+    }
+
+    if (quickForm.subscription_starts_at && quickForm.subscription_ends_at) {
+      const { error: subscriptionError } = await supabase.from("customer_subscriptions").insert({
+        customer_id: customerId,
+        is_active: true,
+        starts_at: quickForm.subscription_starts_at,
+        ends_at: quickForm.subscription_ends_at,
+      });
+
+      if (subscriptionError) {
+        warnings.push(`Abbonamento non inserito: ${subscriptionError.message}`);
+      }
+    }
+
+    setQuickWarnings(warnings);
+    setQuickSuccess("Nuovo cliente creato correttamente.");
+    await loadData();
+    resetQuickForm();
+    setShowQuickModal(false);
+    setSavingQuick(false);
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -355,11 +563,53 @@ useEffect(() => {
           </p>
         </div>
 
-        <div style={liveBadgeStyle}>
+        <div style={heroActionsStyle}>
+          <button style={primaryButtonStyle} onClick={() => setShowQuickModal(true)}>
+            Nuovo cliente
+          </button>
+
+          <div style={liveBadgeStyle}>
           <span style={dotStyle} />
           Live
         </div>
+        </div>
       </div>
+
+      {showQuickModal && (
+        <div style={modalOverlayStyle}>
+          <div style={modalStyle}>
+            <div style={modalHeaderStyle}>
+              <h2 style={{ margin: 0 }}>Nuovo cliente rapido</h2>
+              <button style={closeButtonStyle} onClick={() => { setShowQuickModal(false); setQuickError(""); }}>✕</button>
+            </div>
+            <form onSubmit={submitQuickCustomer} style={modalFormStyle}>
+              <div style={modalGridStyle}>
+                <input style={inputStyle} placeholder="Nome" value={quickForm.first_name} onChange={(e) => setQuickField("first_name", e.target.value)} />
+                <input style={inputStyle} placeholder="Cognome" value={quickForm.last_name} onChange={(e) => setQuickField("last_name", e.target.value)} />
+                <input style={inputStyle} placeholder="Telefono" value={quickForm.phone} onChange={(e) => setQuickField("phone", e.target.value)} />
+                <input style={inputStyle} placeholder="Email" value={quickForm.email} onChange={(e) => setQuickField("email", e.target.value)} />
+                <input style={inputStyle} placeholder="Codice fiscale" value={quickForm.tax_code} onChange={(e) => setQuickField("tax_code", e.target.value.toUpperCase())} />
+                <input style={inputStyle} placeholder="Badge code" value={quickForm.badge_code} onChange={(e) => setQuickField("badge_code", e.target.value)} />
+                <input style={inputStyle} placeholder="Controller code (opzionale)" value={quickForm.controller_code} onChange={(e) => setQuickField("controller_code", e.target.value)} />
+                <label style={labelStyle}>Inizio certificato<input type="date" style={inputStyle} value={quickForm.medical_valid_from} onChange={(e) => setQuickField("medical_valid_from", e.target.value)} /></label>
+                <label style={labelStyle}>Fine certificato<input type="date" style={inputStyle} value={quickForm.medical_valid_until} onChange={(e) => setQuickField("medical_valid_until", e.target.value)} /></label>
+                <label style={labelStyle}>Quota associativa fino al<input type="date" style={inputStyle} value={quickForm.membership_valid_until} onChange={(e) => setQuickField("membership_valid_until", e.target.value)} /></label>
+                <label style={labelStyle}>Abbonamento dal<input type="date" style={inputStyle} value={quickForm.subscription_starts_at} onChange={(e) => setQuickField("subscription_starts_at", e.target.value)} /></label>
+                <label style={labelStyle}>Abbonamento al<input type="date" style={inputStyle} value={quickForm.subscription_ends_at} onChange={(e) => setQuickField("subscription_ends_at", e.target.value)} /></label>
+              </div>
+
+              {quickError && <div style={errorStyle}>{quickError}</div>}
+              {quickWarnings.length > 0 && <div style={warningStyle}>{quickWarnings.map((w) => <div key={w}>• {w}</div>)}</div>}
+              {quickSuccess && <div style={successStyle}>{quickSuccess}</div>}
+
+              <div style={modalActionsStyle}>
+                <button type="button" style={secondaryButtonStyle} onClick={() => { setShowQuickModal(false); setQuickError(""); }}>Annulla</button>
+                <button type="submit" style={primaryButtonStyle} disabled={savingQuick}>{savingQuick ? "Salvataggio..." : "Salva cliente"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div style={alertsGridStyle}>
         <BridgeStatusCard
@@ -819,6 +1069,97 @@ const statusBadgeStyle: React.CSSProperties = {
   fontSize: "12px",
   whiteSpace: "nowrap",
 };
+
+
+const heroActionsStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  color: "white",
+  background: "linear-gradient(180deg,#ef4444,#b91c1c)",
+  border: "1px solid rgba(239,68,68,0.5)",
+  borderRadius: "14px",
+  padding: "12px 16px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  color: "var(--text)",
+  border: "1px solid var(--border)",
+  borderRadius: "14px",
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const modalOverlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.72)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 80,
+  padding: "24px",
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "min(980px, 100%)",
+  maxHeight: "88vh",
+  overflowY: "auto",
+  background: "linear-gradient(180deg, #181818, #101010)",
+  border: "1px solid var(--border)",
+  borderRadius: "24px",
+  padding: "22px",
+};
+
+const modalHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "14px",
+};
+
+const closeButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: "var(--muted)",
+  fontSize: "24px",
+  cursor: "pointer",
+};
+
+const modalFormStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const modalGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+};
+
+const modalActionsStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "10px",
+};
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--muted)",
+  display: "grid",
+  gap: "6px",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const errorStyle: React.CSSProperties = { color: "#fca5a5" };
+const warningStyle: React.CSSProperties = { color: "#fcd34d", fontSize: "13px" };
+const successStyle: React.CSSProperties = { color: "#86efac" };
 
 const smallLinkStyle: React.CSSProperties = {
   color: "white",
