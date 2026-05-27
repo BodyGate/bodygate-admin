@@ -15,7 +15,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 |---|---|---|
 | `/` | Home dashboard generale | parziale |
 | `/login` | Accesso operatori | parziale |
-| `/reception` | Dashboard reception live accessi | parziale |
+| `/reception` | Dashboard reception live accessi + bridge status live (polling 5s) | parziale |
 | `/access` | Pannello accessi | parziale |
 | `/access-logs` | Storico accessi | parziale |
 | `/access-denied` | Vista denial accessi | parziale |
@@ -53,7 +53,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 | `/api/access/check` | `POST` (`GET` info) | `badge`/`badge_code` | `allowed`, `reason`, dati cliente/badge | `customer_badges`, `customers`, `customer_blocks`, `membership_fee_settings`, `customer_membership_fees`, `customer_subscriptions`, `customer_access_logs`, `gym_presence`, `unknown_badge_logs` | **completo** (core accesso reale) |
 | `/api/access/log` | `POST` (`GET` info) | payload bridge (badge, door, reader, allowed, open_warning...) | `ok`, `log_id` | `access_logs` | completo |
 | `/api/access/stats` | `GET` | nessuno | stats giornaliere accessi | `access_logs` | parziale |
-| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `bridge`) | nessuna tabella diretta | completo |
+| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `connected`, `lastBadge`, `lastBadgeTime`, `processing`, `bridge`) con fallback errore | nessuna tabella diretta | completo |
 | `/api/turnstile/open` | `POST` | nessuno (inoltro a bridge `/open`) | esito apertura | nessuna tabella diretta | completo |
 | `/api/gate/open` | `POST` | richiesta apertura | esito apertura/errore bridge | (indiretta) | parziale |
 | `/api/auth/login` | `POST` | `email`, `password` | cookie session + user role | `app_users` | parziale |
@@ -179,7 +179,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ## 7) Funzioni incomplete o provvisorie
 
-- Dashboard reception live: **parziale** (stabilità realtime/KPI da consolidare).
+- Dashboard reception live: **parziale** (include card stato bridge live con refresh manuale + auto refresh 5s; KPI da consolidare).
 - Settings: **parziale** (moduli/prezzi/permessi da harden).
 - Report/analytics: **parziale**.
 - Training platform: **parziale** (molte feature presenti, maturità non finale).
@@ -223,4 +223,3 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Middleware access/public routes: `middleware.ts`
 - Bridge C# core: `bridge/bridge-v2/Program.cs`
 - Bridge dependency: `bridge/bridge-v2/TcpClass.dll`
-
