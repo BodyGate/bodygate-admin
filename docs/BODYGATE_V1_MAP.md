@@ -262,3 +262,11 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Migliorata leggibilità dark/premium con microcopy orientato all’operatività reception e riduzione del rumore visivo.
 - Polling/realtime esistente mantenuto invariato (bridge polling 5s + subscription Supabase).
 - Nessuna modifica al bridge C#, a `/api/access/check` o alle logiche tornello/accesso.
+
+## 13) Customer Timeline V1 (2026-05-27)
+
+- Timeline cliente aggiornata in `app/customers/components/CustomerTimeline.tsx` con aggregazione eventi multi-sorgente.
+- Fonti coperte con fallback safe (se tabella assente/campi diversi): `customer_access_logs`, `access_logs` (link via `customer_id` e badge), `customer_subscriptions`, `customer_membership_fees`, `medical_certificates`, `customer_blocks`, `customer_internal_notes`, `payments`, `customer_payments`, `customer_documents`, `documents`, `customer_badges`, `access_credentials`, `customer_timeline` legacy.
+- Ordinamento unico dal più recente al più vecchio su timestamp evento.
+- Ogni evento espone tipo, titolo, descrizione, data/ora, stato, eventuale importo e colore semantico.
+- Nessuna modifica a bridge C# e nessuna modifica a `/api/access/check`.
