@@ -197,8 +197,34 @@ export default function ReceptionDashboard() {
   }
 
   useEffect(() => {
+useEffect(() => {
+  queueMicrotask(() => {
     loadData();
-    loadBridgeStatus();
+  });
+
+  const channel = supabase
+    .channel("reception_dashboard_live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "access_logs" },
+      () => loadData()
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "customers" },
+      () => loadData()
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "medical_certificates" },
+      () => loadData()
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
     const channel = supabase
       .channel("reception_dashboard_live")
