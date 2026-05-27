@@ -247,3 +247,11 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Esecuzione tramite **Utilità di pianificazione** all'avvio sistema con opzione "se non già in esecuzione" (single instance).
 - Comando esempio: `"C:\BodyGate\Bridge\BodyGateAccessBridge.exe"`
 - Opzionale script lock file/mutex da introdurre in V2 prima di abilitare auto-restart automatico.
+## 11) Access Alert System V1 — Reception (2026-05-27)
+
+- Implementata card **“Alert Reception”** nella pagina `/reception` con severità `info` / `warning` / `critical` e messaggio operativo per front desk.
+- Alert coperti in V1: bridge `offline`, bridge `degraded`, badge sconosciuto, negato per abbonamento, negato per certificato medico, negato per quota associativa, cliente bloccato, negati ripetuti stesso badge/cliente.
+- Ogni riga alert mostra: tipo, severità, messaggio chiaro, orario, riferimento badge/cliente e azione suggerita.
+- Fonti dati usate senza toccare bridge C#: `customer_access_logs`, `access_logs`, `gym_presence`, `customers`, endpoint `/api/bridge/status`.
+- Realtime/polling mantenuto: subscription Supabase su log/presenze + polling bridge ogni 5 secondi.
+- Nessuna modifica a `/api/access/check`, nessuna modifica al bridge C#, nessuna regressione introdotta al flusso “Nuovo cliente rapido” o Bridge Watchdog V1.

@@ -29,6 +29,40 @@ type AccessLog = {
   } | null;
 };
 
+
+
+type CustomerAccessLog = {
+  id: string;
+  created_at: string;
+  customer_id: string | null;
+  badge_code: string | null;
+  allowed: boolean;
+  denial_reason: string | null;
+  customers?: {
+    full_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+};
+
+type GymPresence = {
+  id: string;
+  customer_id: string;
+  badge_code: string | null;
+  is_inside: boolean | null;
+  updated_at: string;
+};
+
+type ReceptionAlert = {
+  id: string;
+  type: string;
+  severity: "info" | "warning" | "critical";
+  message: string;
+  suggestedAction: string;
+  time: string;
+  badgeOrCustomer: string;
+};
+
 type BridgeWatchdog = {
   state: "online" | "degraded" | "offline";
   process_active: boolean | null;
@@ -77,6 +111,8 @@ export default function ReceptionDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [customerAccessLogs, setCustomerAccessLogs] = useState<CustomerAccessLog[]>([]);
+  const [gymPresence, setGymPresence] = useState<GymPresence[]>([]);
 
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
     online: false,
@@ -148,6 +184,8 @@ export default function ReceptionDashboard() {
       { data: customersData },
       { data: logsData },
       { data: certificatesData },
+      { data: customerAccessData },
+      { data: gymPresenceData },
     ] = await Promise.all([
       supabase
         .from("customers")
@@ -193,11 +231,38 @@ export default function ReceptionDashboard() {
         .lte("valid_until", in30Days)
         .order("valid_until", { ascending: true })
         .limit(20),
+
+      supabase
+        .from("customer_access_logs")
+        .select(`
+          id,
+          created_at,
+          customer_id,
+          badge_code,
+          allowed,
+          denial_reason,
+          customers (
+            full_name,
+            first_name,
+            last_name
+          )
+        `)
+        .gte("created_at", `${today}T00:00:00`)
+        .order("created_at", { ascending: false })
+        .limit(120),
+
+      supabase
+        .from("gym_presence")
+        .select("id, customer_id, badge_code, is_inside, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(120),
     ]);
 
     setCustomers((customersData || []) as Customer[]);
     setLogs((logsData || []) as AccessLog[]);
     setCertificates((certificatesData || []) as Certificate[]);
+    setCustomerAccessLogs((customerAccessData || []) as CustomerAccessLog[]);
+    setGymPresence((gymPresenceData || []) as GymPresence[]);
     setLoading(false);
   }, []);
 
@@ -282,9 +347,19 @@ export default function ReceptionDashboard() {
         { event: "*", schema: "public", table: "customers" },
         () => loadData()
       )
-      .on(
+       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "medical_certificates" },
+        () => loadData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "customer_access_logs" },
+        () => loadData()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gym_presence" },
         () => loadData()
       )
       .subscribe();
@@ -529,57 +604,131 @@ export default function ReceptionDashboard() {
     };
   }, [customers, logs, certificates]);
 
-  const alerts = useMemo(() => {
-    const items: {
-      title: string;
-      text: string;
-      tone: "danger" | "warning" | "success";
-      href?: string;
-    }[] = [];
+  const receptionAlerts = useMemo<ReceptionAlert[]>(() => {
+    const items: ReceptionAlert[] = [];
+    const now = new Date().toISOString();
 
-    if (stats.deniedToday > 0) {
+    const latestDenied = customerAccessLogs.find((log) => !log.allowed) || logs.find((log) => !log.allowed);
+    const insideNow = gymPresence.filter((p) => p.is_inside).length;
+
+    if (!bridgeStatus.online || bridgeWatchdog.state === "offline") {
       items.push({
-        title: "Accessi negati oggi",
-        text: `${stats.deniedToday} tentativi negati. Controlla badge, abbonamenti e certificati.`,
-        tone: "danger",
-        href: "/access-logs",
+        id: "bridge-offline",
+        type: "Bridge offline",
+        severity: "critical",
+        message: "Bridge non raggiungibile: il tornello non può autorizzare accessi in modo affidabile.",
+        suggestedAction: "Verifica servizio bridge su Windows e connettività rete verso controller.",
+        time: bridgeWatchdog.checked_at || bridgeStatus.checkedAt || now,
+        badgeOrCustomer: bridgeStatus.lastBadge || "N/A",
       });
     }
 
-    if (stats.certificatesExpiring > 0) {
+    if (bridgeWatchdog.state === "degraded" || (bridgeStatus.online && !bridgeStatus.connected)) {
       items.push({
-        title: "Certificati in scadenza",
-        text: `${stats.certificatesExpiring} certificati medici scadono entro 30 giorni.`,
-        tone: "warning",
+        id: "bridge-degraded",
+        type: "Bridge degraded",
+        severity: "warning",
+        message: "Bridge online ma centralina non connessa stabilmente.",
+        suggestedAction: "Controlla cablaggio/IP controller e rilancia health check.",
+        time: bridgeWatchdog.checked_at || bridgeStatus.checkedAt || now,
+        badgeOrCustomer: bridgeStatus.lastBadge || "N/A",
       });
     }
 
-    if (stats.expiredSubscriptions > 0) {
+    const unknownBadge = customerAccessLogs.find((log) => !log.allowed && (log.denial_reason || "").toLowerCase().includes("badge")) || logs.find((log) => !log.allowed && (log.reason || "").toLowerCase().includes("badge"));
+    if (unknownBadge) {
       items.push({
-        title: "Abbonamenti da verificare",
-        text: `${stats.expiredSubscriptions} clienti risultano scaduti, bloccati o senza abbonamento valido.`,
-        tone: "warning",
+        id: "unknown-badge",
+        type: "Badge sconosciuto",
+        severity: "critical",
+        message: "Rilevato badge non associato a nessun cliente.",
+        suggestedAction: "Identifica la persona e registra/assegna badge corretto.",
+        time: unknownBadge.created_at,
+        badgeOrCustomer: unknownBadge.badge_code || "Badge non disponibile",
       });
     }
 
-    if (stats.blockedCustomers > 0) {
+    const pushByReason = (id:string, type:string, lookups:string[], action:string) => {
+      const target = customerAccessLogs.find((log) => !log.allowed && lookups.some((lk) => (log.denial_reason || "").toLowerCase().includes(lk))) ||
+        logs.find((log) => !log.allowed && lookups.some((lk) => (log.reason || "").toLowerCase().includes(lk)));
+      if (!target) return;
+      const customerName = target.customers ? getName(target.customers) : "Cliente non associato";
       items.push({
-        title: "Clienti bloccati",
-        text: `${stats.blockedCustomers} clienti hanno accesso disattivato.`,
-        tone: "danger",
+        id,
+        type,
+        severity: "warning",
+        message: `${type} rilevato su controllo accesso.`,
+        suggestedAction: action,
+        time: target.created_at,
+        badgeOrCustomer: `${customerName} • ${target.badge_code || "Badge -"}`,
+      });
+    };
+
+    pushByReason("expired-sub", "Accesso negato: abbonamento", ["abbon", "subscription"], "Invita il cliente al rinnovo o attiva nuovo abbonamento.");
+    pushByReason("expired-cert", "Accesso negato: certificato medico", ["certificat", "medical"], "Richiedi certificato valido e aggiorna anagrafica.");
+    pushByReason("missing-fee", "Accesso negato: quota associativa", ["quota", "membership"], "Regolarizza quota associativa prima del nuovo accesso.");
+
+    const blocked = customerAccessLogs.find((log) => !log.allowed && (log.denial_reason || "").toLowerCase().includes("blocc")) || logs.find((log) => !log.allowed && (log.reason || "").toLowerCase().includes("blocc"));
+    if (blocked) {
+      const customerName = blocked.customers ? getName(blocked.customers) : "Cliente bloccato";
+      items.push({
+        id: "blocked-customer",
+        type: "Cliente bloccato",
+        severity: "critical",
+        message: "Accesso negato a cliente marcato come bloccato/non attivo.",
+        suggestedAction: "Controlla motivazione blocco e autorizzazioni amministrative.",
+        time: blocked.created_at,
+        badgeOrCustomer: `${customerName} • ${blocked.badge_code || "Badge -"}`,
       });
     }
 
-    if (items.length === 0) {
+    const deniedMap = new Map<string, { count:number; latest:string }>();
+    customerAccessLogs.filter((log) => !log.allowed).forEach((log) => {
+      const key = log.customer_id || log.badge_code || "unknown";
+      const current = deniedMap.get(key) || { count: 0, latest: log.created_at };
+      current.count += 1;
+      if (new Date(log.created_at) > new Date(current.latest)) current.latest = log.created_at;
+      deniedMap.set(key, current);
+    });
+    const repeat = [...deniedMap.entries()].find(([,v]) => v.count >= 3);
+    if (repeat) {
       items.push({
-        title: "Nessuna criticità",
-        text: "Reception regolare: nessun alert operativo al momento.",
-        tone: "success",
+        id: "repeat-denied",
+        type: "Accessi negati ripetuti",
+        severity: "critical",
+        message: `Rilevati ${repeat[1].count} accessi negati ripetuti sullo stesso badge/cliente oggi.`,
+        suggestedAction: "Contatta subito la reception desk per verifica identità e posizione amministrativa.",
+        time: repeat[1].latest,
+        badgeOrCustomer: repeat[0],
       });
     }
 
-    return items;
-  }, [stats]);
+    if (latestDenied && items.length === 0) {
+      items.push({
+        id: "generic-denied",
+        type: "Accesso negato",
+        severity: "info",
+        message: "È presente almeno un accesso negato, senza pattern critici configurati.",
+        suggestedAction: "Apri il registro accessi e verifica il motivo denial.",
+        time: latestDenied.created_at,
+        badgeOrCustomer: latestDenied.badge_code || "Badge -",
+      });
+    }
+
+    if (!latestDenied && items.length === 0) {
+      items.push({
+        id: "ops-ok",
+        type: "Reception regolare",
+        severity: "info",
+        message: `Nessuna anomalia critica. Presenti in palestra: ${insideNow}.`,
+        suggestedAction: "Continuare monitoraggio live.",
+        time: now,
+        badgeOrCustomer: "-",
+      });
+    }
+
+    return items.sort((a, b) => +new Date(b.time) - +new Date(a.time)).slice(0, 8);
+  }, [bridgeStatus, bridgeWatchdog, customerAccessLogs, logs, gymPresence]);
 
   return (
     <main style={pageStyle}>
@@ -748,9 +897,11 @@ export default function ReceptionDashboard() {
           loading={bridgeLoading}
           onRefresh={loadBridgeStatus}
         />
-        {alerts.map((alert, index) => (
-          <AlertCard key={index} {...alert} />
-        ))}
+        {receptionAlerts.length > 0 ? (
+          <ReceptionAlertsCard alerts={receptionAlerts} />
+        ) : (
+          <AlertCard title="Alert Reception" text="Nessuna anomalia critica attiva." tone="success" />
+        )}
       </div>
 
       <div style={gridStyle}>
@@ -966,6 +1117,25 @@ function AlertCard({
           Verifica
         </Link>
       )}
+    </div>
+  );
+}
+
+
+function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
+  return (
+    <div style={{ ...alertCardStyle, alignItems: "stretch", flexDirection: "column" }}>
+      <div style={{ ...alertTitleStyle, color: "#fca5a5" }}>Alert Reception</div>
+      <div style={{ display: "grid", gap: "8px", width: "100%" }}>
+        {alerts.map((alert) => (
+          <div key={alert.id} style={{ background: "rgba(15,23,42,0.55)", border: "1px solid rgba(148,163,184,.25)", borderRadius: "12px", padding: "10px" }}>
+            <div style={{ fontWeight: 800 }}>{alert.type} · {alert.severity.toUpperCase()}</div>
+            <div style={alertTextStyle}>{alert.message}</div>
+            <div style={alertTextStyle}>Orario: {new Date(alert.time).toLocaleTimeString("it-IT")} · Riferimento: {alert.badgeOrCustomer}</div>
+            <div style={alertTextStyle}>Azione: {alert.suggestedAction}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
