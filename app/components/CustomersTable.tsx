@@ -23,20 +23,40 @@ export default function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [loadedOnce, setLoadedOnce] = useState(false);
 
   async function loadCustomers() {
     setLoading(true);
+    setQueryError(null);
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      let result = await supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setCustomers(data as Customer[]);
+      if (result.error) {
+        // fallback resiliente: alcune istanze possono non avere created_at ordinabile
+        const fallback = await supabase.from("customers").select("*");
+        result = fallback as typeof result;
+      }
+
+      if (result.error) {
+        setCustomers([]);
+        setQueryError(`Errore caricamento clienti: ${result.error.message}`);
+        return;
+      }
+
+      setCustomers((result.data || []) as Customer[]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "errore sconosciuto";
+      setCustomers([]);
+      setQueryError(`Errore caricamento clienti: ${message}`);
+    } finally {
+      setLoadedOnce(true);
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   function getCustomerName(customer: Customer) {
@@ -110,6 +130,38 @@ export default function CustomersTable() {
           Aggiorna
         </button>
       </div>
+
+      {queryError && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border: "1px solid #7f1d1d",
+            background: "rgba(127, 29, 29, 0.2)",
+            color: "#fecaca",
+            fontSize: 13,
+          }}
+        >
+          {queryError}
+        </div>
+      )}
+
+      {!queryError && loadedOnce && filteredCustomers.length === 0 && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border: "1px solid var(--border)",
+            background: "var(--bg-soft)",
+            color: "var(--muted)",
+            fontSize: 13,
+          }}
+        >
+          Nessun cliente trovato.
+        </div>
+      )}
 
       <div style={{ overflowX: "auto", marginTop: 22 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
