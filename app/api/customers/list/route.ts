@@ -17,19 +17,16 @@ export async function GET() {
   try {
     const supabase = getSupabaseClient();
 
+    const customerFields =
+      "id, first_name, last_name, phone, email, fiscal_code, is_active, created_at";
+
     let query = await supabase
       .from("customers")
-      .select(
-        "id, first_name, last_name, full_name, email, phone, badge_code, subscription_status, subscription_expiry, active, created_at"
-      )
+      .select(customerFields)
       .order("created_at", { ascending: false });
 
     if (query.error) {
-      query = await supabase
-        .from("customers")
-        .select(
-          "id, first_name, last_name, full_name, email, phone, badge_code, subscription_status, subscription_expiry, active, created_at"
-        );
+      query = await supabase.from("customers").select(customerFields);
     }
 
     if (query.error) {
@@ -39,10 +36,16 @@ export async function GET() {
       );
     }
 
+    const customers = (query.data ?? []).map((customer) => ({
+      ...customer,
+      full_name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+      active: customer.is_active,
+    }));
+
     return NextResponse.json({
       ok: true,
-      customers: query.data ?? [],
-      count: query.data?.length ?? 0,
+      customers,
+      count: customers.length,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Errore interno";
