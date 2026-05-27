@@ -202,7 +202,7 @@ export default function Sidebar() {
             fontSize: "16px",
           }}
         >
-          {staffName || "Nessun utente"}
+          {staffName || "Operatore non identificato"}
         </div>
 
         <div
@@ -214,7 +214,7 @@ export default function Sidebar() {
             textTransform: "uppercase",
           }}
         >
-          {roleKey || "no-role"}
+          {roleKey || "staff"}
         </div>
       </div>
 

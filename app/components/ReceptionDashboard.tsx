@@ -1126,6 +1126,17 @@ function AlertCard({
 
 
 function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  function formatAlertTime(value: string) {
+    if (!isMounted) return "--:--:--";
+    return new Date(value).toLocaleTimeString("it-IT");
+  }
+
   return (
     <div style={{ ...alertCardStyle, alignItems: "stretch", flexDirection: "column" }}>
       <div style={{ ...alertTitleStyle, color: "#fca5a5" }}>Alert Reception</div>
@@ -1134,7 +1145,7 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
           <div key={alert.id} style={{ background: "rgba(15,23,42,0.55)", border: "1px solid rgba(148,163,184,.25)", borderRadius: "12px", padding: "10px" }}>
             <div style={{ fontWeight: 800 }}>{alert.type} · {alert.severity.toUpperCase()}</div>
             <div style={alertTextStyle}>{alert.message}</div>
-            <div style={alertTextStyle}>Orario: {new Date(alert.time).toLocaleTimeString("it-IT")} · Riferimento: {alert.badgeOrCustomer}</div>
+            <div style={alertTextStyle}>Orario: {formatAlertTime(alert.time)} · Riferimento: {alert.badgeOrCustomer}</div>
             <div style={alertTextStyle}>Azione: {alert.suggestedAction}</div>
           </div>
         ))}

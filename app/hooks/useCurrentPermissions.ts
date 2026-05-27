@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-const CURRENT_STAFF_EMAIL = "admin@bodygate.it";
 
 export function useCurrentPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -11,8 +10,41 @@ export function useCurrentPermissions() {
   const [staffName, setStaffName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  function readCookie(name: string) {
+    if (typeof document === "undefined") return null;
+    const cookie = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${name}=`));
+    return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+  }
+
   async function loadPermissions() {
     setLoading(true);
+
+    const sessionUserId = readCookie("bodygate_session");
+
+    if (!sessionUserId) {
+      setPermissions([]);
+      setRoleKey(null);
+      setStaffName(null);
+      setLoading(false);
+      return;
+    }
+
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("id, email, role, active")
+      .eq("id", sessionUserId)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (!appUser?.email) {
+      setPermissions([]);
+      setRoleKey(null);
+      setStaffName(null);
+      setLoading(false);
+      return;
+    }
 
     const { data: staffUser } = await supabase
       .from("staff_users")
@@ -27,14 +59,14 @@ export function useCurrentPermissions() {
           role_name
         )
       `)
-      .eq("email", CURRENT_STAFF_EMAIL)
+      .eq("email", appUser.email)
       .eq("is_active", true)
       .maybeSingle();
 
     if (!staffUser || !staffUser.staff_roles) {
       setPermissions([]);
-      setRoleKey(null);
-      setStaffName(null);
+      setRoleKey(appUser.role || null);
+      setStaffName(appUser.email);
       setLoading(false);
       return;
     }
