@@ -179,7 +179,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ## 7) Funzioni incomplete o provvisorie
 
-- Dashboard reception live: **parziale** (stabilità realtime/KPI da consolidare).
+- Dashboard reception live: **completo V1** con modulo “Access Feed + Presenza Attuale” (card accessi recenti/negati/presenti, badge stato consentito-negato-warning, realtime `customer_access_logs` + `gym_presence` con fallback polling 7s).
 - Settings: **parziale** (moduli/prezzi/permessi da harden).
 - Report/analytics: **parziale**.
 - Training platform: **parziale** (molte feature presenti, maturità non finale).
@@ -224,3 +224,12 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Bridge C# core: `bridge/bridge-v2/Program.cs`
 - Bridge dependency: `bridge/bridge-v2/TcpClass.dll`
 
+
+## 9) Update 2026-05-27 — Reception Dashboard Live V1
+
+- Pagina `/reception` aggiornata con modulo operativo **Access Feed + Presenza Attuale**.
+- Fonti dati primarie: `customer_access_logs`, `gym_presence`, `customers` (join Supabase).
+- Eventi mostrati con stato `consentito` / `negato` / `warning` (badge sconosciuto), motivo denial, badge code e timestamp evento.
+- Sezione “Presenti ora” mostra ultimo ingresso e permanenza stimata in minuti per clienti `is_inside=true`.
+- Realtime attivato su `customer_access_logs` e `gym_presence`; fallback polling automatico ogni 7 secondi per resilienza.
+- Nessuna modifica al bridge C# e nessuna modifica a `/api/access/check`.
