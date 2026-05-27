@@ -564,7 +564,7 @@ export default function ReceptionDashboard() {
     }
 
     setQuickWarnings(warnings);
-    setQuickSuccess("Nuovo cliente creato correttamente.");
+    setQuickSuccess("Nuovo cliente rapido creato correttamente.");
     await loadData();
     resetQuickForm();
     setShowQuickModal(false);
@@ -730,6 +730,26 @@ export default function ReceptionDashboard() {
     return items.sort((a, b) => +new Date(b.time) - +new Date(a.time)).slice(0, 8);
   }, [bridgeStatus, bridgeWatchdog, customerAccessLogs, logs, gymPresence]);
 
+  function systemStatusLabel(state: BridgeWatchdog["state"]) {
+    if (state === "online") return "Sistema operativo";
+    if (state === "degraded") return "Sistema degradato";
+    return "Sistema critico";
+  }
+
+  function systemBadgeStyle(state: BridgeWatchdog["state"]): React.CSSProperties {
+    const color = state === "online" ? "#22c55e" : state === "degraded" ? "#f59e0b" : "#ef4444";
+    return {
+      background: `${color}22`,
+      color,
+      border: `1px solid ${color}66`,
+      borderRadius: "999px",
+      padding: "10px 14px",
+      fontWeight: 800,
+      fontSize: "13px",
+      whiteSpace: "nowrap",
+    };
+  }
+
   return (
     <main style={pageStyle}>
       <div style={heroStyle}>
@@ -737,18 +757,29 @@ export default function ReceptionDashboard() {
           <div style={eyebrowStyle}>BodyGate Reception</div>
           <h1 style={titleStyle}>Reception live</h1>
           <p style={subtitleStyle}>
-            Monitor realtime per accessi, clienti, certificati e abbonamenti.
+            Console operativa realtime per gestire ingressi, alert e clienti senza perdere priorità.
           </p>
         </div>
 
         <div style={heroActionsStyle}>
-          <button style={primaryButtonStyle} onClick={() => setShowQuickModal(true)}>
-            Nuovo cliente
+          <div style={systemBadgeStyle(bridgeWatchdog.state)}>
+            {systemStatusLabel(bridgeWatchdog.state)}
+          </div>
+          <button
+            style={secondaryButtonStyle}
+            onClick={() => {
+              loadData();
+              loadBridgeStatus();
+            }}
+          >
+            Aggiorna dashboard
           </button>
-
+          <button style={primaryButtonStyle} onClick={() => setShowQuickModal(true)}>
+            Nuovo cliente rapido
+          </button>
           <div style={liveBadgeStyle}>
             <span style={dotStyle} />
-            Live
+            Polling live 5s
           </div>
         </div>
       </div>
@@ -891,10 +922,11 @@ export default function ReceptionDashboard() {
         </div>
       )}
 
-      <div style={alertsGridStyle}>
+      <div style={firstRowStyle}>
         <BridgeStatusCard
           status={bridgeStatus}
           loading={bridgeLoading}
+          watchdog={bridgeWatchdog}
           onRefresh={loadBridgeStatus}
         />
         {receptionAlerts.length > 0 ? (
@@ -902,58 +934,15 @@ export default function ReceptionDashboard() {
         ) : (
           <AlertCard title="Alert Reception" text="Nessuna anomalia critica attiva." tone="success" />
         )}
+        <Card title="Presenti ora" value={String(gymPresence.filter((p) => p.is_inside).length)} note="Clienti attualmente in palestra" />
       </div>
 
-      <div style={gridStyle}>
-        <Card title="Accessi oggi" value={String(stats.accessToday)} note="Ingressi autorizzati" />
-        <Card title="Accessi negati" value={String(stats.deniedToday)} note="Oggi" />
-        <Card
-          title="Certificati in scadenza"
-          value={String(stats.certificatesExpiring)}
-          note="Prossimi 30 giorni"
-        />
-        <Card
-          title="Bridge Watchdog"
-          value={bridgeWatchdog.state.toUpperCase()}
-          note={
-            bridgeLoading
-              ? "Verifica in corso"
-              : bridgeWatchdog.process_active === false
-              ? "Processo bridge non attivo"
-              : bridgeWatchdog.process_active === true
-              ? "Processo bridge attivo"
-              : "Process check disponibile su host Windows"
-          }
-        />
-        <Card
-          title="Abbonamenti scaduti"
-          value={String(stats.expiredSubscriptions)}
-          note={`${stats.blockedCustomers} clienti bloccati`}
-        />
-      </div>
-
-      {bridgeWatchdog.state !== "online" && (
-        <div style={{ ...alertCardStyle, borderColor: "#ef4444aa", background: "#ef44441a" }}>
-          <div
-            style={{
-              ...alertTitleStyle,
-              color: bridgeWatchdog.state === "degraded" ? "#f59e0b" : "#ef4444",
-            }}
-          >
-            Bridge {bridgeWatchdog.state === "degraded" ? "DEGRADED" : "OFFLINE"}
-          </div>
-          <div style={alertTextStyle}>
-            {bridgeWatchdog.last_error || "Bridge non disponibile o centralina disconnessa."}
-          </div>
-        </div>
-      )}
-
-      <div style={mainGridStyle}>
+      <div style={secondRowStyle}>
         <section style={panelStyle}>
           <div style={panelHeaderStyle}>
             <div>
-              <h2 style={sectionTitleStyle}>Ultimi accessi</h2>
-              <p style={sectionTextStyle}>Eventi ricevuti oggi dal tornello.</p>
+              <h2 style={sectionTitleStyle}>Accessi recenti</h2>
+              <p style={sectionTextStyle}>Ultimi eventi dal tornello, aggiornati in tempo reale.</p>
             </div>
 
             <Link href="/access-logs" style={smallLinkStyle}>
@@ -1003,37 +992,48 @@ export default function ReceptionDashboard() {
         </section>
 
         <section style={panelStyle}>
-          <h2 style={sectionTitleStyle}>Certificati in scadenza</h2>
-          <p style={sectionTextStyle}>Certificati medici con scadenza entro 30 giorni.</p>
+          <h2 style={sectionTitleStyle}>Accessi negati</h2>
+          <p style={sectionTextStyle}>Focus operativo su negazioni e cause principali della giornata.</p>
 
           {loading ? (
-            <div style={emptyStyle}>Caricamento certificati...</div>
-          ) : certificates.length === 0 ? (
-            <div style={emptyStyle}>Nessun certificato in scadenza.</div>
+            <div style={emptyStyle}>Caricamento negati...</div>
+          ) : customerAccessLogs.filter((log) => !log.allowed).length === 0 ? (
+            <div style={emptyStyle}>Nessun accesso negato oggi.</div>
           ) : (
             <div style={listStyle}>
-              {certificates.map((cert) => {
-                const customerName = cert.customers ? getName(cert.customers) : "Cliente";
-
+              {customerAccessLogs.filter((log) => !log.allowed).slice(0, 10).map((log) => {
+                const customerName = log.customers ? getName(log.customers) : "Cliente non associato";
                 return (
-                  <div key={cert.id} style={rowStyle}>
+                  <div key={log.id} style={rowStyle}>
                     <div>
                       <div style={rowTitleStyle}>{customerName}</div>
                       <div style={rowMetaStyle}>
-                        Scade il{" "}
-                        {new Date(`${cert.valid_until}T12:00:00`).toLocaleDateString("it-IT")}
+                        {new Date(log.created_at).toLocaleTimeString("it-IT")} · Badge {log.badge_code || "-"}
                       </div>
+                      <div style={rowMetaStyle}>{log.denial_reason || "Motivo non disponibile"}</div>
                     </div>
-
-                    <Link href={`/customers/${cert.customer_id}`} style={smallLinkStyle}>
-                      Apri
-                    </Link>
+                    <span style={{ ...statusBadgeStyle, color: "#ef4444", borderColor: "#ef4444", background: "rgba(239,68,68,0.12)" }}>NEGATO</span>
                   </div>
                 );
               })}
             </div>
           )}
         </section>
+      </div>
+
+      <div style={gridStyle}>
+        <Card title="Accessi oggi" value={String(stats.accessToday)} note="Ingressi autorizzati" />
+        <Card title="Accessi negati" value={String(stats.deniedToday)} note="Richiedono verifica reception" />
+        <Card
+          title="Certificati in scadenza"
+          value={String(stats.certificatesExpiring)}
+          note="Da gestire nei prossimi 30 giorni"
+        />
+        <Card
+          title="Abbonamenti scaduti"
+          value={String(stats.expiredSubscriptions)}
+          note={`${stats.blockedCustomers} clienti bloccati`}
+        />
       </div>
     </main>
   );
@@ -1043,9 +1043,11 @@ function BridgeStatusCard({
   status,
   loading,
   onRefresh,
+  watchdog,
 }: {
   status: BridgeStatus;
   loading: boolean;
+  watchdog: BridgeWatchdog;
   onRefresh: () => Promise<void>;
 }) {
   const isWarning = status.processing || (status.online && !status.connected);
@@ -1066,9 +1068,10 @@ function BridgeStatusCard({
       <div style={{ ...alertTitleStyle, color }}>
         Bridge {status.online ? "Online" : "Offline"}
       </div>
-      <div style={alertTextStyle}>connected: {String(status.connected)}</div>
-      <div style={alertTextStyle}>processing: {String(status.processing)}</div>
-      <div style={alertTextStyle}>lastBadge: {status.lastBadge || "-"}</div>
+      <div style={alertTextStyle}>Connected controller: {String(status.connected)}</div>
+      <div style={alertTextStyle}>Bridge processing: {String(status.processing)}</div>
+      <div style={alertTextStyle}>Watchdog: {watchdog.state.toUpperCase()}</div>
+      <div style={alertTextStyle}>Ultimo badge: {status.lastBadge || "-"}</div>
       <div style={alertTextStyle}>
         lastBadgeTime:{" "}
         {status.lastBadgeTime ? new Date(status.lastBadgeTime).toLocaleString("it-IT") : "-"}
@@ -1219,9 +1222,9 @@ const dotStyle: React.CSSProperties = {
   boxShadow: "0 0 16px #22c55e",
 };
 
-const alertsGridStyle: React.CSSProperties = {
+const firstRowStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gridTemplateColumns: "1.1fr 1.4fr 0.8fr",
   gap: "14px",
   marginBottom: "24px",
 };
@@ -1275,7 +1278,7 @@ const gridStyle: React.CSSProperties = {
   marginBottom: "24px",
 };
 
-const mainGridStyle: React.CSSProperties = {
+const secondRowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1.2fr 1fr",
   gap: "24px",
@@ -1383,7 +1386,9 @@ const statusBadgeStyle: React.CSSProperties = {
 const heroActionsStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "12px",
+  gap: "10px",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
 };
 
 const primaryButtonStyle: React.CSSProperties = {
