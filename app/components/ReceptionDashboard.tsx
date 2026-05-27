@@ -29,6 +29,13 @@ type AccessLog = {
   } | null;
 };
 
+type BridgeWatchdog = {
+  state: "online" | "degraded" | "offline";
+  process_active: boolean | null;
+  last_error: string | null;
+  checked_at?: string;
+};
+
 type QuickCreateForm = {
   first_name: string;
   last_name: string;
@@ -70,6 +77,7 @@ export default function ReceptionDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
     online: false,
     connected: false,
@@ -79,8 +87,16 @@ export default function ReceptionDashboard() {
     checkedAt: null,
     error: null,
   });
+
+  const [bridgeWatchdog, setBridgeWatchdog] = useState<BridgeWatchdog>({
+    state: "offline",
+    process_active: null,
+    last_error: null,
+  });
+
   const [bridgeLoading, setBridgeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [savingQuick, setSavingQuick] = useState(false);
   const [quickError, setQuickError] = useState("");
@@ -142,8 +158,7 @@ export default function ReceptionDashboard() {
 
       supabase
         .from("access_logs")
-        .select(
-          `
+        .select(`
           id,
           created_at,
           customer_id,
@@ -156,16 +171,14 @@ export default function ReceptionDashboard() {
             first_name,
             last_name
           )
-        `
-        )
+        `)
         .gte("created_at", `${today}T00:00:00`)
         .order("created_at", { ascending: false })
         .limit(30),
 
       supabase
         .from("medical_certificates")
-        .select(
-          `
+        .select(`
           id,
           customer_id,
           valid_from,
@@ -175,8 +188,7 @@ export default function ReceptionDashboard() {
             first_name,
             last_name
           )
-        `
-        )
+        `)
         .gte("valid_until", today)
         .lte("valid_until", in30Days)
         .order("valid_until", { ascending: true })
@@ -216,7 +228,17 @@ export default function ReceptionDashboard() {
         checkedAt: data?.checked_at ?? new Date().toISOString(),
         error: data?.error ?? null,
       });
+
+      setBridgeWatchdog({
+        state: data?.watchdog?.state || (data?.online ? "online" : "offline"),
+        process_active: data?.watchdog?.process_active ?? null,
+        last_error: data?.watchdog?.last_error ?? data?.error ?? null,
+        checked_at: data?.checked_at,
+      });
     } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Errore connessione bridge";
+
       setBridgeStatus({
         online: false,
         connected: false,
@@ -224,7 +246,14 @@ export default function ReceptionDashboard() {
         lastBadge: null,
         lastBadgeTime: null,
         checkedAt: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Errore connessione bridge",
+        error: msg,
+      });
+
+      setBridgeWatchdog({
+        state: "offline",
+        process_active: null,
+        last_error: msg,
+        checked_at: new Date().toISOString(),
       });
     } finally {
       setBridgeLoading(false);
@@ -232,34 +261,14 @@ export default function ReceptionDashboard() {
   }
 
   useEffect(() => {
-useEffect(() => {
-  queueMicrotask(() => {
-    loadData();
-  });
+    queueMicrotask(() => {
+      loadData();
+      loadBridgeStatus();
+    });
 
-  const channel = supabase
-    .channel("reception_dashboard_live")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "access_logs" },
-      () => loadData()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "customers" },
-      () => loadData()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "medical_certificates" },
-      () => loadData()
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    const bridgeInterval = window.setInterval(() => {
+      loadBridgeStatus();
+    }, 5000);
 
     const channel = supabase
       .channel("reception_dashboard_live")
@@ -279,8 +288,9 @@ useEffect(() => {
         () => loadData()
       )
       .subscribe();
+
     return () => {
-      window.clearTimeout(bootstrap);
+      window.clearInterval(bridgeInterval);
       supabase.removeChannel(channel);
     };
   }, [loadData]);
@@ -313,7 +323,11 @@ useEffect(() => {
 
   function isMissingTableError(message: string) {
     const lower = message.toLowerCase();
-    return lower.includes("does not exist") || lower.includes("42p01") || lower.includes("relation");
+    return (
+      lower.includes("does not exist") ||
+      lower.includes("42p01") ||
+      lower.includes("relation")
+    );
   }
 
   async function submitQuickCustomer(e: React.FormEvent) {
@@ -340,13 +354,25 @@ useEffect(() => {
       return;
     }
 
-    if (quickForm.medical_valid_from && quickForm.medical_valid_until && quickForm.medical_valid_until < quickForm.medical_valid_from) {
-      setQuickError("La data fine certificato non può essere precedente alla data inizio.");
+    if (
+      quickForm.medical_valid_from &&
+      quickForm.medical_valid_until &&
+      quickForm.medical_valid_until < quickForm.medical_valid_from
+    ) {
+      setQuickError(
+        "La data fine certificato non può essere precedente alla data inizio."
+      );
       return;
     }
 
-    if (quickForm.subscription_starts_at && quickForm.subscription_ends_at && quickForm.subscription_ends_at < quickForm.subscription_starts_at) {
-      setQuickError("La data fine abbonamento non può essere precedente alla data inizio.");
+    if (
+      quickForm.subscription_starts_at &&
+      quickForm.subscription_ends_at &&
+      quickForm.subscription_ends_at < quickForm.subscription_starts_at
+    ) {
+      setQuickError(
+        "La data fine abbonamento non può essere precedente alla data inizio."
+      );
       return;
     }
 
@@ -376,7 +402,9 @@ useEffect(() => {
       .single();
 
     if (customerError || !customer) {
-      setQuickError(`Errore creazione cliente: ${customerError?.message || "cliente non creato"}`);
+      setQuickError(
+        `Errore creazione cliente: ${customerError?.message || "cliente non creato"}`
+      );
       setSavingQuick(false);
       return;
     }
@@ -396,7 +424,9 @@ useEffect(() => {
 
     if (credentialError) {
       if (isMissingTableError(credentialError.message)) {
-        warnings.push("Tabella access_credentials non trovata: credenziale accesso non salvata.");
+        warnings.push(
+          "Tabella access_credentials non trovata: credenziale accesso non salvata."
+        );
       } else {
         setQuickError(
           `Cliente creato ma credenziale accesso non salvata: ${credentialError.message}`
@@ -407,18 +437,22 @@ useEffect(() => {
     }
 
     if (quickForm.medical_valid_from && quickForm.medical_valid_until) {
-      const { error: certError } = await supabase.from("medical_certificates").insert({
-        customer_id: customerId,
-        valid_from: quickForm.medical_valid_from,
-        valid_until: quickForm.medical_valid_until,
-        expiry_date: quickForm.medical_valid_until,
-        status: "valid",
-        certificate_type: "non_agonistico",
-      });
+      const { error: certError } = await supabase
+        .from("medical_certificates")
+        .insert({
+          customer_id: customerId,
+          valid_from: quickForm.medical_valid_from,
+          valid_until: quickForm.medical_valid_until,
+          expiry_date: quickForm.medical_valid_until,
+          status: "valid",
+          certificate_type: "non_agonistico",
+        });
 
       if (certError) {
         if (isMissingTableError(certError.message)) {
-          warnings.push("Tabella medical_certificates non trovata: certificato salvato solo su customers.");
+          warnings.push(
+            "Tabella medical_certificates non trovata: certificato salvato solo su customers."
+          );
         } else {
           warnings.push(`Certificato non inserito: ${certError.message}`);
         }
@@ -427,23 +461,27 @@ useEffect(() => {
 
     if (quickForm.membership_valid_until) {
       const today = new Date().toISOString().slice(0, 10);
-      const { error: membershipError } = await supabase.from("customer_membership_fees").insert({
-        customer_id: customerId,
-        valid_from: today,
-        valid_until: quickForm.membership_valid_until,
-      });
+      const { error: membershipError } = await supabase
+        .from("customer_membership_fees")
+        .insert({
+          customer_id: customerId,
+          valid_from: today,
+          valid_until: quickForm.membership_valid_until,
+        });
       if (membershipError) {
         warnings.push(`Quota associativa non inserita: ${membershipError.message}`);
       }
     }
 
     if (quickForm.subscription_starts_at && quickForm.subscription_ends_at) {
-      const { error: subscriptionError } = await supabase.from("customer_subscriptions").insert({
-        customer_id: customerId,
-        is_active: true,
-        starts_at: quickForm.subscription_starts_at,
-        ends_at: quickForm.subscription_ends_at,
-      });
+      const { error: subscriptionError } = await supabase
+        .from("customer_subscriptions")
+        .insert({
+          customer_id: customerId,
+          is_active: true,
+          starts_at: quickForm.subscription_starts_at,
+          ends_at: quickForm.subscription_ends_at,
+        });
 
       if (subscriptionError) {
         warnings.push(`Abbonamento non inserito: ${subscriptionError.message}`);
@@ -457,14 +495,6 @@ useEffect(() => {
     setShowQuickModal(false);
     setSavingQuick(false);
   }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadBridgeStatus();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const stats = useMemo(() => {
     const today = todayString();
@@ -485,8 +515,7 @@ useEffect(() => {
       );
     }).length;
 
-    const blockedCustomers = customers.filter((customer) => !customer.active)
-      .length;
+    const blockedCustomers = customers.filter((customer) => !customer.active).length;
 
     const latestDenied = logs.find((log) => !log.allowed);
 
@@ -569,9 +598,9 @@ useEffect(() => {
           </button>
 
           <div style={liveBadgeStyle}>
-          <span style={dotStyle} />
-          Live
-        </div>
+            <span style={dotStyle} />
+            Live
+          </div>
         </div>
       </div>
 
@@ -580,31 +609,133 @@ useEffect(() => {
           <div style={modalStyle}>
             <div style={modalHeaderStyle}>
               <h2 style={{ margin: 0 }}>Nuovo cliente rapido</h2>
-              <button style={closeButtonStyle} onClick={() => { setShowQuickModal(false); setQuickError(""); }}>✕</button>
+              <button
+                style={closeButtonStyle}
+                onClick={() => {
+                  setShowQuickModal(false);
+                  setQuickError("");
+                }}
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={submitQuickCustomer} style={modalFormStyle}>
               <div style={modalGridStyle}>
-                <input style={inputStyle} placeholder="Nome" value={quickForm.first_name} onChange={(e) => setQuickField("first_name", e.target.value)} />
-                <input style={inputStyle} placeholder="Cognome" value={quickForm.last_name} onChange={(e) => setQuickField("last_name", e.target.value)} />
-                <input style={inputStyle} placeholder="Telefono" value={quickForm.phone} onChange={(e) => setQuickField("phone", e.target.value)} />
-                <input style={inputStyle} placeholder="Email" value={quickForm.email} onChange={(e) => setQuickField("email", e.target.value)} />
-                <input style={inputStyle} placeholder="Codice fiscale" value={quickForm.tax_code} onChange={(e) => setQuickField("tax_code", e.target.value.toUpperCase())} />
-                <input style={inputStyle} placeholder="Badge code" value={quickForm.badge_code} onChange={(e) => setQuickField("badge_code", e.target.value)} />
-                <input style={inputStyle} placeholder="Controller code (opzionale)" value={quickForm.controller_code} onChange={(e) => setQuickField("controller_code", e.target.value)} />
-                <label style={labelStyle}>Inizio certificato<input type="date" style={inputStyle} value={quickForm.medical_valid_from} onChange={(e) => setQuickField("medical_valid_from", e.target.value)} /></label>
-                <label style={labelStyle}>Fine certificato<input type="date" style={inputStyle} value={quickForm.medical_valid_until} onChange={(e) => setQuickField("medical_valid_until", e.target.value)} /></label>
-                <label style={labelStyle}>Quota associativa fino al<input type="date" style={inputStyle} value={quickForm.membership_valid_until} onChange={(e) => setQuickField("membership_valid_until", e.target.value)} /></label>
-                <label style={labelStyle}>Abbonamento dal<input type="date" style={inputStyle} value={quickForm.subscription_starts_at} onChange={(e) => setQuickField("subscription_starts_at", e.target.value)} /></label>
-                <label style={labelStyle}>Abbonamento al<input type="date" style={inputStyle} value={quickForm.subscription_ends_at} onChange={(e) => setQuickField("subscription_ends_at", e.target.value)} /></label>
+                <input
+                  style={inputStyle}
+                  placeholder="Nome"
+                  value={quickForm.first_name}
+                  onChange={(e) => setQuickField("first_name", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Cognome"
+                  value={quickForm.last_name}
+                  onChange={(e) => setQuickField("last_name", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Telefono"
+                  value={quickForm.phone}
+                  onChange={(e) => setQuickField("phone", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Email"
+                  value={quickForm.email}
+                  onChange={(e) => setQuickField("email", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Codice fiscale"
+                  value={quickForm.tax_code}
+                  onChange={(e) => setQuickField("tax_code", e.target.value.toUpperCase())}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Badge code"
+                  value={quickForm.badge_code}
+                  onChange={(e) => setQuickField("badge_code", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Controller code (opzionale)"
+                  value={quickForm.controller_code}
+                  onChange={(e) => setQuickField("controller_code", e.target.value)}
+                />
+                <label style={labelStyle}>
+                  Inizio certificato
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.medical_valid_from}
+                    onChange={(e) => setQuickField("medical_valid_from", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Fine certificato
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.medical_valid_until}
+                    onChange={(e) => setQuickField("medical_valid_until", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Quota associativa fino al
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.membership_valid_until}
+                    onChange={(e) => setQuickField("membership_valid_until", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Abbonamento dal
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.subscription_starts_at}
+                    onChange={(e) =>
+                      setQuickField("subscription_starts_at", e.target.value)
+                    }
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Abbonamento al
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.subscription_ends_at}
+                    onChange={(e) => setQuickField("subscription_ends_at", e.target.value)}
+                  />
+                </label>
               </div>
 
               {quickError && <div style={errorStyle}>{quickError}</div>}
-              {quickWarnings.length > 0 && <div style={warningStyle}>{quickWarnings.map((w) => <div key={w}>• {w}</div>)}</div>}
+              {quickWarnings.length > 0 && (
+                <div style={warningStyle}>
+                  {quickWarnings.map((w) => (
+                    <div key={w}>• {w}</div>
+                  ))}
+                </div>
+              )}
               {quickSuccess && <div style={successStyle}>{quickSuccess}</div>}
 
               <div style={modalActionsStyle}>
-                <button type="button" style={secondaryButtonStyle} onClick={() => { setShowQuickModal(false); setQuickError(""); }}>Annulla</button>
-                <button type="submit" style={primaryButtonStyle} disabled={savingQuick}>{savingQuick ? "Salvataggio..." : "Salva cliente"}</button>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => {
+                    setShowQuickModal(false);
+                    setQuickError("");
+                  }}
+                >
+                  Annulla
+                </button>
+                <button type="submit" style={primaryButtonStyle} disabled={savingQuick}>
+                  {savingQuick ? "Salvataggio..." : "Salva cliente"}
+                </button>
               </div>
             </form>
           </div>
@@ -623,20 +754,25 @@ useEffect(() => {
       </div>
 
       <div style={gridStyle}>
-        <Card
-          title="Accessi oggi"
-          value={String(stats.accessToday)}
-          note="Ingressi autorizzati"
-        />
-        <Card
-          title="Accessi negati"
-          value={String(stats.deniedToday)}
-          note="Oggi"
-        />
+        <Card title="Accessi oggi" value={String(stats.accessToday)} note="Ingressi autorizzati" />
+        <Card title="Accessi negati" value={String(stats.deniedToday)} note="Oggi" />
         <Card
           title="Certificati in scadenza"
           value={String(stats.certificatesExpiring)}
           note="Prossimi 30 giorni"
+        />
+        <Card
+          title="Bridge Watchdog"
+          value={bridgeWatchdog.state.toUpperCase()}
+          note={
+            bridgeLoading
+              ? "Verifica in corso"
+              : bridgeWatchdog.process_active === false
+              ? "Processo bridge non attivo"
+              : bridgeWatchdog.process_active === true
+              ? "Processo bridge attivo"
+              : "Process check disponibile su host Windows"
+          }
         />
         <Card
           title="Abbonamenti scaduti"
@@ -645,14 +781,28 @@ useEffect(() => {
         />
       </div>
 
+      {bridgeWatchdog.state !== "online" && (
+        <div style={{ ...alertCardStyle, borderColor: "#ef4444aa", background: "#ef44441a" }}>
+          <div
+            style={{
+              ...alertTitleStyle,
+              color: bridgeWatchdog.state === "degraded" ? "#f59e0b" : "#ef4444",
+            }}
+          >
+            Bridge {bridgeWatchdog.state === "degraded" ? "DEGRADED" : "OFFLINE"}
+          </div>
+          <div style={alertTextStyle}>
+            {bridgeWatchdog.last_error || "Bridge non disponibile o centralina disconnessa."}
+          </div>
+        </div>
+      )}
+
       <div style={mainGridStyle}>
         <section style={panelStyle}>
           <div style={panelHeaderStyle}>
             <div>
               <h2 style={sectionTitleStyle}>Ultimi accessi</h2>
-              <p style={sectionTextStyle}>
-                Eventi ricevuti oggi dal tornello.
-              </p>
+              <p style={sectionTextStyle}>Eventi ricevuti oggi dal tornello.</p>
             </div>
 
             <Link href="/access-logs" style={smallLinkStyle}>
@@ -676,12 +826,10 @@ useEffect(() => {
                     <div>
                       <div style={rowTitleStyle}>{customerName}</div>
                       <div style={rowMetaStyle}>
-                        {new Date(log.created_at).toLocaleTimeString("it-IT")} ·
-                        Badge {log.badge_code || "-"}
+                        {new Date(log.created_at).toLocaleTimeString("it-IT")} · Badge{" "}
+                        {log.badge_code || "-"}
                       </div>
-                      {log.reason && (
-                        <div style={rowMetaStyle}>{log.reason}</div>
-                      )}
+                      {log.reason && <div style={rowMetaStyle}>{log.reason}</div>}
                     </div>
 
                     <div
@@ -705,9 +853,7 @@ useEffect(() => {
 
         <section style={panelStyle}>
           <h2 style={sectionTitleStyle}>Certificati in scadenza</h2>
-          <p style={sectionTextStyle}>
-            Certificati medici con scadenza entro 30 giorni.
-          </p>
+          <p style={sectionTextStyle}>Certificati medici con scadenza entro 30 giorni.</p>
 
           {loading ? (
             <div style={emptyStyle}>Caricamento certificati...</div>
@@ -716,9 +862,7 @@ useEffect(() => {
           ) : (
             <div style={listStyle}>
               {certificates.map((cert) => {
-                const customerName = cert.customers
-                  ? getName(cert.customers)
-                  : "Cliente";
+                const customerName = cert.customers ? getName(cert.customers) : "Cliente";
 
                 return (
                   <div key={cert.id} style={rowStyle}>
@@ -726,16 +870,11 @@ useEffect(() => {
                       <div style={rowTitleStyle}>{customerName}</div>
                       <div style={rowMetaStyle}>
                         Scade il{" "}
-                        {new Date(
-                          `${cert.valid_until}T12:00:00`
-                        ).toLocaleDateString("it-IT")}
+                        {new Date(`${cert.valid_until}T12:00:00`).toLocaleDateString("it-IT")}
                       </div>
                     </div>
 
-                    <Link
-                      href={`/customers/${cert.customer_id}`}
-                      style={smallLinkStyle}
-                    >
+                    <Link href={`/customers/${cert.customer_id}`} style={smallLinkStyle}>
                       Apri
                     </Link>
                   </div>
@@ -760,7 +899,8 @@ function BridgeStatusCard({
 }) {
   const isWarning = status.processing || (status.online && !status.connected);
   const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
-  const color = tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
+  const color =
+    tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
 
   return (
     <div
@@ -772,15 +912,15 @@ function BridgeStatusCard({
         gap: "10px",
       }}
     >
-      <div style={{ ...alertTitleStyle, color }}>Bridge {status.online ? "Online" : "Offline"}</div>
+      <div style={{ ...alertTitleStyle, color }}>
+        Bridge {status.online ? "Online" : "Offline"}
+      </div>
       <div style={alertTextStyle}>connected: {String(status.connected)}</div>
       <div style={alertTextStyle}>processing: {String(status.processing)}</div>
       <div style={alertTextStyle}>lastBadge: {status.lastBadge || "-"}</div>
       <div style={alertTextStyle}>
         lastBadgeTime:{" "}
-        {status.lastBadgeTime
-          ? new Date(status.lastBadgeTime).toLocaleString("it-IT")
-          : "-"}
+        {status.lastBadgeTime ? new Date(status.lastBadgeTime).toLocaleString("it-IT") : "-"}
       </div>
       <div style={alertTextStyle}>
         ultimo controllo:{" "}
@@ -1070,7 +1210,6 @@ const statusBadgeStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-
 const heroActionsStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1155,6 +1294,14 @@ const labelStyle: React.CSSProperties = {
   gap: "6px",
   fontSize: "12px",
   fontWeight: 700,
+};
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--bg-soft)",
+  border: "1px solid var(--border)",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  color: "var(--text)",
 };
 
 const errorStyle: React.CSSProperties = { color: "#fca5a5" };

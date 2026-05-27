@@ -1,39 +1,120 @@
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  try {
-    const res = await fetch("http://localhost:5050/status", {
-      cache: "no-store",
-    });
+const execAsync = promisify(exec);
 
-    const data = await res.json();
+type BridgeStatusPayload = {
+  ok?: boolean;
+  connected?: boolean;
+  isConnected?: boolean;
+  processing?: boolean;
+  isProcessing?: boolean;
+  lastBadge?: string | null;
+  last_badge?: string | null;
+  lastBadgeTime?: string | null;
+  last_badge_time?: string | null;
+  version?: string;
+  [key: string]: unknown;
+};
+
+async function isBridgeProcessActive() {
+  if (process.platform !== "win32") {
+    return {
+      active: null as boolean | null,
+      method: "not-windows",
+      note: "Process watchdog disponibile solo su Windows host.",
+    };
+  }
+
+  try {
+    const { stdout } = await execAsync(
+      'tasklist /FI "IMAGENAME eq BodyGateAccessBridge.exe" /FO CSV /NH'
+    );
+    const active = stdout.toLowerCase().includes("bodygateaccessbridge.exe");
+
+    return {
+      active,
+      method: "tasklist",
+      note: active ? null : "Processo bridge non trovato in tasklist.",
+    };
+  } catch (error: unknown) {
+    return {
+      active: null as boolean | null,
+      method: "tasklist",
+      note: error instanceof Error ? error.message : "Errore tasklist",
+    };
+  }
+}
+
+export async function GET() {
+  const checkedAt = new Date().toISOString();
+  const processInfo = await isBridgeProcessActive();
+
+  try {
+    const [statusRes, healthRes] = await Promise.all([
+      fetch("http://localhost:5050/status", { cache: "no-store" }),
+      fetch("http://localhost:5050/health", { cache: "no-store" }),
+    ]);
+
+    const bridgeStatus = (await statusRes.json()) as BridgeStatusPayload;
+    const bridgeHealth = healthRes.ok ? await healthRes.json() : null;
+
     const connected =
-      typeof data?.connected === "boolean"
-        ? data.connected
-        : typeof data?.isConnected === "boolean"
-          ? data.isConnected
+      typeof bridgeStatus?.connected === "boolean"
+        ? bridgeStatus.connected
+        : typeof bridgeStatus?.isConnected === "boolean"
+          ? bridgeStatus.isConnected
           : true;
 
     const processing =
-      typeof data?.processing === "boolean"
-        ? data.processing
-        : typeof data?.isProcessing === "boolean"
-          ? data.isProcessing
+      typeof bridgeStatus?.processing === "boolean"
+        ? bridgeStatus.processing
+        : typeof bridgeStatus?.isProcessing === "boolean"
+          ? bridgeStatus.isProcessing
           : false;
+
+    const watchdogState = !statusRes.ok
+      ? "offline"
+      : !connected
+        ? "degraded"
+        : "online";
+
+    const watchdogError = !statusRes.ok
+      ? `Bridge /status HTTP ${statusRes.status}`
+      : !connected
+        ? "Bridge raggiungibile ma centralina non connessa (connected=false)."
+        : processInfo.active === false
+          ? "Bridge HTTP risponde ma processo BodyGateAccessBridge.exe non rilevato."
+          : null;
 
     return NextResponse.json({
       ok: true,
-      online: true,
+      online: statusRes.ok,
       connected,
-      lastBadge: data?.lastBadge ?? data?.last_badge ?? null,
-      lastBadgeTime: data?.lastBadgeTime ?? data?.last_badge_time ?? null,
+      lastBadge: bridgeStatus?.lastBadge ?? bridgeStatus?.last_badge ?? null,
+      lastBadgeTime:
+        bridgeStatus?.lastBadgeTime ?? bridgeStatus?.last_badge_time ?? null,
       processing,
-      bridge: data,
-      checked_at: new Date().toISOString(),
+      bridge: bridgeStatus,
+      health: bridgeHealth,
+      checked_at: checkedAt,
+      watchdog: {
+        state: watchdogState,
+        process_active: processInfo.active,
+        process_check: processInfo.method,
+        process_note: processInfo.note,
+        last_error: watchdogError,
+        restart_suggested: watchdogState !== "online",
+        auto_restart_enabled: false,
+      },
     });
   } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Bridge non raggiungibile";
+
     return NextResponse.json({
       ok: true,
       online: false,
@@ -42,9 +123,18 @@ export async function GET() {
       lastBadgeTime: null,
       processing: false,
       bridge: null,
-      error:
-        error instanceof Error ? error.message : "Bridge non raggiungibile",
-      checked_at: new Date().toISOString(),
+      health: null,
+      error: message,
+      checked_at: checkedAt,
+      watchdog: {
+        state: "offline",
+        process_active: processInfo.active,
+        process_check: processInfo.method,
+        process_note: processInfo.note,
+        last_error: message,
+        restart_suggested: true,
+        auto_restart_enabled: false,
+      },
     });
   }
 }

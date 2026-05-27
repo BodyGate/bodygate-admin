@@ -53,7 +53,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 | `/api/access/check` | `POST` (`GET` info) | `badge`/`badge_code` | `allowed`, `reason`, dati cliente/badge | `customer_badges`, `customers`, `customer_blocks`, `membership_fee_settings`, `customer_membership_fees`, `customer_subscriptions`, `customer_access_logs`, `gym_presence`, `unknown_badge_logs` | **completo** (core accesso reale) |
 | `/api/access/log` | `POST` (`GET` info) | payload bridge (badge, door, reader, allowed, open_warning...) | `ok`, `log_id` | `access_logs` | completo |
 | `/api/access/stats` | `GET` | nessuno | stats giornaliere accessi | `access_logs` | parziale |
-| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `connected`, `lastBadge`, `lastBadgeTime`, `processing`, `bridge`) con fallback errore | nessuna tabella diretta | completo |
+| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `connected`, `lastBadge`, `lastBadgeTime`, `processing`, `bridge`) + watchdog (`online/degraded/offline`, processo bridge, `last_error`, `restart_suggested`) | nessuna tabella diretta | completo |
 | `/api/turnstile/open` | `POST` | nessuno (inoltro a bridge `/open`) | esito apertura | nessuna tabella diretta | completo |
 | `/api/gate/open` | `POST` | richiesta apertura | esito apertura/errore bridge | (indiretta) | parziale |
 | `/api/auth/login` | `POST` | `email`, `password` | cookie session + user role | `app_users` | parziale |
@@ -180,7 +180,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 ## 7) Funzioni incomplete o provvisorie
 
 - Dashboard reception live: **completo V1** con modulo “Access Feed + Presenza Attuale” (card accessi recenti/negati/presenti, badge stato consentito-negato-warning, realtime `customer_access_logs` + `gym_presence` con fallback polling 7s).
-- Dashboard reception live: **parziale** (include card stato bridge live con refresh manuale + auto refresh 5s; KPI da consolidare).
+- Dashboard reception live: **parziale** (include card stato bridge live/watchdog con refresh manuale + auto refresh 5s; KPI da consolidare).
 - Settings: **parziale** (moduli/prezzi/permessi da harden).
 - Report/analytics: **parziale**.
 - Training platform: **parziale** (molte feature presenti, maturità non finale).
@@ -233,3 +233,17 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Sezione “Presenti ora” mostra ultimo ingresso e permanenza stimata in minuti per clienti `is_inside=true`.
 - Realtime attivato su `customer_access_logs` e `gym_presence`; fallback polling automatico ogni 7 secondi per resilienza.
 - Nessuna modifica al bridge C# e nessuna modifica a `/api/access/check`.
+
+## 10) Bridge Watchdog V1 (2026-05-27)
+
+- Watchdog base implementato lato `app/api/bridge/status/route.ts` senza toccare il flusso `/api/access/check`.
+- Controlli V1: processo `BodyGateAccessBridge.exe` (solo host Windows via `tasklist`), HTTP `GET /status`, HTTP `GET /health`, stato `connected`.
+- Stati esposti: `online` (bridge raggiungibile + connected true), `degraded` (bridge raggiungibile ma connected false), `offline` (bridge non raggiungibile / errore).
+- Esposto `watchdog.last_error` per operatività reception e `restart_suggested` per futura automazione.
+- Auto-restart non attivo in V1 (`auto_restart_enabled=false`) per evitare multiistanza e doppia connessione TCP verso centralina.
+- Reception dashboard aggiornata con card Bridge Watchdog e alert visuale degraded/offline con polling ogni 5 secondi.
+
+### Comando Windows consigliato (avvio automatico controllato)
+- Esecuzione tramite **Utilità di pianificazione** all'avvio sistema con opzione "se non già in esecuzione" (single instance).
+- Comando esempio: `"C:\BodyGate\Bridge\BodyGateAccessBridge.exe"`
+- Opzionale script lock file/mutex da introdurre in V2 prima di abilitare auto-restart automatico.
