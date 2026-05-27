@@ -29,6 +29,14 @@ type AccessLog = {
   } | null;
 };
 
+
+type BridgeWatchdog = {
+  state: "online" | "degraded" | "offline";
+  process_active: boolean | null;
+  last_error: string | null;
+  checked_at?: string;
+};
+
 type Certificate = {
   id: string;
   customer_id: string;
@@ -46,6 +54,12 @@ export default function ReceptionDashboard() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bridgeLoading, setBridgeLoading] = useState(false);
+  const [bridgeWatchdog, setBridgeWatchdog] = useState<BridgeWatchdog>({
+    state: "offline",
+    process_active: null,
+    last_error: null,
+  });
 
   function getName(item: {
     full_name?: string | null;
@@ -65,6 +79,33 @@ export default function ReceptionDashboard() {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return date.toISOString().slice(0, 10);
+  }
+
+
+  async function loadBridgeStatus() {
+    setBridgeLoading(true);
+
+    try {
+      const res = await fetch("/api/bridge/status", { cache: "no-store" });
+      const data = await res.json();
+
+      setBridgeWatchdog({
+        state: data?.watchdog?.state || (data?.online ? "online" : "offline"),
+        process_active: data?.watchdog?.process_active ?? null,
+        last_error: data?.watchdog?.last_error ?? data?.error ?? null,
+        checked_at: data?.checked_at,
+      });
+    } catch (error: unknown) {
+      setBridgeWatchdog({
+        state: "offline",
+        process_active: null,
+        last_error:
+          error instanceof Error ? error.message : "Errore monitor bridge",
+        checked_at: new Date().toISOString(),
+      });
+    } finally {
+      setBridgeLoading(false);
+    }
   }
 
   async function loadData() {
@@ -135,7 +176,14 @@ export default function ReceptionDashboard() {
   }
 
   useEffect(() => {
-    loadData();
+    queueMicrotask(() => {
+      loadData();
+      loadBridgeStatus();
+    });
+
+    const bridgeInterval = window.setInterval(() => {
+      loadBridgeStatus();
+    }, 5000);
 
     const channel = supabase
       .channel("reception_dashboard_live")
@@ -157,6 +205,7 @@ export default function ReceptionDashboard() {
       .subscribe();
 
     return () => {
+      window.clearInterval(bridgeInterval);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -287,11 +336,35 @@ export default function ReceptionDashboard() {
           note="Prossimi 30 giorni"
         />
         <Card
+          title="Bridge Watchdog"
+          value={bridgeWatchdog.state.toUpperCase()}
+          note={
+            bridgeLoading
+              ? "Verifica in corso"
+              : bridgeWatchdog.process_active === false
+              ? "Processo bridge non attivo"
+              : bridgeWatchdog.process_active === true
+              ? "Processo bridge attivo"
+              : "Process check disponibile su host Windows"
+          }
+        />
+        <Card
           title="Abbonamenti scaduti"
           value={String(stats.expiredSubscriptions)}
           note={`${stats.blockedCustomers} clienti bloccati`}
         />
       </div>
+
+      {bridgeWatchdog.state !== "online" && (
+        <div style={{ ...alertCardStyle, borderColor: "#ef4444aa", background: "#ef44441a" }}>
+          <div style={{ ...alertTitleStyle, color: bridgeWatchdog.state === "degraded" ? "#f59e0b" : "#ef4444" }}>
+            Bridge {bridgeWatchdog.state === "degraded" ? "DEGRADED" : "OFFLINE"}
+          </div>
+          <div style={alertTextStyle}>
+            {bridgeWatchdog.last_error || "Bridge non disponibile o centralina disconnessa."}
+          </div>
+        </div>
+      )}
 
       <div style={mainGridStyle}>
         <section style={panelStyle}>
