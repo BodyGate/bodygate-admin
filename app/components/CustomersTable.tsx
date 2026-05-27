@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { supabase } from "../lib/supabaseClient";
 import CustomerStatus from "./CustomerStatus";
 
 type Customer = {
@@ -31,24 +30,24 @@ export default function CustomersTable() {
     setQueryError(null);
 
     try {
-      let result = await supabase
-        .from("customers")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const response = await fetch("/api/customers/list", {
+        method: "GET",
+        cache: "no-store",
+      });
 
-      if (result.error) {
-        // fallback resiliente: alcune istanze possono non avere created_at ordinabile
-        const fallback = await supabase.from("customers").select("*");
-        result = fallback as typeof result;
-      }
+      const payload = await response.json();
 
-      if (result.error) {
+      if (!response.ok || !payload?.ok) {
+        const errorMessage =
+          payload?.error ||
+          `Errore HTTP ${response.status} durante il caricamento clienti`;
+
         setCustomers([]);
-        setQueryError(`Errore caricamento clienti: ${result.error.message}`);
+        setQueryError(`Errore caricamento clienti: ${errorMessage}`);
         return;
       }
 
-      setCustomers((result.data || []) as Customer[]);
+      setCustomers((payload.customers || []) as Customer[]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "errore sconosciuto";
       setCustomers([]);
