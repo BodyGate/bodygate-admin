@@ -255,3 +255,10 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Fonti dati usate senza toccare bridge C#: `customer_access_logs`, `access_logs`, `gym_presence`, `customers`, endpoint `/api/bridge/status`.
 - Realtime/polling mantenuto: subscription Supabase su log/presenze + polling bridge ogni 5 secondi.
 - Nessuna modifica a `/api/access/check`, nessuna modifica al bridge C#, nessuna regressione introdotta al flusso “Nuovo cliente rapido” o Bridge Watchdog V1.
+
+## 12) Reception UX Cleanup V1 (2026-05-27)
+
+- Layout `/reception` riorganizzato per priorità operativa: hero con stato sistema + azioni rapide, prima riga con Bridge/Watchdog + Alert Reception + Presenti Ora, seconda riga con Accessi Recenti + Accessi Negati.
+- Migliorata leggibilità dark/premium con microcopy orientato all’operatività reception e riduzione del rumore visivo.
+- Polling/realtime esistente mantenuto invariato (bridge polling 5s + subscription Supabase).
+- Nessuna modifica al bridge C#, a `/api/access/check` o alle logiche tornello/accesso.
