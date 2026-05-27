@@ -56,10 +56,30 @@ type Certificate = {
   } | null;
 };
 
+type BridgeStatus = {
+  online: boolean;
+  connected: boolean;
+  processing: boolean;
+  lastBadge: string | null;
+  lastBadgeTime: string | null;
+  checkedAt: string | null;
+  error: string | null;
+};
+
 export default function ReceptionDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
+    online: false,
+    connected: false,
+    processing: false,
+    lastBadge: null,
+    lastBadgeTime: null,
+    checkedAt: null,
+    error: null,
+  });
+  const [bridgeLoading, setBridgeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showQuickModal, setShowQuickModal] = useState(false);
   const [savingQuick, setSavingQuick] = useState(false);
@@ -169,10 +189,77 @@ export default function ReceptionDashboard() {
     setLoading(false);
   }, []);
 
+  async function loadBridgeStatus() {
+    setBridgeLoading(true);
+    try {
+      const res = await fetch("/api/bridge/status", { cache: "no-store" });
+      const data = await res.json();
+      const bridge = data?.bridge ?? {};
+
+      setBridgeStatus({
+        online: Boolean(data?.online),
+        connected:
+          typeof data?.connected === "boolean"
+            ? data.connected
+            : Boolean(bridge?.connected),
+        processing:
+          typeof data?.processing === "boolean"
+            ? data.processing
+            : Boolean(bridge?.processing),
+        lastBadge:
+          data?.lastBadge ?? bridge?.lastBadge ?? bridge?.last_badge ?? null,
+        lastBadgeTime:
+          data?.lastBadgeTime ??
+          bridge?.lastBadgeTime ??
+          bridge?.last_badge_time ??
+          null,
+        checkedAt: data?.checked_at ?? new Date().toISOString(),
+        error: data?.error ?? null,
+      });
+    } catch (error: unknown) {
+      setBridgeStatus({
+        online: false,
+        connected: false,
+        processing: false,
+        lastBadge: null,
+        lastBadgeTime: null,
+        checkedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Errore connessione bridge",
+      });
+    } finally {
+      setBridgeLoading(false);
+    }
+  }
+
   useEffect(() => {
-    const bootstrap = window.setTimeout(() => {
-      void loadData();
-    }, 0);
+useEffect(() => {
+  queueMicrotask(() => {
+    loadData();
+  });
+
+  const channel = supabase
+    .channel("reception_dashboard_live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "access_logs" },
+      () => loadData()
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "customers" },
+      () => loadData()
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "medical_certificates" },
+      () => loadData()
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
     const channel = supabase
       .channel("reception_dashboard_live")
@@ -371,6 +458,14 @@ export default function ReceptionDashboard() {
     setSavingQuick(false);
   }
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadBridgeStatus();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const stats = useMemo(() => {
     const today = todayString();
 
@@ -517,6 +612,11 @@ export default function ReceptionDashboard() {
       )}
 
       <div style={alertsGridStyle}>
+        <BridgeStatusCard
+          status={bridgeStatus}
+          loading={bridgeLoading}
+          onRefresh={loadBridgeStatus}
+        />
         {alerts.map((alert, index) => (
           <AlertCard key={index} {...alert} />
         ))}
@@ -646,6 +746,51 @@ export default function ReceptionDashboard() {
         </section>
       </div>
     </main>
+  );
+}
+
+function BridgeStatusCard({
+  status,
+  loading,
+  onRefresh,
+}: {
+  status: BridgeStatus;
+  loading: boolean;
+  onRefresh: () => Promise<void>;
+}) {
+  const isWarning = status.processing || (status.online && !status.connected);
+  const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
+  const color = tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
+
+  return (
+    <div
+      style={{
+        ...alertCardStyle,
+        borderColor: `${color}66`,
+        background: `${color}18`,
+        display: "grid",
+        gap: "10px",
+      }}
+    >
+      <div style={{ ...alertTitleStyle, color }}>Bridge {status.online ? "Online" : "Offline"}</div>
+      <div style={alertTextStyle}>connected: {String(status.connected)}</div>
+      <div style={alertTextStyle}>processing: {String(status.processing)}</div>
+      <div style={alertTextStyle}>lastBadge: {status.lastBadge || "-"}</div>
+      <div style={alertTextStyle}>
+        lastBadgeTime:{" "}
+        {status.lastBadgeTime
+          ? new Date(status.lastBadgeTime).toLocaleString("it-IT")
+          : "-"}
+      </div>
+      <div style={alertTextStyle}>
+        ultimo controllo:{" "}
+        {status.checkedAt ? new Date(status.checkedAt).toLocaleTimeString("it-IT") : "-"}
+      </div>
+      {status.error && <div style={{ ...alertTextStyle, color: "#fecaca" }}>Errore: {status.error}</div>}
+      <button style={bridgeButtonStyle} onClick={onRefresh} disabled={loading}>
+        {loading ? "Aggiornamento..." : "Aggiorna stato"}
+      </button>
+    </div>
   );
 }
 
@@ -801,6 +946,16 @@ const alertLinkStyle: React.CSSProperties = {
   textDecoration: "none",
   fontWeight: 800,
   whiteSpace: "nowrap",
+};
+
+const bridgeButtonStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.08)",
+  color: "var(--text)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const gridStyle: React.CSSProperties = {

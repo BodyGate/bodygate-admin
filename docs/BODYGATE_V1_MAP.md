@@ -15,7 +15,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 |---|---|---|
 | `/` | Home dashboard generale | parziale |
 | `/login` | Accesso operatori | parziale |
-| `/reception` | Dashboard reception live accessi | parziale |
+| `/reception` | Dashboard reception live accessi + bridge status live (polling 5s) | parziale |
 | `/access` | Pannello accessi | parziale |
 | `/access-logs` | Storico accessi | parziale |
 | `/access-denied` | Vista denial accessi | parziale |
@@ -50,10 +50,10 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 | Endpoint | Metodo | Input | Output | Tabelle coinvolte | Stato |
 |---|---|---|---|---|---|
-| `/api/access/check` | `POST` (`GET` info) | `badge`/`badge_code` | `allowed`, `reason`, dati cliente/badge | `access_credentials`, `customers`, `customer_blocks`, `membership_fee_settings`, `customer_membership_fees`, `customer_subscriptions`, `customer_access_logs`, `gym_presence`, `unknown_badge_logs` | **completo** (core accesso reale) |
+| `/api/access/check` | `POST` (`GET` info) | `badge`/`badge_code` | `allowed`, `reason`, dati cliente/badge | `customer_badges`, `customers`, `customer_blocks`, `membership_fee_settings`, `customer_membership_fees`, `customer_subscriptions`, `customer_access_logs`, `gym_presence`, `unknown_badge_logs` | **completo** (core accesso reale) |
 | `/api/access/log` | `POST` (`GET` info) | payload bridge (badge, door, reader, allowed, open_warning...) | `ok`, `log_id` | `access_logs` | completo |
 | `/api/access/stats` | `GET` | nessuno | stats giornaliere accessi | `access_logs` | parziale |
-| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `bridge`) | nessuna tabella diretta | completo |
+| `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `connected`, `lastBadge`, `lastBadgeTime`, `processing`, `bridge`) con fallback errore | nessuna tabella diretta | completo |
 | `/api/turnstile/open` | `POST` | nessuno (inoltro a bridge `/open`) | esito apertura | nessuna tabella diretta | completo |
 | `/api/gate/open` | `POST` | richiesta apertura | esito apertura/errore bridge | (indiretta) | parziale |
 | `/api/auth/login` | `POST` | `email`, `password` | cookie session + user role | `app_users` | parziale |
@@ -102,7 +102,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 ## 4) Supabase schema rilevato
 
 ## Tabelle usate (rilevate da API e componenti)
-- `access_credentials`
+- `customer_badges`
 - `customers`
 - `customer_blocks`
 - `membership_fee_settings`
@@ -116,12 +116,12 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - (area notifiche/training/payments/settings: ulteriori tabelle usate lato client)
 
 ## Campi principali (evidenza diretta)
-- Access check: `code`, `controller_code`, `status`, `customer_id`, `branch_id`, `medical_certificate_end_date`, `starts_at`, `ends_at`, `valid_from`, `valid_until`.
+- Access check: `badge_code`, `is_active`, `customer_id`, `branch_id`, `medical_certificate_end_date`, `starts_at`, `ends_at`, `valid_from`, `valid_until`.
 - Access logs: `allowed`, `reason`, `door`, `reader`, `event_type`, `open_command_sent`, `open_sdk_result`, `open_warning`, `controller_ip`, `bridge_version`.
 - Auth utenti: `email`, `password`, `role`, `active`.
 
 ## Relazioni note
-- `access_credentials.customer_id -> customers.id`
+- `customer_badges.customer_id -> customers.id`
 - `customers.id -> customer_subscriptions.customer_id`
 - `customers.id -> customer_membership_fees.customer_id`
 - `customers.id -> customer_blocks.customer_id`
@@ -179,7 +179,8 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ## 7) Funzioni incomplete o provvisorie
 
-- Dashboard reception live: **parziale** (stabilità realtime/KPI da consolidare).
+- Dashboard reception live: **completo V1** con modulo “Access Feed + Presenza Attuale” (card accessi recenti/negati/presenti, badge stato consentito-negato-warning, realtime `customer_access_logs` + `gym_presence` con fallback polling 7s).
+- Dashboard reception live: **parziale** (include card stato bridge live con refresh manuale + auto refresh 5s; KPI da consolidare).
 - Settings: **parziale** (moduli/prezzi/permessi da harden).
 - Report/analytics: **parziale**.
 - Training platform: **parziale** (molte feature presenti, maturità non finale).
@@ -223,3 +224,12 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Middleware access/public routes: `middleware.ts`
 - Bridge C# core: `bridge/bridge-v2/Program.cs`
 - Bridge dependency: `bridge/bridge-v2/TcpClass.dll`
+
+## 9) Update 2026-05-27 — Reception Dashboard Live V1
+
+- Pagina `/reception` aggiornata con modulo operativo **Access Feed + Presenza Attuale**.
+- Fonti dati primarie: `customer_access_logs`, `gym_presence`, `customers` (join Supabase).
+- Eventi mostrati con stato `consentito` / `negato` / `warning` (badge sconosciuto), motivo denial, badge code e timestamp evento.
+- Sezione “Presenti ora” mostra ultimo ingresso e permanenza stimata in minuti per clienti `is_inside=true`.
+- Realtime attivato su `customer_access_logs` e `gym_presence`; fallback polling automatico ogni 7 secondi per resilienza.
+- Nessuna modifica al bridge C# e nessuna modifica a `/api/access/check`.
