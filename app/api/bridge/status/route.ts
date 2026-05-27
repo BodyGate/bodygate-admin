@@ -9,6 +9,13 @@ const execAsync = promisify(exec);
 type BridgeStatusPayload = {
   ok?: boolean;
   connected?: boolean;
+  isConnected?: boolean;
+  processing?: boolean;
+  isProcessing?: boolean;
+  lastBadge?: string | null;
+  last_badge?: string | null;
+  lastBadgeTime?: string | null;
+  last_badge_time?: string | null;
   version?: string;
   [key: string]: unknown;
 };
@@ -16,7 +23,7 @@ type BridgeStatusPayload = {
 async function isBridgeProcessActive() {
   if (process.platform !== "win32") {
     return {
-      active: null,
+      active: null as boolean | null,
       method: "not-windows",
       note: "Process watchdog disponibile solo su Windows host.",
     };
@@ -35,7 +42,7 @@ async function isBridgeProcessActive() {
     };
   } catch (error: unknown) {
     return {
-      active: null,
+      active: null as boolean | null,
       method: "tasklist",
       note: error instanceof Error ? error.message : "Errore tasklist",
     };
@@ -54,25 +61,43 @@ export async function GET() {
 
     const bridgeStatus = (await statusRes.json()) as BridgeStatusPayload;
     const bridgeHealth = healthRes.ok ? await healthRes.json() : null;
-    const connected = Boolean(bridgeStatus?.connected);
+
+    const connected =
+      typeof bridgeStatus?.connected === "boolean"
+        ? bridgeStatus.connected
+        : typeof bridgeStatus?.isConnected === "boolean"
+          ? bridgeStatus.isConnected
+          : true;
+
+    const processing =
+      typeof bridgeStatus?.processing === "boolean"
+        ? bridgeStatus.processing
+        : typeof bridgeStatus?.isProcessing === "boolean"
+          ? bridgeStatus.isProcessing
+          : false;
 
     const watchdogState = !statusRes.ok
       ? "offline"
       : !connected
-      ? "degraded"
-      : "online";
+        ? "degraded"
+        : "online";
 
     const watchdogError = !statusRes.ok
       ? `Bridge /status HTTP ${statusRes.status}`
       : !connected
-      ? "Bridge raggiungibile ma centralina non connessa (connected=false)."
-      : processInfo.active === false
-      ? "Bridge HTTP risponde ma processo BodyGateAccessBridge.exe non rilevato."
-      : null;
+        ? "Bridge raggiungibile ma centralina non connessa (connected=false)."
+        : processInfo.active === false
+          ? "Bridge HTTP risponde ma processo BodyGateAccessBridge.exe non rilevato."
+          : null;
 
     return NextResponse.json({
       ok: true,
       online: statusRes.ok,
+      connected,
+      lastBadge: bridgeStatus?.lastBadge ?? bridgeStatus?.last_badge ?? null,
+      lastBadgeTime:
+        bridgeStatus?.lastBadgeTime ?? bridgeStatus?.last_badge_time ?? null,
+      processing,
       bridge: bridgeStatus,
       health: bridgeHealth,
       checked_at: checkedAt,
@@ -87,20 +112,26 @@ export async function GET() {
       },
     });
   } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Bridge non raggiungibile";
+
     return NextResponse.json({
       ok: true,
       online: false,
+      connected: false,
+      lastBadge: null,
+      lastBadgeTime: null,
+      processing: false,
       bridge: null,
       health: null,
+      error: message,
       checked_at: checkedAt,
-      error: error instanceof Error ? error.message : "Bridge non raggiungibile",
       watchdog: {
         state: "offline",
         process_active: processInfo.active,
         process_check: processInfo.method,
         process_note: processInfo.note,
-        last_error:
-          error instanceof Error ? error.message : "Bridge non raggiungibile",
+        last_error: message,
         restart_suggested: true,
         auto_restart_enabled: false,
       },

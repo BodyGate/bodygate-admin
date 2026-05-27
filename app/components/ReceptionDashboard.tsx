@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 
@@ -29,12 +29,26 @@ type AccessLog = {
   } | null;
 };
 
-
 type BridgeWatchdog = {
   state: "online" | "degraded" | "offline";
   process_active: boolean | null;
   last_error: string | null;
   checked_at?: string;
+};
+
+type QuickCreateForm = {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  tax_code: string;
+  badge_code: string;
+  controller_code: string;
+  medical_valid_from: string;
+  medical_valid_until: string;
+  membership_valid_until: string;
+  subscription_starts_at: string;
+  subscription_ends_at: string;
 };
 
 type Certificate = {
@@ -49,16 +63,59 @@ type Certificate = {
   } | null;
 };
 
+type BridgeStatus = {
+  online: boolean;
+  connected: boolean;
+  processing: boolean;
+  lastBadge: string | null;
+  lastBadgeTime: string | null;
+  checkedAt: string | null;
+  error: string | null;
+};
+
 export default function ReceptionDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [bridgeLoading, setBridgeLoading] = useState(false);
+
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
+    online: false,
+    connected: false,
+    processing: false,
+    lastBadge: null,
+    lastBadgeTime: null,
+    checkedAt: null,
+    error: null,
+  });
+
   const [bridgeWatchdog, setBridgeWatchdog] = useState<BridgeWatchdog>({
     state: "offline",
     process_active: null,
     last_error: null,
+  });
+
+  const [bridgeLoading, setBridgeLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [savingQuick, setSavingQuick] = useState(false);
+  const [quickError, setQuickError] = useState("");
+  const [quickSuccess, setQuickSuccess] = useState("");
+  const [quickWarnings, setQuickWarnings] = useState<string[]>([]);
+
+  const [quickForm, setQuickForm] = useState<QuickCreateForm>({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    email: "",
+    tax_code: "",
+    badge_code: "",
+    controller_code: "",
+    medical_valid_from: "",
+    medical_valid_until: "",
+    membership_valid_until: "",
+    subscription_starts_at: "",
+    subscription_ends_at: "",
   });
 
   function getName(item: {
@@ -81,34 +138,7 @@ export default function ReceptionDashboard() {
     return date.toISOString().slice(0, 10);
   }
 
-
-  async function loadBridgeStatus() {
-    setBridgeLoading(true);
-
-    try {
-      const res = await fetch("/api/bridge/status", { cache: "no-store" });
-      const data = await res.json();
-
-      setBridgeWatchdog({
-        state: data?.watchdog?.state || (data?.online ? "online" : "offline"),
-        process_active: data?.watchdog?.process_active ?? null,
-        last_error: data?.watchdog?.last_error ?? data?.error ?? null,
-        checked_at: data?.checked_at,
-      });
-    } catch (error: unknown) {
-      setBridgeWatchdog({
-        state: "offline",
-        process_active: null,
-        last_error:
-          error instanceof Error ? error.message : "Errore monitor bridge",
-        checked_at: new Date().toISOString(),
-      });
-    } finally {
-      setBridgeLoading(false);
-    }
-  }
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const today = todayString();
@@ -128,8 +158,7 @@ export default function ReceptionDashboard() {
 
       supabase
         .from("access_logs")
-        .select(
-          `
+        .select(`
           id,
           created_at,
           customer_id,
@@ -142,16 +171,14 @@ export default function ReceptionDashboard() {
             first_name,
             last_name
           )
-        `
-        )
+        `)
         .gte("created_at", `${today}T00:00:00`)
         .order("created_at", { ascending: false })
         .limit(30),
 
       supabase
         .from("medical_certificates")
-        .select(
-          `
+        .select(`
           id,
           customer_id,
           valid_from,
@@ -161,8 +188,7 @@ export default function ReceptionDashboard() {
             first_name,
             last_name
           )
-        `
-        )
+        `)
         .gte("valid_until", today)
         .lte("valid_until", in30Days)
         .order("valid_until", { ascending: true })
@@ -173,6 +199,65 @@ export default function ReceptionDashboard() {
     setLogs((logsData || []) as AccessLog[]);
     setCertificates((certificatesData || []) as Certificate[]);
     setLoading(false);
+  }, []);
+
+  async function loadBridgeStatus() {
+    setBridgeLoading(true);
+    try {
+      const res = await fetch("/api/bridge/status", { cache: "no-store" });
+      const data = await res.json();
+      const bridge = data?.bridge ?? {};
+
+      setBridgeStatus({
+        online: Boolean(data?.online),
+        connected:
+          typeof data?.connected === "boolean"
+            ? data.connected
+            : Boolean(bridge?.connected),
+        processing:
+          typeof data?.processing === "boolean"
+            ? data.processing
+            : Boolean(bridge?.processing),
+        lastBadge:
+          data?.lastBadge ?? bridge?.lastBadge ?? bridge?.last_badge ?? null,
+        lastBadgeTime:
+          data?.lastBadgeTime ??
+          bridge?.lastBadgeTime ??
+          bridge?.last_badge_time ??
+          null,
+        checkedAt: data?.checked_at ?? new Date().toISOString(),
+        error: data?.error ?? null,
+      });
+
+      setBridgeWatchdog({
+        state: data?.watchdog?.state || (data?.online ? "online" : "offline"),
+        process_active: data?.watchdog?.process_active ?? null,
+        last_error: data?.watchdog?.last_error ?? data?.error ?? null,
+        checked_at: data?.checked_at,
+      });
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error ? error.message : "Errore connessione bridge";
+
+      setBridgeStatus({
+        online: false,
+        connected: false,
+        processing: false,
+        lastBadge: null,
+        lastBadgeTime: null,
+        checkedAt: new Date().toISOString(),
+        error: msg,
+      });
+
+      setBridgeWatchdog({
+        state: "offline",
+        process_active: null,
+        last_error: msg,
+        checked_at: new Date().toISOString(),
+      });
+    } finally {
+      setBridgeLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -208,7 +293,208 @@ export default function ReceptionDashboard() {
       window.clearInterval(bridgeInterval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadData]);
+
+  function setQuickField<K extends keyof QuickCreateForm>(
+    key: K,
+    value: QuickCreateForm[K]
+  ) {
+    setQuickForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function resetQuickForm() {
+    setQuickForm({
+      first_name: "",
+      last_name: "",
+      phone: "",
+      email: "",
+      tax_code: "",
+      badge_code: "",
+      controller_code: "",
+      medical_valid_from: "",
+      medical_valid_until: "",
+      membership_valid_until: "",
+      subscription_starts_at: "",
+      subscription_ends_at: "",
+    });
+    setQuickWarnings([]);
+    setQuickError("");
+  }
+
+  function isMissingTableError(message: string) {
+    const lower = message.toLowerCase();
+    return (
+      lower.includes("does not exist") ||
+      lower.includes("42p01") ||
+      lower.includes("relation")
+    );
+  }
+
+  async function submitQuickCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    setQuickError("");
+    setQuickSuccess("");
+    setQuickWarnings([]);
+
+    const firstName = quickForm.first_name.trim();
+    const lastName = quickForm.last_name.trim();
+
+    if (!firstName || !lastName) {
+      setQuickError("Nome e cognome sono obbligatori.");
+      return;
+    }
+
+    const badgeCode = quickForm.badge_code.trim();
+    const controllerCode = quickForm.controller_code.trim();
+
+    if (!badgeCode && !controllerCode) {
+      setQuickError(
+        "Inserisci almeno badge code o controller code per creare la credenziale di accesso."
+      );
+      return;
+    }
+
+    if (
+      quickForm.medical_valid_from &&
+      quickForm.medical_valid_until &&
+      quickForm.medical_valid_until < quickForm.medical_valid_from
+    ) {
+      setQuickError(
+        "La data fine certificato non può essere precedente alla data inizio."
+      );
+      return;
+    }
+
+    if (
+      quickForm.subscription_starts_at &&
+      quickForm.subscription_ends_at &&
+      quickForm.subscription_ends_at < quickForm.subscription_starts_at
+    ) {
+      setQuickError(
+        "La data fine abbonamento non può essere precedente alla data inizio."
+      );
+      return;
+    }
+
+    setSavingQuick(true);
+
+    const warnings: string[] = [];
+
+    const customerPayload: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`.trim(),
+      phone: quickForm.phone.trim() || null,
+      email: quickForm.email.trim() || null,
+      tax_code: quickForm.tax_code.trim() || null,
+      active: true,
+    };
+
+    if (quickForm.medical_valid_until) {
+      customerPayload.medical_certificate_end_date = quickForm.medical_valid_until;
+      customerPayload.medical_certificate_end = quickForm.medical_valid_until;
+    }
+
+    const { data: customer, error: customerError } = await supabase
+      .from("customers")
+      .insert(customerPayload)
+      .select("id")
+      .single();
+
+    if (customerError || !customer) {
+      setQuickError(
+        `Errore creazione cliente: ${customerError?.message || "cliente non creato"}`
+      );
+      setSavingQuick(false);
+      return;
+    }
+
+    const customerId = customer.id;
+
+    const accessCredentialPayload = {
+      customer_id: customerId,
+      code: badgeCode || controllerCode,
+      controller_code: controllerCode || null,
+      status: "active",
+    };
+
+    const { error: credentialError } = await supabase
+      .from("access_credentials")
+      .insert(accessCredentialPayload);
+
+    if (credentialError) {
+      if (isMissingTableError(credentialError.message)) {
+        warnings.push(
+          "Tabella access_credentials non trovata: credenziale accesso non salvata."
+        );
+      } else {
+        setQuickError(
+          `Cliente creato ma credenziale accesso non salvata: ${credentialError.message}`
+        );
+        setSavingQuick(false);
+        return;
+      }
+    }
+
+    if (quickForm.medical_valid_from && quickForm.medical_valid_until) {
+      const { error: certError } = await supabase
+        .from("medical_certificates")
+        .insert({
+          customer_id: customerId,
+          valid_from: quickForm.medical_valid_from,
+          valid_until: quickForm.medical_valid_until,
+          expiry_date: quickForm.medical_valid_until,
+          status: "valid",
+          certificate_type: "non_agonistico",
+        });
+
+      if (certError) {
+        if (isMissingTableError(certError.message)) {
+          warnings.push(
+            "Tabella medical_certificates non trovata: certificato salvato solo su customers."
+          );
+        } else {
+          warnings.push(`Certificato non inserito: ${certError.message}`);
+        }
+      }
+    }
+
+    if (quickForm.membership_valid_until) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error: membershipError } = await supabase
+        .from("customer_membership_fees")
+        .insert({
+          customer_id: customerId,
+          valid_from: today,
+          valid_until: quickForm.membership_valid_until,
+        });
+      if (membershipError) {
+        warnings.push(`Quota associativa non inserita: ${membershipError.message}`);
+      }
+    }
+
+    if (quickForm.subscription_starts_at && quickForm.subscription_ends_at) {
+      const { error: subscriptionError } = await supabase
+        .from("customer_subscriptions")
+        .insert({
+          customer_id: customerId,
+          is_active: true,
+          starts_at: quickForm.subscription_starts_at,
+          ends_at: quickForm.subscription_ends_at,
+        });
+
+      if (subscriptionError) {
+        warnings.push(`Abbonamento non inserito: ${subscriptionError.message}`);
+      }
+    }
+
+    setQuickWarnings(warnings);
+    setQuickSuccess("Nuovo cliente creato correttamente.");
+    await loadData();
+    resetQuickForm();
+    setShowQuickModal(false);
+    setSavingQuick(false);
+  }
 
   const stats = useMemo(() => {
     const today = todayString();
@@ -229,8 +515,7 @@ export default function ReceptionDashboard() {
       );
     }).length;
 
-    const blockedCustomers = customers.filter((customer) => !customer.active)
-      .length;
+    const blockedCustomers = customers.filter((customer) => !customer.active).length;
 
     const latestDenied = logs.find((log) => !log.allowed);
 
@@ -307,29 +592,170 @@ export default function ReceptionDashboard() {
           </p>
         </div>
 
-        <div style={liveBadgeStyle}>
-          <span style={dotStyle} />
-          Live
+        <div style={heroActionsStyle}>
+          <button style={primaryButtonStyle} onClick={() => setShowQuickModal(true)}>
+            Nuovo cliente
+          </button>
+
+          <div style={liveBadgeStyle}>
+            <span style={dotStyle} />
+            Live
+          </div>
         </div>
       </div>
 
+      {showQuickModal && (
+        <div style={modalOverlayStyle}>
+          <div style={modalStyle}>
+            <div style={modalHeaderStyle}>
+              <h2 style={{ margin: 0 }}>Nuovo cliente rapido</h2>
+              <button
+                style={closeButtonStyle}
+                onClick={() => {
+                  setShowQuickModal(false);
+                  setQuickError("");
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={submitQuickCustomer} style={modalFormStyle}>
+              <div style={modalGridStyle}>
+                <input
+                  style={inputStyle}
+                  placeholder="Nome"
+                  value={quickForm.first_name}
+                  onChange={(e) => setQuickField("first_name", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Cognome"
+                  value={quickForm.last_name}
+                  onChange={(e) => setQuickField("last_name", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Telefono"
+                  value={quickForm.phone}
+                  onChange={(e) => setQuickField("phone", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Email"
+                  value={quickForm.email}
+                  onChange={(e) => setQuickField("email", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Codice fiscale"
+                  value={quickForm.tax_code}
+                  onChange={(e) => setQuickField("tax_code", e.target.value.toUpperCase())}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Badge code"
+                  value={quickForm.badge_code}
+                  onChange={(e) => setQuickField("badge_code", e.target.value)}
+                />
+                <input
+                  style={inputStyle}
+                  placeholder="Controller code (opzionale)"
+                  value={quickForm.controller_code}
+                  onChange={(e) => setQuickField("controller_code", e.target.value)}
+                />
+                <label style={labelStyle}>
+                  Inizio certificato
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.medical_valid_from}
+                    onChange={(e) => setQuickField("medical_valid_from", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Fine certificato
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.medical_valid_until}
+                    onChange={(e) => setQuickField("medical_valid_until", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Quota associativa fino al
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.membership_valid_until}
+                    onChange={(e) => setQuickField("membership_valid_until", e.target.value)}
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Abbonamento dal
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.subscription_starts_at}
+                    onChange={(e) =>
+                      setQuickField("subscription_starts_at", e.target.value)
+                    }
+                  />
+                </label>
+                <label style={labelStyle}>
+                  Abbonamento al
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={quickForm.subscription_ends_at}
+                    onChange={(e) => setQuickField("subscription_ends_at", e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {quickError && <div style={errorStyle}>{quickError}</div>}
+              {quickWarnings.length > 0 && (
+                <div style={warningStyle}>
+                  {quickWarnings.map((w) => (
+                    <div key={w}>• {w}</div>
+                  ))}
+                </div>
+              )}
+              {quickSuccess && <div style={successStyle}>{quickSuccess}</div>}
+
+              <div style={modalActionsStyle}>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => {
+                    setShowQuickModal(false);
+                    setQuickError("");
+                  }}
+                >
+                  Annulla
+                </button>
+                <button type="submit" style={primaryButtonStyle} disabled={savingQuick}>
+                  {savingQuick ? "Salvataggio..." : "Salva cliente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={alertsGridStyle}>
+        <BridgeStatusCard
+          status={bridgeStatus}
+          loading={bridgeLoading}
+          onRefresh={loadBridgeStatus}
+        />
         {alerts.map((alert, index) => (
           <AlertCard key={index} {...alert} />
         ))}
       </div>
 
       <div style={gridStyle}>
-        <Card
-          title="Accessi oggi"
-          value={String(stats.accessToday)}
-          note="Ingressi autorizzati"
-        />
-        <Card
-          title="Accessi negati"
-          value={String(stats.deniedToday)}
-          note="Oggi"
-        />
+        <Card title="Accessi oggi" value={String(stats.accessToday)} note="Ingressi autorizzati" />
+        <Card title="Accessi negati" value={String(stats.deniedToday)} note="Oggi" />
         <Card
           title="Certificati in scadenza"
           value={String(stats.certificatesExpiring)}
@@ -357,7 +783,12 @@ export default function ReceptionDashboard() {
 
       {bridgeWatchdog.state !== "online" && (
         <div style={{ ...alertCardStyle, borderColor: "#ef4444aa", background: "#ef44441a" }}>
-          <div style={{ ...alertTitleStyle, color: bridgeWatchdog.state === "degraded" ? "#f59e0b" : "#ef4444" }}>
+          <div
+            style={{
+              ...alertTitleStyle,
+              color: bridgeWatchdog.state === "degraded" ? "#f59e0b" : "#ef4444",
+            }}
+          >
             Bridge {bridgeWatchdog.state === "degraded" ? "DEGRADED" : "OFFLINE"}
           </div>
           <div style={alertTextStyle}>
@@ -371,9 +802,7 @@ export default function ReceptionDashboard() {
           <div style={panelHeaderStyle}>
             <div>
               <h2 style={sectionTitleStyle}>Ultimi accessi</h2>
-              <p style={sectionTextStyle}>
-                Eventi ricevuti oggi dal tornello.
-              </p>
+              <p style={sectionTextStyle}>Eventi ricevuti oggi dal tornello.</p>
             </div>
 
             <Link href="/access-logs" style={smallLinkStyle}>
@@ -397,12 +826,10 @@ export default function ReceptionDashboard() {
                     <div>
                       <div style={rowTitleStyle}>{customerName}</div>
                       <div style={rowMetaStyle}>
-                        {new Date(log.created_at).toLocaleTimeString("it-IT")} ·
-                        Badge {log.badge_code || "-"}
+                        {new Date(log.created_at).toLocaleTimeString("it-IT")} · Badge{" "}
+                        {log.badge_code || "-"}
                       </div>
-                      {log.reason && (
-                        <div style={rowMetaStyle}>{log.reason}</div>
-                      )}
+                      {log.reason && <div style={rowMetaStyle}>{log.reason}</div>}
                     </div>
 
                     <div
@@ -426,9 +853,7 @@ export default function ReceptionDashboard() {
 
         <section style={panelStyle}>
           <h2 style={sectionTitleStyle}>Certificati in scadenza</h2>
-          <p style={sectionTextStyle}>
-            Certificati medici con scadenza entro 30 giorni.
-          </p>
+          <p style={sectionTextStyle}>Certificati medici con scadenza entro 30 giorni.</p>
 
           {loading ? (
             <div style={emptyStyle}>Caricamento certificati...</div>
@@ -437,9 +862,7 @@ export default function ReceptionDashboard() {
           ) : (
             <div style={listStyle}>
               {certificates.map((cert) => {
-                const customerName = cert.customers
-                  ? getName(cert.customers)
-                  : "Cliente";
+                const customerName = cert.customers ? getName(cert.customers) : "Cliente";
 
                 return (
                   <div key={cert.id} style={rowStyle}>
@@ -447,16 +870,11 @@ export default function ReceptionDashboard() {
                       <div style={rowTitleStyle}>{customerName}</div>
                       <div style={rowMetaStyle}>
                         Scade il{" "}
-                        {new Date(
-                          `${cert.valid_until}T12:00:00`
-                        ).toLocaleDateString("it-IT")}
+                        {new Date(`${cert.valid_until}T12:00:00`).toLocaleDateString("it-IT")}
                       </div>
                     </div>
 
-                    <Link
-                      href={`/customers/${cert.customer_id}`}
-                      style={smallLinkStyle}
-                    >
+                    <Link href={`/customers/${cert.customer_id}`} style={smallLinkStyle}>
                       Apri
                     </Link>
                   </div>
@@ -467,6 +885,52 @@ export default function ReceptionDashboard() {
         </section>
       </div>
     </main>
+  );
+}
+
+function BridgeStatusCard({
+  status,
+  loading,
+  onRefresh,
+}: {
+  status: BridgeStatus;
+  loading: boolean;
+  onRefresh: () => Promise<void>;
+}) {
+  const isWarning = status.processing || (status.online && !status.connected);
+  const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
+  const color =
+    tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
+
+  return (
+    <div
+      style={{
+        ...alertCardStyle,
+        borderColor: `${color}66`,
+        background: `${color}18`,
+        display: "grid",
+        gap: "10px",
+      }}
+    >
+      <div style={{ ...alertTitleStyle, color }}>
+        Bridge {status.online ? "Online" : "Offline"}
+      </div>
+      <div style={alertTextStyle}>connected: {String(status.connected)}</div>
+      <div style={alertTextStyle}>processing: {String(status.processing)}</div>
+      <div style={alertTextStyle}>lastBadge: {status.lastBadge || "-"}</div>
+      <div style={alertTextStyle}>
+        lastBadgeTime:{" "}
+        {status.lastBadgeTime ? new Date(status.lastBadgeTime).toLocaleString("it-IT") : "-"}
+      </div>
+      <div style={alertTextStyle}>
+        ultimo controllo:{" "}
+        {status.checkedAt ? new Date(status.checkedAt).toLocaleTimeString("it-IT") : "-"}
+      </div>
+      {status.error && <div style={{ ...alertTextStyle, color: "#fecaca" }}>Errore: {status.error}</div>}
+      <button style={bridgeButtonStyle} onClick={onRefresh} disabled={loading}>
+        {loading ? "Aggiornamento..." : "Aggiorna stato"}
+      </button>
+    </div>
   );
 }
 
@@ -624,6 +1088,16 @@ const alertLinkStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const bridgeButtonStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.08)",
+  color: "var(--text)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
 const gridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
@@ -735,6 +1209,104 @@ const statusBadgeStyle: React.CSSProperties = {
   fontSize: "12px",
   whiteSpace: "nowrap",
 };
+
+const heroActionsStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  color: "white",
+  background: "linear-gradient(180deg,#ef4444,#b91c1c)",
+  border: "1px solid rgba(239,68,68,0.5)",
+  borderRadius: "14px",
+  padding: "12px 16px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  color: "var(--text)",
+  border: "1px solid var(--border)",
+  borderRadius: "14px",
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const modalOverlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.72)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 80,
+  padding: "24px",
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "min(980px, 100%)",
+  maxHeight: "88vh",
+  overflowY: "auto",
+  background: "linear-gradient(180deg, #181818, #101010)",
+  border: "1px solid var(--border)",
+  borderRadius: "24px",
+  padding: "22px",
+};
+
+const modalHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "14px",
+};
+
+const closeButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: "var(--muted)",
+  fontSize: "24px",
+  cursor: "pointer",
+};
+
+const modalFormStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const modalGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "12px",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+};
+
+const modalActionsStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "10px",
+};
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--muted)",
+  display: "grid",
+  gap: "6px",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--bg-soft)",
+  border: "1px solid var(--border)",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  color: "var(--text)",
+};
+
+const errorStyle: React.CSSProperties = { color: "#fca5a5" };
+const warningStyle: React.CSSProperties = { color: "#fcd34d", fontSize: "13px" };
+const successStyle: React.CSSProperties = { color: "#86efac" };
 
 const smallLinkStyle: React.CSSProperties = {
   color: "white",
