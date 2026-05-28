@@ -6,17 +6,21 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/logout",
 
-  // API tornello / bridge: deve restare pubblica
+  // API tornello / bridge: devono restare pubbliche anche senza sessione utente
   "/api/access/check",
+  "/api/access/log",
   "/api/dnake/event",
+  "/api/bridge/status",
 ];
+
+function isPathMatch(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicPath = publicPaths.some((path) =>
-    pathname.startsWith(path)
-  );
+  const isPublicPath = publicPaths.some((path) => isPathMatch(pathname, path));
 
   const isStaticFile =
     pathname.startsWith("/_next") ||
@@ -31,6 +35,16 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get("bodygate_session")?.value;
 
   if (!session) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      );
+    }
+
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
