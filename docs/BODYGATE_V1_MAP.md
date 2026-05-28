@@ -69,7 +69,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ### Note operative API
 - `/customers` ora carica i dati tramite API server-side `/api/customers/list` (service role) per evitare risposte vuote dovute a RLS/sessione client anon.
-- Il middleware lascia pubbliche `/api/access/check` e `/api/dnake/event` per consentire chiamate da bridge locale e cloud DNake senza sessione reception.
+- Il middleware lascia pubbliche `/api/access/check`, `/api/access/log` e `/api/dnake/event` per consentire chiamate da bridge locale e cloud DNake senza sessione reception.
 - Le API bridge (`/api/bridge/status`, `/api/turnstile/open`) dipendono da `http://localhost:5050`.
 
 ---
@@ -153,14 +153,11 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Apertura con `controller.OpenDoor(doorIndex)` o `controller.OpenDoorLong(doorIndex)` tramite endpoint bridge dedicati (`/open0`, `/open1`, `/openlong0`, `/openlong1`).
 - Retry “safe”: retry consentito solo quando comando NON inviato; se SDK ritorna `false` ma comando inviato → warning tecnico, stop retry per evitare impulsi multipli.
 
-## Flusso badge
-1. Pacchetto TCP della centralina ricevuto su `tcpNet.OnDataEvent`, inoltrato esplicitamente a `controller.HandleMessage` e loggato come RX raw debug.
-2. Evento badge SDK su `controller.OnEventHandler`, con log minimo di badge/controller code, reader, door ed event type.
-3. Fallback raw bridge-v2: se arriva un pacchetto RX `len=43` con header `02 AA 56` e payload `0x0022`, il bridge scansiona il payload alla ricerca del numero badge/controller code come valore numerico a 32 bit (priorità little-endian con byte alto `00`, es. `53 A1 6B 00` → `7053651`) e logga `BADGE LETTO RAW`, reader, door, event type e candidati debug.
-4. Dedup badge (cooldown), condiviso fra evento SDK e fallback raw per evitare doppi accessi.
-5. Chiamata BodyGate `/api/access/check`.
-6. Se `allowed=true` → apertura tornello con `OpenDoor(0)`/`/open0`.
-7. Invio log tecnico a `/api/access/log`.
+## Flusso badge bridge-v2
+1. La sorgente badge principale è il flusso HTTP DNake (`/api/dnake/event`), che verifica l'accesso in BodyGate e poi chiama il bridge solo per il comando di apertura (`/open0`).
+2. Il pacchetto TCP della centralina ricevuto su `tcpNet.OnDataEvent` resta inoltrato a `controller.HandleMessage`, ma il bridge non chiama più `ProcessBadge` dai pacchetti raw.
+3. Il fallback raw bridge-v2 sui pacchetti RX `len=43` è disabilitato di default: il flag ambiente `DEBUG_RAW_BADGE=true` abilita solo log diagnostici RX/candidati, senza processare badge o aprire il tornello.
+4. Gli endpoint locali `/open0`, `/open1`, `/openlong0` e `/openlong1` restano il canale di comando apertura usato dal flusso DNake.
 
 ## Flusso evento HTTP DNake
 1. DNake invia `Valid Card Entered` a `GET` o `POST /api/dnake/event`.

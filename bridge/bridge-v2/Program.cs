@@ -36,6 +36,9 @@ namespace BodyGateAccessBridge
         private const int RawBadgePayloadLength = 0x22;
         private const int RawBadgePayloadOffset = 7;
 
+        private static readonly bool DebugRawBadge =
+            IsFlagEnabled("DEBUG_RAW_BADGE");
+
         private static ClassTcpClientWorker? tcpNet;
         private static TTCPPullCommand? pullCommand;
         private static TTCPController? controller;
@@ -71,6 +74,7 @@ namespace BodyGateAccessBridge
             Log("ACCESSO NEGATO se BodyGate allowed=false o API offline");
             Log("OpenDoor False gestito come WARNING tecnico");
             Log("Retry apertura solo se comando NON inviato");
+            Log("Raw badge parser automatico: disabilitato; debug RX raw (DEBUG_RAW_BADGE)=" + DebugRawBadge);
             Log("====================================");
 
             InitController();
@@ -99,6 +103,23 @@ namespace BodyGateAccessBridge
             }
         }
 
+        private static bool IsFlagEnabled(string name)
+        {
+            string? value =
+                Environment.GetEnvironmentVariable(name);
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return
+                value.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("on", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void InitController()
         {
             lock (controllerLock)
@@ -118,8 +139,8 @@ namespace BodyGateAccessBridge
                     tcpNet.OnRxTxDataEvent += TcpNet_OnRxTxDataEvent;
                     controller.OnEventHandler += Controller_OnEventHandler;
 
-                    Log("Hook eventi TCP: OnDataEvent -> HandleMessage + debug RX");
-                    Log("Hook eventi TCP: OnRxTxDataEvent -> debug RX/TX");
+                    Log("Hook eventi TCP: OnDataEvent -> HandleMessage + debug RX opzionale");
+                    Log("Hook eventi TCP: OnRxTxDataEvent -> debug RX/TX opzionale");
                     Log("Hook eventi controller: OnEventHandler -> badge BodyGate");
 
                     bool connected =
@@ -139,12 +160,22 @@ namespace BodyGateAccessBridge
 
         private static void TcpNet_OnDataEvent(byte[] buffRX, int len)
         {
+            if (!DebugRawBadge)
+            {
+                return;
+            }
+
             LogTcpBuffer("RX OnDataEvent", buffRX, len);
-            TryProcessRawBadgeEvent(buffRX, len);
+            LogRawBadgeDebug(buffRX, len);
         }
 
         private static void TcpNet_OnRxTxDataEvent(byte[] buffRX, int len, bool isSend)
         {
+            if (!DebugRawBadge)
+            {
+                return;
+            }
+
             LogTcpBuffer(isSend ? "TX OnRxTxDataEvent" : "RX OnRxTxDataEvent", buffRX, len);
         }
 
@@ -217,7 +248,7 @@ namespace BodyGateAccessBridge
             }
         }
 
-        private static void TryProcessRawBadgeEvent(byte[] buffRX, int len)
+        private static void LogRawBadgeDebug(byte[] buffRX, int len)
         {
             try
             {
@@ -229,23 +260,12 @@ namespace BodyGateAccessBridge
                     return;
                 }
 
-                Log("DEBUG RAW badge estratto: " + rawEvent.DebugSummary);
-
-                ProcessBadge(
-                    rawEvent.Code,
-                    new BadgeEventInfo
-                    {
-                        Reader = rawEvent.Reader,
-                        Door = rawEvent.Door,
-                        EventType = rawEvent.EventType,
-                        Datetime = DateTime.Now,
-                        Source = "RAW"
-                    }
-                );
+                Log("DEBUG RAW badge candidate ignorato: " + rawEvent.DebugSummary);
+                Log("DEBUG RAW: ProcessBadge non chiamato da OnDataEvent raw");
             }
             catch (Exception ex)
             {
-                Log("Errore parser badge raw: " + ex.Message);
+                Log("Errore debug badge raw: " + ex.Message);
             }
         }
 
@@ -491,8 +511,8 @@ namespace BodyGateAccessBridge
             }
 
             Log("================================");
-            Log(badgeEvent.Source == "RAW" ? "BADGE CENTRALINA RAW" : "BADGE CENTRALINA");
-            Log(badgeEvent.Source == "RAW" ? "BADGE LETTO RAW: " + badge : "BADGE LETTO: " + badge);
+            Log("BADGE CENTRALINA");
+            Log("BADGE LETTO: " + badge);
             Log("Badge: " + badge);
             Log("ControllerCode: " + badge);
             Log("Reader: " + badgeEvent.Reader);
