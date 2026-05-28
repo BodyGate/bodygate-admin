@@ -9,11 +9,116 @@ export async function GET() {
   });
 }
 
+type BadgeSource = "access_credentials" | "customer_badges" | "customers";
+
+type BadgeMatch = {
+  source: BadgeSource;
+  customer_id: string;
+  badge_code: string;
+  controller_code: string;
+};
+
+function normalizeBadge(value: unknown) {
+  return String(value || "").trim();
+}
+
+async function findBadgeMatch(badge: string): Promise<{
+  match: BadgeMatch | null;
+  error?: string;
+}> {
+  const { data: accessCredential, error: accessCredentialError } = await supabase
+    .from("access_credentials")
+    .select("id, customer_id, code, controller_code, status")
+    .or(`code.eq.${badge},controller_code.eq.${badge}`)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (accessCredentialError) {
+    console.error("access_credentials badge lookup failed", {
+      badge,
+      error: accessCredentialError.message,
+    });
+  }
+
+  if (accessCredential?.customer_id) {
+    return {
+      match: {
+        source: "access_credentials",
+        customer_id: accessCredential.customer_id,
+        badge_code: accessCredential.code || badge,
+        controller_code: accessCredential.controller_code || badge,
+      },
+    };
+  }
+
+  const { data: customerBadge, error: customerBadgeError } = await supabase
+    .from("customer_badges")
+    .select("id, customer_id, badge_code, is_active")
+    .eq("badge_code", badge)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (customerBadgeError) {
+    console.error("customer_badges fallback lookup failed", {
+      badge,
+      error: customerBadgeError.message,
+    });
+  }
+
+  if (customerBadge?.customer_id) {
+    return {
+      match: {
+        source: "customer_badges",
+        customer_id: customerBadge.customer_id,
+        badge_code: customerBadge.badge_code || badge,
+        controller_code: badge,
+      },
+    };
+  }
+
+  const { data: customerByLegacyBadge, error: customerByLegacyBadgeError } =
+    await supabase
+      .from("customers")
+      .select("id, badge_code, controller_code")
+      .or(`badge_code.eq.${badge},controller_code.eq.${badge}`)
+      .limit(1)
+      .maybeSingle();
+
+  if (customerByLegacyBadgeError) {
+    console.error("customers legacy badge fallback lookup failed", {
+      badge,
+      error: customerByLegacyBadgeError.message,
+    });
+  }
+
+  if (customerByLegacyBadge?.id) {
+    return {
+      match: {
+        source: "customers",
+        customer_id: customerByLegacyBadge.id,
+        badge_code: customerByLegacyBadge.badge_code || badge,
+        controller_code: customerByLegacyBadge.controller_code || badge,
+      },
+    };
+  }
+
+  return {
+    match: null,
+    error:
+      accessCredentialError?.message ||
+      customerBadgeError?.message ||
+      customerByLegacyBadgeError?.message,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const badge = String(body.badge || body.badge_code || "").trim();
+    const badge = normalizeBadge(body.badge || body.badge_code || body.code);
+    const source = normalizeBadge(body.source) || "turnstile";
 
     if (!badge) {
       return NextResponse.json({
@@ -23,19 +128,26 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: badgeRow, error: badgeError } = await supabase
-      .from("customer_badges")
-      .select("*")
-      .eq("badge_code", badge)
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+    const badgeLookup = await findBadgeMatch(badge);
 
-    if (badgeError || !badgeRow) {
+    if (!badgeLookup.match) {
       await supabase.from("unknown_badge_logs").insert({
         badge_code: badge,
         reason: "Badge non riconosciuto",
-        source: "turnstile",
+        source,
+      });
+
+      console.warn("Badge non riconosciuto", {
+        badge,
+        source,
+        searched: [
+          "access_credentials.code",
+          "access_credentials.controller_code",
+          "customer_badges.badge_code",
+          "customers.badge_code",
+          "customers.controller_code",
+        ],
+        lookup_error: badgeLookup.error || null,
       });
 
       return NextResponse.json({
@@ -43,21 +155,34 @@ export async function POST(req: Request) {
         allowed: false,
         reason: "Badge non riconosciuto",
         badge_code: badge,
+        debug: {
+          searched: [
+            "access_credentials.code",
+            "access_credentials.controller_code",
+            "customer_badges.badge_code",
+            "customers.badge_code",
+            "customers.controller_code",
+          ],
+          access_credentials_status_filter: "active",
+          lookup_error: badgeLookup.error || null,
+        },
       });
     }
+
+    const badgeMatch = badgeLookup.match;
 
     const { data: customer, error: customerError } = await supabase
       .from("customers")
       .select("*")
-      .eq("id", badgeRow.customer_id)
-      .eq("is_active", true)
+      .eq("id", badgeMatch.customer_id)
+      .limit(1)
       .maybeSingle();
 
-    if (customerError || !customer) {
+    if (customerError || !customer || customer.is_active === false) {
       await supabase.from("unknown_badge_logs").insert({
         badge_code: badge,
         reason: "Badge associato a cliente non attivo",
-        source: "turnstile",
+        source,
       });
 
       return NextResponse.json({
@@ -65,6 +190,7 @@ export async function POST(req: Request) {
         allowed: false,
         reason: "Cliente non attivo",
         badge_code: badge,
+        credential_source: badgeMatch.source,
       });
     }
 
@@ -78,8 +204,8 @@ export async function POST(req: Request) {
         branch_id: branchId,
         was_allowed: wasAllowed,
         reason,
-        badge_code: badge,
-        controller_code: badge,
+        badge_code: badgeMatch.badge_code,
+        controller_code: badgeMatch.controller_code,
       });
     }
 
@@ -96,7 +222,7 @@ export async function POST(req: Request) {
       await supabase.from("gym_presence").insert({
         customer_id: customerId,
         branch_id: branchId,
-        badge_code: badge,
+        badge_code: badgeMatch.badge_code,
         is_inside: true,
         source: "turnstile",
       });
@@ -110,7 +236,8 @@ export async function POST(req: Request) {
         allowed: false,
         reason: "Cliente non associato a nessuna sede",
         customer_id: customerId,
-        badge_code: badge,
+        badge_code: badgeMatch.badge_code,
+        credential_source: badgeMatch.source,
       });
     }
 
@@ -132,7 +259,8 @@ export async function POST(req: Request) {
         allowed: false,
         reason,
         customer_id: customerId,
-        badge_code: badge,
+        badge_code: badgeMatch.badge_code,
+        credential_source: badgeMatch.source,
       });
     }
 
@@ -148,7 +276,8 @@ export async function POST(req: Request) {
         allowed: false,
         reason: "Certificato medico scaduto o mancante",
         customer_id: customerId,
-        badge_code: badge,
+        badge_code: badgeMatch.badge_code,
+        credential_source: badgeMatch.source,
       });
     }
 
@@ -180,7 +309,8 @@ export async function POST(req: Request) {
           allowed: false,
           reason: "Quota associativa assente o scaduta",
           customer_id: customerId,
-          badge_code: badge,
+          badge_code: badgeMatch.badge_code,
+          credential_source: badgeMatch.source,
         });
       }
     }
@@ -205,7 +335,8 @@ export async function POST(req: Request) {
         allowed: false,
         reason: "Abbonamento assente o scaduto",
         customer_id: customerId,
-        badge_code: badge,
+        badge_code: badgeMatch.badge_code,
+        credential_source: badgeMatch.source,
       });
     }
 
@@ -217,17 +348,20 @@ export async function POST(req: Request) {
       allowed: true,
       reason: "Accesso consentito",
       customer_id: customerId,
-      badge_code: badge,
+      badge_code: badgeMatch.badge_code,
+      controller_code: badgeMatch.controller_code,
+      credential_source: badgeMatch.source,
       customer_name:
         `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Errore interno";
+
     return NextResponse.json(
       {
         ok: false,
         allowed: false,
-        reason: "Errore interno controllo accesso",
-        error: String(error),
+        reason: message,
       },
       { status: 500 }
     );
