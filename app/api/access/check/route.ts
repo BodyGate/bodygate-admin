@@ -1,14 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL mancante");
-  if (!supabaseServiceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
+  if (!supabaseServiceKey)
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
 
-  return createClient(supabaseUrl, supabaseServiceKey);
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 export async function GET() {
@@ -23,6 +32,7 @@ type BadgeSource = "access_credentials" | "customer_badges" | "customers";
 
 type BadgeMatch = {
   source: BadgeSource;
+  credential_id: string | null;
   customer_id: string;
   badge_code: string;
   controller_code: string;
@@ -30,6 +40,10 @@ type BadgeMatch = {
 
 type BadgeLookupDebug = {
   received_badge: string;
+  credential_found: boolean;
+  credential_id: string | null;
+  credential_customer_id: string | null;
+  customer_found: boolean | null;
   access_credentials_same_code_count: number | null;
   exact_query_path_used: string[];
   lookup_error: string | null;
@@ -41,7 +55,7 @@ function normalizeBadge(value: unknown) {
 
 async function findBadgeMatch(
   supabase: ReturnType<typeof getSupabaseClient>,
-  badge: string
+  badge: string,
 ): Promise<{
   match: BadgeMatch | null;
   debug: BadgeLookupDebug;
@@ -50,13 +64,24 @@ async function findBadgeMatch(
     "access_credentials.status=active AND (code=badge OR controller_code=badge)",
   ];
 
-  const { data: accessCredential, error: accessCredentialError } = await supabase
-    .from("access_credentials")
-    .select("id, customer_id, code, controller_code, status, type")
-    .eq("status", "active")
-    .or(`code.eq.${badge},controller_code.eq.${badge}`)
-    .limit(1)
-    .maybeSingle();
+  console.log("access check received badge", { badge });
+
+  const { data: accessCredential, error: accessCredentialError } =
+    await supabase
+      .from("access_credentials")
+      .select("id, customer_id, code, controller_code, status, type")
+      .eq("status", "active")
+      .or(`code.eq.${badge},controller_code.eq.${badge}`)
+      .limit(1)
+      .maybeSingle();
+
+  console.log("access check credential found", {
+    found: Boolean(accessCredential),
+  });
+  console.log("access check credential row", {
+    id: accessCredential?.id ?? null,
+    customer_id: accessCredential?.customer_id ?? null,
+  });
 
   if (accessCredentialError) {
     console.error("access_credentials badge lookup failed", {
@@ -69,12 +94,17 @@ async function findBadgeMatch(
     return {
       match: {
         source: "access_credentials",
+        credential_id: accessCredential.id ?? null,
         customer_id: accessCredential.customer_id,
         badge_code: accessCredential.code || badge,
         controller_code: accessCredential.controller_code || badge,
       },
       debug: {
         received_badge: badge,
+        credential_found: true,
+        credential_id: accessCredential.id ?? null,
+        credential_customer_id: accessCredential.customer_id,
+        customer_found: null,
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
         lookup_error: accessCredentialError?.message || null,
@@ -82,7 +112,9 @@ async function findBadgeMatch(
     };
   }
 
-  exactQueryPathUsed.push("customer_badges.badge_code=badge AND is_active=true");
+  exactQueryPathUsed.push(
+    "customer_badges.badge_code=badge AND is_active=true",
+  );
 
   const { data: customerBadge, error: customerBadgeError } = await supabase
     .from("customer_badges")
@@ -103,12 +135,17 @@ async function findBadgeMatch(
     return {
       match: {
         source: "customer_badges",
+        credential_id: null,
         customer_id: customerBadge.customer_id,
         badge_code: customerBadge.badge_code || badge,
         controller_code: badge,
       },
       debug: {
         received_badge: badge,
+        credential_found: false,
+        credential_id: null,
+        credential_customer_id: null,
+        customer_found: null,
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
         lookup_error:
@@ -118,7 +155,7 @@ async function findBadgeMatch(
   }
 
   exactQueryPathUsed.push(
-    "customers.badge_code=badge OR customers.controller_code=badge"
+    "customers.badge_code=badge OR customers.controller_code=badge",
   );
 
   const { data: customerByLegacyBadge, error: customerByLegacyBadgeError } =
@@ -140,12 +177,17 @@ async function findBadgeMatch(
     return {
       match: {
         source: "customers",
+        credential_id: null,
         customer_id: customerByLegacyBadge.id,
         badge_code: customerByLegacyBadge.badge_code || badge,
         controller_code: customerByLegacyBadge.controller_code || badge,
       },
       debug: {
         received_badge: badge,
+        credential_found: false,
+        credential_id: null,
+        credential_customer_id: null,
+        customer_found: null,
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
         lookup_error:
@@ -174,6 +216,10 @@ async function findBadgeMatch(
     match: null,
     debug: {
       received_badge: badge,
+      credential_found: false,
+      credential_id: null,
+      credential_customer_id: null,
+      customer_found: null,
       access_credentials_same_code_count: accessCredentialsSameCodeCount,
       exact_query_path_used: exactQueryPathUsed,
       lookup_error:
@@ -239,6 +285,10 @@ export async function POST(req: Request) {
           ],
           access_credentials_status_filter: "active",
           received_badge: badgeLookup.debug.received_badge,
+          credential_found: badgeLookup.debug.credential_found,
+          credential_id: badgeLookup.debug.credential_id,
+          credential_customer_id: badgeLookup.debug.credential_customer_id,
+          customer_found: badgeLookup.debug.customer_found,
           access_credentials_same_code_count:
             badgeLookup.debug.access_credentials_same_code_count,
           exact_query_path_used: badgeLookup.debug.exact_query_path_used,
@@ -255,6 +305,14 @@ export async function POST(req: Request) {
       .eq("id", badgeMatch.customer_id)
       .limit(1)
       .maybeSingle();
+
+    console.log("access check customer found", {
+      found: Boolean(customer),
+      customer_id: badgeMatch.customer_id,
+      credential_id: badgeMatch.credential_id,
+      credential_source: badgeMatch.source,
+      error: customerError?.message ?? null,
+    });
 
     if (customerError || !customer || customer.is_active === false) {
       await supabase.from("unknown_badge_logs").insert({
@@ -343,8 +401,7 @@ export async function POST(req: Request) {
     }
 
     const medicalCertificateEnd =
-      customer.medical_certificate_end_date ||
-      customer.medical_certificate_end;
+      customer.medical_certificate_end_date || customer.medical_certificate_end;
 
     if (!medicalCertificateEnd || medicalCertificateEnd < today) {
       await logAccess(false, "Certificato medico scaduto o mancante");
@@ -441,7 +498,7 @@ export async function POST(req: Request) {
         allowed: false,
         reason: message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

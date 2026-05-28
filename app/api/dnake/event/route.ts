@@ -52,10 +52,13 @@ type TechnicalLogResult = {
 };
 
 function getEssentialHeaders(req: Request) {
-  return ESSENTIAL_HEADERS.reduce<Record<string, string | null>>((headers, key) => {
-    headers[key] = req.headers.get(key);
-    return headers;
-  }, {});
+  return ESSENTIAL_HEADERS.reduce<Record<string, string | null>>(
+    (headers, key) => {
+      headers[key] = req.headers.get(key);
+      return headers;
+    },
+    {},
+  );
 }
 
 function getQueryParams(url: URL) {
@@ -64,7 +67,7 @@ function getQueryParams(url: URL) {
       params[key] = value;
       return params;
     },
-    {}
+    {},
   );
 }
 
@@ -132,7 +135,7 @@ async function parseBody(req: Request): Promise<DnakeBody> {
           body[key] = typeof value === "string" ? value : value.name;
           return body;
         },
-        {}
+        {},
       );
     } catch {
       return null;
@@ -276,7 +279,7 @@ async function saveTechnicalLog(params: {
         reason: params.accessResult.reason ?? null,
         door: 0,
         reader: 0,
-        event_type: "dnake_http_event",
+        event_type: 0,
         open_command_sent: params.openResult.attempted,
         open_sdk_result: params.openResult.ok,
         open_warning:
