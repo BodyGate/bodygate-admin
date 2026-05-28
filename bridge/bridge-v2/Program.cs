@@ -106,7 +106,14 @@ namespace BodyGateAccessBridge
                         pullCommand
                     );
 
+                    tcpNet.OnDataEvent += controller.HandleMessage;
+                    tcpNet.OnDataEvent += TcpNet_OnDataEvent;
+                    tcpNet.OnRxTxDataEvent += TcpNet_OnRxTxDataEvent;
                     controller.OnEventHandler += Controller_OnEventHandler;
+
+                    Log("Hook eventi TCP: OnDataEvent -> HandleMessage + debug RX");
+                    Log("Hook eventi TCP: OnRxTxDataEvent -> debug RX/TX");
+                    Log("Hook eventi controller: OnEventHandler -> badge BodyGate");
 
                     bool connected =
                         tcpNet.OpenIP(
@@ -120,6 +127,55 @@ namespace BodyGateAccessBridge
                 {
                     Log("Errore InitController: " + ex.Message);
                 }
+            }
+        }
+
+        private static void TcpNet_OnDataEvent(byte[] buffRX, int len)
+        {
+            LogTcpBuffer("RX OnDataEvent", buffRX, len);
+        }
+
+        private static void TcpNet_OnRxTxDataEvent(byte[] buffRX, int len, bool isSend)
+        {
+            LogTcpBuffer(isSend ? "TX OnRxTxDataEvent" : "RX OnRxTxDataEvent", buffRX, len);
+        }
+
+        private static void LogTcpBuffer(string prefix, byte[] buffer, int len)
+        {
+            try
+            {
+                if (buffer == null)
+                {
+                    Log(prefix + ": buffer null, len=" + len);
+                    return;
+                }
+
+                int safeLen = Math.Max(0, Math.Min(len, buffer.Length));
+                int shownLen = Math.Min(safeLen, 128);
+
+                StringBuilder hex =
+                    new StringBuilder();
+
+                for (int index = 0; index < shownLen; index++)
+                {
+                    if (index > 0)
+                    {
+                        hex.Append(' ');
+                    }
+
+                    hex.Append(buffer[index].ToString("X2"));
+                }
+
+                if (safeLen > shownLen)
+                {
+                    hex.Append(" ...");
+                }
+
+                Log(prefix + ": len=" + safeLen + " data=" + hex);
+            }
+            catch (Exception ex)
+            {
+                Log("Errore log TCP raw: " + ex.Message);
             }
         }
 
@@ -143,7 +199,9 @@ namespace BodyGateAccessBridge
 
                 Log("================================");
                 Log("BADGE CENTRALINA");
+                Log("BADGE LETTO: " + badge);
                 Log("Badge: " + badge);
+                Log("ControllerCode: " + badge);
                 Log("Reader: " + acsEvent.Reader);
                 Log("Door: " + acsEvent.Door);
                 Log("EventType: " + acsEvent.EventType);
