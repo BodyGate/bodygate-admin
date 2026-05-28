@@ -52,6 +52,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 |---|---|---|---|---|---|
 | `/api/access/check` | `POST` (`GET` info) | `badge`/`badge_code` | `allowed`, `reason`, dati cliente/badge | `customer_badges`, `customers`, `customer_blocks`, `membership_fee_settings`, `customer_membership_fees`, `customer_subscriptions`, `customer_access_logs`, `gym_presence`, `unknown_badge_logs` | **completo** (core accesso reale) |
 | `/api/access/log` | `POST` (`GET` info) | payload bridge (badge, door, reader, allowed, open_warning...) | `ok`, `log_id` | `access_logs` | completo |
+| `/api/dnake/event` | `GET`/`POST` | evento HTTP DNake con badge in query/body (`code`, `card`, `cardNo`, `card_no`, `number`, `Number`, `userId`, `UserID`) | JSON debug con codice estratto, esito accesso, apertura `/open0`, log tecnico | `/api/access/check`, bridge `http://localhost:5050/open0`, `access_logs` best-effort | completo |
 | `/api/access/stats` | `GET` | nessuno | stats giornaliere accessi | `access_logs` | parziale |
 | `/api/bridge/status` | `GET` | nessuno | stato bridge locale (`online`, `connected`, `lastBadge`, `lastBadgeTime`, `processing`, `bridge`) + watchdog (`online/degraded/offline`, processo bridge, `last_error`, `restart_suggested`) | nessuna tabella diretta | completo |
 | `/api/turnstile/open` | `POST` | nessuno (inoltro a bridge `/open`) | esito apertura | nessuna tabella diretta | completo |
@@ -68,7 +69,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ### Note operative API
 - `/customers` ora carica i dati tramite API server-side `/api/customers/list` (service role) per evitare risposte vuote dovute a RLS/sessione client anon.
-- Il middleware lascia pubblica `/api/access/check` per consentire chiamata bridge locale.
+- Il middleware lascia pubbliche `/api/access/check` e `/api/dnake/event` per consentire chiamate da bridge locale e cloud DNake senza sessione reception.
 - Le API bridge (`/api/bridge/status`, `/api/turnstile/open`) dipendono da `http://localhost:5050`.
 
 ---
@@ -161,6 +162,14 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 6. Se `allowed=true` → apertura tornello con `OpenDoor(0)`/`/open0`.
 7. Invio log tecnico a `/api/access/log`.
 
+## Flusso evento HTTP DNake
+1. DNake invia `Valid Card Entered` a `GET` o `POST /api/dnake/event`.
+2. BodyGate logga in console metodo, query params, body, headers essenziali, codice estratto, risultato accesso e risultato apertura.
+3. Il codice badge viene cercato in query string o body con chiavi flessibili: `code`, `card`, `cardNo`, `card_no`, `number`, `Number`, `userId`, `UserID`; se assente risponde `ok:false` con payload di debug.
+4. Se il codice è presente, la route chiama `/api/access/check` senza modificare la logica esistente.
+5. Se `allowed=true`, la route invia `GET http://localhost:5050/open0` al bridge locale C#; se negato non apre.
+6. La decisione accesso continua a salvare i log core tramite `/api/access/check`; in più la route prova a salvare un log tecnico DNake in `access_logs` quando sono configurate le credenziali service Supabase.
+
 ## Dipendenze
 - `TcpClass.dll` (integrazione hardware controller TCP).
 - .NET 8 (`BodyGateBridge.csproj`).
@@ -224,6 +233,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 
 ## Allegato: riferimenti rapidi file chiave
 
+- DNake HTTP event endpoint: `app/api/dnake/event/route.ts`
 - Access decision engine: `app/api/access/check/route.ts`
 - Access technical log API: `app/api/access/log/route.ts`
 - Bridge status API: `app/api/bridge/status/route.ts`
@@ -278,3 +288,12 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Ordinamento unico dal più recente al più vecchio su timestamp evento.
 - Ogni evento espone tipo, titolo, descrizione, data/ora, stato, eventuale importo e colore semantico.
 - Nessuna modifica a bridge C# e nessuna modifica a `/api/access/check`.
+
+## 14) DNake HTTP Event Endpoint (2026-05-28)
+
+- Aggiunta route pubblica `app/api/dnake/event/route.ts` per ricevere eventi HTTP DNake `Valid Card Entered` su `/api/dnake/event` sia in `GET` sia in `POST`.
+- Parsing badge/card flessibile da query string e body JSON/form/testo con chiavi `code`, `card`, `cardNo`, `card_no`, `number`, `Number`, `userId`, `UserID`.
+- Log console operativi richiesti: `DNake event received`, `method`, `query params`, `body`, `headers`, `extracted code`, `access result`, `open result`.
+- La route non modifica il bridge C# e non modifica `/api/access/check`: chiama la decisione esistente e apre il tornello solo quando `allowed=true` usando `GET http://localhost:5050/open0`.
+- Risposte JSON chiare: `ok:false` con debug quando manca il codice; `ok:true` con codice estratto, access result, open result e log tecnico best-effort quando l’evento è processabile.
+- Middleware aggiornato per rendere pubblico `/api/dnake/event`, evitando blocchi da sessione operatore per chiamate provenienti dal cloud DNake.
