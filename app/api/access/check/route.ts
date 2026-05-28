@@ -1,5 +1,15 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabaseClient";
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL mancante");
+  if (!supabaseServiceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 export async function GET() {
   return NextResponse.json({
@@ -18,19 +28,33 @@ type BadgeMatch = {
   controller_code: string;
 };
 
+type BadgeLookupDebug = {
+  received_badge: string;
+  access_credentials_same_code_count: number | null;
+  exact_query_path_used: string[];
+  lookup_error: string | null;
+};
+
 function normalizeBadge(value: unknown) {
   return String(value || "").trim();
 }
 
-async function findBadgeMatch(badge: string): Promise<{
+async function findBadgeMatch(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  badge: string
+): Promise<{
   match: BadgeMatch | null;
-  error?: string;
+  debug: BadgeLookupDebug;
 }> {
+  const exactQueryPathUsed = [
+    "access_credentials.status=active AND (code=badge OR controller_code=badge)",
+  ];
+
   const { data: accessCredential, error: accessCredentialError } = await supabase
     .from("access_credentials")
-    .select("id, customer_id, code, controller_code, status")
-    .or(`code.eq.${badge},controller_code.eq.${badge}`)
+    .select("id, customer_id, code, controller_code, status, type")
     .eq("status", "active")
+    .or(`code.eq.${badge},controller_code.eq.${badge}`)
     .limit(1)
     .maybeSingle();
 
@@ -49,8 +73,16 @@ async function findBadgeMatch(badge: string): Promise<{
         badge_code: accessCredential.code || badge,
         controller_code: accessCredential.controller_code || badge,
       },
+      debug: {
+        received_badge: badge,
+        access_credentials_same_code_count: null,
+        exact_query_path_used: exactQueryPathUsed,
+        lookup_error: accessCredentialError?.message || null,
+      },
     };
   }
+
+  exactQueryPathUsed.push("customer_badges.badge_code=badge AND is_active=true");
 
   const { data: customerBadge, error: customerBadgeError } = await supabase
     .from("customer_badges")
@@ -75,8 +107,19 @@ async function findBadgeMatch(badge: string): Promise<{
         badge_code: customerBadge.badge_code || badge,
         controller_code: badge,
       },
+      debug: {
+        received_badge: badge,
+        access_credentials_same_code_count: null,
+        exact_query_path_used: exactQueryPathUsed,
+        lookup_error:
+          accessCredentialError?.message || customerBadgeError?.message || null,
+      },
     };
   }
+
+  exactQueryPathUsed.push(
+    "customers.badge_code=badge OR customers.controller_code=badge"
+  );
 
   const { data: customerByLegacyBadge, error: customerByLegacyBadgeError } =
     await supabase
@@ -101,15 +144,45 @@ async function findBadgeMatch(badge: string): Promise<{
         badge_code: customerByLegacyBadge.badge_code || badge,
         controller_code: customerByLegacyBadge.controller_code || badge,
       },
+      debug: {
+        received_badge: badge,
+        access_credentials_same_code_count: null,
+        exact_query_path_used: exactQueryPathUsed,
+        lookup_error:
+          accessCredentialError?.message ||
+          customerBadgeError?.message ||
+          customerByLegacyBadgeError?.message ||
+          null,
+      },
     };
+  }
+
+  const { count: accessCredentialsSameCodeCount, error: accessCountError } =
+    await supabase
+      .from("access_credentials")
+      .select("id", { count: "exact", head: true })
+      .or(`code.eq.${badge},controller_code.eq.${badge}`);
+
+  if (accessCountError) {
+    console.error("access_credentials debug count failed", {
+      badge,
+      error: accessCountError.message,
+    });
   }
 
   return {
     match: null,
-    error:
-      accessCredentialError?.message ||
-      customerBadgeError?.message ||
-      customerByLegacyBadgeError?.message,
+    debug: {
+      received_badge: badge,
+      access_credentials_same_code_count: accessCredentialsSameCodeCount,
+      exact_query_path_used: exactQueryPathUsed,
+      lookup_error:
+        accessCredentialError?.message ||
+        customerBadgeError?.message ||
+        customerByLegacyBadgeError?.message ||
+        accessCountError?.message ||
+        null,
+    },
   };
 }
 
@@ -128,7 +201,8 @@ export async function POST(req: Request) {
       });
     }
 
-    const badgeLookup = await findBadgeMatch(badge);
+    const supabase = getSupabaseClient();
+    const badgeLookup = await findBadgeMatch(supabase, badge);
 
     if (!badgeLookup.match) {
       await supabase.from("unknown_badge_logs").insert({
@@ -147,7 +221,7 @@ export async function POST(req: Request) {
           "customers.badge_code",
           "customers.controller_code",
         ],
-        lookup_error: badgeLookup.error || null,
+        lookup_error: badgeLookup.debug.lookup_error,
       });
 
       return NextResponse.json({
@@ -164,7 +238,11 @@ export async function POST(req: Request) {
             "customers.controller_code",
           ],
           access_credentials_status_filter: "active",
-          lookup_error: badgeLookup.error || null,
+          received_badge: badgeLookup.debug.received_badge,
+          access_credentials_same_code_count:
+            badgeLookup.debug.access_credentials_same_code_count,
+          exact_query_path_used: badgeLookup.debug.exact_query_path_used,
+          lookup_error: badgeLookup.debug.lookup_error,
         },
       });
     }
