@@ -153,11 +153,12 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Retry “safe”: retry consentito solo quando comando NON inviato; se SDK ritorna `false` ma comando inviato → warning tecnico, stop retry per evitare impulsi multipli.
 
 ## Flusso badge
-1. Evento badge da centralina TCP.
-2. Dedup badge (cooldown).
-3. Chiamata BodyGate `/api/access/check`.
-4. Se `allowed=true` → apertura tornello.
-5. Invio log tecnico a `/api/access/log`.
+1. Pacchetto TCP della centralina ricevuto su `tcpNet.OnDataEvent`, inoltrato esplicitamente a `controller.HandleMessage` e loggato come RX raw debug.
+2. Evento badge SDK su `controller.OnEventHandler`, con log minimo di badge/controller code, reader, door ed event type.
+3. Dedup badge (cooldown).
+4. Chiamata BodyGate `/api/access/check`.
+5. Se `allowed=true` → apertura tornello con `OpenDoor(0)`/`/open0`.
+6. Invio log tecnico a `/api/access/log`.
 
 ## Dipendenze
 - `TcpClass.dll` (integrazione hardware controller TCP).
