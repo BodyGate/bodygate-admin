@@ -11,7 +11,7 @@ namespace BodyGateAccessBridge
 {
     internal class Program
     {
-        private static readonly string Version = "V3.4";
+        private static readonly string Version = "V3.5";
 
         private static readonly string ControllerIp = "192.168.1.251";
         private static readonly int ControllerPort = 8000;
@@ -56,7 +56,7 @@ namespace BodyGateAccessBridge
             Log("====================================");
             Log("BodyGate Bridge " + Version + " avviato");
             Log("Controller: " + ControllerIp + ":" + ControllerPort);
-            Log("Bridge HTTP: http://localhost:5050/open");
+            Log("Bridge HTTP: http://localhost:5050/open, /open0, /open1, /openlong0, /openlong1");
             Log("BodyGate Check API: " + BodyGateCheckUrl);
             Log("BodyGate Log API: " + BodyGateLogUrl);
             Log("Modalita: badge centralina -> verifica BodyGate -> apertura tornello -> log Supabase");
@@ -177,7 +177,7 @@ namespace BodyGateAccessBridge
                 Thread.Sleep(OpenDelayAfterBadgeMs);
 
                 openResult =
-                    OpenTurnstileWithSafeRetry();
+                    OpenTurnstileWithSafeRetry(DoorIndex, false);
 
                 if (openResult.HasTrueResult)
                 {
@@ -485,31 +485,31 @@ namespace BodyGateAccessBridge
 
                 if (path == "/open")
                 {
-                    OpenResult result =
-                        OpenTurnstileWithSafeRetry();
+                    HandleOpenRequest(context, DoorIndex, false);
+                    return;
+                }
 
-                    if (result.HasTrueResult)
-                    {
-                        WriteJson(
-                            context,
-                            "{\"ok\":true,\"opened\":true,\"warning\":false,\"message\":\"Tornello aperto\",\"version\":\"" + Version + "\"}"
-                        );
-                    }
-                    else if (result.CommandSent)
-                    {
-                        WriteJson(
-                            context,
-                            "{\"ok\":true,\"opened\":true,\"warning\":true,\"message\":\"Comando OpenDoor inviato una sola volta. SDK False gestito come warning tecnico.\",\"version\":\"" + Version + "\"}"
-                        );
-                    }
-                    else
-                    {
-                        WriteJson(
-                            context,
-                            "{\"ok\":false,\"opened\":false,\"warning\":true,\"message\":\"Comando OpenDoor non inviato. Controller non disponibile.\",\"version\":\"" + Version + "\"}"
-                        );
-                    }
+                if (path == "/open0")
+                {
+                    HandleOpenRequest(context, 0, false);
+                    return;
+                }
 
+                if (path == "/open1")
+                {
+                    HandleOpenRequest(context, 1, false);
+                    return;
+                }
+
+                if (path == "/openlong0")
+                {
+                    HandleOpenRequest(context, 0, true);
+                    return;
+                }
+
+                if (path == "/openlong1")
+                {
+                    HandleOpenRequest(context, 1, true);
                     return;
                 }
 
@@ -573,17 +573,94 @@ namespace BodyGateAccessBridge
             }
         }
 
-        private static OpenResult OpenTurnstileWithSafeRetry()
+        private static void HandleOpenRequest(
+            HttpListenerContext context,
+            byte doorIndex,
+            bool useLongOpen
+        )
+        {
+            OpenResult result =
+                OpenTurnstileWithSafeRetry(doorIndex, useLongOpen);
+
+            string commandName =
+                useLongOpen ? "OpenDoorLong" : "OpenDoor";
+
+            if (result.HasTrueResult)
+            {
+                WriteJson(
+                    context,
+                    new
+                    {
+                        ok = true,
+                        opened = true,
+                        warning = false,
+                        door = doorIndex,
+                        command = commandName,
+                        message = "Tornello aperto",
+                        version = Version
+                    }
+                );
+            }
+            else if (result.CommandSent)
+            {
+                WriteJson(
+                    context,
+                    new
+                    {
+                        ok = true,
+                        opened = true,
+                        warning = true,
+                        door = doorIndex,
+                        command = commandName,
+                        message = "Comando " + commandName + " inviato una sola volta. SDK False gestito come warning tecnico.",
+                        version = Version
+                    }
+                );
+            }
+            else
+            {
+                WriteJson(
+                    context,
+                    new
+                    {
+                        ok = false,
+                        opened = false,
+                        warning = true,
+                        door = doorIndex,
+                        command = commandName,
+                        message = "Comando " + commandName + " non inviato. Controller non disponibile.",
+                        version = Version
+                    }
+                );
+            }
+        }
+
+        private static OpenResult OpenTurnstileWithSafeRetry(
+            byte doorIndex,
+            bool useLongOpen
+        )
         {
             OpenResult finalResult =
                 new OpenResult();
 
+            string commandName =
+                useLongOpen ? "OpenDoorLong" : "OpenDoor";
+
             for (int attempt = 1; attempt <= OpenRetryCount; attempt++)
             {
-                Log("Tentativo apertura " + attempt + "/" + OpenRetryCount);
+                Log(
+                    "Tentativo apertura " +
+                    commandName +
+                    " porta " +
+                    doorIndex +
+                    " " +
+                    attempt +
+                    "/" +
+                    OpenRetryCount
+                );
 
                 OpenAttemptResult attemptResult =
-                    OpenTurnstileOnce();
+                    OpenTurnstileOnce(doorIndex, useLongOpen);
 
                 if (attemptResult.CommandSent)
                 {
@@ -596,14 +673,14 @@ namespace BodyGateAccessBridge
                         return finalResult;
                     }
 
-                    Log("WARNING tecnico: OpenDoor ha restituito False al tentativo " + attempt);
-                    Log("Comando OpenDoor inviato. Stop retry per evitare impulsi multipli.");
+                    Log("WARNING tecnico: " + commandName + " ha restituito False al tentativo " + attempt);
+                    Log("Comando " + commandName + " inviato. Stop retry per evitare impulsi multipli.");
                     LogControllerErrors();
 
                     return finalResult;
                 }
 
-                Log("Comando OpenDoor NON inviato al tentativo " + attempt);
+                Log("Comando " + commandName + " NON inviato al tentativo " + attempt);
                 LogControllerErrors();
 
                 if (attempt < OpenRetryCount)
@@ -613,12 +690,15 @@ namespace BodyGateAccessBridge
                 }
             }
 
-            Log("WARNING tecnico finale: nessun comando OpenDoor inviato dopo retry.");
+            Log("WARNING tecnico finale: nessun comando " + commandName + " inviato dopo retry.");
 
             return finalResult;
         }
 
-        private static OpenAttemptResult OpenTurnstileOnce()
+        private static OpenAttemptResult OpenTurnstileOnce(
+            byte doorIndex,
+            bool useLongOpen
+        )
         {
             try
             {
@@ -663,12 +743,17 @@ namespace BodyGateAccessBridge
                     };
                 }
 
-                Log("Invio OpenDoor...");
+                string commandName =
+                    useLongOpen ? "OpenDoorLong" : "OpenDoor";
+
+                Log("Invio " + commandName + " porta " + doorIndex + "...");
 
                 bool opened =
-                    controller.OpenDoor(DoorIndex);
+                    useLongOpen
+                        ? controller.OpenDoorLong(doorIndex)
+                        : controller.OpenDoor(doorIndex);
 
-                Log("Risultato OpenDoor SDK: " + opened);
+                Log("Risultato " + commandName + " SDK: " + opened);
 
                 return new OpenAttemptResult
                 {
@@ -678,7 +763,7 @@ namespace BodyGateAccessBridge
             }
             catch (Exception ex)
             {
-                Log("Errore OpenDoor: " + ex.Message);
+                Log("Errore comando apertura: " + ex.Message);
 
                 return new OpenAttemptResult
                 {
@@ -706,6 +791,19 @@ namespace BodyGateAccessBridge
             {
                 Log("Errore lettura LastError: " + ex.Message);
             }
+        }
+
+        private static void WriteJson(
+            HttpListenerContext context,
+            object payload,
+            int statusCode = 200
+        )
+        {
+            WriteJson(
+                context,
+                JsonSerializer.Serialize(payload),
+                statusCode
+            );
         }
 
         private static void WriteJson(

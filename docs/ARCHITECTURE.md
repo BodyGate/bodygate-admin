@@ -60,7 +60,7 @@ BodyGate is an enterprise fitness operating system composed of:
 
 \- BodyGate Access Bridge (.NET 8 C#)
 
-\- Turnstile integration
+\- Turnstile integration (door 0/1 short and long-open commands)
 
 \- Smart terminals / Wiegand devices
 
@@ -234,7 +234,7 @@ Supabase
 
 ↓
 
-OpenDoor()
+OpenDoor(door) / OpenDoorLong(door)
 
 
 

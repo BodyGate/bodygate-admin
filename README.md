@@ -23,7 +23,7 @@ The project combines modern web technologies with real hardware access control s
 - NFC support
 - QR access ready
 - Realtime access validation
-- Turnstile integration
+- Turnstile integration (door 0/1 short and long-open commands)
 - Medical certificate validation
 - Membership fee validation
 - Subscription validation
@@ -93,7 +93,7 @@ Routes:
 - TCP/IP access controllers
 - Wiegand support
 - BodyGate Access Bridge (.NET 8 C#)
-- Turnstile integration
+- Turnstile integration (door 0/1 short and long-open commands)
 
 ---
 
@@ -112,6 +112,6 @@ Supabase Database
 ↓
 Access Decision
 ↓
-OpenDoor()
+OpenDoor(door) / OpenDoorLong(door)
 ↓
 Turnstile
