@@ -71,11 +71,13 @@ export async function POST(req: NextRequest) {
       log_id: data.id,
       created_at: data.created_at,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Errore interno";
+
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "Errore interno",
+        error: message,
       },
       { status: 500 }
     );
