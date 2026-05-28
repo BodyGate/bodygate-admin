@@ -8,6 +8,7 @@ const publicPaths = [
 
   // API tornello / bridge: deve restare pubblica
   "/api/access/check",
+  "/api/dnake/event",
 ];
 
 export function middleware(request: NextRequest) {
