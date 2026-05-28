@@ -18,6 +18,35 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+function methodNotAllowed(method: string) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: `Method ${method} not allowed`,
+    },
+    {
+      status: 405,
+      headers: {
+        Allow: "GET, POST, OPTIONS",
+      },
+    }
+  );
+}
+
+export async function OPTIONS() {
+  return NextResponse.json(
+    {
+      ok: true,
+      methods: ["GET", "POST", "OPTIONS"],
+    },
+    {
+      headers: {
+        Allow: "GET, POST, OPTIONS",
+      },
+    }
+  );
+}
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -82,4 +111,16 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PUT(req: NextRequest) {
+  return methodNotAllowed(req.method);
+}
+
+export async function PATCH(req: NextRequest) {
+  return methodNotAllowed(req.method);
+}
+
+export async function DELETE(req: NextRequest) {
+  return methodNotAllowed(req.method);
 }
