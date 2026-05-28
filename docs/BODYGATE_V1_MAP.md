@@ -140,12 +140,16 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 ## 5) Bridge C#
 
 ## Endpoint locali bridge
-- `GET /open` → invio comando apertura tornello.
+- `GET /open` → invio comando apertura tornello predefinito (`OpenDoor(DoorIndex)`).
+- `GET /open0` → invio `OpenDoor(0)`.
+- `GET /open1` → invio `OpenDoor(1)`.
+- `GET /openlong0` → invio `OpenDoorLong(0)`.
+- `GET /openlong1` → invio `OpenDoorLong(1)`.
 - `GET /status` → stato connessione controller + config.
 - `GET /health` → health servizio.
 
 ## Comandi tornello
-- Apertura con `controller.OpenDoor(DoorIndex)`.
+- Apertura con `controller.OpenDoor(doorIndex)` o `controller.OpenDoorLong(doorIndex)` tramite endpoint bridge dedicati (`/open0`, `/open1`, `/openlong0`, `/openlong1`).
 - Retry “safe”: retry consentito solo quando comando NON inviato; se SDK ritorna `false` ma comando inviato → warning tecnico, stop retry per evitare impulsi multipli.
 
 ## Flusso badge
