@@ -3,6 +3,28 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
+type AccessLogResult = "allowed" | "denied" | "error";
+
+function normalizeResult(body: Record<string, unknown>): AccessLogResult {
+  if (
+    body.result === "allowed" ||
+    body.result === "denied" ||
+    body.result === "error"
+  ) {
+    return body.result;
+  }
+
+  if (
+    body.error ||
+    body.open_warning === true ||
+    (body.open_command_sent === true && body.open_sdk_result === false)
+  ) {
+    return "error";
+  }
+
+  return body.allowed === true ? "allowed" : "denied";
+}
+
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,6 +87,7 @@ export async function POST(req: NextRequest) {
       customer_id: body.customer_id ?? null,
 
       allowed: body.allowed === true,
+      result: normalizeResult(body),
       reason: body.reason ?? null,
 
       door: body.door ?? null,
@@ -99,6 +122,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       log_id: data.id,
       created_at: data.created_at,
+      result: payload.result,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Errore interno";

@@ -44,12 +44,29 @@ type OpenResult = {
   error?: string;
 };
 
+type AccessLogResult = "allowed" | "denied" | "error";
+
 type TechnicalLogResult = {
   attempted: boolean;
   ok: boolean;
   id?: string;
   error?: string;
 };
+
+function getTechnicalLogResult(accessResult: AccessResult): AccessLogResult {
+  if (accessResult.allowed === true) {
+    return "allowed";
+  }
+
+  if (
+    typeof accessResult.http_status === "number" &&
+    accessResult.http_status >= 500
+  ) {
+    return "error";
+  }
+
+  return "denied";
+}
 
 function getEssentialHeaders(req: Request) {
   return ESSENTIAL_HEADERS.reduce<Record<string, string | null>>(
@@ -276,6 +293,7 @@ async function saveTechnicalLog(params: {
         controller_code: params.code,
         customer_id: params.accessResult.customer_id ?? null,
         allowed: params.accessResult.allowed === true,
+        result: getTechnicalLogResult(params.accessResult),
         reason: params.accessResult.reason ?? null,
         door: 0,
         reader: 0,
