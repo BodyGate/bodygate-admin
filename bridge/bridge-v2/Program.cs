@@ -29,6 +29,13 @@ namespace BodyGateAccessBridge
         private static readonly int OpenRetryCount = 3;
         private static readonly int OpenRetryDelayMs = 700;
 
+        private const int RawBadgePacketLength = 43;
+        private const byte RawBadgeStartByte = 0x02;
+        private const byte RawBadgePacketMarker = 0xAA;
+        private const byte RawBadgeEventCommand = 0x56;
+        private const int RawBadgePayloadLength = 0x22;
+        private const int RawBadgePayloadOffset = 7;
+
         private static ClassTcpClientWorker? tcpNet;
         private static TTCPPullCommand? pullCommand;
         private static TTCPController? controller;
@@ -133,6 +140,7 @@ namespace BodyGateAccessBridge
         private static void TcpNet_OnDataEvent(byte[] buffRX, int len)
         {
             LogTcpBuffer("RX OnDataEvent", buffRX, len);
+            TryProcessRawBadgeEvent(buffRX, len);
         }
 
         private static void TcpNet_OnRxTxDataEvent(byte[] buffRX, int len, bool isSend)
@@ -191,79 +199,359 @@ namespace BodyGateAccessBridge
                 if (string.IsNullOrWhiteSpace(badge))
                     return;
 
-                if (IsDuplicateBadge(badge))
-                {
-                    Log("Badge duplicato ignorato: " + badge);
-                    return;
-                }
-
-                Log("================================");
-                Log("BADGE CENTRALINA");
-                Log("BADGE LETTO: " + badge);
-                Log("Badge: " + badge);
-                Log("ControllerCode: " + badge);
-                Log("Reader: " + acsEvent.Reader);
-                Log("Door: " + acsEvent.Door);
-                Log("EventType: " + acsEvent.EventType);
-                Log("Data/Ora evento: " + acsEvent.Datetime);
-                Log("================================");
-
-                BodyGateResult bodyGateResult =
-                    CheckBodyGateAccess(badge);
-
-                OpenResult openResult =
-                    new OpenResult();
-
-                if (!bodyGateResult.Allowed)
-                {
-                    Log("ACCESSO NEGATO DA BODYGATE: " + badge);
-                    Log("Motivo: " + bodyGateResult.Reason);
-
-                    SendAccessLog(
-                        badge,
-                        bodyGateResult,
-                        acsEvent,
-                        openResult
-                    );
-
-                    return;
-                }
-
-                Log("ACCESSO AUTORIZZATO DA BODYGATE: " + badge);
-                Log("Attesa prima apertura: " + OpenDelayAfterBadgeMs + " ms");
-
-                Thread.Sleep(OpenDelayAfterBadgeMs);
-
-                openResult =
-                    OpenTurnstileWithSafeRetry(DoorIndex, false);
-
-                if (openResult.HasTrueResult)
-                {
-                    Log("ACCESSO CONSENTITO - TORNELLO APERTO: " + badge);
-                }
-                else if (openResult.CommandSent)
-                {
-                    Log("ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: " + badge);
-                    Log("Nota: BodyGate allowed=true e comando OpenDoor inviato una sola volta.");
-                    Log("Nessun retry eseguito per evitare impulsi multipli al tornello.");
-                }
-                else
-                {
-                    Log("ACCESSO CONSENTITO DA BODYGATE MA COMANDO NON INVIATO: " + badge);
-                    Log("WARNING: verificare connessione controller / SDK.");
-                }
-
-                SendAccessLog(
+                ProcessBadge(
                     badge,
-                    bodyGateResult,
-                    acsEvent,
-                    openResult
+                    new BadgeEventInfo
+                    {
+                        Reader = acsEvent.Reader,
+                        Door = acsEvent.Door,
+                        EventType = acsEvent.EventType,
+                        Datetime = acsEvent.Datetime,
+                        Source = "SDK"
+                    }
                 );
             }
             catch (Exception ex)
             {
                 Log("Errore evento badge: " + ex.Message);
             }
+        }
+
+        private static void TryProcessRawBadgeEvent(byte[] buffRX, int len)
+        {
+            try
+            {
+                RawBadgeEvent? rawEvent =
+                    TryParseRawBadgeEvent(buffRX, len);
+
+                if (rawEvent == null)
+                {
+                    return;
+                }
+
+                Log("DEBUG RAW badge estratto: " + rawEvent.DebugSummary);
+
+                ProcessBadge(
+                    rawEvent.Code,
+                    new BadgeEventInfo
+                    {
+                        Reader = rawEvent.Reader,
+                        Door = rawEvent.Door,
+                        EventType = rawEvent.EventType,
+                        Datetime = DateTime.Now,
+                        Source = "RAW"
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                Log("Errore parser badge raw: " + ex.Message);
+            }
+        }
+
+        private static RawBadgeEvent? TryParseRawBadgeEvent(byte[] buffer, int len)
+        {
+            if (buffer == null)
+            {
+                return null;
+            }
+
+            int safeLen =
+                Math.Max(0, Math.Min(len, buffer.Length));
+
+            if (safeLen != RawBadgePacketLength)
+            {
+                return null;
+            }
+
+            if (
+                buffer[0] != RawBadgeStartByte ||
+                buffer[1] != RawBadgePacketMarker ||
+                buffer[2] != RawBadgeEventCommand
+            )
+            {
+                return null;
+            }
+
+            int payloadLength =
+                (buffer[5] << 8) | buffer[6];
+
+            if (payloadLength != RawBadgePayloadLength)
+            {
+                Log("DEBUG RAW len=43 ignorato: payload length inatteso " + payloadLength);
+                return null;
+            }
+
+            RawBadgeCandidate? selectedCandidate = null;
+            StringBuilder debugCandidates = new StringBuilder();
+
+            for (int index = RawBadgePayloadOffset; index <= safeLen - 4; index++)
+            {
+                uint littleEndianValue =
+                    ReadUInt32LittleEndian(buffer, index);
+
+                AddRawBadgeCandidateDebug(
+                    debugCandidates,
+                    index,
+                    "LE32",
+                    littleEndianValue
+                );
+
+                if (IsLikelyRawBadgeValue(littleEndianValue))
+                {
+                    RawBadgeCandidate candidate =
+                        new RawBadgeCandidate
+                        {
+                            Offset = index,
+                            Endian = "LE32",
+                            Value = littleEndianValue,
+                            Score = ScoreRawBadgeCandidate(buffer, index, true)
+                        };
+
+                    selectedCandidate =
+                        PickBetterRawBadgeCandidate(selectedCandidate, candidate);
+                }
+
+                uint bigEndianValue =
+                    ReadUInt32BigEndian(buffer, index);
+
+                AddRawBadgeCandidateDebug(
+                    debugCandidates,
+                    index,
+                    "BE32",
+                    bigEndianValue
+                );
+
+                if (IsLikelyRawBadgeValue(bigEndianValue))
+                {
+                    RawBadgeCandidate candidate =
+                        new RawBadgeCandidate
+                        {
+                            Offset = index,
+                            Endian = "BE32",
+                            Value = bigEndianValue,
+                            Score = ScoreRawBadgeCandidate(buffer, index, false)
+                        };
+
+                    selectedCandidate =
+                        PickBetterRawBadgeCandidate(selectedCandidate, candidate);
+                }
+            }
+
+            Log("DEBUG RAW badge candidates: " + debugCandidates);
+
+            if (selectedCandidate == null)
+            {
+                Log("DEBUG RAW badge non estratto: nessun candidato valido nel pacchetto len=43");
+                return null;
+            }
+
+            byte reader =
+                TryReadByte(buffer, RawBadgePayloadOffset + 1, safeLen);
+
+            byte door =
+                TryReadByte(buffer, RawBadgePayloadOffset + 2, safeLen);
+
+            byte eventType =
+                TryReadByte(buffer, RawBadgePayloadOffset, safeLen);
+
+            return new RawBadgeEvent
+            {
+                Code = selectedCandidate.Value.ToString(),
+                Reader = reader,
+                Door = door,
+                EventType = eventType,
+                DebugSummary =
+                    "code=" + selectedCandidate.Value +
+                    " offset=" + selectedCandidate.Offset +
+                    " endian=" + selectedCandidate.Endian +
+                    " score=" + selectedCandidate.Score
+            };
+        }
+
+        private static RawBadgeCandidate PickBetterRawBadgeCandidate(
+            RawBadgeCandidate? current,
+            RawBadgeCandidate candidate
+        )
+        {
+            if (current == null)
+            {
+                return candidate;
+            }
+
+            if (candidate.Score > current.Score)
+            {
+                return candidate;
+            }
+
+            if (
+                candidate.Score == current.Score &&
+                candidate.Offset < current.Offset
+            )
+            {
+                return candidate;
+            }
+
+            return current;
+        }
+
+        private static bool IsLikelyRawBadgeValue(uint value)
+        {
+            return value >= 1000000 && value <= 99999999;
+        }
+
+        private static int ScoreRawBadgeCandidate(byte[] buffer, int offset, bool littleEndian)
+        {
+            int score = 0;
+
+            if (littleEndian && buffer[offset + 3] == 0x00)
+            {
+                score += 100;
+            }
+
+            if (!littleEndian && buffer[offset] == 0x00)
+            {
+                score += 50;
+            }
+
+            if (offset >= RawBadgePayloadOffset + 3 && offset <= RawBadgePayloadOffset + 24)
+            {
+                score += 20;
+            }
+
+            return score;
+        }
+
+        private static void AddRawBadgeCandidateDebug(
+            StringBuilder debugCandidates,
+            int offset,
+            string endian,
+            uint value
+        )
+        {
+            if (!IsLikelyRawBadgeValue(value))
+            {
+                return;
+            }
+
+            if (debugCandidates.Length > 0)
+            {
+                debugCandidates.Append("; ");
+            }
+
+            debugCandidates
+                .Append(endian)
+                .Append("@")
+                .Append(offset)
+                .Append("=")
+                .Append(value);
+        }
+
+        private static uint ReadUInt32LittleEndian(byte[] buffer, int offset)
+        {
+            return
+                (uint)(
+                    buffer[offset] |
+                    (buffer[offset + 1] << 8) |
+                    (buffer[offset + 2] << 16) |
+                    (buffer[offset + 3] << 24)
+                );
+        }
+
+        private static uint ReadUInt32BigEndian(byte[] buffer, int offset)
+        {
+            return
+                (uint)(
+                    (buffer[offset] << 24) |
+                    (buffer[offset + 1] << 16) |
+                    (buffer[offset + 2] << 8) |
+                    buffer[offset + 3]
+                );
+        }
+
+        private static byte TryReadByte(byte[] buffer, int offset, int safeLen)
+        {
+            if (offset < 0 || offset >= safeLen)
+            {
+                return 0;
+            }
+
+            return buffer[offset];
+        }
+
+        private static void ProcessBadge(string badge, BadgeEventInfo badgeEvent)
+        {
+            if (string.IsNullOrWhiteSpace(badge))
+                return;
+
+            if (IsDuplicateBadge(badge))
+            {
+                Log("Badge duplicato ignorato: " + badge);
+                return;
+            }
+
+            Log("================================");
+            Log(badgeEvent.Source == "RAW" ? "BADGE CENTRALINA RAW" : "BADGE CENTRALINA");
+            Log(badgeEvent.Source == "RAW" ? "BADGE LETTO RAW: " + badge : "BADGE LETTO: " + badge);
+            Log("Badge: " + badge);
+            Log("ControllerCode: " + badge);
+            Log("Reader: " + badgeEvent.Reader);
+            Log("Door: " + badgeEvent.Door);
+            Log("EventType: " + badgeEvent.EventType);
+            Log("Data/Ora evento: " + badgeEvent.Datetime);
+            Log("================================");
+
+            BodyGateResult bodyGateResult =
+                CheckBodyGateAccess(badge);
+
+            OpenResult openResult =
+                new OpenResult();
+
+            if (!bodyGateResult.Allowed)
+            {
+                Log("ACCESSO NEGATO DA BODYGATE: " + badge);
+                Log("Motivo: " + bodyGateResult.Reason);
+
+                SendAccessLog(
+                    badge,
+                    bodyGateResult,
+                    badgeEvent,
+                    openResult
+                );
+
+                return;
+            }
+
+            Log("ACCESSO AUTORIZZATO DA BODYGATE: " + badge);
+            Log("Attesa prima apertura: " + OpenDelayAfterBadgeMs + " ms");
+
+            Thread.Sleep(OpenDelayAfterBadgeMs);
+
+            openResult =
+                OpenTurnstileWithSafeRetry(DoorIndex, false);
+
+            if (openResult.HasTrueResult)
+            {
+                Log("ACCESSO CONSENTITO - TORNELLO APERTO: " + badge);
+            }
+            else if (openResult.CommandSent)
+            {
+                Log("ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: " + badge);
+                Log("Nota: BodyGate allowed=true e comando OpenDoor inviato una sola volta.");
+                Log("Nessun retry eseguito per evitare impulsi multipli al tornello.");
+            }
+            else
+            {
+                Log("ACCESSO CONSENTITO DA BODYGATE MA COMANDO NON INVIATO: " + badge);
+                Log("WARNING: verificare connessione controller / SDK.");
+            }
+
+            SendAccessLog(
+                badge,
+                bodyGateResult,
+                badgeEvent,
+                openResult
+            );
         }
 
         private static bool IsDuplicateBadge(string badge)
@@ -420,7 +708,7 @@ namespace BodyGateAccessBridge
         private static void SendAccessLog(
             string badge,
             BodyGateResult bodyGateResult,
-            RAcsEvent acsEvent,
+            BadgeEventInfo badgeEvent,
             OpenResult openResult
         )
         {
@@ -452,9 +740,9 @@ namespace BodyGateAccessBridge
                     "\"customer_id\":" + customerIdValue + "," +
                     "\"allowed\":" + bodyGateResult.Allowed.ToString().ToLower() + "," +
                     "\"reason\":\"" + EscapeJson(bodyGateResult.Reason) + "\"," +
-                    "\"door\":" + acsEvent.Door + "," +
-                    "\"reader\":" + acsEvent.Reader + "," +
-                    "\"event_type\":" + acsEvent.EventType + "," +
+                    "\"door\":" + badgeEvent.Door + "," +
+                    "\"reader\":" + badgeEvent.Reader + "," +
+                    "\"event_type\":" + badgeEvent.EventType + "," +
                     "\"open_command_sent\":" + openResult.CommandSent.ToString().ToLower() + "," +
                     "\"open_sdk_result\":" + openResult.HasTrueResult.ToString().ToLower() + "," +
                     "\"open_warning\":" + openWarning.ToString().ToLower() + "," +
@@ -917,6 +1205,32 @@ namespace BodyGateAccessBridge
             catch
             {
             }
+        }
+
+        private class BadgeEventInfo
+        {
+            public int Reader { get; set; }
+            public int Door { get; set; }
+            public int EventType { get; set; }
+            public DateTime Datetime { get; set; } = DateTime.Now;
+            public string Source { get; set; } = "SDK";
+        }
+
+        private class RawBadgeEvent
+        {
+            public string Code { get; set; } = "";
+            public int Reader { get; set; }
+            public int Door { get; set; }
+            public int EventType { get; set; }
+            public string DebugSummary { get; set; } = "";
+        }
+
+        private class RawBadgeCandidate
+        {
+            public int Offset { get; set; }
+            public string Endian { get; set; } = "";
+            public uint Value { get; set; }
+            public int Score { get; set; }
         }
 
         private class BodyGateResult

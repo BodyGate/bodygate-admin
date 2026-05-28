@@ -155,10 +155,11 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 ## Flusso badge
 1. Pacchetto TCP della centralina ricevuto su `tcpNet.OnDataEvent`, inoltrato esplicitamente a `controller.HandleMessage` e loggato come RX raw debug.
 2. Evento badge SDK su `controller.OnEventHandler`, con log minimo di badge/controller code, reader, door ed event type.
-3. Dedup badge (cooldown).
-4. Chiamata BodyGate `/api/access/check`.
-5. Se `allowed=true` → apertura tornello con `OpenDoor(0)`/`/open0`.
-6. Invio log tecnico a `/api/access/log`.
+3. Fallback raw bridge-v2: se arriva un pacchetto RX `len=43` con header `02 AA 56` e payload `0x0022`, il bridge scansiona il payload alla ricerca del numero badge/controller code come valore numerico a 32 bit (priorità little-endian con byte alto `00`, es. `53 A1 6B 00` → `7053651`) e logga `BADGE LETTO RAW`, reader, door, event type e candidati debug.
+4. Dedup badge (cooldown), condiviso fra evento SDK e fallback raw per evitare doppi accessi.
+5. Chiamata BodyGate `/api/access/check`.
+6. Se `allowed=true` → apertura tornello con `OpenDoor(0)`/`/open0`.
+7. Invio log tecnico a `/api/access/log`.
 
 ## Dipendenze
 - `TcpClass.dll` (integrazione hardware controller TCP).
