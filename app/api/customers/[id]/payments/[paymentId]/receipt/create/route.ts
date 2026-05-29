@@ -226,7 +226,7 @@ export async function POST(_request: Request, { params }: Props) {
     });
 
     const page = await browser.newPage();
-    await page.setContent(receiptHtml, { waitUntil: "networkidle0" });
+    await page.setContent(receiptHtml, { waitUntil: "load" });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
