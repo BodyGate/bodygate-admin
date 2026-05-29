@@ -5,6 +5,11 @@ const publicPaths = [
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+
+  // App cliente mobile / PWA: deve essere pubblica tramite token
+  "/mobile",
+
+  // API pubbliche controllate
   "/api/customers/create-mobile-pass",
 
   // API tornello / bridge / DNake: devono restare pubbliche anche senza sessione utente
@@ -27,7 +32,9 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/images") ||
-    pathname.startsWith("/public");
+    pathname.startsWith("/public") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/site.webmanifest");
 
   if (isPublicPath || isStaticFile) {
     return NextResponse.next();
