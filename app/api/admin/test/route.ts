@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { requirePermission } from "@/app/lib/server/permissions";
+export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const permission = await requirePermission(
-    "manage_modules"
-  );
-
-  if (!permission.allowed) {
-    return permission.response;
-  }
-
+export async function GET(): Promise<Response> {
   return NextResponse.json({
     ok: true,
-    message: "API protetta funzionante",
+    message: "Admin test route OK",
   });
 }
