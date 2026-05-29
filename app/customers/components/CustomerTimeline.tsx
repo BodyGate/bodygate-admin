@@ -89,7 +89,7 @@ export default function CustomerTimeline({ customerId }: Props) {
 
     const customerBadges = await safeSelect<any>("customer_badges", (qb) =>
       qb
-        .select("id, badge_code, is_active, created_at, updated_at")
+        .select("id, badge_code, badge_type, is_primary, is_active, notes, created_at")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false })
         .limit(MAX_ITEMS_PER_SOURCE)
@@ -97,7 +97,7 @@ export default function CustomerTimeline({ customerId }: Props) {
 
     const accessCredentials = await safeSelect<any>("access_credentials", (qb) =>
       qb
-        .select("id, code, credential_code, status, is_active, created_at, updated_at")
+        .select("id, type, code, status, created_at, controller_code")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false })
         .limit(MAX_ITEMS_PER_SOURCE)
@@ -109,8 +109,8 @@ export default function CustomerTimeline({ customerId }: Props) {
       if (b?.badge_code) badgeCodes.add(String(b.badge_code));
     });
     accessCredentials.forEach((c) => {
-      const code = c?.code || c?.credential_code;
-      if (code) badgeCodes.add(String(code));
+      if (c?.code) badgeCodes.add(String(c.code));
+      if (c?.controller_code) badgeCodes.add(String(c.controller_code));
     });
 
     const [
@@ -128,28 +128,28 @@ export default function CustomerTimeline({ customerId }: Props) {
     ] = await Promise.all([
       safeSelect<any>("customer_access_logs", (qb) =>
         qb
-          .select("id, created_at, access_time, badge_code, allowed, denial_reason, reason")
+          .select("id, created_at, access_time, badge_code, controller_code, was_allowed, reason")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       ),
       safeSelect<any>("customer_subscriptions", (qb) =>
         qb
-          .select("id, created_at, starts_at, ends_at, is_active, status, amount, plan_name")
+          .select("id, created_at, starts_at, ends_at, is_active, amount, payment_method, notes, plan_id")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       ),
       safeSelect<any>("customer_membership_fees", (qb) =>
         qb
-          .select("id, created_at, valid_from, valid_until, amount, payment_method, status")
+          .select("id, created_at, paid_at, valid_from, valid_until, amount, payment_method, notes")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       ),
       safeSelect<any>("medical_certificates", (qb) =>
         qb
-          .select("id, created_at, start_date, end_date, status, medical_certificate_start_date, medical_certificate_end_date, medical_certificate_status")
+          .select("id, created_at, valid_from, valid_until, expiry_date, status, certificate_type, notes, file_name")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
@@ -163,7 +163,7 @@ export default function CustomerTimeline({ customerId }: Props) {
       ),
       safeSelect<any>("customer_internal_notes", (qb) =>
         qb
-          .select("id, created_at, title, note, content, text, status")
+          .select("id, created_at, note, is_important, created_by")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
@@ -177,21 +177,21 @@ export default function CustomerTimeline({ customerId }: Props) {
       ),
       safeSelect<any>("customer_payments", (qb) =>
         qb
-          .select("id, created_at, paid_at, amount, status, payment_type, description")
+          .select("id, created_at, paid_at, amount, type, description, payment_method")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       ),
       safeSelect<any>("customer_documents", (qb) =>
         qb
-          .select("id, created_at, name, title, type, status")
+          .select("id, created_at, title, type, document_type, status, notes")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       ),
       safeSelect<any>("documents", (qb) =>
         qb
-          .select("id, created_at, name, title, type, document_type, status")
+          .select("id, created_at, title, type, file_name, status, signed_at, expires_at")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
@@ -219,7 +219,11 @@ export default function CustomerTimeline({ customerId }: Props) {
       technicalAccessByBadge = await safeSelect<any>("access_logs", (qb) =>
         qb
           .select("id, created_at, badge_code, controller_code, allowed, reason, event_type")
-          .in("badge_code", badgeArray)
+          .or(
+            `badge_code.in.(${badgeArray.map((b) => `"${b}"`).join(",")}),controller_code.in.(${badgeArray
+              .map((b) => `"${b}"`)
+              .join(",")})`
+          )
           .order("created_at", { ascending: false })
           .limit(MAX_ITEMS_PER_SOURCE)
       );
@@ -230,16 +234,16 @@ export default function CustomerTimeline({ customerId }: Props) {
         id: `customer_access_${log.id}`,
         source: "customer_access_logs",
         type: "customer_access" as const,
-        title: log.allowed ? "Accesso consentito" : "Accesso negato",
+        title: log.was_allowed ? "Accesso consentito" : "Accesso negato",
         description: [
-          log.badge_code ? `Badge: ${log.badge_code}` : null,
-          !log.allowed ? `Motivo: ${log.denial_reason || log.reason || "non specificato"}` : null,
+          log.badge_code || log.controller_code ? `Codice: ${log.badge_code || log.controller_code}` : null,
+          !log.was_allowed ? `Motivo: ${log.reason || "non specificato"}` : null,
         ]
           .filter(Boolean)
           .join(" · "),
         createdAt: pickDate(log, ["access_time", "created_at"]),
-        status: buildStatusLabel(log.allowed ? "consentito" : "negato"),
-        badgeColor: log.allowed ? "green" : "red",
+        status: buildStatusLabel(log.was_allowed ? "consentito" : "negato"),
+        badgeColor: log.was_allowed ? "green" : "red",
       })),
       ...[...technicalAccessByCustomerId, ...technicalAccessByBadge].map((log) => ({
         id: `technical_access_${log.id}`,
@@ -247,9 +251,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         type: "technical_access" as const,
         title: log.allowed ? "Log tecnico accesso consentito" : "Log tecnico accesso negato",
         description: [
-          log.badge_code || log.controller_code
-            ? `Badge: ${log.badge_code || log.controller_code}`
-            : null,
+          log.badge_code || log.controller_code ? `Codice: ${log.badge_code || log.controller_code}` : null,
           log.event_type ? `Evento: ${log.event_type}` : null,
           !log.allowed ? `Motivo: ${log.reason || "non specificato"}` : null,
         ]
@@ -264,10 +266,16 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "customer_subscriptions",
         type: "subscription" as const,
         title: "Abbonamento cliente",
-        description: `Periodo: ${sub.starts_at || "-"} → ${sub.ends_at || "-"}`,
+        description: [
+          `Periodo: ${sub.starts_at || "-"} → ${sub.ends_at || "-"}`,
+          sub.payment_method ? `Pagamento: ${sub.payment_method}` : null,
+          sub.notes ? `Note: ${sub.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         createdAt: pickDate(sub, ["created_at", "starts_at"]),
         amount: sub.amount ?? null,
-        status: buildStatusLabel(sub.status ?? sub.is_active),
+        status: buildStatusLabel(sub.is_active),
         badgeColor: "green" as const,
       })),
       ...membershipFees.map((fee) => ({
@@ -275,24 +283,35 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "customer_membership_fees",
         type: "membership_fee" as const,
         title: "Quota associativa",
-        description: `Validità: ${fee.valid_from || "-"} → ${fee.valid_until || "-"}`,
-        createdAt: pickDate(fee, ["created_at", "valid_from"]),
+        description: [
+          `Validità: ${fee.valid_from || "-"} → ${fee.valid_until || "-"}`,
+          fee.payment_method ? `Pagamento: ${fee.payment_method}` : null,
+          fee.notes ? `Note: ${fee.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        createdAt: pickDate(fee, ["paid_at", "created_at", "valid_from"]),
         amount: fee.amount ?? null,
-        status: buildStatusLabel(fee.status ?? fee.payment_method),
+        status: buildStatusLabel(fee.payment_method),
         badgeColor: "yellow" as const,
       })),
       ...medicalCertificates.map((cert) => {
-        const startDate = cert.start_date || cert.medical_certificate_start_date;
-        const endDate = cert.end_date || cert.medical_certificate_end_date;
-        const status = cert.status || cert.medical_certificate_status;
+        const startDate = cert.valid_from;
+        const endDate = cert.valid_until || cert.expiry_date;
         return {
           id: `medical_${cert.id}`,
           source: "medical_certificates",
           type: "medical_certificate" as const,
           title: "Certificato medico",
-          description: `Validità: ${startDate || "-"} → ${endDate || "-"}`,
-          createdAt: pickDate(cert, ["created_at", "end_date", "medical_certificate_end_date"]),
-          status: buildStatusLabel(status),
+          description: [
+            `Validità: ${startDate || "-"} → ${endDate || "-"}`,
+            cert.certificate_type ? `Tipo: ${cert.certificate_type}` : null,
+            cert.file_name ? `File: ${cert.file_name}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          createdAt: pickDate(cert, ["created_at", "valid_until", "expiry_date"]),
+          status: buildStatusLabel(cert.status),
           badgeColor: "purple" as const,
         };
       }),
@@ -303,9 +322,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         title: block.is_active ? "Cliente bloccato" : "Storico blocco cliente",
         description: [
           block.reason ? `Motivo: ${block.reason}` : null,
-          block.starts_at || block.ends_at
-            ? `Periodo: ${block.starts_at || "-"} → ${block.ends_at || "-"}`
-            : null,
+          block.starts_at || block.ends_at ? `Periodo: ${block.starts_at || "-"} → ${block.ends_at || "-"}` : null,
         ]
           .filter(Boolean)
           .join(" · "),
@@ -317,11 +334,11 @@ export default function CustomerTimeline({ customerId }: Props) {
         id: `note_${note.id}`,
         source: "customer_internal_notes",
         type: "note" as const,
-        title: note.title || "Nota interna",
-        description: note.note || note.content || note.text || "Nota operativa cliente",
+        title: note.is_important ? "Nota importante" : "Nota interna",
+        description: note.note || "Nota operativa cliente",
         createdAt: pickDate(note, ["created_at"]),
-        status: buildStatusLabel(note.status),
-        badgeColor: "blue" as const,
+        status: buildStatusLabel(note.is_important ? "importante" : null),
+        badgeColor: note.is_important ? "yellow" : "blue",
       })),
       ...payments.map((payment) => ({
         id: `payment_${payment.id}`,
@@ -339,10 +356,10 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "customer_payments",
         type: "payment" as const,
         title: "Pagamento cliente",
-        description: payment.description || `Tipo: ${payment.payment_type || "N/D"}`,
+        description: payment.description || `Tipo: ${payment.type || "N/D"}${payment.payment_method ? ` · ${payment.payment_method}` : ""}`,
         createdAt: pickDate(payment, ["paid_at", "created_at"]),
         amount: payment.amount ?? null,
-        status: buildStatusLabel(payment.status),
+        status: buildStatusLabel(payment.payment_method),
         badgeColor: "green" as const,
       })),
       ...customerDocuments.map((doc) => ({
@@ -350,7 +367,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "customer_documents",
         type: "document" as const,
         title: "Documento cliente",
-        description: `${doc.title || doc.name || "Documento"}${doc.type ? ` · Tipo: ${doc.type}` : ""}`,
+        description: `${doc.title || "Documento"}${doc.document_type || doc.type ? ` · Tipo: ${doc.document_type || doc.type}` : ""}`,
         createdAt: pickDate(doc, ["created_at"]),
         status: buildStatusLabel(doc.status),
         badgeColor: "gray" as const,
@@ -360,8 +377,8 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "documents",
         type: "document" as const,
         title: "Documento caricato",
-        description: `${doc.title || doc.name || "Documento"}${doc.document_type || doc.type ? ` · Tipo: ${doc.document_type || doc.type}` : ""}`,
-        createdAt: pickDate(doc, ["created_at"]),
+        description: `${doc.title || doc.file_name || "Documento"}${doc.type ? ` · Tipo: ${doc.type}` : ""}`,
+        createdAt: pickDate(doc, ["signed_at", "created_at", "expires_at"]),
         status: buildStatusLabel(doc.status),
         badgeColor: "gray" as const,
       })),
@@ -370,8 +387,14 @@ export default function CustomerTimeline({ customerId }: Props) {
         source: "customer_badges",
         type: "access_credential" as const,
         title: "Badge associato",
-        description: `Codice: ${credential.badge_code || "N/D"}`,
-        createdAt: pickDate(credential, ["updated_at", "created_at"]),
+        description: [
+          `Codice: ${credential.badge_code || "N/D"}`,
+          credential.badge_type ? `Tipo: ${credential.badge_type}` : null,
+          credential.is_primary ? "Primario" : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        createdAt: pickDate(credential, ["created_at"]),
         status: buildStatusLabel(credential.is_active),
         badgeColor: credential.is_active ? "blue" : "gray",
       })),
@@ -379,11 +402,16 @@ export default function CustomerTimeline({ customerId }: Props) {
         id: `access_credential_${credential.id}`,
         source: "access_credentials",
         type: "access_credential" as const,
-        title: "Credenziale accesso",
-        description: `Codice: ${credential.code || credential.credential_code || "N/D"}`,
-        createdAt: pickDate(credential, ["updated_at", "created_at"]),
-        status: buildStatusLabel(credential.status ?? credential.is_active),
-        badgeColor: credential.is_active ? "blue" : "gray",
+        title: credential.type === "qr" ? "QR DNake associato" : "Credenziale accesso",
+        description: [
+          `Codice: ${credential.type === "qr" ? credential.controller_code || credential.code : credential.code || "N/D"}`,
+          credential.type ? `Tipo: ${credential.type}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        createdAt: pickDate(credential, ["created_at"]),
+        status: buildStatusLabel(credential.status),
+        badgeColor: credential.status === "active" ? "blue" : "gray",
       })),
       ...timelineLegacy.map((item) => ({
         id: `legacy_timeline_${item.id}`,

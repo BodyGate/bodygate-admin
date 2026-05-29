@@ -12,7 +12,9 @@ namespace BodyGateAccessBridge
 {
     internal class Program
     {
-        private static readonly string Version = "V3.7-DNAKE-SQL";
+        private static readonly string Version = "V3.9-DNAKE-SQL-QR-PRODUCTION";
+        private static readonly bool DebugMode =
+            Environment.GetEnvironmentVariable("BODYGATE_BRIDGE_DEBUG") == "1";
 
         // KT02.3 Gate Access Controller
         private static readonly string ControllerIp = "192.168.1.251";
@@ -131,7 +133,8 @@ namespace BodyGateAccessBridge
                         {
                             lastProcessedEventKey = latestEvent.EventKey;
                             baselineLoaded = true;
-                            Log("Baseline DNake caricata: " + latestEvent.EventKey + " badge=" + latestEvent.Number + " time=" + latestEvent.TimeText);
+                            Log("Baseline DNake caricata. In attesa di nuovi accessi...");
+                            DebugLog("Baseline eventKey=" + latestEvent.EventKey + " credential=" + latestEvent.Number + " time=" + latestEvent.TimeText);
                             Thread.Sleep(PollIntervalMs);
                             continue;
                         }
@@ -184,7 +187,16 @@ namespace BodyGateAccessBridge
                         "COALESCE(unlock_type, '') AS unlock_type, " +
                         "COALESCE(status, '') AS status " +
                         "FROM unlock_info " +
-                        "WHERE number IS NOT NULL AND TRIM(CAST(number AS TEXT)) <> '' " +
+                        "WHERE " +
+                        "(" +
+                        "number IS NOT NULL AND TRIM(CAST(number AS TEXT)) <> ''" +
+                        ") " +
+                        "OR " +
+                        "(" +
+                        "CAST(unlock_type AS TEXT) = '6' " +
+                        "AND id IS NOT NULL " +
+                        "AND CAST(id AS INTEGER) > 0" +
+                        ") " +
                         "ORDER BY time_sec DESC, id DESC " +
                         "LIMIT 1";
 
@@ -202,20 +214,32 @@ namespace BodyGateAccessBridge
                     string unlockType = Convert.ToString(reader["unlock_type"])?.Trim() ?? "";
                     string status = Convert.ToString(reader["status"])?.Trim() ?? "";
 
-                    if (string.IsNullOrWhiteSpace(number))
+                    string credentialCode = number;
+
+                    if (
+                        string.IsNullOrWhiteSpace(credentialCode) &&
+                        unlockType == "6" &&
+                        id > 0
+                    )
+                    {
+                        credentialCode = id.ToString();
+                    }
+
+                    if (string.IsNullOrWhiteSpace(credentialCode))
                     {
                         return null;
                     }
 
                     return new DnakeUnlockEvent
                     {
-                        Number = number,
+                        Number = credentialCode,
+                        RawNumber = number,
                         TimeText = timeText,
                         TimeSec = timeSec,
                         Id = id,
                         UnlockType = unlockType,
                         Status = status,
-                        EventKey = timeSec + ":" + id + ":" + number
+                        EventKey = timeSec + ":" + id + ":" + unlockType + ":" + credentialCode
                     };
                 }
                 finally
@@ -268,6 +292,7 @@ namespace BodyGateAccessBridge
         private static void ProcessBadgeFromDnakeSql(DnakeUnlockEvent dnakeEvent)
         {
             string badge = dnakeEvent.Number.Trim();
+            string accessType = dnakeEvent.IsQr ? "QR" : "RFID";
 
             if (string.IsNullOrWhiteSpace(badge))
             {
@@ -281,13 +306,13 @@ namespace BodyGateAccessBridge
                     (DateTime.Now - lastBadgeTime).TotalSeconds < BadgeCooldownSeconds
                 )
                 {
-                    Log("Badge DNake duplicato ignorato per cooldown: " + badge);
+                    DebugLog("Credenziale duplicata ignorata per cooldown: " + badge);
                     return;
                 }
 
                 if (isProcessingBadge)
                 {
-                    Log("Badge DNake ignorato: elaborazione in corso");
+                    DebugLog("Credenziale ignorata: elaborazione in corso");
                     return;
                 }
 
@@ -300,23 +325,30 @@ namespace BodyGateAccessBridge
             {
                 try
                 {
-                    Log("================================");
-                    Log("BADGE DNake SQLite");
-                    Log("BADGE LETTO: " + badge);
-                    Log("Evento DNake: key=" + dnakeEvent.EventKey);
-                    Log("Time DNake: " + dnakeEvent.TimeText);
-                    Log("UnlockType: " + dnakeEvent.UnlockType);
-                    Log("Status: " + dnakeEvent.Status);
-                    Log("================================");
+                    Log("");
+                    Log("ACCESSO " + accessType + " rilevato");
+                    Log("Codice: " + badge);
+
+                    DebugLog("Evento DNake key=" + dnakeEvent.EventKey);
+                    DebugLog("Time DNake=" + dnakeEvent.TimeText);
+                    DebugLog("UnlockType=" + dnakeEvent.UnlockType);
+                    DebugLog("DNake UserId/Id=" + dnakeEvent.Id);
+                    DebugLog("Number raw=" + dnakeEvent.RawNumber);
+                    DebugLog("Status=" + dnakeEvent.Status);
 
                     BodyGateResult bodyGateResult =
                         CheckBodyGateAccess(badge);
 
                     OpenResult openResult = new OpenResult();
+                    string customerName = string.IsNullOrWhiteSpace(bodyGateResult.CustomerName)
+                        ? "Cliente non identificato"
+                        : bodyGateResult.CustomerName;
+
+                    Log("Cliente: " + customerName);
 
                     if (!bodyGateResult.Allowed)
                     {
-                        Log("ACCESSO NEGATO DA BODYGATE: " + badge);
+                        Log("ESITO: NEGATO");
                         Log("Motivo: " + bodyGateResult.Reason);
 
                         SendAccessLog(
@@ -329,8 +361,7 @@ namespace BodyGateAccessBridge
                         return;
                     }
 
-                    Log("ACCESSO AUTORIZZATO DA BODYGATE: " + badge);
-                    Log("Attesa prima apertura: " + OpenDelayAfterBadgeMs + " ms");
+                    Log("ESITO: CONSENTITO");
 
                     Thread.Sleep(OpenDelayAfterBadgeMs);
 
@@ -338,12 +369,12 @@ namespace BodyGateAccessBridge
 
                     if (openResult.Opened)
                     {
-                        Log("ACCESSO CONSENTITO - TORNELLO APERTO: " + badge);
+                        Log("TORNELLO APERTO");
                     }
                     else
                     {
-                        Log("ACCESSO CONSENTITO - ERRORE APERTURA: " + badge);
-                        Log("Errore apertura: " + openResult.Message);
+                        Log("ERRORE APERTURA TORNELLO");
+                        Log("Dettaglio: " + openResult.Message);
                     }
 
                     SendAccessLog(
@@ -355,7 +386,7 @@ namespace BodyGateAccessBridge
                 }
                 catch (Exception ex)
                 {
-                    Log("Errore ProcessBadgeFromDnakeSql: " + ex.Message);
+                    Log("Errore gestione accesso " + accessType + ": " + ex.Message);
                 }
                 finally
                 {
@@ -391,7 +422,7 @@ namespace BodyGateAccessBridge
 
                 string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                Log("Risposta BodyGate: " + body);
+                DebugLog("Risposta BodyGate: " + body);
 
                 BodyGateResult result = new BodyGateResult
                 {
@@ -445,6 +476,15 @@ namespace BodyGateAccessBridge
                     {
                         result.ControllerCode = controllerCodeElement.GetString() ?? badge;
                     }
+
+
+                    if (
+                        root.TryGetProperty("customer_name", out JsonElement customerNameElement) &&
+                        customerNameElement.ValueKind == JsonValueKind.String
+                    )
+                    {
+                        result.CustomerName = customerNameElement.GetString() ?? "";
+                    }
                 }
                 catch
                 {
@@ -497,7 +537,7 @@ namespace BodyGateAccessBridge
 
                 bool ok = response.IsSuccessStatusCode;
 
-                Log("Apertura KT02.3 HTTP status=" + (int)response.StatusCode + " response=" + text);
+                DebugLog("Apertura KT02.3 HTTP status=" + (int)response.StatusCode + " response=" + text);
 
                 return new OpenResult
                 {
@@ -580,7 +620,15 @@ namespace BodyGateAccessBridge
 
                 string responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                Log("Log BodyGate status=" + (int)response.StatusCode + " response=" + responseText);
+                if (response.IsSuccessStatusCode)
+                {
+                    DebugLog("Log BodyGate status=" + (int)response.StatusCode + " response=" + responseText);
+                }
+                else
+                {
+                    Log("WARNING: log BodyGate non salvato. HTTP " + (int)response.StatusCode);
+                    DebugLog("Risposta log BodyGate: " + responseText);
+                }
             }
             catch (Exception ex)
             {
@@ -779,15 +827,32 @@ namespace BodyGateAccessBridge
             }
         }
 
+
+        private static void DebugLog(string message)
+        {
+            if (!DebugMode)
+            {
+                return;
+            }
+
+            Log("DEBUG: " + message);
+        }
+
         private class DnakeUnlockEvent
         {
             public string Number { get; set; } = "";
+            public string RawNumber { get; set; } = "";
             public string TimeText { get; set; } = "";
             public long TimeSec { get; set; }
             public long Id { get; set; }
             public string UnlockType { get; set; } = "";
             public string Status { get; set; } = "";
             public string EventKey { get; set; } = "";
+
+            public bool IsQr
+            {
+                get { return UnlockType == "6"; }
+            }
         }
 
         private class BodyGateResult
@@ -795,6 +860,7 @@ namespace BodyGateAccessBridge
             public bool Allowed { get; set; }
             public string Reason { get; set; } = "";
             public string CustomerId { get; set; } = "";
+            public string CustomerName { get; set; } = "";
             public string BadgeCode { get; set; } = "";
             public string ControllerCode { get; set; } = "";
         }

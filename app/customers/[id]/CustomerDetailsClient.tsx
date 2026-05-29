@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import QRCode from "qrcode";
 import { supabase } from "../../lib/supabaseClient";
 import CustomerPhotoUpload from "../components/CustomerPhotoUpload";
 import MedicalCertificateCard from "../components/MedicalCertificateCard";
@@ -18,6 +19,10 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [blocks, setBlocks] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
+  const [accessCredentials, setAccessCredentials] = useState<any[]>([]);
+  const [dnakeUsers, setDnakeUsers] = useState<any[]>([]);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [qrGenerating, setQrGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -31,6 +36,25 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
+
+  useEffect(() => {
+    const activeQrPayload =
+      dnakeUsers.find((item) => item.qr_status === "active" && item.qr_payload)
+        ?.qr_payload || "";
+
+    if (!activeQrPayload) {
+      setQrDataUrl("");
+      return;
+    }
+
+    QRCode.toDataURL(activeQrPayload, {
+      width: 240,
+      margin: 2,
+      errorCorrectionLevel: "M",
+    })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(""));
+  }, [dnakeUsers]);
 
   const customerName =
     `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim() ||
@@ -52,7 +76,29 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         .maybeSingle();
 
       if (customerError || !customerData) {
-        setErrorMessage("Cliente non trovato o errore nel caricamento.");
+        const diagnostic = {
+          customerId,
+          found: !!customerData,
+          supabaseError: customerError
+            ? {
+                message: customerError.message,
+                details: customerError.details,
+                hint: customerError.hint,
+                code: customerError.code,
+              }
+            : null,
+        };
+
+        console.error("BODYGATE CUSTOMER LOAD ERROR", diagnostic);
+
+        setErrorMessage(
+          `Cliente non trovato o bloccato dalla lettura Supabase. Dettaglio: ${JSON.stringify(
+            diagnostic,
+            null,
+            2
+          )}`
+        );
+
         setCustomer(null);
         return;
       }
@@ -112,6 +158,22 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         .limit(50);
 
       setAccessLogs(logs || []);
+
+      const { data: credentials } = await supabase
+        .from("access_credentials")
+        .select("*")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      setAccessCredentials(credentials || []);
+
+      const { data: dnakeList } = await supabase
+        .from("customer_dnake_users")
+        .select("*")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      setDnakeUsers(dnakeList || []);
     } catch (error) {
       console.error(error);
       setErrorMessage("Errore imprevisto durante il caricamento.");
@@ -156,6 +218,19 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
     { label: "Data nascita", value: customer?.birth_date || "-" },
   ];
+
+  const cardCredentials = useMemo(() => {
+    return accessCredentials.filter((item) => item.type === "card" || item.type === "nfc");
+  }, [accessCredentials]);
+
+  const qrCredentials = useMemo(() => {
+    return accessCredentials.filter((item) => item.type === "qr");
+  }, [accessCredentials]);
+
+  const activeDnakeQr = useMemo(() => {
+    return dnakeUsers.find((item) => item.qr_status === "active") || dnakeUsers[0] || null;
+  }, [dnakeUsers]);
+
 
   async function getCashPaymentMethodId() {
     const { data } = await supabase
@@ -241,92 +316,67 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     alert("Quota associativa rinnovata e pagamento registrato.");
   }
 
-  async function renewSubscription() {
-    if (!customer?.branch_id) return alert("Cliente senza sede.");
-    if (!selectedPlanId) return alert("Seleziona un abbonamento.");
+  async function renewSubscription(planIdOverride?: string) {
+    if (!customer?.id) return alert("Cliente non caricato.");
 
-    const plan = plans.find((p) => p.id === selectedPlanId);
+    const targetPlanId = planIdOverride || selectedPlanId;
+    if (!targetPlanId) return alert("Seleziona un abbonamento.");
+
+    const plan = plans.find((p) => p.id === targetPlanId);
     if (!plan) return alert("Piano non trovato.");
 
-    const finalPrice = Number(plan.promo_price || plan.price || 0);
+    const confirmed = window.confirm(
+      `Confermi rinnovo ${plan.name}?\n\n` +
+        `Importo: € ${Number(plan.promo_price || plan.price || 0).toFixed(2)}\n` +
+        `Durata: ${Number(plan.duration_days || 0)} giorni\n\n` +
+        `Verranno creati automaticamente:\n` +
+        `- Abbonamento\n` +
+        `- Pagamento\n` +
+        `- Ricevuta in duplice copia`
+    );
 
-    if (!finalPrice || finalPrice <= 0) {
-      return alert("Prezzo piano non valido.");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/api/customers/renew-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          plan_id: targetPlanId,
+          payment_method: "cash",
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.ok) {
+        console.error("renew-subscription error", json);
+        alert(json?.error || "Errore rinnovo abbonamento.");
+        return;
+      }
+
+      alert(
+        `Rinnovo completato.\n\n` +
+          `Cliente: ${json.customer_name || ""}\n` +
+          `Piano: ${json.plan?.name || plan.name}\n` +
+          `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
+      );
+
+      await loadAll();
+
+      if (json.print_url) {
+        window.open(json.print_url, "_blank");
+      }
+    } catch (error) {
+      console.error("renewSubscription failed", error);
+      alert("Errore imprevisto durante il rinnovo abbonamento.");
     }
-
-    const end = new Date();
-    end.setDate(end.getDate() + Number(plan.duration_days || 0));
-
-    const paymentMethodId = await getCashPaymentMethodId();
-
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount: finalPrice,
-        payment_type: "subscription",
-        description: `Abbonamento ${plan.name}`,
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        created_by: "admin@bodygate.it",
-      })
-      .select("id")
-      .single();
-
-    if (paymentError) {
-      alert("Errore registrazione pagamento abbonamento.");
-      return;
-    }
-
-    await supabase.from("cash_movements").insert({
-      movement_type: "income",
-      amount: finalPrice,
-      category: "subscription",
-      description: `Incasso ${plan.name}`,
-      payment_id: payment?.id || null,
-      created_by: "admin@bodygate.it",
-      movement_at: new Date().toISOString(),
-    });
-
-    await supabase.from("customer_subscriptions").insert({
-      customer_id: customerId,
-      branch_id: customer.branch_id,
-      plan_id: plan.id,
-      amount: finalPrice,
-      starts_at: today,
-      ends_at: end.toISOString().slice(0, 10),
-      is_active: true,
-      payment_method: "cash",
-    });
-
-    await supabase.from("audit_logs").insert({
-      staff_email: "admin@bodygate.it",
-      staff_name: "Admin BodyGate",
-      action: "subscription_renewed",
-      entity_type: "customer",
-      entity_id: customerId,
-      details: {
-        customer_name: customerName,
-        plan_name: plan.name,
-        amount: finalPrice,
-        valid_until: end.toISOString().slice(0, 10),
-      },
-    });
-
-    await supabase.from("customer_timeline").insert({
-      customer_id: customerId,
-      type: "subscription",
-      title: "Abbonamento rinnovato",
-      description: `${plan.name} - €${finalPrice} - valido fino al ${end
-        .toISOString()
-        .slice(0, 10)}`,
-    });
-
-    setSelectedPlanId("");
-    await loadAll();
-    alert("Abbonamento rinnovato e pagamento registrato.");
   }
+
+  
 
   async function addNote() {
     if (!newNote.trim()) return;
@@ -389,6 +439,114 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     await loadAll();
   }
 
+
+  async function generateDnakeQr() {
+    if (!customerId) return;
+
+    const confirmed =
+      activeDnakeQr ||
+      window.confirm(
+        "Vuoi generare un nuovo utente/QR DNake per questo cliente?"
+      );
+
+    if (!confirmed) return;
+
+    setQrGenerating(true);
+
+    try {
+      const response = await fetch("/api/dnake/create-user-qr", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_id: customerId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.ok) {
+        alert(
+          "Errore generazione QR DNake: " +
+            (result?.error || result?.response || "Errore sconosciuto")
+        );
+        return;
+      }
+
+      await loadAll();
+      alert("QR DNake generato correttamente.");
+    } catch (error: any) {
+      alert("Errore generazione QR DNake: " + (error?.message || "Errore sconosciuto"));
+    } finally {
+      setQrGenerating(false);
+    }
+  }
+
+  function printQr() {
+    if (!qrDataUrl || !customer) return;
+
+    const win = window.open("", "_blank", "width=420,height=640");
+    if (!win) return;
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>QR DNake - ${customerName}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              background: #ffffff;
+              color: #111111;
+              text-align: center;
+              padding: 32px;
+            }
+            .card {
+              border: 1px solid #dddddd;
+              border-radius: 18px;
+              padding: 28px;
+              max-width: 340px;
+              margin: 0 auto;
+            }
+            h1 {
+              font-size: 22px;
+              margin: 0 0 8px;
+            }
+            p {
+              color: #555555;
+              margin: 6px 0;
+            }
+            img {
+              width: 260px;
+              height: 260px;
+              margin: 20px 0;
+            }
+            .small {
+              font-size: 12px;
+              word-break: break-all;
+            }
+      </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>${customerName}</h1>
+            <p>QR Accesso BodyGate / DNake</p>
+            <img src="${qrDataUrl}" />
+            <p>ID DNake: ${activeDnakeQr?.dnake_user_id || "-"}</p>
+            <p class="small">${activeDnakeQr?.qr_payload || ""}</p>
+          </div>
+          <script>
+            window.onload = function () {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    win.document.close();
+  }
+
   if (loading) {
     return (
       <div className="customer-page">
@@ -402,7 +560,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       <div className="customer-page">
         <div className="error-card">
           <h2>Cliente non caricato</h2>
-          <p>{errorMessage}</p>
+          <pre className="error-details">{errorMessage}</pre>
           <small>ID: {customerId}</small>
         </div>
       </div>
@@ -579,6 +737,18 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
           padding: 22px;
         }
 
+        .error-details {
+          white-space: pre-wrap;
+          word-break: break-word;
+          color: #fca5a5;
+          background: #050505;
+          border: 1px solid #262626;
+          border-radius: 14px;
+          padding: 14px;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
         .status-label {
           color: #a3a3a3;
           font-size: 13px;
@@ -668,6 +838,98 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
           padding: 12px 0;
         }
 
+
+        .credentials-card {
+          border: 1px solid rgba(239, 68, 68, 0.35);
+          background: linear-gradient(180deg, #141414, #090909);
+        }
+
+        .credential-summary {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+
+        .credential-mini {
+          background: #050505;
+          border: 1px solid #262626;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .credential-mini-label {
+          color: #737373;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 5px;
+        }
+
+        .credential-mini-value {
+          font-weight: 900;
+          font-size: 14px;
+        }
+
+        .credential-section {
+          border-top: 1px solid #262626;
+          padding-top: 14px;
+          margin-top: 14px;
+        }
+
+        .credential-section-title {
+          font-size: 13px;
+          color: #a3a3a3;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          margin-bottom: 10px;
+        }
+
+        .credential-pill-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .credential-pill {
+          border-radius: 999px;
+          background: #050505;
+          border: 1px solid #303030;
+          padding: 8px 11px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .qr-box {
+          background: #ffffff;
+          border-radius: 18px;
+          padding: 14px;
+          display: inline-flex;
+          margin: 6px 0 12px;
+        }
+
+        .qr-box img {
+          width: 210px;
+          height: 210px;
+          display: block;
+        }
+
+        .qr-meta {
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.7;
+          word-break: break-word;
+        }
+
+        .danger-text {
+          color: #fb7185;
+        }
+
+        .success-text {
+          color: #4ade80;
+        }
+
         @media (max-width: 1100px) {
           .hero-layout,
           .status-grid,
@@ -683,7 +945,8 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
             align-items: stretch;
           }
         }
-      `}</style>
+      `}
+      </style>
 
       <div className="topbar">
         <a className="back-link" href="/customers">
@@ -790,6 +1053,113 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
               }));
             }}
           />
+
+          <div className="card credentials-card">
+            <h2>Credenziali accesso</h2>
+
+            <div className="credential-summary">
+              <div className="credential-mini">
+                <div className="credential-mini-label">RFID / NFC</div>
+                <div className="credential-mini-value">
+                  {cardCredentials.length} attive
+                </div>
+              </div>
+
+              <div className="credential-mini">
+                <div className="credential-mini-label">QR DNake</div>
+                <div
+                  className={`credential-mini-value ${
+                    activeDnakeQr ? "success-text" : "danger-text"
+                  }`}
+                >
+                  {activeDnakeQr ? "Attivo" : "Non generato"}
+                </div>
+              </div>
+            </div>
+
+            <div className="credential-section">
+              <div className="credential-section-title">Tessere / Card</div>
+
+              {cardCredentials.length === 0 ? (
+                <p className="empty">Nessuna tessera associata.</p>
+              ) : (
+                <div className="credential-pill-list">
+                  {cardCredentials.map((item) => (
+                    <span className="credential-pill" key={item.id}>
+                      {String(item.type).toUpperCase()} · {item.controller_code || item.code}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="credential-section">
+              <div className="credential-section-title">QR Code DNake</div>
+
+              {activeDnakeQr ? (
+                <>
+                  {qrDataUrl ? (
+                    <div className="qr-box">
+                      <img src={qrDataUrl} alt="QR DNake" />
+                    </div>
+                  ) : (
+                    <p className="empty">Generazione immagine QR...</p>
+                  )}
+
+                  <div className="qr-meta">
+                    <div>
+                      <strong>ID DNake:</strong> {activeDnakeQr.dnake_user_id}
+                    </div>
+                    <div>
+                      <strong>Nome DNake:</strong> {activeDnakeQr.dnake_name}
+                    </div>
+                    <div>
+                      <strong>Stato:</strong> {activeDnakeQr.qr_status}
+                    </div>
+                  </div>
+
+                  <div className="actions">
+                    <button
+                      className="secondary-btn"
+                      type="button"
+                      onClick={printQr}
+                      disabled={!qrDataUrl}
+                    >
+                      Visualizza / stampa
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={generateDnakeQr}
+                      disabled={qrGenerating}
+                    >
+                      {qrGenerating ? "Rigenero..." : "Rigenera QR"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="empty">
+                    Nessun QR DNake generato per questo cliente.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={generateDnakeQr}
+                    disabled={qrGenerating}
+                  >
+                    {qrGenerating ? "Generazione..." : "Genera QR DNake"}
+                  </button>
+                </>
+              )}
+
+              {qrCredentials.length > 0 && (
+                <div className="qr-meta" style={{ marginTop: 12 }}>
+                  Credenziali QR salvate: {qrCredentials.length}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -801,23 +1171,51 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
             Rinnova quota associativa 10€
           </button>
 
-          <div className="actions">
-            <select
-              value={selectedPlanId}
-              onChange={(e) => setSelectedPlanId(e.target.value)}
-            >
-              <option value="">Seleziona abbonamento</option>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} -{" "}
-                  {plan.duration_days} giorni
-                </option>
-              ))}
-            </select>
+          <div className="quick-plan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
+            {plans.length === 0 && (
+              <div className="empty">Nessun piano attivo configurato.</div>
+            )}
 
-            <button className="secondary-btn" onClick={renewSubscription}>
-              Rinnova
-            </button>
+            {plans.map((plan) => {
+              const price = Number(plan.promo_price || plan.price || 0);
+              const duration = Number(plan.duration_days || 0);
+
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  className="quick-plan-btn"
+                  style={{ border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(239,68,68,0.18), rgba(255,255,255,0.055))", color: "white", borderRadius: 18, padding: 16, display: "grid", gap: 7, textAlign: "left", cursor: "pointer", minHeight: 112 }}
+                  onClick={() => renewSubscription(plan.id)}
+                >
+                  <span style={{ fontSize: 17, fontWeight: 950 }}>{plan.name}</span>
+                  <strong style={{ fontSize: 25, fontWeight: 950 }}>€ {price.toFixed(2)}</strong>
+                  <small style={{ color: "#9ca3af", fontSize: 12, fontWeight: 700 }}>{duration} giorni · da oggi</small>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="manual-renew-box" style={{ marginTop: 16, padding: 14, borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.035)" }}>
+            <div className="small-muted" style={{ color: "#9ca3af", fontSize: 12, fontWeight: 700 }}>Rinnovo manuale / piano personalizzato</div>
+            <div className="actions">
+              <select
+                value={selectedPlanId}
+                onChange={(e) => setSelectedPlanId(e.target.value)}
+              >
+                <option value="">Seleziona piano</option>
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} -{" "}
+                    {plan.duration_days} giorni
+                  </option>
+                ))}
+              </select>
+
+              <button className="secondary-btn" onClick={() => renewSubscription()}>
+                Rinnova
+              </button>
+            </div>
           </div>
         </div>
 
@@ -958,7 +1356,8 @@ function StatusBox({
         .ko-text {
           color: #fb7185;
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 }

@@ -5,11 +5,12 @@ const publicPaths = [
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/customers/create-mobile-pass",
 
-  // API tornello / bridge: devono restare pubbliche anche senza sessione utente
+  // API tornello / bridge / DNake: devono restare pubbliche anche senza sessione utente
   "/api/access/check",
   "/api/access/log",
-  "/api/dnake/event",
+  "/api/dnake",
   "/api/bridge/status",
 ];
 

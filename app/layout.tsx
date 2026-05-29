@@ -22,6 +22,7 @@ export default function RootLayout({
               display: "flex",
               minHeight: "100vh",
               background: "var(--bg)",
+              color: "var(--text)",
             }}
           >
             <Sidebar />
@@ -36,14 +37,14 @@ export default function RootLayout({
             >
               <header
                 style={{
-                  height: "78px",
+                  minHeight: "72px",
                   borderBottom: "1px solid var(--border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "0 32px",
-                  background: "rgba(10,10,10,0.9)",
-                  backdropFilter: "blur(10px)",
+                  padding: "0 22px",
+                  background: "rgba(10,10,10,0.82)",
+                  backdropFilter: "blur(12px)",
                   position: "sticky",
                   top: 0,
                   zIndex: 50,
@@ -52,28 +53,54 @@ export default function RootLayout({
                 <div>
                   <div
                     style={{
-                      fontSize: "20px",
-                      fontWeight: 700,
+                      fontSize: "19px",
+                      fontWeight: 900,
+                      letterSpacing: "-0.02em",
                     }}
                   >
-                    BodyGate Admin
+                    BodyGate Reception
                   </div>
 
                   <div
                     style={{
                       color: "var(--muted)",
-                      fontSize: "13px",
+                      fontSize: "12px",
+                      marginTop: "3px",
                     }}
                   >
-                    Access Control Management
+                    Clienti · Accessi · Abbonamenti · Pagamenti
                   </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    color: "#86efac",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "9px",
+                      height: "9px",
+                      borderRadius: "999px",
+                      background: "#22c55e",
+                      boxShadow: "0 0 14px rgba(34,197,94,0.9)",
+                    }}
+                  />
+                  Operativo
                 </div>
               </header>
 
               <main
                 style={{
                   flex: 1,
-                  padding: "32px",
+                  padding: "20px",
                   overflowX: "hidden",
                 }}
               >

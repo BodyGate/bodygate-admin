@@ -1,176 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-import { useEnabledModules } from "../hooks/useEnabledModules";
-import { useCurrentPermissions } from "../hooks/useCurrentPermissions";
+type MenuItem = {
+  label: string;
+  href: string;
+  badge?: string;
+};
 
-const allMenu = [
-  {
-    label: "Dashboard",
-    href: "/",
-    permission: "view_dashboard",
-  },
-
-  {
-    label: "Clienti",
-    href: "/customers",
-    permission: "view_customers",
-  },
-
-  {
-    label: "Accessi",
-    href: "/access-logs",
-    permission: "view_access_logs",
-  },
-
-  {
-    label: "Badge",
-    href: "/badges",
-    permission: "manage_access",
-  },
-
-  {
-    label: "Abbonamenti",
-    href: "/subscriptions",
-    permission: "view_customers",
-  },
-
-  {
-    label: "Pagamenti",
-    href: "/payments",
-    module: "advanced_payments",
-    permission: "view_payments",
-  },
-
-  {
-    label: "Analytics",
-    href: "/analytics",
-    permission: "view_analytics",
-  },
-
-  {
-    label: "Notifiche",
-    href: "/notifications",
-    module: "notifications",
-    permission: "view_notifications",
-  },
-
-  {
-    label: "Reception",
-    href: "/reception",
-    module: "reception_mode",
-    permission: "view_dashboard",
-  },
-  
-  {
-  label: "Pricing",
-  href: "/settings/pricing",
-  permission: "manage_payments",
-},
-
-  {
-    label: "Training",
-    href: "/training",
-    module: "training_platform",
-    permission: "manage_training",
-  },
-  
-  {
-  label: "Esercizi",
-  href: "/training/library",
-  module: "training_platform",
-  permission: "manage_training",
-},
-
-  {
-    label: "Moduli",
-    href: "/settings/modules",
-    permission: "manage_modules",
-  },
-
-  {
-    label: "Permessi",
-    href: "/settings/permissions",
-    module: "staff_permissions",
-    permission: "manage_staff",
-  },
-
-  {
-    label: "Sistema",
-    href: "/system",
-    permission: "manage_staff",
-  },
-  
-  {
-  label: "Audit Logs",
-  href: "/system/audit",
-  permission: "manage_staff",
-},
+const mainMenu: MenuItem[] = [
+  { label: "Dashboard", href: "/" },
+  { label: "Clienti", href: "/customers" },
+  { label: "Credenziali", href: "/badges" },
+  { label: "Accessi", href: "/access-logs" },
+  { label: "Abbonamenti", href: "/subscriptions" },
+  { label: "Pagamenti", href: "/payments" },
+  { label: "Contabilità", href: "/accounting" },
+  { label: "Reception", href: "/reception" },
+  { label: "Training", href: "/training" },
+  { label: "Analytics", href: "/analytics" },
+  { label: "Notifiche", href: "/notifications" },
+  { label: "Sistema", href: "/system" },
+  { label: "Impostazioni", href: "/settings" },
 ];
+
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const { enabledModules } = useEnabledModules();
-
-  const {
-    hasPermission,
-    staffName,
-    roleKey,
-  } = useCurrentPermissions();
-
-  const menu = allMenu.filter((item) => {
-    const moduleAllowed = item.module
-      ? enabledModules.includes(item.module)
-      : true;
-
-    const permissionAllowed = item.permission
-      ? hasPermission(item.permission)
-      : true;
-
-    return moduleAllowed && permissionAllowed;
-  });
-
-  async function logout() {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <aside
       style={{
-        width: "280px",
-        flexShrink: 0,
-        background: "var(--bg-soft)",
-        borderRight: "1px solid var(--border)",
+        width: 292,
+        minWidth: 292,
+        height: "100vh",
+        position: "sticky",
+        top: 0,
+        background:
+          "linear-gradient(180deg, rgba(12,12,14,0.98), rgba(5,5,6,0.98))",
+        borderRight: "1px solid rgba(255,255,255,0.09)",
+        padding: "26px 20px",
         display: "flex",
         flexDirection: "column",
-        padding: "24px",
+        gap: 22,
+        overflowY: "auto",
       }}
     >
-      <div style={{ marginBottom: "40px" }}>
-        <div
+      <div>
+        <Link
+          href="/"
           style={{
-            fontSize: "30px",
-            fontWeight: 800,
-            letterSpacing: "-1px",
+            textDecoration: "none",
+            color: "#fff",
+            fontSize: 34,
+            fontWeight: 950,
+            letterSpacing: "-1.4px",
+            display: "block",
+            lineHeight: 1,
           }}
         >
           BodyGate
-        </div>
-
+        </Link>
         <div
           style={{
-            color: "var(--muted)",
-            marginTop: "8px",
-            fontSize: "13px",
+            marginTop: 8,
+            color: "#9ca3af",
+            fontSize: 13,
+            fontWeight: 600,
           }}
         >
           Smart Gym Platform
@@ -179,119 +80,109 @@ export default function Sidebar() {
 
       <div
         style={{
-          background: "rgba(15,23,42,0.92)",
-          border: "1px solid var(--border)",
-          borderRadius: "20px",
-          padding: "16px",
-          marginBottom: "24px",
+          border: "1px solid rgba(59,130,246,0.22)",
+          background: "rgba(15,23,42,0.72)",
+          borderRadius: 18,
+          padding: 18,
         }}
       >
-        <div
-          style={{
-            fontSize: "13px",
-            color: "var(--muted)",
-            marginBottom: "8px",
-          }}
-        >
-          Staff Attuale
+        <div style={{ color: "#93c5fd", fontSize: 12, marginBottom: 8 }}>
+          Staff attuale
         </div>
-
-        <div
-          style={{
-            fontWeight: 800,
-            fontSize: "16px",
-          }}
-        >
-          {staffName || "Operatore non identificato"}
+        <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>
+          Operatore
         </div>
-
         <div
           style={{
-            marginTop: "6px",
             color: "#60a5fa",
-            fontSize: "12px",
-            fontWeight: 700,
+            fontSize: 12,
+            fontWeight: 900,
+            marginTop: 6,
             textTransform: "uppercase",
           }}
         >
-          {roleKey || "staff"}
+          Reception
         </div>
       </div>
 
-      <nav
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-        }}
-      >
-        {menu.map((item) => {
-          const active = pathname === item.href;
+      <nav style={{ display: "grid", gap: 7 }}>
+        {mainMenu.map((item) => {
+          const active = isActive(pathname, item.href);
 
           return (
             <Link
               key={item.href}
               href={item.href}
               style={{
-                padding: "14px 18px",
-                borderRadius: "18px",
                 textDecoration: "none",
-                color: active ? "white" : "var(--muted)",
-
+                color: active ? "#fff" : "#cbd5e1",
                 background: active
-                  ? "linear-gradient(to right, #ef4444, #dc2626)"
-                  : "transparent",
-
+                  ? "linear-gradient(90deg, rgba(239,68,68,0.95), rgba(153,27,27,0.55))"
+                  : "rgba(255,255,255,0.035)",
                 border: active
-                  ? "1px solid transparent"
-                  : "1px solid var(--border)",
-
-                fontWeight: active ? 700 : 500,
-
-                transition: "0.2s",
+                  ? "1px solid rgba(248,113,113,0.65)"
+                  : "1px solid rgba(255,255,255,0.055)",
+                borderRadius: 14,
+                padding: "12px 14px",
+                fontSize: 14,
+                fontWeight: active ? 900 : 750,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                transition: "all 160ms ease",
               }}
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.badge ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#fff",
+                    background: "rgba(255,255,255,0.16)",
+                    padding: "3px 7px",
+                    borderRadius: 999,
+                  }}
+                >
+                  {item.badge}
+                </span>
+              ) : null}
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: "auto" }}>
-        <div
+      <div style={{ flex: 1 }} />
+
+      <div
+        style={{
+          border: "1px solid rgba(34,197,94,0.18)",
+          background: "rgba(20,20,20,0.86)",
+          borderRadius: 18,
+          padding: 18,
+        }}
+      >
+        <div style={{ color: "#9ca3af", fontSize: 13, marginBottom: 12 }}>
+          Sistema online
+        </div>
+        <button
+          onClick={async () => {
+            await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+            window.location.href = "/login";
+          }}
           style={{
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            borderRadius: "22px",
-            padding: "18px",
+            width: "100%",
+            border: 0,
+            borderRadius: 14,
+            padding: "13px 14px",
+            background: "#ef4444",
+            color: "#fff",
+            fontWeight: 900,
+            cursor: "pointer",
+            fontSize: 14,
           }}
         >
-          <div
-            style={{
-              fontSize: "13px",
-              color: "var(--muted)",
-              marginBottom: "14px",
-            }}
-          >
-            Sistema online
-          </div>
-
-          <button
-            onClick={logout}
-            style={{
-              width: "100%",
-              border: "none",
-              background: "#ef4444",
-              color: "white",
-              padding: "14px",
-              borderRadius: "16px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Logout
-          </button>
-        </div>
+          Logout
+        </button>
       </div>
     </aside>
   );
