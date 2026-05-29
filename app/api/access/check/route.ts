@@ -149,7 +149,7 @@ async function findBadgeMatch(
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
         lookup_error:
-          accessCredentialError?.message || customerBadgeError?.message || null,
+  String((accessCredentialError as any)?.message || (customerBadgeError as any)?.message || ""),
       },
     };
   }
