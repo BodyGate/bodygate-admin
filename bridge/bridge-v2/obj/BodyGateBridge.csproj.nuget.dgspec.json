@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\bodygate-admin\\bridge-v2\\BodyGateBridge.csproj": {}
+    "C:\\bodygate-admin\\bridge\\bridge-v2\\BodyGateBridge.csproj": {}
   },
   "projects": {
-    "C:\\bodygate-admin\\bridge-v2\\BodyGateBridge.csproj": {
+    "C:\\bodygate-admin\\bridge\\bridge-v2\\BodyGateBridge.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\bodygate-admin\\bridge-v2\\BodyGateBridge.csproj",
+        "projectUniqueName": "C:\\bodygate-admin\\bridge\\bridge-v2\\BodyGateBridge.csproj",
         "projectName": "BodyGateBridge",
-        "projectPath": "C:\\bodygate-admin\\bridge-v2\\BodyGateBridge.csproj",
+        "projectPath": "C:\\bodygate-admin\\bridge\\bridge-v2\\BodyGateBridge.csproj",
         "packagesPath": "C:\\Users\\SERVER-RED\\.nuget\\packages\\",
-        "outputPath": "C:\\bodygate-admin\\bridge-v2\\obj\\",
+        "outputPath": "C:\\bodygate-admin\\bridge\\bridge-v2\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\SERVER-RED\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -43,6 +43,12 @@
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "Microsoft.Data.Sqlite": {
+              "target": "Package",
+              "version": "[10.0.8, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",

@@ -2,52 +2,52 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
-using TcpClass.Controller;
+using Microsoft.Data.Sqlite;
 
 namespace BodyGateAccessBridge
 {
     internal class Program
     {
-        private static readonly string Version = "V3.5";
+        private static readonly string Version = "V3.7-DNAKE-SQL";
 
+        // KT02.3 Gate Access Controller
         private static readonly string ControllerIp = "192.168.1.251";
-        private static readonly int ControllerPort = 8000;
+        private static readonly string ControllerUser = "admin";
+        private static readonly string ControllerPassword = "888888";
         private static readonly byte DoorIndex = 0;
 
+        // DNake AC02C/S
+        private static readonly string DnakeIp = "192.168.1.179";
+        private static readonly string DnakeUser = "admin";
+        private static readonly string DnakePassword = "888888";
+        private static readonly string DnakeDbUrl = "http://192.168.1.179/data/unlock_sql.db";
+
+        // BodyGate
         private static readonly string BodyGateCheckUrl =
             "http://localhost:3000/api/access/check";
 
         private static readonly string BodyGateLogUrl =
             "http://localhost:3000/api/access/log";
 
+        private static readonly int PollIntervalMs = 700;
         private static readonly int BadgeCooldownSeconds = 3;
-        private static readonly int OpenDelayAfterBadgeMs = 500;
+        private static readonly int OpenDelayAfterBadgeMs = 300;
 
-        private static readonly int OpenRetryCount = 3;
-        private static readonly int OpenRetryDelayMs = 700;
-
-        private const int RawBadgePacketLength = 43;
-        private const byte RawBadgeStartByte = 0x02;
-        private const byte RawBadgePacketMarker = 0xAA;
-        private const byte RawBadgeEventCommand = 0x56;
-        private const int RawBadgePayloadLength = 0x22;
-        private const int RawBadgePayloadOffset = 7;
-
-        private static readonly bool DebugRawBadge =
-            IsFlagEnabled("DEBUG_RAW_BADGE");
-
-        private static ClassTcpClientWorker? tcpNet;
-        private static TTCPPullCommand? pullCommand;
-        private static TTCPController? controller;
-
-        private static readonly object controllerLock = new object();
         private static readonly object badgeLock = new object();
+        private static readonly object pollLock = new object();
 
+        private static string lastProcessedEventKey = "";
         private static string lastBadge = "";
         private static DateTime lastBadgeTime = DateTime.MinValue;
+        private static bool isProcessingBadge = false;
+        private static bool pollingStarted = false;
+
+        private static readonly string WorkDir =
+            Path.Combine(AppContext.BaseDirectory, "dnake-db");
 
         private static readonly string LogDir =
             Path.Combine(AppContext.BaseDirectory, "logs");
@@ -63,587 +63,348 @@ namespace BodyGateAccessBridge
 
         static void Main(string[] args)
         {
+            Directory.CreateDirectory(LogDir);
+            Directory.CreateDirectory(WorkDir);
+
+            ConfigureBasicAuth();
+
             Log("====================================");
             Log("BodyGate Bridge " + Version + " avviato");
-            Log("Controller: " + ControllerIp + ":" + ControllerPort);
+            Log("Modalita lettura badge: DNake SQLite polling");
+            Log("DNake DB: " + DnakeDbUrl);
+            Log("Controller KT02.3 HTTP: http://" + ControllerIp + "/cdor.cgi?open=0");
             Log("Bridge HTTP: http://localhost:5050/open, /open0, /open1, /openlong0, /openlong1");
             Log("BodyGate Check API: " + BodyGateCheckUrl);
             Log("BodyGate Log API: " + BodyGateLogUrl);
-            Log("Modalita: badge centralina -> verifica BodyGate -> apertura tornello -> log Supabase");
             Log("ACCESSO CONSENTITO solo con BodyGate allowed=true");
             Log("ACCESSO NEGATO se BodyGate allowed=false o API offline");
-            Log("OpenDoor False gestito come WARNING tecnico");
-            Log("Retry apertura solo se comando NON inviato");
-            Log("Raw badge parser automatico: disabilitato; debug RX raw (DEBUG_RAW_BADGE)=" + DebugRawBadge);
+            Log("TCP SDK disattivato. Wiegand non necessario.");
             Log("====================================");
 
-            InitController();
+            StartDnakeSqlPolling();
             StartHttpServer();
 
             while (true)
             {
                 Thread.Sleep(1000);
+            }
+        }
 
-                try
+        private static void ConfigureBasicAuth()
+        {
+            string credentials = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes(DnakeUser + ":" + DnakePassword)
+            );
+
+            httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", credentials);
+        }
+
+        private static void StartDnakeSqlPolling()
+        {
+            if (pollingStarted)
+            {
+                return;
+            }
+
+            pollingStarted = true;
+
+            Thread thread = new Thread(() =>
+            {
+                Log("Polling DNake SQLite avviato ogni " + PollIntervalMs + " ms");
+
+                bool baselineLoaded = false;
+
+                while (true)
                 {
-                    bool connected =
-                        tcpNet != null &&
-                        tcpNet.IsConnectSuccess();
-
-                    if (!connected)
+                    try
                     {
-                        Log("Watchdog: controller non connesso, tento riconnessione...");
-                        InitController();
+                        DnakeUnlockEvent? latestEvent = ReadLatestDnakeEvent();
+
+                        if (latestEvent == null)
+                        {
+                            Thread.Sleep(PollIntervalMs);
+                            continue;
+                        }
+
+                        if (!baselineLoaded)
+                        {
+                            lastProcessedEventKey = latestEvent.EventKey;
+                            baselineLoaded = true;
+                            Log("Baseline DNake caricata: " + latestEvent.EventKey + " badge=" + latestEvent.Number + " time=" + latestEvent.TimeText);
+                            Thread.Sleep(PollIntervalMs);
+                            continue;
+                        }
+
+                        if (latestEvent.EventKey != lastProcessedEventKey)
+                        {
+                            lastProcessedEventKey = latestEvent.EventKey;
+                            ProcessBadgeFromDnakeSql(latestEvent);
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        Log("Errore polling DNake SQLite: " + ex.Message);
+                    }
+
+                    Thread.Sleep(PollIntervalMs);
                 }
-                catch (Exception ex)
-                {
-                    Log("Errore watchdog: " + ex.Message);
-                }
-            }
+            });
+
+            thread.IsBackground = true;
+            thread.Start();
         }
 
-        private static bool IsFlagEnabled(string name)
+        private static DnakeUnlockEvent? ReadLatestDnakeEvent()
         {
-            string? value =
-                Environment.GetEnvironmentVariable(name);
-
-            if (string.IsNullOrWhiteSpace(value))
+            lock (pollLock)
             {
-                return false;
-            }
+                string tempPath = Path.Combine(
+                    WorkDir,
+                    "unlock_sql_" + DateTime.Now.Ticks + ".db"
+                );
 
-            return
-                value.Equals("1", StringComparison.OrdinalIgnoreCase) ||
-                value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
-                value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
-                value.Equals("on", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static void InitController()
-        {
-            lock (controllerLock)
-            {
                 try
                 {
-                    tcpNet = new ClassTcpClientWorker();
-                    pullCommand = new TTCPPullCommand();
+                    DownloadDnakeDb(tempPath);
 
-                    controller = new TTCPController(
-                        tcpNet,
-                        pullCommand
+                    using SqliteConnection connection = new SqliteConnection(
+                        "Data Source=" + tempPath + ";Mode=ReadOnly"
                     );
 
-                    tcpNet.OnDataEvent += controller.HandleMessage;
-                    tcpNet.OnDataEvent += TcpNet_OnDataEvent;
-                    tcpNet.OnRxTxDataEvent += TcpNet_OnRxTxDataEvent;
-                    controller.OnEventHandler += Controller_OnEventHandler;
+                    connection.Open();
 
-                    Log("Hook eventi TCP: OnDataEvent -> HandleMessage + debug RX opzionale");
-                    Log("Hook eventi TCP: OnRxTxDataEvent -> debug RX/TX opzionale");
-                    Log("Hook eventi controller: OnEventHandler -> badge BodyGate");
+                    using SqliteCommand command = connection.CreateCommand();
+                    command.CommandText =
+                        "SELECT " +
+                        "COALESCE(number, '') AS number, " +
+                        "COALESCE(time, '') AS time_text, " +
+                        "COALESCE(time_sec, 0) AS time_sec, " +
+                        "COALESCE(id, 0) AS id, " +
+                        "COALESCE(unlock_type, '') AS unlock_type, " +
+                        "COALESCE(status, '') AS status " +
+                        "FROM unlock_info " +
+                        "WHERE number IS NOT NULL AND TRIM(CAST(number AS TEXT)) <> '' " +
+                        "ORDER BY time_sec DESC, id DESC " +
+                        "LIMIT 1";
 
-                    bool connected =
-                        tcpNet.OpenIP(
-                            ControllerIp,
-                            ControllerPort
-                        );
+                    using SqliteDataReader reader = command.ExecuteReader();
 
-                    Log("Connessione controller: " + connected);
-                }
-                catch (Exception ex)
-                {
-                    Log("Errore InitController: " + ex.Message);
-                }
-            }
-        }
-
-        private static void TcpNet_OnDataEvent(byte[] buffRX, int len)
-        {
-            if (!DebugRawBadge)
-            {
-                return;
-            }
-
-            LogTcpBuffer("RX OnDataEvent", buffRX, len);
-            LogRawBadgeDebug(buffRX, len);
-        }
-
-        private static void TcpNet_OnRxTxDataEvent(byte[] buffRX, int len, bool isSend)
-        {
-            if (!DebugRawBadge)
-            {
-                return;
-            }
-
-            LogTcpBuffer(isSend ? "TX OnRxTxDataEvent" : "RX OnRxTxDataEvent", buffRX, len);
-        }
-
-        private static void LogTcpBuffer(string prefix, byte[] buffer, int len)
-        {
-            try
-            {
-                if (buffer == null)
-                {
-                    Log(prefix + ": buffer null, len=" + len);
-                    return;
-                }
-
-                int safeLen = Math.Max(0, Math.Min(len, buffer.Length));
-                int shownLen = Math.Min(safeLen, 128);
-
-                StringBuilder hex =
-                    new StringBuilder();
-
-                for (int index = 0; index < shownLen; index++)
-                {
-                    if (index > 0)
+                    if (!reader.Read())
                     {
-                        hex.Append(' ');
+                        return null;
                     }
 
-                    hex.Append(buffer[index].ToString("X2"));
-                }
+                    string number = Convert.ToString(reader["number"])?.Trim() ?? "";
+                    string timeText = Convert.ToString(reader["time_text"])?.Trim() ?? "";
+                    long timeSec = Convert.ToInt64(reader["time_sec"]);
+                    long id = Convert.ToInt64(reader["id"]);
+                    string unlockType = Convert.ToString(reader["unlock_type"])?.Trim() ?? "";
+                    string status = Convert.ToString(reader["status"])?.Trim() ?? "";
 
-                if (safeLen > shownLen)
-                {
-                    hex.Append(" ...");
-                }
-
-                Log(prefix + ": len=" + safeLen + " data=" + hex);
-            }
-            catch (Exception ex)
-            {
-                Log("Errore log TCP raw: " + ex.Message);
-            }
-        }
-
-        private static void Controller_OnEventHandler(
-            RAcsEvent acsEvent,
-            TTCPControllerBase sender
-        )
-        {
-            try
-            {
-                string badge = acsEvent.Value;
-
-                if (string.IsNullOrWhiteSpace(badge))
-                    return;
-
-                ProcessBadge(
-                    badge,
-                    new BadgeEventInfo
+                    if (string.IsNullOrWhiteSpace(number))
                     {
-                        Reader = acsEvent.Reader,
-                        Door = acsEvent.Door,
-                        EventType = acsEvent.EventType,
-                        Datetime = acsEvent.Datetime,
-                        Source = "SDK"
+                        return null;
                     }
-                );
-            }
-            catch (Exception ex)
-            {
-                Log("Errore evento badge: " + ex.Message);
-            }
-        }
 
-        private static void LogRawBadgeDebug(byte[] buffRX, int len)
-        {
-            try
-            {
-                RawBadgeEvent? rawEvent =
-                    TryParseRawBadgeEvent(buffRX, len);
-
-                if (rawEvent == null)
-                {
-                    return;
+                    return new DnakeUnlockEvent
+                    {
+                        Number = number,
+                        TimeText = timeText,
+                        TimeSec = timeSec,
+                        Id = id,
+                        UnlockType = unlockType,
+                        Status = status,
+                        EventKey = timeSec + ":" + id + ":" + number
+                    };
                 }
-
-                Log("DEBUG RAW badge candidate ignorato: " + rawEvent.DebugSummary);
-                Log("DEBUG RAW: ProcessBadge non chiamato da OnDataEvent raw");
-            }
-            catch (Exception ex)
-            {
-                Log("Errore debug badge raw: " + ex.Message);
-            }
-        }
-
-        private static RawBadgeEvent? TryParseRawBadgeEvent(byte[] buffer, int len)
-        {
-            if (buffer == null)
-            {
-                return null;
-            }
-
-            int safeLen =
-                Math.Max(0, Math.Min(len, buffer.Length));
-
-            if (safeLen != RawBadgePacketLength)
-            {
-                return null;
-            }
-
-            if (
-                buffer[0] != RawBadgeStartByte ||
-                buffer[1] != RawBadgePacketMarker ||
-                buffer[2] != RawBadgeEventCommand
-            )
-            {
-                return null;
-            }
-
-            int payloadLength =
-                (buffer[5] << 8) | buffer[6];
-
-            if (payloadLength != RawBadgePayloadLength)
-            {
-                Log("DEBUG RAW len=43 ignorato: payload length inatteso " + payloadLength);
-                return null;
-            }
-
-            RawBadgeCandidate? selectedCandidate = null;
-            StringBuilder debugCandidates = new StringBuilder();
-
-            for (int index = RawBadgePayloadOffset; index <= safeLen - 4; index++)
-            {
-                uint littleEndianValue =
-                    ReadUInt32LittleEndian(buffer, index);
-
-                AddRawBadgeCandidateDebug(
-                    debugCandidates,
-                    index,
-                    "LE32",
-                    littleEndianValue
-                );
-
-                if (IsLikelyRawBadgeValue(littleEndianValue))
+                finally
                 {
-                    RawBadgeCandidate candidate =
-                        new RawBadgeCandidate
+                    try
+                    {
+                        if (File.Exists(tempPath))
                         {
-                            Offset = index,
-                            Endian = "LE32",
-                            Value = littleEndianValue,
-                            Score = ScoreRawBadgeCandidate(buffer, index, true)
-                        };
-
-                    selectedCandidate =
-                        PickBetterRawBadgeCandidate(selectedCandidate, candidate);
-                }
-
-                uint bigEndianValue =
-                    ReadUInt32BigEndian(buffer, index);
-
-                AddRawBadgeCandidateDebug(
-                    debugCandidates,
-                    index,
-                    "BE32",
-                    bigEndianValue
-                );
-
-                if (IsLikelyRawBadgeValue(bigEndianValue))
-                {
-                    RawBadgeCandidate candidate =
-                        new RawBadgeCandidate
-                        {
-                            Offset = index,
-                            Endian = "BE32",
-                            Value = bigEndianValue,
-                            Score = ScoreRawBadgeCandidate(buffer, index, false)
-                        };
-
-                    selectedCandidate =
-                        PickBetterRawBadgeCandidate(selectedCandidate, candidate);
+                            File.Delete(tempPath);
+                        }
+                    }
+                    catch
+                    {
+                    }
                 }
             }
-
-            Log("DEBUG RAW badge candidates: " + debugCandidates);
-
-            if (selectedCandidate == null)
-            {
-                Log("DEBUG RAW badge non estratto: nessun candidato valido nel pacchetto len=43");
-                return null;
-            }
-
-            byte reader =
-                TryReadByte(buffer, RawBadgePayloadOffset + 1, safeLen);
-
-            byte door =
-                TryReadByte(buffer, RawBadgePayloadOffset + 2, safeLen);
-
-            byte eventType =
-                TryReadByte(buffer, RawBadgePayloadOffset, safeLen);
-
-            return new RawBadgeEvent
-            {
-                Code = selectedCandidate.Value.ToString(),
-                Reader = reader,
-                Door = door,
-                EventType = eventType,
-                DebugSummary =
-                    "code=" + selectedCandidate.Value +
-                    " offset=" + selectedCandidate.Offset +
-                    " endian=" + selectedCandidate.Endian +
-                    " score=" + selectedCandidate.Score
-            };
         }
 
-        private static RawBadgeCandidate PickBetterRawBadgeCandidate(
-            RawBadgeCandidate? current,
-            RawBadgeCandidate candidate
-        )
+        private static void DownloadDnakeDb(string destinationPath)
         {
-            if (current == null)
-            {
-                return candidate;
-            }
-
-            if (candidate.Score > current.Score)
-            {
-                return candidate;
-            }
-
-            if (
-                candidate.Score == current.Score &&
-                candidate.Offset < current.Offset
-            )
-            {
-                return candidate;
-            }
-
-            return current;
-        }
-
-        private static bool IsLikelyRawBadgeValue(uint value)
-        {
-            return value >= 1000000 && value <= 99999999;
-        }
-
-        private static int ScoreRawBadgeCandidate(byte[] buffer, int offset, bool littleEndian)
-        {
-            int score = 0;
-
-            if (littleEndian && buffer[offset + 3] == 0x00)
-            {
-                score += 100;
-            }
-
-            if (!littleEndian && buffer[offset] == 0x00)
-            {
-                score += 50;
-            }
-
-            if (offset >= RawBadgePayloadOffset + 3 && offset <= RawBadgePayloadOffset + 24)
-            {
-                score += 20;
-            }
-
-            return score;
-        }
-
-        private static void AddRawBadgeCandidateDebug(
-            StringBuilder debugCandidates,
-            int offset,
-            string endian,
-            uint value
-        )
-        {
-            if (!IsLikelyRawBadgeValue(value))
-            {
-                return;
-            }
-
-            if (debugCandidates.Length > 0)
-            {
-                debugCandidates.Append("; ");
-            }
-
-            debugCandidates
-                .Append(endian)
-                .Append("@")
-                .Append(offset)
-                .Append("=")
-                .Append(value);
-        }
-
-        private static uint ReadUInt32LittleEndian(byte[] buffer, int offset)
-        {
-            return
-                (uint)(
-                    buffer[offset] |
-                    (buffer[offset + 1] << 8) |
-                    (buffer[offset + 2] << 16) |
-                    (buffer[offset + 3] << 24)
-                );
-        }
-
-        private static uint ReadUInt32BigEndian(byte[] buffer, int offset)
-        {
-            return
-                (uint)(
-                    (buffer[offset] << 24) |
-                    (buffer[offset + 1] << 16) |
-                    (buffer[offset + 2] << 8) |
-                    buffer[offset + 3]
-                );
-        }
-
-        private static byte TryReadByte(byte[] buffer, int offset, int safeLen)
-        {
-            if (offset < 0 || offset >= safeLen)
-            {
-                return 0;
-            }
-
-            return buffer[offset];
-        }
-
-        private static void ProcessBadge(string badge, BadgeEventInfo badgeEvent)
-        {
-            if (string.IsNullOrWhiteSpace(badge))
-                return;
-
-            if (IsDuplicateBadge(badge))
-            {
-                Log("Badge duplicato ignorato: " + badge);
-                return;
-            }
-
-            Log("================================");
-            Log("BADGE CENTRALINA");
-            Log("BADGE LETTO: " + badge);
-            Log("Badge: " + badge);
-            Log("ControllerCode: " + badge);
-            Log("Reader: " + badgeEvent.Reader);
-            Log("Door: " + badgeEvent.Door);
-            Log("EventType: " + badgeEvent.EventType);
-            Log("Data/Ora evento: " + badgeEvent.Datetime);
-            Log("================================");
-
-            BodyGateResult bodyGateResult =
-                CheckBodyGateAccess(badge);
-
-            OpenResult openResult =
-                new OpenResult();
-
-            if (!bodyGateResult.Allowed)
-            {
-                Log("ACCESSO NEGATO DA BODYGATE: " + badge);
-                Log("Motivo: " + bodyGateResult.Reason);
-
-                SendAccessLog(
-                    badge,
-                    bodyGateResult,
-                    badgeEvent,
-                    openResult
-                );
-
-                return;
-            }
-
-            Log("ACCESSO AUTORIZZATO DA BODYGATE: " + badge);
-            Log("Attesa prima apertura: " + OpenDelayAfterBadgeMs + " ms");
-
-            Thread.Sleep(OpenDelayAfterBadgeMs);
-
-            openResult =
-                OpenTurnstileWithSafeRetry(DoorIndex, false);
-
-            if (openResult.HasTrueResult)
-            {
-                Log("ACCESSO CONSENTITO - TORNELLO APERTO: " + badge);
-            }
-            else if (openResult.CommandSent)
-            {
-                Log("ACCESSO CONSENTITO - WARNING TECNICO SDK OpenDoor=False: " + badge);
-                Log("Nota: BodyGate allowed=true e comando OpenDoor inviato una sola volta.");
-                Log("Nessun retry eseguito per evitare impulsi multipli al tornello.");
-            }
-            else
-            {
-                Log("ACCESSO CONSENTITO DA BODYGATE MA COMANDO NON INVIATO: " + badge);
-                Log("WARNING: verificare connessione controller / SDK.");
-            }
-
-            SendAccessLog(
-                badge,
-                bodyGateResult,
-                badgeEvent,
-                openResult
+            using HttpRequestMessage request = new HttpRequestMessage(
+                HttpMethod.Get,
+                DnakeDbUrl
             );
+
+            string credentials = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes(DnakeUser + ":" + DnakePassword)
+            );
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Basic", credentials);
+
+            using HttpResponseMessage response = httpClient.Send(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("Download DNake DB fallito: HTTP " + (int)response.StatusCode + " " + response.ReasonPhrase);
+            }
+
+            byte[] bytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+
+            if (bytes.Length < 100)
+            {
+                throw new Exception("Download DNake DB troppo piccolo: " + bytes.Length + " bytes");
+            }
+
+            File.WriteAllBytes(destinationPath, bytes);
         }
 
-        private static bool IsDuplicateBadge(string badge)
+        private static void ProcessBadgeFromDnakeSql(DnakeUnlockEvent dnakeEvent)
         {
+            string badge = dnakeEvent.Number.Trim();
+
+            if (string.IsNullOrWhiteSpace(badge))
+            {
+                return;
+            }
+
             lock (badgeLock)
             {
-                DateTime now = DateTime.Now;
-
                 if (
                     badge == lastBadge &&
-                    (now - lastBadgeTime).TotalSeconds < BadgeCooldownSeconds
+                    (DateTime.Now - lastBadgeTime).TotalSeconds < BadgeCooldownSeconds
                 )
                 {
-                    return true;
+                    Log("Badge DNake duplicato ignorato per cooldown: " + badge);
+                    return;
+                }
+
+                if (isProcessingBadge)
+                {
+                    Log("Badge DNake ignorato: elaborazione in corso");
+                    return;
                 }
 
                 lastBadge = badge;
-                lastBadgeTime = now;
-
-                return false;
+                lastBadgeTime = DateTime.Now;
+                isProcessingBadge = true;
             }
+
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    Log("================================");
+                    Log("BADGE DNake SQLite");
+                    Log("BADGE LETTO: " + badge);
+                    Log("Evento DNake: key=" + dnakeEvent.EventKey);
+                    Log("Time DNake: " + dnakeEvent.TimeText);
+                    Log("UnlockType: " + dnakeEvent.UnlockType);
+                    Log("Status: " + dnakeEvent.Status);
+                    Log("================================");
+
+                    BodyGateResult bodyGateResult =
+                        CheckBodyGateAccess(badge);
+
+                    OpenResult openResult = new OpenResult();
+
+                    if (!bodyGateResult.Allowed)
+                    {
+                        Log("ACCESSO NEGATO DA BODYGATE: " + badge);
+                        Log("Motivo: " + bodyGateResult.Reason);
+
+                        SendAccessLog(
+                            badge,
+                            bodyGateResult,
+                            dnakeEvent,
+                            openResult
+                        );
+
+                        return;
+                    }
+
+                    Log("ACCESSO AUTORIZZATO DA BODYGATE: " + badge);
+                    Log("Attesa prima apertura: " + OpenDelayAfterBadgeMs + " ms");
+
+                    Thread.Sleep(OpenDelayAfterBadgeMs);
+
+                    openResult = OpenTurnstileHttp(DoorIndex);
+
+                    if (openResult.Opened)
+                    {
+                        Log("ACCESSO CONSENTITO - TORNELLO APERTO: " + badge);
+                    }
+                    else
+                    {
+                        Log("ACCESSO CONSENTITO - ERRORE APERTURA: " + badge);
+                        Log("Errore apertura: " + openResult.Message);
+                    }
+
+                    SendAccessLog(
+                        badge,
+                        bodyGateResult,
+                        dnakeEvent,
+                        openResult
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Log("Errore ProcessBadgeFromDnakeSql: " + ex.Message);
+                }
+                finally
+                {
+                    lock (badgeLock)
+                    {
+                        isProcessingBadge = false;
+                    }
+                }
+            });
         }
 
         private static BodyGateResult CheckBodyGateAccess(string badge)
         {
             try
             {
-                Log("Verifica BodyGate per badge: " + badge);
-
                 string json =
-                    "{\"badge\":\"" + EscapeJson(badge) + "\"}";
+                    "{" +
+                    "\"badge\":\"" + EscapeJson(badge) + "\"," +
+                    "\"badge_code\":\"" + EscapeJson(badge) + "\"," +
+                    "\"source\":\"dnake-sql\"" +
+                    "}";
 
-                using StringContent content =
-                    new StringContent(
-                        json,
-                        Encoding.UTF8,
-                        "application/json"
-                    );
+                using StringContent content = new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json"
+                );
 
-                HttpResponseMessage response =
-                    httpClient
-                        .PostAsync(BodyGateCheckUrl, content)
-                        .GetAwaiter()
-                        .GetResult();
+                using HttpResponseMessage response = httpClient.PostAsync(
+                    BodyGateCheckUrl,
+                    content
+                ).GetAwaiter().GetResult();
 
-                string body =
-                    response.Content
-                        .ReadAsStringAsync()
-                        .GetAwaiter()
-                        .GetResult();
+                string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
                 Log("Risposta BodyGate: " + body);
 
-                if (!response.IsSuccessStatusCode)
+                BodyGateResult result = new BodyGateResult
                 {
-                    return new BodyGateResult
-                    {
-                        Allowed = false,
-                        Reason = "HTTP status non valido: " + (int)response.StatusCode
-                    };
-                }
-
-                BodyGateResult result =
-                    new BodyGateResult();
+                    Allowed = false,
+                    Reason = "Accesso negato",
+                    BadgeCode = badge,
+                    ControllerCode = badge
+                };
 
                 try
                 {
-                    using JsonDocument doc =
-                        JsonDocument.Parse(body);
-
-                    JsonElement root =
-                        doc.RootElement;
+                    using JsonDocument doc = JsonDocument.Parse(body);
+                    JsonElement root = doc.RootElement;
 
                     if (
                         root.TryGetProperty("allowed", out JsonElement allowedElement) &&
@@ -658,8 +419,7 @@ namespace BodyGateAccessBridge
                         reasonElement.ValueKind == JsonValueKind.String
                     )
                     {
-                        result.Reason =
-                            reasonElement.GetString() ?? "";
+                        result.Reason = reasonElement.GetString() ?? "";
                     }
 
                     if (
@@ -667,8 +427,7 @@ namespace BodyGateAccessBridge
                         customerElement.ValueKind == JsonValueKind.String
                     )
                     {
-                        result.CustomerId =
-                            customerElement.GetString() ?? "";
+                        result.CustomerId = customerElement.GetString() ?? "";
                     }
 
                     if (
@@ -676,8 +435,7 @@ namespace BodyGateAccessBridge
                         badgeCodeElement.ValueKind == JsonValueKind.String
                     )
                     {
-                        result.BadgeCode =
-                            badgeCodeElement.GetString() ?? "";
+                        result.BadgeCode = badgeCodeElement.GetString() ?? badge;
                     }
 
                     if (
@@ -685,28 +443,18 @@ namespace BodyGateAccessBridge
                         controllerCodeElement.ValueKind == JsonValueKind.String
                     )
                     {
-                        result.ControllerCode =
-                            controllerCodeElement.GetString() ?? "";
+                        result.ControllerCode = controllerCodeElement.GetString() ?? badge;
                     }
                 }
                 catch
                 {
-                    result.Allowed =
-                        body.Contains("\"allowed\":true");
-
-                    result.Reason =
-                        "Parsing JSON fallback";
+                    result.Allowed = body.Contains("\"allowed\":true");
+                    result.Reason = "Parsing JSON fallback";
                 }
 
                 if (string.IsNullOrWhiteSpace(result.Reason))
                 {
-                    result.Reason =
-                        result.Allowed ? "Accesso consentito" : "Accesso negato";
-                }
-
-                if (string.IsNullOrWhiteSpace(result.ControllerCode))
-                {
-                    result.ControllerCode = badge;
+                    result.Reason = result.Allowed ? "Accesso consentito" : "Accesso negato";
                 }
 
                 return result;
@@ -720,7 +468,55 @@ namespace BodyGateAccessBridge
                 {
                     Allowed = false,
                     Reason = "Errore chiamata BodyGate",
+                    BadgeCode = badge,
                     ControllerCode = badge
+                };
+            }
+        }
+
+        private static OpenResult OpenTurnstileHttp(byte doorIndex)
+        {
+            try
+            {
+                string openUrl = "http://" + ControllerIp + "/cdor.cgi?open=0";
+
+                using HttpRequestMessage request = new HttpRequestMessage(
+                    HttpMethod.Post,
+                    openUrl
+                );
+
+                string credentials = Convert.ToBase64String(
+                    Encoding.ASCII.GetBytes(ControllerUser + ":" + ControllerPassword)
+                );
+
+                request.Headers.Authorization =
+                    new AuthenticationHeaderValue("Basic", credentials);
+
+                using HttpResponseMessage response = httpClient.Send(request);
+                string text = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                bool ok = response.IsSuccessStatusCode;
+
+                Log("Apertura KT02.3 HTTP status=" + (int)response.StatusCode + " response=" + text);
+
+                return new OpenResult
+                {
+                    CommandSent = true,
+                    Opened = ok,
+                    Door = doorIndex,
+                    Message = ok ? "Tornello aperto via HTTP KT02.3" : "HTTP " + (int)response.StatusCode + " " + text
+                };
+            }
+            catch (Exception ex)
+            {
+                Log("Errore apertura HTTP KT02.3: " + ex.Message);
+
+                return new OpenResult
+                {
+                    CommandSent = true,
+                    Opened = false,
+                    Door = doorIndex,
+                    Message = ex.Message
                 };
             }
         }
@@ -728,16 +524,12 @@ namespace BodyGateAccessBridge
         private static void SendAccessLog(
             string badge,
             BodyGateResult bodyGateResult,
-            BadgeEventInfo badgeEvent,
+            DnakeUnlockEvent dnakeEvent,
             OpenResult openResult
         )
         {
             try
             {
-                bool openWarning =
-                    openResult.CommandSent &&
-                    !openResult.HasTrueResult;
-
                 string customerIdValue =
                     string.IsNullOrWhiteSpace(bodyGateResult.CustomerId)
                         ? "null"
@@ -753,54 +545,46 @@ namespace BodyGateAccessBridge
                         ? "\"" + EscapeJson(badge) + "\""
                         : "\"" + EscapeJson(bodyGateResult.ControllerCode) + "\"";
 
+                string resultValue = bodyGateResult.Allowed ? "allowed" : "denied";
+
                 string json =
                     "{" +
                     "\"badge_code\":" + badgeCodeValue + "," +
                     "\"controller_code\":" + controllerCodeValue + "," +
+                    "\"credential_code\":\"" + EscapeJson(badge) + "\"," +
                     "\"customer_id\":" + customerIdValue + "," +
                     "\"allowed\":" + bodyGateResult.Allowed.ToString().ToLower() + "," +
+                    "\"result\":\"" + resultValue + "\"," +
                     "\"reason\":\"" + EscapeJson(bodyGateResult.Reason) + "\"," +
-                    "\"door\":" + badgeEvent.Door + "," +
-                    "\"reader\":" + badgeEvent.Reader + "," +
-                    "\"event_type\":" + badgeEvent.EventType + "," +
+                    "\"door\":" + DoorIndex + "," +
+                    "\"reader\":0," +
+                    "\"event_type\":0," +
                     "\"open_command_sent\":" + openResult.CommandSent.ToString().ToLower() + "," +
-                    "\"open_sdk_result\":" + openResult.HasTrueResult.ToString().ToLower() + "," +
-                    "\"open_warning\":" + openWarning.ToString().ToLower() + "," +
-                    "\"controller_ip\":\"" + EscapeJson(ControllerIp) + "\"," +
-                    "\"bridge_version\":\"" + EscapeJson(Version) + "\"" +
+                    "\"open_sdk_result\":" + openResult.Opened.ToString().ToLower() + "," +
+                    "\"open_warning\":" + (bodyGateResult.Allowed && !openResult.Opened).ToString().ToLower() + "," +
+                    "\"controller_ip\":\"" + EscapeJson(DnakeIp) + "\"," +
+                    "\"bridge_version\":\"" + EscapeJson(Version) + "\"," +
+                    "\"direction\":\"in\"" +
                     "}";
 
-                using StringContent content =
-                    new StringContent(
-                        json,
-                        Encoding.UTF8,
-                        "application/json"
-                    );
+                using StringContent content = new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json"
+                );
 
-                HttpResponseMessage response =
-                    httpClient
-                        .PostAsync(BodyGateLogUrl, content)
-                        .GetAwaiter()
-                        .GetResult();
+                using HttpResponseMessage response = httpClient.PostAsync(
+                    BodyGateLogUrl,
+                    content
+                ).GetAwaiter().GetResult();
 
-                string responseBody =
-                    response.Content
-                        .ReadAsStringAsync()
-                        .GetAwaiter()
-                        .GetResult();
+                string responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    Log("Log accesso inviato a BodyGate: " + responseBody);
-                }
-                else
-                {
-                    Log("Errore invio log accesso. HTTP " + (int)response.StatusCode + ": " + responseBody);
-                }
+                Log("Log BodyGate status=" + (int)response.StatusCode + " response=" + responseText);
             }
             catch (Exception ex)
             {
-                Log("Errore SendAccessLog: " + ex.Message);
+                Log("Errore invio log BodyGate: " + ex.Message);
             }
         }
 
@@ -810,21 +594,15 @@ namespace BodyGateAccessBridge
             {
                 try
                 {
-                    HttpListener listener =
-                        new HttpListener();
-
-                    listener.Prefixes.Add(
-                        "http://localhost:5050/"
-                    );
-
+                    HttpListener listener = new HttpListener();
+                    listener.Prefixes.Add("http://localhost:5050/");
                     listener.Start();
 
                     Log("HTTP server avviato su http://localhost:5050/");
 
                     while (true)
                     {
-                        HttpListenerContext context =
-                            listener.GetContext();
+                        HttpListenerContext context = listener.GetContext();
 
                         ThreadPool.QueueUserWorkItem(_ =>
                         {
@@ -846,60 +624,37 @@ namespace BodyGateAccessBridge
         {
             try
             {
-                string path =
-                    context.Request.Url?.AbsolutePath.ToLower() ?? "";
+                string path = context.Request.Url?.AbsolutePath.ToLower() ?? "";
 
-                if (path == "/open")
+                if (path == "/open" || path == "/open0" || path == "/open-in")
                 {
-                    HandleOpenRequest(context, DoorIndex, false);
+                    HandleOpenRequest(context, DoorIndex);
                     return;
                 }
 
-                if (path == "/open0")
+                if (path == "/open1" || path == "/open-out" || path == "/openlong0" || path == "/openlong1")
                 {
-                    HandleOpenRequest(context, 0, false);
-                    return;
-                }
-
-                if (path == "/open1")
-                {
-                    HandleOpenRequest(context, 1, false);
-                    return;
-                }
-
-                if (path == "/openlong0")
-                {
-                    HandleOpenRequest(context, 0, true);
-                    return;
-                }
-
-                if (path == "/openlong1")
-                {
-                    HandleOpenRequest(context, 1, true);
+                    HandleOpenRequest(context, DoorIndex);
                     return;
                 }
 
                 if (path == "/status")
                 {
-                    bool connected =
-                        tcpNet != null &&
-                        tcpNet.IsConnectSuccess();
-
                     WriteJson(
                         context,
-                        "{\"ok\":true,\"connected\":" +
-                        connected.ToString().ToLower() +
-                        ",\"controllerIp\":\"" +
-                        ControllerIp +
-                        "\",\"controllerPort\":" +
-                        ControllerPort +
-                        ",\"bodyGateCheckApi\":\"" +
-                        BodyGateCheckUrl +
-                        "\",\"bodyGateLogApi\":\"" +
-                        BodyGateLogUrl +
-                        "\",\"version\":\"" +
-                        Version +
-                        "\"}"
+                        new
+                        {
+                            ok = true,
+                            service = "BodyGateBridge",
+                            version = Version,
+                            mode = "dnake-sql-polling",
+                            dnakeDbUrl = DnakeDbUrl,
+                            controllerIp = ControllerIp,
+                            pollingStarted,
+                            lastBadge,
+                            lastBadgeTime = lastBadgeTime.ToString("s"),
+                            lastProcessedEventKey
+                        }
                     );
 
                     return;
@@ -909,7 +664,12 @@ namespace BodyGateAccessBridge
                 {
                     WriteJson(
                         context,
-                        "{\"ok\":true,\"service\":\"BodyGateBridge\",\"version\":\"" + Version + "\"}"
+                        new
+                        {
+                            ok = true,
+                            service = "BodyGateBridge",
+                            version = Version
+                        }
                     );
 
                     return;
@@ -917,7 +677,12 @@ namespace BodyGateAccessBridge
 
                 WriteJson(
                     context,
-                    "{\"ok\":false,\"message\":\"Endpoint non valido\",\"version\":\"" + Version + "\"}",
+                    new
+                    {
+                        ok = false,
+                        message = "Endpoint non valido",
+                        version = Version
+                    },
                     404
                 );
             }
@@ -929,7 +694,13 @@ namespace BodyGateAccessBridge
                 {
                     WriteJson(
                         context,
-                        "{\"ok\":false,\"message\":\"Errore interno bridge\",\"version\":\"" + Version + "\"}",
+                        new
+                        {
+                            ok = false,
+                            message = "Errore interno bridge",
+                            error = ex.Message,
+                            version = Version
+                        },
                         500
                     );
                 }
@@ -939,224 +710,23 @@ namespace BodyGateAccessBridge
             }
         }
 
-        private static void HandleOpenRequest(
-            HttpListenerContext context,
-            byte doorIndex,
-            bool useLongOpen
-        )
+        private static void HandleOpenRequest(HttpListenerContext context, byte doorIndex)
         {
-            OpenResult result =
-                OpenTurnstileWithSafeRetry(doorIndex, useLongOpen);
+            OpenResult result = OpenTurnstileHttp(doorIndex);
 
-            string commandName =
-                useLongOpen ? "OpenDoorLong" : "OpenDoor";
-
-            if (result.HasTrueResult)
-            {
-                WriteJson(
-                    context,
-                    new
-                    {
-                        ok = true,
-                        opened = true,
-                        warning = false,
-                        door = doorIndex,
-                        command = commandName,
-                        message = "Tornello aperto",
-                        version = Version
-                    }
-                );
-            }
-            else if (result.CommandSent)
-            {
-                WriteJson(
-                    context,
-                    new
-                    {
-                        ok = true,
-                        opened = true,
-                        warning = true,
-                        door = doorIndex,
-                        command = commandName,
-                        message = "Comando " + commandName + " inviato una sola volta. SDK False gestito come warning tecnico.",
-                        version = Version
-                    }
-                );
-            }
-            else
-            {
-                WriteJson(
-                    context,
-                    new
-                    {
-                        ok = false,
-                        opened = false,
-                        warning = true,
-                        door = doorIndex,
-                        command = commandName,
-                        message = "Comando " + commandName + " non inviato. Controller non disponibile.",
-                        version = Version
-                    }
-                );
-            }
-        }
-
-        private static OpenResult OpenTurnstileWithSafeRetry(
-            byte doorIndex,
-            bool useLongOpen
-        )
-        {
-            OpenResult finalResult =
-                new OpenResult();
-
-            string commandName =
-                useLongOpen ? "OpenDoorLong" : "OpenDoor";
-
-            for (int attempt = 1; attempt <= OpenRetryCount; attempt++)
-            {
-                Log(
-                    "Tentativo apertura " +
-                    commandName +
-                    " porta " +
-                    doorIndex +
-                    " " +
-                    attempt +
-                    "/" +
-                    OpenRetryCount
-                );
-
-                OpenAttemptResult attemptResult =
-                    OpenTurnstileOnce(doorIndex, useLongOpen);
-
-                if (attemptResult.CommandSent)
+            WriteJson(
+                context,
+                new
                 {
-                    finalResult.CommandSent = true;
-
-                    if (attemptResult.SdkResult)
-                    {
-                        finalResult.HasTrueResult = true;
-                        Log("Apertura riuscita al tentativo " + attempt);
-                        return finalResult;
-                    }
-
-                    Log("WARNING tecnico: " + commandName + " ha restituito False al tentativo " + attempt);
-                    Log("Comando " + commandName + " inviato. Stop retry per evitare impulsi multipli.");
-                    LogControllerErrors();
-
-                    return finalResult;
+                    ok = result.Opened,
+                    opened = result.Opened,
+                    warning = false,
+                    door = doorIndex,
+                    command = "KT02_HTTP",
+                    message = result.Message,
+                    version = Version
                 }
-
-                Log("Comando " + commandName + " NON inviato al tentativo " + attempt);
-                LogControllerErrors();
-
-                if (attempt < OpenRetryCount)
-                {
-                    Log("Retry consentito perche il comando non e stato inviato.");
-                    Thread.Sleep(OpenRetryDelayMs);
-                }
-            }
-
-            Log("WARNING tecnico finale: nessun comando " + commandName + " inviato dopo retry.");
-
-            return finalResult;
-        }
-
-        private static OpenAttemptResult OpenTurnstileOnce(
-            byte doorIndex,
-            bool useLongOpen
-        )
-        {
-            try
-            {
-                bool connected =
-                    tcpNet != null &&
-                    tcpNet.IsConnectSuccess();
-
-                if (
-                    tcpNet == null ||
-                    controller == null ||
-                    !connected
-                )
-                {
-                    Log("Controller non connesso. Riconnessione controller...");
-
-                    InitController();
-
-                    Thread.Sleep(500);
-                }
-
-                if (controller == null)
-                {
-                    Log("Controller non disponibile");
-                    return new OpenAttemptResult
-                    {
-                        CommandSent = false,
-                        SdkResult = false
-                    };
-                }
-
-                bool connectedAfterReconnect =
-                    tcpNet != null &&
-                    tcpNet.IsConnectSuccess();
-
-                if (!connectedAfterReconnect)
-                {
-                    Log("Controller ancora non connesso dopo riconnessione.");
-                    return new OpenAttemptResult
-                    {
-                        CommandSent = false,
-                        SdkResult = false
-                    };
-                }
-
-                string commandName =
-                    useLongOpen ? "OpenDoorLong" : "OpenDoor";
-
-                Log("Invio " + commandName + " porta " + doorIndex + "...");
-
-                bool opened =
-                    useLongOpen
-                        ? controller.OpenDoorLong(doorIndex)
-                        : controller.OpenDoor(doorIndex);
-
-                Log("Risultato " + commandName + " SDK: " + opened);
-
-                return new OpenAttemptResult
-                {
-                    CommandSent = true,
-                    SdkResult = opened
-                };
-            }
-            catch (Exception ex)
-            {
-                Log("Errore comando apertura: " + ex.Message);
-
-                return new OpenAttemptResult
-                {
-                    CommandSent = false,
-                    SdkResult = false
-                };
-            }
-        }
-
-        private static void LogControllerErrors()
-        {
-            try
-            {
-                if (tcpNet != null)
-                {
-                    Log("LastError tcpNet: " + tcpNet.LastError());
-                }
-
-                if (controller != null)
-                {
-                    Log("LastError controller: " + controller.LastError());
-                }
-            }
-            catch (Exception ex)
-            {
-                Log("Errore lettura LastError: " + ex.Message);
-            }
+            );
         }
 
         private static void WriteJson(
@@ -1165,92 +735,59 @@ namespace BodyGateAccessBridge
             int statusCode = 200
         )
         {
-            WriteJson(
-                context,
-                JsonSerializer.Serialize(payload),
-                statusCode
-            );
-        }
+            string json = JsonSerializer.Serialize(payload);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
 
-        private static void WriteJson(
-            HttpListenerContext context,
-            string json,
-            int statusCode = 200
-        )
-        {
-            byte[] buffer =
-                Encoding.UTF8.GetBytes(json);
-
-            context.Response.StatusCode =
-                statusCode;
-
-            context.Response.ContentType =
-                "application/json";
-
-            context.Response.ContentLength64 =
-                buffer.Length;
-
-            context.Response.OutputStream.Write(
-                buffer,
-                0,
-                buffer.Length
-            );
-
+            context.Response.StatusCode = statusCode;
+            context.Response.ContentType = "application/json";
+            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+            context.Response.ContentLength64 = buffer.Length;
+            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
             context.Response.OutputStream.Close();
         }
 
         private static string EscapeJson(string value)
         {
+            if (value == null)
+            {
+                return "";
+            }
+
             return value
                 .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"");
+                .Replace("\"", "\\\"")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n");
         }
 
         private static void Log(string message)
         {
+            string line =
+                "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "] " + message;
+
+            Console.WriteLine(line);
+
             try
             {
                 Directory.CreateDirectory(LogDir);
-
-                string line =
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
-
-                Console.WriteLine(line);
-
-                File.AppendAllText(
-                    LogFile,
-                    line + Environment.NewLine
-                );
+                File.AppendAllText(LogFile, line + Environment.NewLine);
             }
             catch
             {
             }
         }
 
-        private class BadgeEventInfo
+        private class DnakeUnlockEvent
         {
-            public int Reader { get; set; }
-            public int Door { get; set; }
-            public int EventType { get; set; }
-            public DateTime Datetime { get; set; } = DateTime.Now;
-            public string Source { get; set; } = "SDK";
-        }
-
-        private class RawBadgeEvent
-        {
-            public string Code { get; set; } = "";
-            public int Reader { get; set; }
-            public int Door { get; set; }
-            public int EventType { get; set; }
-            public string DebugSummary { get; set; } = "";
-        }
-
-        private class RawBadgeCandidate
-        {
-            public int Offset { get; set; }
-            public string Endian { get; set; } = "";
-            public uint Value { get; set; }
-            public int Score { get; set; }
+            public string Number { get; set; } = "";
+            public string TimeText { get; set; } = "";
+            public long TimeSec { get; set; }
+            public long Id { get; set; }
+            public string UnlockType { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string EventKey { get; set; } = "";
         }
 
         private class BodyGateResult
@@ -1262,16 +799,12 @@ namespace BodyGateAccessBridge
             public string ControllerCode { get; set; } = "";
         }
 
-        private class OpenAttemptResult
-        {
-            public bool CommandSent { get; set; }
-            public bool SdkResult { get; set; }
-        }
-
         private class OpenResult
         {
             public bool CommandSent { get; set; }
-            public bool HasTrueResult { get; set; }
+            public bool Opened { get; set; }
+            public byte Door { get; set; }
+            public string Message { get; set; } = "";
         }
     }
 }
