@@ -191,9 +191,9 @@ async function findBadgeMatch(
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
         lookup_error:
-          accessCredentialError?.message ||
-          customerBadgeError?.message ||
-          customerByLegacyBadgeError?.message ||
+          (accessCredentialError as any)?.message ||
+          (customerBadgeError as any)?.message ||
+          (customerByLegacyBadgeError as any)?.message ||
           null,
       },
     };
@@ -223,10 +223,10 @@ async function findBadgeMatch(
       access_credentials_same_code_count: accessCredentialsSameCodeCount,
       exact_query_path_used: exactQueryPathUsed,
       lookup_error:
-        accessCredentialError?.message ||
-        customerBadgeError?.message ||
-        customerByLegacyBadgeError?.message ||
-        accessCountError?.message ||
+        (accessCredentialError as any)?.message ||
+        (customerBadgeError as any)?.message ||
+        (customerByLegacyBadgeError as any)?.message ||
+        (accessCountError as any)?.message ||
         null,
     },
   };
@@ -311,7 +311,7 @@ export async function POST(req: Request) {
       customer_id: badgeMatch.customer_id,
       credential_id: badgeMatch.credential_id,
       credential_source: badgeMatch.source,
-      error: customerError?.message ?? null,
+      error: (customerError as any)?.message ?? null,
     });
 
     if (customerError || !customer || customer.is_active === false) {
