@@ -52,7 +52,7 @@ export default function AccessLogsTable() {
       return;
     }
 
-    setLogs((data || []) as AccessLog[]);
+    setLogs((data || []) as unknown as AccessLog[]);
     setLoading(false);
   }
 
