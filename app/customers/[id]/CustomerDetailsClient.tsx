@@ -23,6 +23,8 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [dnakeUsers, setDnakeUsers] = useState<any[]>([]);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [qrGenerating, setQrGenerating] = useState(false);
+  const [mobilePassLoading, setMobilePassLoading] = useState(false);
+  const [mobilePassUrl, setMobilePassUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -63,6 +65,19 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const initials =
     `${customer?.first_name?.[0] || ""}${customer?.last_name?.[0] || ""}`.toUpperCase() ||
     "BG";
+
+  const bodyGatePublicUrl =
+    process.env.NEXT_PUBLIC_BODYGATE_PUBLIC_URL || "https://bodygate-admin.vercel.app";
+
+  const normalizedPhone = String(customer?.phone || "")
+    .replace(/\D/g, "")
+    .replace(/^0+/, "");
+
+  const whatsAppPhone = normalizedPhone
+    ? normalizedPhone.startsWith("39")
+      ? normalizedPhone
+      : `39${normalizedPhone}`
+    : "";
 
   async function loadAll() {
     setLoading(true);
@@ -481,6 +496,72 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     } finally {
       setQrGenerating(false);
     }
+  }
+
+
+  async function createOrGetMobilePass() {
+    if (!customer?.id) {
+      alert("Cliente non caricato.");
+      return "";
+    }
+
+    setMobilePassLoading(true);
+
+    try {
+      const response = await fetch("/api/customers/create-mobile-pass", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_id: customer.id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error("create-mobile-pass error", result);
+        alert(result?.error || "Errore creazione Mobile Pass.");
+        return "";
+      }
+
+      const url = `${bodyGatePublicUrl}${result.mobile_url}`;
+      setMobilePassUrl(url);
+      return url;
+    } catch (error: any) {
+      console.error("createOrGetMobilePass failed", error);
+      alert(error?.message || "Errore imprevisto durante la creazione del Mobile Pass.");
+      return "";
+    } finally {
+      setMobilePassLoading(false);
+    }
+  }
+
+  async function sendMobilePassWhatsApp() {
+    const url = mobilePassUrl || (await createOrGetMobilePass());
+    if (!url) return;
+
+    const message =
+      `Ciao ${customer?.first_name || ""}, ecco il tuo BodyGate Mobile Pass di Body Energy:\n\n` +
+      `${url}\n\n` +
+      `Aprilo dal telefono e mostralo al lettore QR all'ingresso. ` +
+      `Puoi anche salvarlo sulla schermata Home come app.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = whatsAppPhone
+      ? `https://wa.me/${whatsAppPhone}?text=${encodedMessage}`
+      : `https://wa.me/?text=${encodedMessage}`;
+
+    window.open(whatsappUrl, "_blank");
+  }
+
+  async function copyMobilePassLink() {
+    const url = mobilePassUrl || (await createOrGetMobilePass());
+    if (!url) return;
+
+    await navigator.clipboard.writeText(url);
+    alert("Link Mobile Pass copiato.");
   }
 
   function printQr() {
@@ -930,6 +1011,25 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
           color: #4ade80;
         }
 
+
+        .mobile-pass-section {
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          padding-top: 18px;
+          margin-top: 18px;
+        }
+
+        .mobile-pass-url {
+          border: 1px solid rgba(59, 130, 246, 0.22);
+          background: rgba(59, 130, 246, 0.08);
+          color: #bfdbfe;
+          border-radius: 14px;
+          padding: 12px;
+          font-size: 12px;
+          line-height: 1.45;
+          word-break: break-all;
+          margin: 12px 0;
+        }
+
         @media (max-width: 1100px) {
           .hero-layout,
           .status-grid,
@@ -1158,6 +1258,54 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
                   Credenziali QR salvate: {qrCredentials.length}
                 </div>
               )}
+            </div>
+
+            <div className="credential-section mobile-pass-section">
+              <div className="credential-section-title">App cliente / WhatsApp</div>
+
+              <p className="empty">
+                Crea il link personale del cliente e invialo su WhatsApp. Il cliente potrà aprire il QR dal telefono.
+              </p>
+
+              {mobilePassUrl ? (
+                <div className="mobile-pass-url">
+                  {mobilePassUrl}
+                </div>
+              ) : null}
+
+              <div className="actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={createOrGetMobilePass}
+                  disabled={mobilePassLoading}
+                >
+                  {mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={sendMobilePassWhatsApp}
+                  disabled={mobilePassLoading}
+                >
+                  Invia su WhatsApp
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={copyMobilePassLink}
+                  disabled={mobilePassLoading}
+                >
+                  Copia link
+                </button>
+              </div>
+
+              {!customer?.phone ? (
+                <div className="qr-meta danger-text" style={{ marginTop: 10 }}>
+                  Telefono cliente mancante: WhatsApp si aprirà senza destinatario.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
