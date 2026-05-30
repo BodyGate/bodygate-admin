@@ -1,0 +1,36 @@
+{
+  "name": "BodyGate Mobile Pass",
+  "short_name": "BodyGate",
+  "description": "Mobile pass BodyGate per accesso palestra con QR Code.",
+  "start_url": "/mobile/BGM_0VNB-UKBYB6-PB4F",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "categories": [
+    "fitness",
+    "health",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
