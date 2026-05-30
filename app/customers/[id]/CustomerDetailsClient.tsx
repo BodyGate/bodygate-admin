@@ -153,27 +153,27 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     };
 
     try {
-      const { error } = await supabase
-        .from("customers")
-        .update(payload)
-        .eq("id", customer.id);
+      const response = await fetch("/api/customers/update-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          profile: payload,
+        }),
+      });
 
-      if (error) {
-        console.error("saveCustomerProfile error", error);
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error("saveCustomerProfile API error", result);
         alert(
           "Errore salvataggio anagrafica: " +
-            error.message +
-            "\\n\\nSe l'errore riguarda colonne mancanti, esegui prima lo SQL di aggiornamento anagrafica professionale."
+            (result?.error || result?.detail?.message || "Errore sconosciuto")
         );
         return;
       }
-
-      await supabase.from("customer_timeline").insert({
-        customer_id: customer.id,
-        type: "customer",
-        title: "Anagrafica cliente aggiornata",
-        description: "Dati anagrafici modificati dalla scheda cliente",
-      });
 
       setIsEditingCustomer(false);
       await loadAll();
