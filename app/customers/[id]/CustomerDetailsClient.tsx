@@ -32,6 +32,10 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [newNote, setNewNote] = useState("");
   const [blockReason, setBlockReason] = useState("");
 
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
@@ -78,6 +82,109 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       ? normalizedPhone
       : `39${normalizedPhone}`
     : "";
+
+  function startEditCustomer() {
+    if (!customer) return;
+
+    setEditForm({
+      first_name: customer.first_name || "",
+      last_name: customer.last_name || "",
+      phone: customer.phone || "",
+      email: customer.email || "",
+      fiscal_code: customer.fiscal_code || "",
+      birth_date: customer.birth_date || "",
+      gender: customer.gender || "",
+      address: customer.address || "",
+      city: customer.city || "",
+      postal_code: customer.postal_code || customer.zip || "",
+      emergency_contact_name: customer.emergency_contact_name || "",
+      emergency_contact_phone: customer.emergency_contact_phone || "",
+      reception_notes: customer.reception_notes || "",
+      badge_code: customer.badge_code || "",
+      controller_code: customer.controller_code || "",
+      is_active: customer.is_active !== false,
+    });
+
+    setIsEditingCustomer(true);
+  }
+
+  function cancelEditCustomer() {
+    setIsEditingCustomer(false);
+    setEditForm({});
+  }
+
+  function updateEditField(field: string, value: any) {
+    setEditForm((prev: any) => ({
+      ...prev,
+      [field]: value,
+    }));
+  }
+
+  async function saveCustomerProfile() {
+    if (!customer?.id) return;
+
+    const firstName = String(editForm.first_name || "").trim();
+    const lastName = String(editForm.last_name || "").trim();
+
+    if (!firstName || !lastName) {
+      alert("Nome e cognome sono obbligatori.");
+      return;
+    }
+
+    setSavingCustomer(true);
+
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      phone: String(editForm.phone || "").trim() || null,
+      email: String(editForm.email || "").trim() || null,
+      fiscal_code: String(editForm.fiscal_code || "").trim() || null,
+      birth_date: editForm.birth_date || null,
+      gender: editForm.gender || null,
+      address: String(editForm.address || "").trim() || null,
+      city: String(editForm.city || "").trim() || null,
+      postal_code: String(editForm.postal_code || "").trim() || null,
+      emergency_contact_name: String(editForm.emergency_contact_name || "").trim() || null,
+      emergency_contact_phone: String(editForm.emergency_contact_phone || "").trim() || null,
+      reception_notes: String(editForm.reception_notes || "").trim() || null,
+      badge_code: String(editForm.badge_code || "").trim() || null,
+      controller_code: String(editForm.controller_code || "").trim() || null,
+      is_active: !!editForm.is_active,
+    };
+
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update(payload)
+        .eq("id", customer.id);
+
+      if (error) {
+        console.error("saveCustomerProfile error", error);
+        alert(
+          "Errore salvataggio anagrafica: " +
+            error.message +
+            "\\n\\nSe l'errore riguarda colonne mancanti, esegui prima lo SQL di aggiornamento anagrafica professionale."
+        );
+        return;
+      }
+
+      await supabase.from("customer_timeline").insert({
+        customer_id: customer.id,
+        type: "customer",
+        title: "Anagrafica cliente aggiornata",
+        description: "Dati anagrafici modificati dalla scheda cliente",
+      });
+
+      setIsEditingCustomer(false);
+      await loadAll();
+      alert("Anagrafica cliente aggiornata correttamente.");
+    } catch (error: any) {
+      console.error("saveCustomerProfile failed", error);
+      alert(error?.message || "Errore imprevisto durante il salvataggio.");
+    } finally {
+      setSavingCustomer(false);
+    }
+  }
 
   async function loadAll() {
     setLoading(true);
@@ -232,6 +339,12 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
     { label: "Data nascita", value: customer?.birth_date || "-" },
+    { label: "Sesso", value: customer?.gender || "-" },
+    { label: "Indirizzo", value: customer?.address || "-" },
+    { label: "Città", value: customer?.city || "-" },
+    { label: "CAP", value: customer?.postal_code || customer?.zip || "-" },
+    { label: "Emergenza", value: customer?.emergency_contact_name || "-" },
+    { label: "Tel. emergenza", value: customer?.emergency_contact_phone || "-" },
   ];
 
   const cardCredentials = useMemo(() => {
@@ -1030,6 +1143,94 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
           margin: 12px 0;
         }
 
+
+        .hero-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
+
+        .edit-panel {
+          margin-top: 22px;
+          border: 1px solid rgba(239, 68, 68, 0.32);
+          background: rgba(239, 68, 68, 0.055);
+          border-radius: 22px;
+          padding: 18px;
+        }
+
+        .edit-panel-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .edit-panel-title {
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .edit-form-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .edit-field {
+          display: grid;
+          gap: 7px;
+        }
+
+        .edit-field label {
+          color: #a3a3a3;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.7px;
+          font-weight: 900;
+        }
+
+        textarea {
+          border-radius: 14px;
+          border: 1px solid #303030;
+          padding: 13px 15px;
+          font-size: 14px;
+          outline: none;
+          background: #050505;
+          color: #fff;
+          width: 100%;
+          min-height: 92px;
+          resize: vertical;
+          font-family: inherit;
+        }
+
+        .edit-field-full {
+          grid-column: 1 / -1;
+        }
+
+        .checkbox-field {
+          border: 1px solid #303030;
+          border-radius: 14px;
+          padding: 13px 15px;
+          background: #050505;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-height: 47px;
+        }
+
+        .checkbox-field input {
+          width: auto;
+          accent-color: #ef4444;
+        }
+
+        .checkbox-field span {
+          font-weight: 900;
+          color: #ffffff;
+        }
+
         @media (max-width: 1100px) {
           .hero-layout,
           .status-grid,
@@ -1083,10 +1284,195 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
               </div>
             </div>
 
-            <div className={`badge-status ${accessAllowed ? "ok" : "ko"}`}>
-              {accessAllowed ? "ACCESSO ATTIVO" : "ACCESSO BLOCCATO"}
+            <div className="hero-actions">
+              <div className={`badge-status ${accessAllowed ? "ok" : "ko"}`}>
+                {accessAllowed ? "ACCESSO ATTIVO" : "ACCESSO BLOCCATO"}
+              </div>
+
+              {!isEditingCustomer ? (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={startEditCustomer}
+                >
+                  Modifica anagrafica
+                </button>
+              ) : null}
             </div>
           </div>
+
+          {isEditingCustomer ? (
+            <div className="edit-panel">
+              <div className="edit-panel-header">
+                <div>
+                  <div className="edit-panel-title">Modifica anagrafica professionale</div>
+                  <div className="muted">
+                    Aggiorna i dati cliente, credenziali principali e stato attività.
+                  </div>
+                </div>
+
+                <div className="actions" style={{ marginTop: 0 }}>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={cancelEditCustomer}
+                    disabled={savingCustomer}
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveCustomerProfile}
+                    disabled={savingCustomer}
+                  >
+                    {savingCustomer ? "Salvataggio..." : "Salva"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="edit-form-grid">
+                <div className="edit-field">
+                  <label>Nome</label>
+                  <input
+                    value={editForm.first_name || ""}
+                    onChange={(e) => updateEditField("first_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Cognome</label>
+                  <input
+                    value={editForm.last_name || ""}
+                    onChange={(e) => updateEditField("last_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Telefono</label>
+                  <input
+                    value={editForm.phone || ""}
+                    onChange={(e) => updateEditField("phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email || ""}
+                    onChange={(e) => updateEditField("email", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Codice fiscale</label>
+                  <input
+                    value={editForm.fiscal_code || ""}
+                    onChange={(e) => updateEditField("fiscal_code", e.target.value.toUpperCase())}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Data nascita</label>
+                  <input
+                    type="date"
+                    value={editForm.birth_date || ""}
+                    onChange={(e) => updateEditField("birth_date", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Sesso</label>
+                  <select
+                    value={editForm.gender || ""}
+                    onChange={(e) => updateEditField("gender", e.target.value)}
+                  >
+                    <option value="">Non specificato</option>
+                    <option value="M">Maschile</option>
+                    <option value="F">Femminile</option>
+                    <option value="ALTRO">Altro</option>
+                  </select>
+                </div>
+
+                <div className="edit-field">
+                  <label>Indirizzo</label>
+                  <input
+                    value={editForm.address || ""}
+                    onChange={(e) => updateEditField("address", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Città</label>
+                  <input
+                    value={editForm.city || ""}
+                    onChange={(e) => updateEditField("city", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>CAP</label>
+                  <input
+                    value={editForm.postal_code || ""}
+                    onChange={(e) => updateEditField("postal_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Contatto emergenza</label>
+                  <input
+                    value={editForm.emergency_contact_name || ""}
+                    onChange={(e) => updateEditField("emergency_contact_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Telefono emergenza</label>
+                  <input
+                    value={editForm.emergency_contact_phone || ""}
+                    onChange={(e) => updateEditField("emergency_contact_phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Badge principale</label>
+                  <input
+                    value={editForm.badge_code || ""}
+                    onChange={(e) => updateEditField("badge_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Controller code</label>
+                  <input
+                    value={editForm.controller_code || ""}
+                    onChange={(e) => updateEditField("controller_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field">
+                  <label>Stato cliente</label>
+                  <div className="checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={!!editForm.is_active}
+                      onChange={(e) => updateEditField("is_active", e.target.checked)}
+                    />
+                    <span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span>
+                  </div>
+                </div>
+
+                <div className="edit-field edit-field-full">
+                  <label>Note reception</label>
+                  <textarea
+                    value={editForm.reception_notes || ""}
+                    onChange={(e) => updateEditField("reception_notes", e.target.value)}
+                    placeholder="Note interne rapide visibili alla reception..."
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="status-grid">
             <StatusBox
