@@ -24,7 +24,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const isPublicStandalonePage =
-    pathname.startsWith("/mobile") || pathname.startsWith("/login");
+    pathname.startsWith("/mobile") ||
+    pathname.startsWith("/staff-mobile") ||
+    pathname.startsWith("/login");
 
   if (isPublicStandalonePage) {
     return (
