@@ -79,3 +79,64 @@ button {
   color: var(--muted);
   font-size: 14px;
 }
+.bg2-details {
+  margin-top: 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.bg2-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 13px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.bg2-row span {
+  color: #8b8b8b !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.09em !important;
+}
+
+.bg2-row strong {
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  text-align: right !important;
+}
+
+.bg2-card-actions {
+  margin-top: 22px !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: 10px !important;
+}
+
+.bg2-primary-action,
+.bg2-secondary-action {
+  height: 48px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  font-weight: 900 !important;
+}
+
+.bg2-primary-action {
+  background: linear-gradient(135deg, #ef4444, #991b1b) !important;
+  color: white !important;
+  box-shadow: 0 16px 36px rgba(239, 68, 68, 0.24) !important;
+}
+
+.bg2-secondary-action {
+  padding: 0 18px !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}

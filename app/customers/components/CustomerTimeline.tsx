@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
+type BadgeColor = "green" | "blue" | "red" | "yellow" | "purple" | "gray";
+
 type TimelineEventType =
   | "customer_access"
   | "technical_access"
@@ -25,7 +27,7 @@ type TimelineEvent = {
   createdAt: string;
   amount?: number | null;
   status?: string | null;
-  badgeColor: "green" | "blue" | "red" | "yellow" | "purple" | "gray";
+  badgeColor: BadgeColor;
 };
 
 type Props = {
@@ -34,6 +36,10 @@ type Props = {
 
 const MAX_ITEMS_PER_SOURCE = 80;
 const MAX_TOTAL_ITEMS = 200;
+
+function asBadgeColor(color: BadgeColor): BadgeColor {
+  return color;
+}
 
 export default function CustomerTimeline({ customerId }: Props) {
   const [items, setItems] = useState<TimelineEvent[]>([]);
@@ -49,10 +55,12 @@ export default function CustomerTimeline({ customerId }: Props) {
       const base = supabase.from(table);
       const q = queryBuilder(base);
       const { data, error } = await q;
+
       if (error) {
         console.warn(`[Timeline] source non disponibile: ${table}`, error.message);
         return [] as T[];
       }
+
       return (data || []) as T[];
     } catch (error) {
       console.warn(`[Timeline] errore fallback su tabella ${table}`, error);
@@ -65,6 +73,7 @@ export default function CustomerTimeline({ customerId }: Props) {
       const value = item?.[field];
       if (typeof value === "string" && value) return value;
     }
+
     return new Date(0).toISOString();
   }
 
@@ -78,10 +87,7 @@ export default function CustomerTimeline({ customerId }: Props) {
     setLoading(true);
 
     const customers = await safeSelect<any>("customers", (qb) =>
-      qb
-        .select("id, badge_code, first_name, last_name")
-        .eq("id", customerId)
-        .limit(1)
+      qb.select("id, badge_code, first_name, last_name").eq("id", customerId).limit(1)
     );
 
     const customer = customers[0] || null;
@@ -104,10 +110,13 @@ export default function CustomerTimeline({ customerId }: Props) {
     );
 
     const badgeCodes = new Set<string>();
+
     if (directBadgeCode) badgeCodes.add(String(directBadgeCode));
+
     customerBadges.forEach((b) => {
       if (b?.badge_code) badgeCodes.add(String(b.badge_code));
     });
+
     accessCredentials.forEach((c) => {
       if (c?.code) badgeCodes.add(String(c.code));
       if (c?.controller_code) badgeCodes.add(String(c.controller_code));
@@ -215,6 +224,7 @@ export default function CustomerTimeline({ customerId }: Props) {
 
     let technicalAccessByBadge: any[] = [];
     const badgeArray = Array.from(badgeCodes);
+
     if (badgeArray.length > 0) {
       technicalAccessByBadge = await safeSelect<any>("access_logs", (qb) =>
         qb
@@ -230,10 +240,10 @@ export default function CustomerTimeline({ customerId }: Props) {
     }
 
     const eventList: TimelineEvent[] = [
-      ...customerAccessLogs.map((log) => ({
+      ...customerAccessLogs.map((log): TimelineEvent => ({
         id: `customer_access_${log.id}`,
         source: "customer_access_logs",
-        type: "customer_access" as const,
+        type: "customer_access",
         title: log.was_allowed ? "Accesso consentito" : "Accesso negato",
         description: [
           log.badge_code || log.controller_code ? `Codice: ${log.badge_code || log.controller_code}` : null,
@@ -243,12 +253,13 @@ export default function CustomerTimeline({ customerId }: Props) {
           .join(" · "),
         createdAt: pickDate(log, ["access_time", "created_at"]),
         status: buildStatusLabel(log.was_allowed ? "consentito" : "negato"),
-        badgeColor: log.was_allowed ? "green" : "red",
+        badgeColor: asBadgeColor(log.was_allowed ? "green" : "red"),
       })),
-      ...[...technicalAccessByCustomerId, ...technicalAccessByBadge].map((log) => ({
+
+      ...[...technicalAccessByCustomerId, ...technicalAccessByBadge].map((log): TimelineEvent => ({
         id: `technical_access_${log.id}`,
         source: "access_logs",
-        type: "technical_access" as const,
+        type: "technical_access",
         title: log.allowed ? "Log tecnico accesso consentito" : "Log tecnico accesso negato",
         description: [
           log.badge_code || log.controller_code ? `Codice: ${log.badge_code || log.controller_code}` : null,
@@ -259,12 +270,13 @@ export default function CustomerTimeline({ customerId }: Props) {
           .join(" · "),
         createdAt: pickDate(log, ["created_at"]),
         status: buildStatusLabel(log.allowed ? "consentito" : "negato"),
-        badgeColor: log.allowed ? "blue" : "red",
+        badgeColor: asBadgeColor(log.allowed ? "blue" : "red"),
       })),
-      ...subscriptions.map((sub) => ({
+
+      ...subscriptions.map((sub): TimelineEvent => ({
         id: `subscription_${sub.id}`,
         source: "customer_subscriptions",
-        type: "subscription" as const,
+        type: "subscription",
         title: "Abbonamento cliente",
         description: [
           `Periodo: ${sub.starts_at || "-"} → ${sub.ends_at || "-"}`,
@@ -276,12 +288,13 @@ export default function CustomerTimeline({ customerId }: Props) {
         createdAt: pickDate(sub, ["created_at", "starts_at"]),
         amount: sub.amount ?? null,
         status: buildStatusLabel(sub.is_active),
-        badgeColor: "green" as const,
+        badgeColor: "green",
       })),
-      ...membershipFees.map((fee) => ({
+
+      ...membershipFees.map((fee): TimelineEvent => ({
         id: `membership_${fee.id}`,
         source: "customer_membership_fees",
-        type: "membership_fee" as const,
+        type: "membership_fee",
         title: "Quota associativa",
         description: [
           `Validità: ${fee.valid_from || "-"} → ${fee.valid_until || "-"}`,
@@ -293,15 +306,17 @@ export default function CustomerTimeline({ customerId }: Props) {
         createdAt: pickDate(fee, ["paid_at", "created_at", "valid_from"]),
         amount: fee.amount ?? null,
         status: buildStatusLabel(fee.payment_method),
-        badgeColor: "yellow" as const,
+        badgeColor: "yellow",
       })),
-      ...medicalCertificates.map((cert) => {
+
+      ...medicalCertificates.map((cert): TimelineEvent => {
         const startDate = cert.valid_from;
         const endDate = cert.valid_until || cert.expiry_date;
+
         return {
           id: `medical_${cert.id}`,
           source: "medical_certificates",
-          type: "medical_certificate" as const,
+          type: "medical_certificate",
           title: "Certificato medico",
           description: [
             `Validità: ${startDate || "-"} → ${endDate || "-"}`,
@@ -312,13 +327,14 @@ export default function CustomerTimeline({ customerId }: Props) {
             .join(" · "),
           createdAt: pickDate(cert, ["created_at", "valid_until", "expiry_date"]),
           status: buildStatusLabel(cert.status),
-          badgeColor: "purple" as const,
+          badgeColor: "purple",
         };
       }),
-      ...blocks.map((block) => ({
+
+      ...blocks.map((block): TimelineEvent => ({
         id: `block_${block.id}`,
         source: "customer_blocks",
-        type: "block" as const,
+        type: "block",
         title: block.is_active ? "Cliente bloccato" : "Storico blocco cliente",
         description: [
           block.reason ? `Motivo: ${block.reason}` : null,
@@ -328,64 +344,74 @@ export default function CustomerTimeline({ customerId }: Props) {
           .join(" · "),
         createdAt: pickDate(block, ["created_at", "starts_at"]),
         status: buildStatusLabel(block.is_active ? "attivo" : "chiuso"),
-        badgeColor: block.is_active ? "red" : "gray",
+        badgeColor: asBadgeColor(block.is_active ? "red" : "gray"),
       })),
-      ...notes.map((note) => ({
+
+      ...notes.map((note): TimelineEvent => ({
         id: `note_${note.id}`,
         source: "customer_internal_notes",
-        type: "note" as const,
+        type: "note",
         title: note.is_important ? "Nota importante" : "Nota interna",
         description: note.note || "Nota operativa cliente",
         createdAt: pickDate(note, ["created_at"]),
         status: buildStatusLabel(note.is_important ? "importante" : null),
-        badgeColor: note.is_important ? "yellow" : "blue",
+        badgeColor: asBadgeColor(note.is_important ? "yellow" : "blue"),
       })),
-      ...payments.map((payment) => ({
+
+      ...payments.map((payment): TimelineEvent => ({
         id: `payment_${payment.id}`,
         source: "payments",
-        type: "payment" as const,
+        type: "payment",
         title: "Pagamento registrato",
         description: payment.description || `Tipo: ${payment.payment_type || "N/D"}`,
         createdAt: pickDate(payment, ["paid_at", "created_at"]),
         amount: payment.amount ?? null,
         status: buildStatusLabel(payment.status),
-        badgeColor: "green" as const,
+        badgeColor: "green",
       })),
-      ...customerPayments.map((payment) => ({
+
+      ...customerPayments.map((payment): TimelineEvent => ({
         id: `customer_payment_${payment.id}`,
         source: "customer_payments",
-        type: "payment" as const,
+        type: "payment",
         title: "Pagamento cliente",
-        description: payment.description || `Tipo: ${payment.type || "N/D"}${payment.payment_method ? ` · ${payment.payment_method}` : ""}`,
+        description:
+          payment.description ||
+          `Tipo: ${payment.type || "N/D"}${payment.payment_method ? ` · ${payment.payment_method}` : ""}`,
         createdAt: pickDate(payment, ["paid_at", "created_at"]),
         amount: payment.amount ?? null,
         status: buildStatusLabel(payment.payment_method),
-        badgeColor: "green" as const,
+        badgeColor: "green",
       })),
-      ...customerDocuments.map((doc) => ({
+
+      ...customerDocuments.map((doc): TimelineEvent => ({
         id: `customer_document_${doc.id}`,
         source: "customer_documents",
-        type: "document" as const,
+        type: "document",
         title: "Documento cliente",
-        description: `${doc.title || "Documento"}${doc.document_type || doc.type ? ` · Tipo: ${doc.document_type || doc.type}` : ""}`,
+        description: `${doc.title || "Documento"}${
+          doc.document_type || doc.type ? ` · Tipo: ${doc.document_type || doc.type}` : ""
+        }`,
         createdAt: pickDate(doc, ["created_at"]),
         status: buildStatusLabel(doc.status),
-        badgeColor: "gray" as const,
+        badgeColor: "gray",
       })),
-      ...documents.map((doc) => ({
+
+      ...documents.map((doc): TimelineEvent => ({
         id: `document_${doc.id}`,
         source: "documents",
-        type: "document" as const,
+        type: "document",
         title: "Documento caricato",
         description: `${doc.title || doc.file_name || "Documento"}${doc.type ? ` · Tipo: ${doc.type}` : ""}`,
         createdAt: pickDate(doc, ["signed_at", "created_at", "expires_at"]),
         status: buildStatusLabel(doc.status),
-        badgeColor: "gray" as const,
+        badgeColor: "gray",
       })),
-      ...customerBadges.map((credential) => ({
+
+      ...customerBadges.map((credential): TimelineEvent => ({
         id: `badge_${credential.id}`,
         source: "customer_badges",
-        type: "access_credential" as const,
+        type: "access_credential",
         title: "Badge associato",
         description: [
           `Codice: ${credential.badge_code || "N/D"}`,
@@ -396,12 +422,13 @@ export default function CustomerTimeline({ customerId }: Props) {
           .join(" · "),
         createdAt: pickDate(credential, ["created_at"]),
         status: buildStatusLabel(credential.is_active),
-        badgeColor: credential.is_active ? "blue" : "gray",
+        badgeColor: asBadgeColor(credential.is_active ? "blue" : "gray"),
       })),
-      ...accessCredentials.map((credential) => ({
+
+      ...accessCredentials.map((credential): TimelineEvent => ({
         id: `access_credential_${credential.id}`,
         source: "access_credentials",
-        type: "access_credential" as const,
+        type: "access_credential",
         title: credential.type === "qr" ? "QR DNake associato" : "Credenziale accesso",
         description: [
           `Codice: ${credential.type === "qr" ? credential.controller_code || credential.code : credential.code || "N/D"}`,
@@ -411,21 +438,23 @@ export default function CustomerTimeline({ customerId }: Props) {
           .join(" · "),
         createdAt: pickDate(credential, ["created_at"]),
         status: buildStatusLabel(credential.status),
-        badgeColor: credential.status === "active" ? "blue" : "gray",
+        badgeColor: asBadgeColor(credential.status === "active" ? "blue" : "gray"),
       })),
-      ...timelineLegacy.map((item) => ({
+
+      ...timelineLegacy.map((item): TimelineEvent => ({
         id: `legacy_timeline_${item.id}`,
         source: "customer_timeline",
-        type: "generic" as const,
+        type: "generic",
         title: item.title || "Evento storico",
         description: item.description || `Tipo: ${item.type || "N/D"}`,
         createdAt: pickDate(item, ["created_at"]),
         status: buildStatusLabel(item.type),
-        badgeColor: "gray" as const,
+        badgeColor: "gray",
       })),
     ];
 
     const deduped = new Map<string, TimelineEvent>();
+
     for (const event of eventList) {
       const key = `${event.source}:${event.id}`;
       if (!deduped.has(key)) deduped.set(key, event);
@@ -450,46 +479,187 @@ export default function CustomerTimeline({ customerId }: Props) {
   return (
     <div className="timeline-card">
       <style jsx>{`
-        .timeline-card { background: linear-gradient(140deg, #121212, #090909); border: 1px solid #252525; border-radius: 24px; padding: 24px; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);} 
-        .header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
-        h3 { margin:0; color:#fff; font-size:22px; font-weight:900; }
-        .subtitle { margin-top:6px; color:#a3a3a3; font-size:13px; }
-        .refresh { border:1px solid #333; background:#171717; color:#fff; border-radius:12px; padding:10px 14px; font-weight:800; cursor:pointer; }
-        .refresh:hover { background:#222; }
-        .stats { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
-        .pill { padding:6px 10px; border-radius:999px; border:1px solid #313131; color:#cfcfcf; background:#101010; font-size:11px; font-weight:800; }
-        .timeline { display:flex; flex-direction:column; gap:12px; }
-        .item { display:grid; grid-template-columns:16px 1fr; gap:12px; background:#0b0b0b; border:1px solid #232323; border-radius:16px; padding:14px; }
-        .dot { width:10px; height:10px; border-radius:999px; margin-top:6px; box-shadow:0 0 16px currentColor; }
-        .green { background:#22c55e; color:#22c55e; } .blue { background:#38bdf8; color:#38bdf8; } .red { background:#ef4444; color:#ef4444; } .yellow { background:#facc15; color:#facc15; } .purple { background:#a855f7; color:#a855f7; } .gray { background:#737373; color:#737373; }
-        .meta { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px; }
-        .type { display:inline-flex; padding:4px 8px; border-radius:999px; background:#171717; border:1px solid #303030; color:#d4d4d4; font-size:10px; font-weight:900; text-transform:uppercase; }
-        .status { display:inline-flex; padding:4px 8px; border-radius:999px; background:#0f172a; border:1px solid #1e3a8a; color:#bfdbfe; font-size:10px; font-weight:900; text-transform:uppercase; }
-        .amount { color:#86efac; font-size:12px; font-weight:800; }
-        .title { color:#fff; font-size:15px; font-weight:900; }
-        .description { margin-top:4px; color:#a3a3a3; font-size:13px; line-height:1.45; }
-        .date { margin-top:8px; color:#737373; font-size:12px; font-weight:700; }
-        .empty,.loading { color:#737373; font-size:14px; padding:8px 0; }
+        .timeline-card {
+          background: linear-gradient(140deg, #121212, #090909);
+          border: 1px solid #252525;
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
+        h3 {
+          margin: 0;
+          color: #fff;
+          font-size: 22px;
+          font-weight: 900;
+        }
+        .subtitle {
+          margin-top: 6px;
+          color: #a3a3a3;
+          font-size: 13px;
+        }
+        .refresh {
+          border: 1px solid #333;
+          background: #171717;
+          color: #fff;
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .refresh:hover {
+          background: #222;
+        }
+        .stats {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 14px;
+        }
+        .pill {
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid #313131;
+          color: #cfcfcf;
+          background: #101010;
+          font-size: 11px;
+          font-weight: 800;
+        }
+        .timeline {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .item {
+          display: grid;
+          grid-template-columns: 16px 1fr;
+          gap: 12px;
+          background: #0b0b0b;
+          border: 1px solid #232323;
+          border-radius: 16px;
+          padding: 14px;
+        }
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          margin-top: 6px;
+          box-shadow: 0 0 16px currentColor;
+        }
+        .green {
+          background: #22c55e;
+          color: #22c55e;
+        }
+        .blue {
+          background: #38bdf8;
+          color: #38bdf8;
+        }
+        .red {
+          background: #ef4444;
+          color: #ef4444;
+        }
+        .yellow {
+          background: #facc15;
+          color: #facc15;
+        }
+        .purple {
+          background: #a855f7;
+          color: #a855f7;
+        }
+        .gray {
+          background: #737373;
+          color: #737373;
+        }
+        .meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+        .type {
+          display: inline-flex;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: #171717;
+          border: 1px solid #303030;
+          color: #d4d4d4;
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .status {
+          display: inline-flex;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: #0f172a;
+          border: 1px solid #1e3a8a;
+          color: #bfdbfe;
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .amount {
+          color: #86efac;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .title {
+          color: #fff;
+          font-size: 15px;
+          font-weight: 900;
+        }
+        .description {
+          margin-top: 4px;
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .date {
+          margin-top: 8px;
+          color: #737373;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .empty,
+        .loading {
+          color: #737373;
+          font-size: 14px;
+          padding: 8px 0;
+        }
       `}</style>
 
       <div className="header">
         <div>
           <h3>Timeline cliente V1</h3>
-          <div className="subtitle">Storico operativo unificato (eventi CRM, accessi, economico e documentale)</div>
+          <div className="subtitle">Storico operativo unificato eventi CRM, accessi, economico e documentale</div>
         </div>
-        <button className="refresh" onClick={loadTimeline}>Aggiorna</button>
+        <button className="refresh" onClick={loadTimeline}>
+          Aggiorna
+        </button>
       </div>
 
       {!loading && items.length > 0 && (
         <div className="stats">
           {Object.entries(groupedCount).map(([type, count]) => (
-            <span className="pill" key={type}>{type}: {count}</span>
+            <span className="pill" key={type}>
+              {type}: {count}
+            </span>
           ))}
         </div>
       )}
 
       {loading && <div className="loading">Caricamento timeline...</div>}
-      {!loading && items.length === 0 && <div className="empty">Nessuna attività registrata o fonti non disponibili.</div>}
+
+      {!loading && items.length === 0 && (
+        <div className="empty">Nessuna attività registrata o fonti non disponibili.</div>
+      )}
 
       {!loading && items.length > 0 && (
         <div className="timeline">
@@ -500,8 +670,11 @@ export default function CustomerTimeline({ customerId }: Props) {
                 <div className="meta">
                   <span className="type">{item.type.replaceAll("_", " ")}</span>
                   {item.status && <span className="status">{item.status}</span>}
-                  {typeof item.amount === "number" && <span className="amount">€ {Number(item.amount).toFixed(2)}</span>}
+                  {typeof item.amount === "number" && (
+                    <span className="amount">€ {Number(item.amount).toFixed(2)}</span>
+                  )}
                 </div>
+
                 <div className="title">{item.title}</div>
                 <div className="description">{item.description || "-"}</div>
                 <div className="date">{new Date(item.createdAt).toLocaleString("it-IT")}</div>

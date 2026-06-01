@@ -1,0 +1,863 @@
+ Il volume nell'unit… C non ha etichetta.
+ Numero di serie del volume: DC1D-A856
+
+ Directory di C:\bodygate-admin\app
+
+30/05/2026  11:42    <DIR>          .
+30/05/2026  15:41    <DIR>          ..
+12/05/2026  11:54    <DIR>          access
+18/05/2026  15:05    <DIR>          access-denied
+13/05/2026  15:25    <DIR>          access-logs
+15/05/2026  13:29    <DIR>          accounting
+13/05/2026  17:09    <DIR>          analytics
+30/05/2026  15:26    <DIR>          api
+13/05/2026  16:20    <DIR>          badges
+30/05/2026  12:40    <DIR>          components
+15/05/2026  12:44    <DIR>          customers
+05/05/2026  16:19            25.931 favicon.ico
+13/05/2026  19:49             1.084 globals.css
+27/05/2026  20:50    <DIR>          hooks
+30/05/2026  11:41             1.176 layout.tsx
+18/05/2026  16:22    <DIR>          lib
+13/05/2026  19:12    <DIR>          login
+29/05/2026  08:45    <DIR>          mobile
+18/05/2026  12:41    <DIR>          notifications
+30/05/2026  15:34            19.665 page.tsx
+13/05/2026  19:38    <DIR>          payments
+13/05/2026  16:08    <DIR>          reception
+18/05/2026  18:43    <DIR>          settings
+13/05/2026  16:44    <DIR>          subscriptions
+18/05/2026  16:30    <DIR>          system
+12/05/2026  02:09    <DIR>          test-gate
+29/05/2026  09:01    <DIR>          training
+               4 File         47.856 byte
+
+ Directory di C:\bodygate-admin\app\access
+
+12/05/2026  11:54    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+12/05/2026  11:54    <DIR>          check
+12/05/2026  02:19             6.156 page.tsx
+               1 File          6.156 byte
+
+ Directory di C:\bodygate-admin\app\access\check
+
+12/05/2026  11:54    <DIR>          .
+12/05/2026  11:54    <DIR>          ..
+12/05/2026  11:54             2.866 route.ts
+               1 File          2.866 byte
+
+ Directory di C:\bodygate-admin\app\access-denied
+
+18/05/2026  15:05    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  15:06             1.800 page.tsx
+               1 File          1.800 byte
+
+ Directory di C:\bodygate-admin\app\access-logs
+
+13/05/2026  15:25    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  15:25               476 page.tsx
+               1 File            476 byte
+
+ Directory di C:\bodygate-admin\app\accounting
+
+15/05/2026  13:29    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+15/05/2026  13:59            24.993 AccountingClient.tsx
+15/05/2026  13:30               131 page.tsx
+               2 File         25.124 byte
+
+ Directory di C:\bodygate-admin\app\analytics
+
+13/05/2026  17:09    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  17:09               936 page.tsx
+               1 File            936 byte
+
+ Directory di C:\bodygate-admin\app\api
+
+30/05/2026  15:26    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  13:12    <DIR>          access
+18/05/2026  16:24    <DIR>          admin
+13/05/2026  19:13    <DIR>          auth
+13/05/2026  13:52    <DIR>          bridge
+13/05/2026  17:18    <DIR>          contracts
+30/05/2026  13:58    <DIR>          customers
+30/05/2026  15:26    <DIR>          dashboard
+29/05/2026  06:28    <DIR>          dnake
+12/05/2026  01:55    <DIR>          gate
+30/05/2026  13:33    <DIR>          payments
+13/05/2026  16:47    <DIR>          subscriptions
+13/05/2026  15:53    <DIR>          turnstile
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\access
+
+13/05/2026  13:12    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+29/05/2026  09:25    <DIR>          check
+29/05/2026  04:40    <DIR>          log
+12/05/2026  17:51    <DIR>          logs
+13/05/2026  13:12    <DIR>          stats
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\access\check
+
+29/05/2026  09:25    <DIR>          .
+13/05/2026  13:12    <DIR>          ..
+29/05/2026  09:25            14.743 route.ts
+               1 File         14.743 byte
+
+ Directory di C:\bodygate-admin\app\api\access\log
+
+29/05/2026  04:40    <DIR>          .
+13/05/2026  13:12    <DIR>          ..
+29/05/2026  04:40             3.546 route.ts
+               1 File          3.546 byte
+
+ Directory di C:\bodygate-admin\app\api\access\logs
+
+12/05/2026  17:51    <DIR>          .
+13/05/2026  13:12    <DIR>          ..
+13/05/2026  13:06             2.032 route.ts
+               1 File          2.032 byte
+
+ Directory di C:\bodygate-admin\app\api\access\stats
+
+13/05/2026  13:12    <DIR>          .
+13/05/2026  13:12    <DIR>          ..
+13/05/2026  13:13             2.281 route.ts
+               1 File          2.281 byte
+
+ Directory di C:\bodygate-admin\app\api\admin
+
+18/05/2026  16:24    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+18/05/2026  16:24    <DIR>          test
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\admin\test
+
+18/05/2026  16:24    <DIR>          .
+18/05/2026  16:24    <DIR>          ..
+29/05/2026  09:12               230 route.ts
+               1 File            230 byte
+
+ Directory di C:\bodygate-admin\app\api\auth
+
+13/05/2026  19:13    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+13/05/2026  19:13    <DIR>          login
+13/05/2026  19:13    <DIR>          logout
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\auth\login
+
+13/05/2026  19:13    <DIR>          .
+13/05/2026  19:13    <DIR>          ..
+13/05/2026  19:30             2.139 route.ts
+               1 File          2.139 byte
+
+ Directory di C:\bodygate-admin\app\api\auth\logout
+
+13/05/2026  19:13    <DIR>          .
+13/05/2026  19:13    <DIR>          ..
+13/05/2026  19:17               505 route.ts
+               1 File            505 byte
+
+ Directory di C:\bodygate-admin\app\api\bridge
+
+13/05/2026  13:52    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+27/05/2026  19:48    <DIR>          status
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\bridge\status
+
+27/05/2026  19:48    <DIR>          .
+13/05/2026  13:52    <DIR>          ..
+27/05/2026  19:48             4.169 route.ts
+               1 File          4.169 byte
+
+ Directory di C:\bodygate-admin\app\api\contracts
+
+13/05/2026  17:18    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+13/05/2026  17:18    <DIR>          send-otp
+13/05/2026  17:18    <DIR>          verify-otp
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\contracts\send-otp
+
+13/05/2026  17:18    <DIR>          .
+13/05/2026  17:18    <DIR>          ..
+13/05/2026  17:24             1.532 route.ts
+               1 File          1.532 byte
+
+ Directory di C:\bodygate-admin\app\api\contracts\verify-otp
+
+13/05/2026  17:18    <DIR>          .
+13/05/2026  17:18    <DIR>          ..
+13/05/2026  17:24             2.368 route.ts
+               1 File          2.368 byte
+
+ Directory di C:\bodygate-admin\app\api\customers
+
+30/05/2026  13:58    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+30/05/2026  13:57    <DIR>          add-block
+30/05/2026  13:48    <DIR>          add-note
+30/05/2026  12:21    <DIR>          cancel-payment
+30/05/2026  13:43    <DIR>          create
+30/05/2026  14:20    <DIR>          create-mobile-pass
+30/05/2026  13:58    <DIR>          disable-block
+27/05/2026  21:06    <DIR>          list
+30/05/2026  12:42    <DIR>          list-payments
+30/05/2026  14:21    <DIR>          renew-subscription
+30/05/2026  12:20    <DIR>          update-profile
+14/05/2026  11:54    <DIR>          [id]
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\add-block
+
+30/05/2026  13:57    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  13:57             1.579 route.ts
+               1 File          1.579 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\add-note
+
+30/05/2026  13:48    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  13:48             1.507 route.ts
+               1 File          1.507 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\cancel-payment
+
+30/05/2026  12:21    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\create
+
+30/05/2026  13:43    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  13:44             7.370 route.ts
+               1 File          7.370 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\create-mobile-pass
+
+30/05/2026  14:20    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  14:20             3.094 route.ts
+               1 File          3.094 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\disable-block
+
+30/05/2026  13:58    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  13:59             1.568 route.ts
+               1 File          1.568 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\list
+
+27/05/2026  21:06    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+27/05/2026  21:06             1.638 route.ts
+               1 File          1.638 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\list-payments
+
+30/05/2026  12:42    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  12:42             2.568 route.ts
+               1 File          2.568 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\renew-subscription
+
+30/05/2026  14:21    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  14:21             9.201 route.ts
+               1 File          9.201 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\update-profile
+
+30/05/2026  12:20    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+30/05/2026  12:20             3.150 route.ts
+               1 File          3.150 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]
+
+14/05/2026  11:54    <DIR>          .
+30/05/2026  13:58    <DIR>          ..
+13/05/2026  16:38    <DIR>          documents
+14/05/2026  11:54    <DIR>          payments
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\documents
+
+13/05/2026  16:38    <DIR>          .
+14/05/2026  11:54    <DIR>          ..
+13/05/2026  16:38    <DIR>          create
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\documents\create
+
+13/05/2026  16:38    <DIR>          .
+13/05/2026  16:38    <DIR>          ..
+14/05/2026  11:49             3.696 route.ts
+               1 File          3.696 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\payments
+
+14/05/2026  11:54    <DIR>          .
+14/05/2026  11:54    <DIR>          ..
+14/05/2026  11:54    <DIR>          [paymentId]
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\payments\[paymentId]
+
+14/05/2026  11:54    <DIR>          .
+14/05/2026  11:54    <DIR>          ..
+14/05/2026  11:54    <DIR>          receipt
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\payments\[paymentId]\receipt
+
+14/05/2026  11:54    <DIR>          .
+14/05/2026  11:54    <DIR>          ..
+14/05/2026  11:55    <DIR>          create
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\customers\[id]\payments\[paymentId]\receipt\create
+
+14/05/2026  11:55    <DIR>          .
+14/05/2026  11:54    <DIR>          ..
+29/05/2026  09:28             7.798 route.ts
+               1 File          7.798 byte
+
+ Directory di C:\bodygate-admin\app\api\dashboard
+
+30/05/2026  15:26    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+30/05/2026  15:26    <DIR>          overview
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\dashboard\overview
+
+30/05/2026  15:26    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+30/05/2026  15:27             4.893 route.ts
+               1 File          4.893 byte
+
+ Directory di C:\bodygate-admin\app\api\dnake
+
+29/05/2026  06:28    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+30/05/2026  14:20    <DIR>          create-user-qr
+29/05/2026  04:40    <DIR>          event
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\dnake\create-user-qr
+
+30/05/2026  14:20    <DIR>          .
+29/05/2026  06:28    <DIR>          ..
+30/05/2026  14:20             6.845 route.ts
+               1 File          6.845 byte
+
+ Directory di C:\bodygate-admin\app\api\dnake\event
+
+29/05/2026  04:40    <DIR>          .
+29/05/2026  06:28    <DIR>          ..
+29/05/2026  04:40             9.497 route.ts
+               1 File          9.497 byte
+
+ Directory di C:\bodygate-admin\app\api\gate
+
+12/05/2026  01:55    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+12/05/2026  01:59    <DIR>          open
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\gate\open
+
+12/05/2026  01:59    <DIR>          .
+12/05/2026  01:55    <DIR>          ..
+12/05/2026  02:13             1.270 route.ts
+               1 File          1.270 byte
+
+ Directory di C:\bodygate-admin\app\api\payments
+
+30/05/2026  13:33    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+30/05/2026  13:34    <DIR>          create
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\payments\create
+
+30/05/2026  13:34    <DIR>          .
+30/05/2026  13:33    <DIR>          ..
+30/05/2026  13:34             5.236 route.ts
+               1 File          5.236 byte
+
+ Directory di C:\bodygate-admin\app\api\subscriptions
+
+13/05/2026  16:47    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+13/05/2026  16:47    <DIR>          check-expired
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\subscriptions\check-expired
+
+13/05/2026  16:47    <DIR>          .
+13/05/2026  16:47    <DIR>          ..
+13/05/2026  16:57             1.507 route.ts
+               1 File          1.507 byte
+
+ Directory di C:\bodygate-admin\app\api\turnstile
+
+13/05/2026  15:53    <DIR>          .
+30/05/2026  15:26    <DIR>          ..
+13/05/2026  15:53    <DIR>          open
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\api\turnstile\open
+
+13/05/2026  15:53    <DIR>          .
+13/05/2026  15:53    <DIR>          ..
+13/05/2026  15:53               693 route.ts
+               1 File            693 byte
+
+ Directory di C:\bodygate-admin\app\badges
+
+13/05/2026  16:20    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  16:21               898 page.tsx
+               1 File            898 byte
+
+ Directory di C:\bodygate-admin\app\components
+
+30/05/2026  12:40    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+29/05/2026  09:31             5.387 AccessLogsTable.tsx
+13/05/2026  17:15             8.926 AnalyticsDashboard.tsx
+30/05/2026  11:12             2.599 AppShell.tsx
+13/05/2026  16:21            10.269 BadgesTable.tsx
+13/05/2026  17:24             4.392 ContractOtpPanel.tsx
+13/05/2026  20:53             8.031 CustomerContract.tsx
+14/05/2026  11:45             2.898 CustomerContractActions.tsx
+14/05/2026  12:16            12.660 CustomerDetailPanel.tsx
+13/05/2026  20:29             5.170 CustomerDocuments.tsx
+13/05/2026  17:49             4.850 CustomerDocumentsPanel.tsx
+13/05/2026  18:09             7.635 CustomerForm.tsx
+14/05/2026  12:27            12.616 CustomerMedicalCertificates.tsx
+30/05/2026  12:39            26.637 CustomerPaymentsHistory.tsx
+14/05/2026  12:09            11.606 CustomerPaymentsPanel.tsx
+27/05/2026  21:00             7.320 CustomersTable.tsx
+13/05/2026  15:28               644 CustomerStatus.tsx
+18/05/2026  12:05    <DIR>          dashboard
+13/05/2026  19:17             3.539 LoginForm.tsx
+18/05/2026  12:41    <DIR>          notifications
+18/05/2026  19:04    <DIR>          payments
+13/05/2026  16:09             1.560 ReceptionAccessCard.tsx
+30/05/2026  13:46            44.244 ReceptionDashboard.tsx
+13/05/2026  16:17            12.521 ReceptionPanel.tsx
+18/05/2026  16:19    <DIR>          security
+18/05/2026  19:08    <DIR>          settings
+29/05/2026  07:58             5.128 Sidebar.tsx
+13/05/2026  15:24               665 StatusBadge.tsx
+13/05/2026  16:45            13.333 SubscriptionsTable.tsx
+18/05/2026  16:31    <DIR>          system
+13/05/2026  16:51             6.036 SystemLivePanel.tsx
+13/05/2026  15:48             1.695 SystemStatusCard.tsx
+13/05/2026  14:55             1.975 ThemeProvider.tsx
+20/05/2026  11:44    <DIR>          training
+13/05/2026  20:27             6.446 UploadDocumentModal.tsx
+              27 File        228.782 byte
+
+ Directory di C:\bodygate-admin\app\components\dashboard
+
+18/05/2026  12:05    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  12:00             1.792 AccessChartPanel.tsx
+18/05/2026  11:40             2.485 DashboardHero.tsx
+18/05/2026  12:08             4.861 LiveActivityFeed.tsx
+18/05/2026  11:55             3.974 PresenceMonitor.tsx
+18/05/2026  10:54             1.653 QuickLinksPanel.tsx
+18/05/2026  11:47             2.267 RealtimeStatusBar.tsx
+15/05/2026  18:49             2.145 StatsCards.tsx
+15/05/2026  18:45             2.116 SystemStatusPanel.tsx
+15/05/2026  18:39             3.984 TodayAccessList.tsx
+15/05/2026  18:27             4.522 TurnstilePanel.tsx
+              10 File         29.799 byte
+
+ Directory di C:\bodygate-admin\app\components\notifications
+
+18/05/2026  12:41    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  12:29             2.839 NotificationCard.tsx
+18/05/2026  12:28             8.709 NotificationCenterClient.tsx
+18/05/2026  12:29             1.436 NotificationFilters.tsx
+18/05/2026  12:29             1.530 NotificationStats.tsx
+               4 File         14.514 byte
+
+ Directory di C:\bodygate-admin\app\components\payments
+
+18/05/2026  19:04    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  19:20            18.193 PaymentsClient.tsx
+               1 File         18.193 byte
+
+ Directory di C:\bodygate-admin\app\components\security
+
+18/05/2026  16:19    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  16:19               817 PermissionGuard.tsx
+               1 File            817 byte
+
+ Directory di C:\bodygate-admin\app\components\settings
+
+18/05/2026  19:08    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  19:08               626 ModulesSettingsClient.tsx
+18/05/2026  14:21             7.773 PermissionsSettingsClient.tsx
+18/05/2026  18:48             4.939 PricingSettingsClient.tsx
+               3 File         13.338 byte
+
+ Directory di C:\bodygate-admin\app\components\system
+
+18/05/2026  16:31    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+18/05/2026  16:31             4.510 AuditLogsClient.tsx
+               1 File          4.510 byte
+
+ Directory di C:\bodygate-admin\app\components\training
+
+20/05/2026  11:44    <DIR>          .
+30/05/2026  12:40    <DIR>          ..
+19/05/2026  12:34    <DIR>          athlete
+20/05/2026  11:37            16.518 AthleteDashboardClient.tsx
+19/05/2026  11:15    <DIR>          dashboard
+20/05/2026  11:46             8.295 ExerciseDetailModal.tsx
+20/05/2026  11:43            19.528 ExercisesLibraryClient.tsx
+19/05/2026  11:17    <DIR>          programs
+19/05/2026  12:26            16.478 TrainingProgramBuilderClient.tsx
+19/05/2026  11:21            14.148 TrainingProgramsClient.tsx
+19/05/2026  12:42             4.388 TrainingRestTimer.tsx
+19/05/2026  11:12             2.942 TrainingSidebar.tsx
+20/05/2026  11:47            22.293 WorkoutSessionClient.tsx
+               8 File        104.590 byte
+
+ Directory di C:\bodygate-admin\app\components\training\athlete
+
+19/05/2026  12:34    <DIR>          .
+20/05/2026  11:44    <DIR>          ..
+19/05/2026  12:39               179 page.tsx
+               1 File            179 byte
+
+ Directory di C:\bodygate-admin\app\components\training\dashboard
+
+19/05/2026  11:15    <DIR>          .
+20/05/2026  11:44    <DIR>          ..
+19/05/2026  11:16            10.737 page.tsx
+               1 File         10.737 byte
+
+ Directory di C:\bodygate-admin\app\components\training\programs
+
+19/05/2026  11:17    <DIR>          .
+20/05/2026  11:44    <DIR>          ..
+19/05/2026  11:42               343 page.tsx
+               1 File            343 byte
+
+ Directory di C:\bodygate-admin\app\customers
+
+15/05/2026  12:44    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+30/05/2026  12:47    <DIR>          components
+13/05/2026  18:03    <DIR>          new
+13/05/2026  15:29               472 page.tsx
+30/05/2026  12:05    <DIR>          [id]
+               1 File            472 byte
+
+ Directory di C:\bodygate-admin\app\customers\components
+
+30/05/2026  12:47    <DIR>          .
+15/05/2026  12:44    <DIR>          ..
+30/05/2026  12:46            26.637 CustomerPaymentsHistory.tsx
+15/05/2026  12:57             5.177 CustomerPhotoUpload.tsx
+30/05/2026  13:20            22.999 CustomerTimeline.tsx
+15/05/2026  12:54             8.521 MedicalCertificateCard.tsx
+29/05/2026  07:52             7.778 Sidebar.tsx
+18/05/2026  19:36    <DIR>          training
+               5 File         71.112 byte
+
+ Directory di C:\bodygate-admin\app\customers\components\training
+
+18/05/2026  19:36    <DIR>          .
+30/05/2026  12:47    <DIR>          ..
+30/05/2026  13:11            12.759 ExercisesLibraryClient.tsx
+               1 File         12.759 byte
+
+ Directory di C:\bodygate-admin\app\customers\new
+
+13/05/2026  18:03    <DIR>          .
+15/05/2026  12:44    <DIR>          ..
+13/05/2026  18:06             1.249 page.tsx
+               1 File          1.249 byte
+
+ Directory di C:\bodygate-admin\app\customers\[id]
+
+30/05/2026  12:05    <DIR>          .
+15/05/2026  12:44    <DIR>          ..
+13/05/2026  16:32    <DIR>          contract
+30/05/2026  14:05            55.434 CustomerDetailsClient.tsx
+13/05/2026  18:07    <DIR>          edit
+14/05/2026  14:20               249 page.tsx
+29/05/2026  08:27    <DIR>          receipt
+               2 File         55.683 byte
+
+ Directory di C:\bodygate-admin\app\customers\[id]\contract
+
+13/05/2026  16:32    <DIR>          .
+30/05/2026  12:05    <DIR>          ..
+13/05/2026  17:42             2.545 page.tsx
+               1 File          2.545 byte
+
+ Directory di C:\bodygate-admin\app\customers\[id]\edit
+
+13/05/2026  18:07    <DIR>          .
+30/05/2026  12:05    <DIR>          ..
+13/05/2026  18:10             1.866 page.tsx
+               1 File          1.866 byte
+
+ Directory di C:\bodygate-admin\app\customers\[id]\receipt
+
+29/05/2026  08:27    <DIR>          .
+30/05/2026  12:05    <DIR>          ..
+29/05/2026  08:33    <DIR>          [receiptId]
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\customers\[id]\receipt\[receiptId]
+
+29/05/2026  08:33    <DIR>          .
+29/05/2026  08:27    <DIR>          ..
+29/05/2026  08:33            13.562 page.tsx
+               1 File         13.562 byte
+
+ Directory di C:\bodygate-admin\app\hooks
+
+27/05/2026  20:50    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+27/05/2026  20:50             3.547 useCurrentPermissions.ts
+18/05/2026  12:52             1.002 useEnabledModules.ts
+               2 File          4.549 byte
+
+ Directory di C:\bodygate-admin\app\lib
+
+18/05/2026  16:22    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  16:28    <DIR>          server
+13/05/2026  15:23               255 supabaseClient.ts
+               1 File            255 byte
+
+ Directory di C:\bodygate-admin\app\lib\server
+
+18/05/2026  16:28    <DIR>          .
+18/05/2026  16:22    <DIR>          ..
+18/05/2026  16:29               829 audit.ts
+18/05/2026  16:23             1.451 permissions.ts
+               2 File          2.280 byte
+
+ Directory di C:\bodygate-admin\app\login
+
+13/05/2026  19:12    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  19:18               451 page.tsx
+               1 File            451 byte
+
+ Directory di C:\bodygate-admin\app\mobile
+
+29/05/2026  08:45    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+29/05/2026  10:00    <DIR>          [token]
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\mobile\[token]
+
+29/05/2026  10:00    <DIR>          .
+29/05/2026  08:45    <DIR>          ..
+29/05/2026  10:00            12.215 page.tsx
+               1 File         12.215 byte
+
+ Directory di C:\bodygate-admin\app\notifications
+
+18/05/2026  12:41    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  12:37               184 page.tsx
+               1 File            184 byte
+
+ Directory di C:\bodygate-admin\app\payments
+
+13/05/2026  19:38    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  19:02               309 page.tsx
+               1 File            309 byte
+
+ Directory di C:\bodygate-admin\app\reception
+
+13/05/2026  16:08    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+14/05/2026  12:37               148 page.tsx
+               1 File            148 byte
+
+ Directory di C:\bodygate-admin\app\settings
+
+18/05/2026  18:43    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  12:49    <DIR>          components
+18/05/2026  12:48    <DIR>          modules
+14/05/2026  13:01               146 page.tsx
+18/05/2026  12:59    <DIR>          permissions
+30/05/2026  13:06             7.770 PermissionsSettingsClient.tsx
+18/05/2026  18:43    <DIR>          pricing
+               2 File          7.916 byte
+
+ Directory di C:\bodygate-admin\app\settings\components
+
+18/05/2026  12:49    <DIR>          .
+18/05/2026  18:43    <DIR>          ..
+14/05/2026  13:03             4.528 MembershipFeeSettings.tsx
+18/05/2026  18:44    <DIR>          settings
+15/05/2026  13:10            16.394 SettingsPageClient.tsx
+14/05/2026  13:00                 0 SettingTabs.tsx
+14/05/2026  13:03             7.250 SubscriptionPlansSettings.tsx
+               4 File         28.172 byte
+
+ Directory di C:\bodygate-admin\app\settings\components\settings
+
+18/05/2026  18:44    <DIR>          .
+18/05/2026  12:49    <DIR>          ..
+30/05/2026  13:09             3.925 ModulesSettingsClient.tsx
+30/05/2026  13:11             4.942 PricingSettingsClient.tsx
+               2 File          8.867 byte
+
+ Directory di C:\bodygate-admin\app\settings\modules
+
+18/05/2026  12:48    <DIR>          .
+18/05/2026  18:43    <DIR>          ..
+18/05/2026  12:49               167 page.tsx
+               1 File            167 byte
+
+ Directory di C:\bodygate-admin\app\settings\permissions
+
+18/05/2026  12:59    <DIR>          .
+18/05/2026  18:43    <DIR>          ..
+18/05/2026  16:21               344 page.tsx
+               1 File            344 byte
+
+ Directory di C:\bodygate-admin\app\settings\pricing
+
+18/05/2026  18:43    <DIR>          .
+18/05/2026  18:43    <DIR>          ..
+18/05/2026  18:44               331 page.tsx
+               1 File            331 byte
+
+ Directory di C:\bodygate-admin\app\subscriptions
+
+13/05/2026  16:44    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+13/05/2026  16:45               937 page.tsx
+               1 File            937 byte
+
+ Directory di C:\bodygate-admin\app\system
+
+18/05/2026  16:30    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+18/05/2026  16:30    <DIR>          audit
+13/05/2026  15:51             1.711 page.tsx
+               1 File          1.711 byte
+
+ Directory di C:\bodygate-admin\app\system\audit
+
+18/05/2026  16:30    <DIR>          .
+18/05/2026  16:30    <DIR>          ..
+18/05/2026  16:30               306 page.tsx
+               1 File            306 byte
+
+ Directory di C:\bodygate-admin\app\test-gate
+
+12/05/2026  02:09    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+12/05/2026  02:11               674 page.tsx
+               1 File            674 byte
+
+ Directory di C:\bodygate-admin\app\training
+
+29/05/2026  09:01    <DIR>          .
+30/05/2026  11:42    <DIR>          ..
+19/05/2026  12:40    <DIR>          athlete
+19/05/2026  11:52    <DIR>          dashboard
+19/05/2026  11:44               649 layout.tsx
+18/05/2026  20:12    <DIR>          library
+29/05/2026  09:01             5.859 page.tsx
+19/05/2026  11:56    <DIR>          programs
+30/05/2026  13:09            15.013 TrainingProgramBuilderClient.tsx
+19/05/2026  12:02    <DIR>          workouts
+               3 File         21.521 byte
+
+ Directory di C:\bodygate-admin\app\training\athlete
+
+19/05/2026  12:40    <DIR>          .
+29/05/2026  09:01    <DIR>          ..
+19/05/2026  12:40               179 page.tsx
+               1 File            179 byte
+
+ Directory di C:\bodygate-admin\app\training\dashboard
+
+19/05/2026  11:52    <DIR>          .
+29/05/2026  09:01    <DIR>          ..
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\training\library
+
+18/05/2026  20:12    <DIR>          .
+29/05/2026  09:01    <DIR>          ..
+18/05/2026  20:12               343 page.tsx
+               1 File            343 byte
+
+ Directory di C:\bodygate-admin\app\training\programs
+
+19/05/2026  11:56    <DIR>          .
+29/05/2026  09:01    <DIR>          ..
+19/05/2026  11:53               179 page.tsx
+19/05/2026  11:56    <DIR>          [id]
+               1 File            179 byte
+
+ Directory di C:\bodygate-admin\app\training\programs\[id]
+
+19/05/2026  11:56    <DIR>          .
+19/05/2026  11:56    <DIR>          ..
+19/05/2026  11:56               308 page.tsx
+               1 File            308 byte
+
+ Directory di C:\bodygate-admin\app\training\workouts
+
+19/05/2026  12:02    <DIR>          .
+29/05/2026  09:01    <DIR>          ..
+19/05/2026  12:04    <DIR>          [sessionId]
+               0 File              0 byte
+
+ Directory di C:\bodygate-admin\app\training\workouts\[sessionId]
+
+19/05/2026  12:04    <DIR>          .
+19/05/2026  12:02    <DIR>          ..
+19/05/2026  12:05               304 page.tsx
+               1 File            304 byte
+
+     Totale file elencati:
+             144 File        870.467 byte
+             305 Directory  900.522.741.760 byte disponibili

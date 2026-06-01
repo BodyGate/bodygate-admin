@@ -3,6 +3,23 @@
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 
+function titleFromPath(pathname: string) {
+  if (pathname === "/") return "Command Center";
+  if (pathname.startsWith("/customers")) return "CRM Clienti";
+  if (pathname.startsWith("/reception")) return "Reception";
+  if (pathname.startsWith("/payments")) return "Pagamenti";
+  if (pathname.startsWith("/access")) return "Access Control";
+  if (pathname.startsWith("/badges")) return "Credenziali";
+  if (pathname.startsWith("/subscriptions")) return "Abbonamenti";
+  if (pathname.startsWith("/notifications")) return "Notifiche";
+  if (pathname.startsWith("/training")) return "Training";
+  if (pathname.startsWith("/analytics")) return "Analytics";
+  if (pathname.startsWith("/accounting")) return "Contabilità";
+  if (pathname.startsWith("/settings")) return "Impostazioni";
+  if (pathname.startsWith("/system")) return "Sistema";
+  return "BodyGate";
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -27,7 +44,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       style={{
         minHeight: "100vh",
         display: "flex",
-        background: "#050505",
+        background:
+          "radial-gradient(circle at top left, rgba(239,68,68,.12), transparent 34%), #050505",
         color: "#fff",
       }}
     >
@@ -43,38 +61,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <header
           style={{
-            height: 88,
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            height: 76,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 26px",
-            background: "rgba(5,5,6,0.94)",
+            background: "rgba(5,5,6,0.74)",
             position: "sticky",
             top: 0,
             zIndex: 20,
-            backdropFilter: "blur(16px)",
+            backdropFilter: "blur(18px)",
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: 950,
-                letterSpacing: "-0.8px",
+                letterSpacing: "-0.7px",
               }}
             >
-              BodyGate Reception
+              {titleFromPath(pathname)}
             </div>
 
             <div
               style={{
-                color: "#9ca3af",
-                fontSize: 13,
+                color: "#8b8b8b",
+                fontSize: 12,
                 marginTop: 4,
+                fontWeight: 700,
               }}
             >
-              Clienti · Accessi · Abbonamenti · Pagamenti
+              BodyGate · CRM Operativo Fitness
             </div>
           </div>
 
@@ -85,14 +103,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               gap: 10,
               color: "#86efac",
               fontWeight: 950,
-              letterSpacing: "1.6px",
-              fontSize: 13,
+              letterSpacing: "1.2px",
+              fontSize: 12,
+              padding: "10px 12px",
+              borderRadius: 999,
+              background: "rgba(34,197,94,.08)",
+              border: "1px solid rgba(34,197,94,.18)",
             }}
           >
             <span
               style={{
-                width: 10,
-                height: 10,
+                width: 8,
+                height: 8,
                 borderRadius: 999,
                 background: "#22c55e",
                 boxShadow: "0 0 18px rgba(34,197,94,0.85)",

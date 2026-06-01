@@ -1,0 +1,319 @@
+Elenco del percorso delle cartelle
+Numero di serie del volume: DC1D-A856
+C:\BODYGATE-ADMIN\APP
+¦   favicon.ico
+¦   globals.css
+¦   layout.tsx
+¦   page.tsx
+¦   
++---access
+¦   ¦   page.tsx
+¦   ¦   
+¦   +---check
+¦           route.ts
+¦           
++---access-denied
+¦       page.tsx
+¦       
++---access-logs
+¦       page.tsx
+¦       
++---accounting
+¦       AccountingClient.tsx
+¦       page.tsx
+¦       
++---analytics
+¦       page.tsx
+¦       
++---api
+¦   +---access
+¦   ¦   +---check
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---log
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---logs
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---stats
+¦   ¦           route.ts
+¦   ¦           
+¦   +---admin
+¦   ¦   +---test
+¦   ¦           route.ts
+¦   ¦           
+¦   +---auth
+¦   ¦   +---login
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---logout
+¦   ¦           route.ts
+¦   ¦           
+¦   +---bridge
+¦   ¦   +---status
+¦   ¦           route.ts
+¦   ¦           
+¦   +---contracts
+¦   ¦   +---send-otp
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---verify-otp
+¦   ¦           route.ts
+¦   ¦           
+¦   +---customers
+¦   ¦   +---cancel-payment
+¦   ¦   +---create-mobile-pass
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---list
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---list-payments
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---renew-subscription
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---update-profile
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---[id]
+¦   ¦       +---documents
+¦   ¦       ¦   +---create
+¦   ¦       ¦           route.ts
+¦   ¦       ¦           
+¦   ¦       +---payments
+¦   ¦           +---[paymentId]
+¦   ¦               +---receipt
+¦   ¦                   +---create
+¦   ¦                           route.ts
+¦   ¦                           
+¦   +---dnake
+¦   ¦   +---create-user-qr
+¦   ¦   ¦       route.ts
+¦   ¦   ¦       
+¦   ¦   +---event
+¦   ¦           route.ts
+¦   ¦           
+¦   +---gate
+¦   ¦   +---open
+¦   ¦           route.ts
+¦   ¦           
+¦   +---subscriptions
+¦   ¦   +---check-expired
+¦   ¦           route.ts
+¦   ¦           
+¦   +---turnstile
+¦       +---open
+¦               route.ts
+¦               
++---badges
+¦       page.tsx
+¦       
++---components
+¦   ¦   AccessLogsTable.tsx
+¦   ¦   AnalyticsDashboard.tsx
+¦   ¦   AppShell.tsx
+¦   ¦   BadgesTable.tsx
+¦   ¦   ContractOtpPanel.tsx
+¦   ¦   CustomerContract.tsx
+¦   ¦   CustomerContractActions.tsx
+¦   ¦   CustomerDetailPanel.tsx
+¦   ¦   CustomerDocuments.tsx
+¦   ¦   CustomerDocumentsPanel.tsx
+¦   ¦   CustomerForm.tsx
+¦   ¦   CustomerMedicalCertificates.tsx
+¦   ¦   CustomerPaymentsHistory.tsx
+¦   ¦   CustomerPaymentsPanel.tsx
+¦   ¦   CustomersTable.tsx
+¦   ¦   CustomerStatus.tsx
+¦   ¦   LoginForm.tsx
+¦   ¦   ReceptionAccessCard.tsx
+¦   ¦   ReceptionDashboard.tsx
+¦   ¦   ReceptionPanel.tsx
+¦   ¦   Sidebar.tsx
+¦   ¦   StatusBadge.tsx
+¦   ¦   SubscriptionsTable.tsx
+¦   ¦   SystemLivePanel.tsx
+¦   ¦   SystemStatusCard.tsx
+¦   ¦   ThemeProvider.tsx
+¦   ¦   UploadDocumentModal.tsx
+¦   ¦   
+¦   +---dashboard
+¦   ¦       AccessChartPanel.tsx
+¦   ¦       DashboardHero.tsx
+¦   ¦       LiveActivityFeed.tsx
+¦   ¦       PresenceMonitor.tsx
+¦   ¦       QuickLinksPanel.tsx
+¦   ¦       RealtimeStatusBar.tsx
+¦   ¦       StatsCards.tsx
+¦   ¦       SystemStatusPanel.tsx
+¦   ¦       TodayAccessList.tsx
+¦   ¦       TurnstilePanel.tsx
+¦   ¦       
+¦   +---notifications
+¦   ¦       NotificationCard.tsx
+¦   ¦       NotificationCenterClient.tsx
+¦   ¦       NotificationFilters.tsx
+¦   ¦       NotificationStats.tsx
+¦   ¦       
+¦   +---payments
+¦   ¦       PaymentsClient.tsx
+¦   ¦       
+¦   +---security
+¦   ¦       PermissionGuard.tsx
+¦   ¦       
+¦   +---settings
+¦   ¦       ModulesSettingsClient.tsx
+¦   ¦       PermissionsSettingsClient.tsx
+¦   ¦       PricingSettingsClient.tsx
+¦   ¦       
+¦   +---system
+¦   ¦       AuditLogsClient.tsx
+¦   ¦       
+¦   +---training
+¦       ¦   AthleteDashboardClient.tsx
+¦       ¦   ExerciseDetailModal.tsx
+¦       ¦   ExercisesLibraryClient.tsx
+¦       ¦   TrainingProgramBuilderClient.tsx
+¦       ¦   TrainingProgramsClient.tsx
+¦       ¦   TrainingRestTimer.tsx
+¦       ¦   TrainingSidebar.tsx
+¦       ¦   WorkoutSessionClient.tsx
+¦       ¦   
+¦       +---athlete
+¦       ¦       page.tsx
+¦       ¦       
+¦       +---dashboard
+¦       ¦       page.tsx
+¦       ¦       
+¦       +---programs
+¦               page.tsx
+¦               
++---customers
+¦   ¦   page.tsx
+¦   ¦   
+¦   +---components
+¦   ¦   ¦   CustomerPaymentsHistory.tsx
+¦   ¦   ¦   CustomerPhotoUpload.tsx
+¦   ¦   ¦   CustomerTimeline.tsx
+¦   ¦   ¦   MedicalCertificateCard.tsx
+¦   ¦   ¦   Sidebar.tsx
+¦   ¦   ¦   
+¦   ¦   +---training
+¦   ¦           ExercisesLibraryClient.tsx
+¦   ¦           
+¦   +---new
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---[id]
+¦       ¦   CustomerDetailsClient.tsx
+¦       ¦   page.tsx
+¦       ¦   
+¦       +---contract
+¦       ¦       page.tsx
+¦       ¦       
+¦       +---edit
+¦       ¦       page.tsx
+¦       ¦       
+¦       +---receipt
+¦           +---[receiptId]
+¦                   page.tsx
+¦                   
++---hooks
+¦       useCurrentPermissions.ts
+¦       useEnabledModules.ts
+¦       
++---lib
+¦   ¦   supabaseClient.ts
+¦   ¦   
+¦   +---server
+¦           audit.ts
+¦           permissions.ts
+¦           
++---login
+¦       page.tsx
+¦       
++---mobile
+¦   +---[token]
+¦           page.tsx
+¦           
++---notifications
+¦       page.tsx
+¦       
++---payments
+¦       page.tsx
+¦       
++---reception
+¦       page.tsx
+¦       
++---settings
+¦   ¦   page.tsx
+¦   ¦   PermissionsSettingsClient.tsx
+¦   ¦   
+¦   +---components
+¦   ¦   ¦   MembershipFeeSettings.tsx
+¦   ¦   ¦   SettingsPageClient.tsx
+¦   ¦   ¦   SettingTabs.tsx
+¦   ¦   ¦   SubscriptionPlansSettings.tsx
+¦   ¦   ¦   
+¦   ¦   +---settings
+¦   ¦           ModulesSettingsClient.tsx
+¦   ¦           PricingSettingsClient.tsx
+¦   ¦           
+¦   +---modules
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---permissions
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---pricing
+¦           page.tsx
+¦           
++---subscriptions
+¦       page.tsx
+¦       
++---system
+¦   ¦   page.tsx
+¦   ¦   
+¦   +---audit
+¦           page.tsx
+¦           
++---test-gate
+¦       page.tsx
+¦       
++---training
+    ¦   layout.tsx
+    ¦   page.tsx
+    ¦   TrainingProgramBuilderClient.tsx
+    ¦   
+    +---athlete
+    ¦       page.tsx
+    ¦       
+    +---dashboard
+    +---library
+    ¦       page.tsx
+    ¦       
+    +---programs
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---workouts
+        +---[sessionId]
+                page.tsx
+                
+Elenco del percorso delle cartelle
+Numero di serie del volume: DC1D-A856
+C:\BODYGATE-ADMIN\COMPONENTS
+Percorso non valido - \BODYGATE-ADMIN\COMPONENTS
+Non esistono sottocartelle 
+
+Elenco del percorso delle cartelle
+Numero di serie del volume: DC1D-A856
+C:\BODYGATE-ADMIN\LIB
+Percorso non valido - \BODYGATE-ADMIN\LIB
+Non esistono sottocartelle 
+

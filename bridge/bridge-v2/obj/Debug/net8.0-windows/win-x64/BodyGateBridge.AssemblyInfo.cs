@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BodyGateBridge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+35725ee297670161d5a816814231a8d2c7427655")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aef0a1ec8c53de0b8c3020124a01a20818dde847")]
 [assembly: System.Reflection.AssemblyProductAttribute("BodyGateBridge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BodyGateBridge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

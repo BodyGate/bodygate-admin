@@ -406,170 +406,96 @@ export default function ReceptionDashboard() {
   }
 
   async function submitQuickCustomer(e: React.FormEvent) {
-    e.preventDefault();
-    setQuickError("");
-    setQuickSuccess("");
-    setQuickWarnings([]);
+  e.preventDefault();
+  setQuickError("");
+  setQuickSuccess("");
+  setQuickWarnings([]);
 
-    const firstName = quickForm.first_name.trim();
-    const lastName = quickForm.last_name.trim();
+  const firstName = quickForm.first_name.trim();
+  const lastName = quickForm.last_name.trim();
 
-    if (!firstName || !lastName) {
-      setQuickError("Nome e cognome sono obbligatori.");
-      return;
-    }
+  if (!firstName || !lastName) {
+    setQuickError("Nome e cognome sono obbligatori.");
+    return;
+  }
 
-    const badgeCode = quickForm.badge_code.trim();
-    const controllerCode = quickForm.controller_code.trim();
+  const badgeCode = quickForm.badge_code.trim();
+  const controllerCode = quickForm.controller_code.trim();
 
-    if (!badgeCode && !controllerCode) {
-      setQuickError(
-        "Inserisci almeno badge code o controller code per creare la credenziale di accesso."
-      );
-      return;
-    }
+  if (!badgeCode && !controllerCode) {
+    setQuickError(
+      "Inserisci almeno badge code o controller code per creare la credenziale di accesso."
+    );
+    return;
+  }
 
-    if (
-      quickForm.medical_valid_from &&
-      quickForm.medical_valid_until &&
-      quickForm.medical_valid_until < quickForm.medical_valid_from
-    ) {
-      setQuickError(
-        "La data fine certificato non può essere precedente alla data inizio."
-      );
-      return;
-    }
+  if (
+    quickForm.medical_valid_from &&
+    quickForm.medical_valid_until &&
+    quickForm.medical_valid_until < quickForm.medical_valid_from
+  ) {
+    setQuickError(
+      "La data fine certificato non può essere precedente alla data inizio."
+    );
+    return;
+  }
 
-    if (
-      quickForm.subscription_starts_at &&
-      quickForm.subscription_ends_at &&
-      quickForm.subscription_ends_at < quickForm.subscription_starts_at
-    ) {
-      setQuickError(
-        "La data fine abbonamento non può essere precedente alla data inizio."
-      );
-      return;
-    }
+  if (
+    quickForm.subscription_starts_at &&
+    quickForm.subscription_ends_at &&
+    quickForm.subscription_ends_at < quickForm.subscription_starts_at
+  ) {
+    setQuickError(
+      "La data fine abbonamento non può essere precedente alla data inizio."
+    );
+    return;
+  }
 
-    setSavingQuick(true);
+  setSavingQuick(true);
 
-    const warnings: string[] = [];
+  try {
+    const response = await fetch("/api/customers/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        first_name: quickForm.first_name,
+        last_name: quickForm.last_name,
+        phone: quickForm.phone,
+        email: quickForm.email,
+        tax_code: quickForm.tax_code,
+        badge_code: quickForm.badge_code,
+        controller_code: quickForm.controller_code,
+        medical_valid_from: quickForm.medical_valid_from,
+        medical_valid_until: quickForm.medical_valid_until,
+        membership_valid_until: quickForm.membership_valid_until,
+        subscription_starts_at: quickForm.subscription_starts_at,
+        subscription_ends_at: quickForm.subscription_ends_at,
+      }),
+    });
 
-    const customerPayload: Record<string, unknown> = {
-      first_name: firstName,
-      last_name: lastName,
-      full_name: `${firstName} ${lastName}`.trim(),
-      phone: quickForm.phone.trim() || null,
-      email: quickForm.email.trim() || null,
-      tax_code: quickForm.tax_code.trim() || null,
-      active: true,
-    };
+    const result = await response.json();
 
-    if (quickForm.medical_valid_until) {
-      customerPayload.medical_certificate_end_date = quickForm.medical_valid_until;
-      customerPayload.medical_certificate_end = quickForm.medical_valid_until;
-    }
-
-    const { data: customer, error: customerError } = await supabase
-      .from("customers")
-      .insert(customerPayload)
-      .select("id")
-      .single();
-
-    if (customerError || !customer) {
-      setQuickError(
-        `Errore creazione cliente: ${customerError?.message || "cliente non creato"}`
-      );
+    if (!response.ok || !result.ok) {
+      setQuickError(result.error || "Errore creazione cliente rapido.");
       setSavingQuick(false);
       return;
     }
 
-    const customerId = customer.id;
-
-    const accessCredentialPayload = {
-      customer_id: customerId,
-      code: badgeCode || controllerCode,
-      controller_code: controllerCode || null,
-      status: "active",
-    };
-
-    const { error: credentialError } = await supabase
-      .from("access_credentials")
-      .insert(accessCredentialPayload);
-
-    if (credentialError) {
-      if (isMissingTableError(credentialError.message)) {
-        warnings.push(
-          "Tabella access_credentials non trovata: credenziale accesso non salvata."
-        );
-      } else {
-        setQuickError(
-          `Cliente creato ma credenziale accesso non salvata: ${credentialError.message}`
-        );
-        setSavingQuick(false);
-        return;
-      }
-    }
-
-    if (quickForm.medical_valid_from && quickForm.medical_valid_until) {
-      const { error: certError } = await supabase
-        .from("medical_certificates")
-        .insert({
-          customer_id: customerId,
-          valid_from: quickForm.medical_valid_from,
-          valid_until: quickForm.medical_valid_until,
-          expiry_date: quickForm.medical_valid_until,
-          status: "valid",
-          certificate_type: "non_agonistico",
-        });
-
-      if (certError) {
-        if (isMissingTableError(certError.message)) {
-          warnings.push(
-            "Tabella medical_certificates non trovata: certificato salvato solo su customers."
-          );
-        } else {
-          warnings.push(`Certificato non inserito: ${certError.message}`);
-        }
-      }
-    }
-
-    if (quickForm.membership_valid_until) {
-      const today = new Date().toISOString().slice(0, 10);
-      const { error: membershipError } = await supabase
-        .from("customer_membership_fees")
-        .insert({
-          customer_id: customerId,
-          valid_from: today,
-          valid_until: quickForm.membership_valid_until,
-        });
-      if (membershipError) {
-        warnings.push(`Quota associativa non inserita: ${membershipError.message}`);
-      }
-    }
-
-    if (quickForm.subscription_starts_at && quickForm.subscription_ends_at) {
-      const { error: subscriptionError } = await supabase
-        .from("customer_subscriptions")
-        .insert({
-          customer_id: customerId,
-          is_active: true,
-          starts_at: quickForm.subscription_starts_at,
-          ends_at: quickForm.subscription_ends_at,
-        });
-
-      if (subscriptionError) {
-        warnings.push(`Abbonamento non inserito: ${subscriptionError.message}`);
-      }
-    }
-
-    setQuickWarnings(warnings);
+    setQuickWarnings(Array.isArray(result.warnings) ? result.warnings : []);
     setQuickSuccess("Nuovo cliente rapido creato correttamente.");
+
     await loadData();
     resetQuickForm();
     setShowQuickModal(false);
+  } catch (error) {
+    console.error(error);
+    setQuickError("Errore imprevisto durante la creazione cliente.");
+  } finally {
     setSavingQuick(false);
   }
+}
 
   const stats = useMemo(() => {
     const today = todayString();

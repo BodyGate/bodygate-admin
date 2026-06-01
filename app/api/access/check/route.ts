@@ -9,8 +9,7 @@ function getSupabaseClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL mancante");
-  if (!supabaseServiceKey)
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
+  if (!supabaseServiceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
 
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -55,7 +54,7 @@ function normalizeBadge(value: unknown) {
 
 async function findBadgeMatch(
   supabase: ReturnType<typeof getSupabaseClient>,
-  badge: string,
+  badge: string
 ): Promise<{
   match: BadgeMatch | null;
   debug: BadgeLookupDebug;
@@ -63,8 +62,6 @@ async function findBadgeMatch(
   const exactQueryPathUsed = [
     "access_credentials.status=active AND (code=badge OR controller_code=badge)",
   ];
-
-  console.log("access check received badge", { badge });
 
   const { data: accessCredential, error: accessCredentialError } =
     await supabase
@@ -74,14 +71,6 @@ async function findBadgeMatch(
       .or(`code.eq.${badge},controller_code.eq.${badge}`)
       .limit(1)
       .maybeSingle();
-
-  console.log("access check credential found", {
-    found: Boolean(accessCredential),
-  });
-  console.log("access check credential row", {
-    id: accessCredential?.id ?? null,
-    customer_id: accessCredential?.customer_id ?? null,
-  });
 
   if (accessCredentialError) {
     console.error("access_credentials badge lookup failed", {
@@ -112,9 +101,7 @@ async function findBadgeMatch(
     };
   }
 
-  exactQueryPathUsed.push(
-    "customer_badges.badge_code=badge AND is_active=true",
-  );
+  exactQueryPathUsed.push("customer_badges.badge_code=badge AND is_active=true");
 
   const { data: customerBadge, error: customerBadgeError } = await supabase
     .from("customer_badges")
@@ -148,14 +135,17 @@ async function findBadgeMatch(
         customer_found: null,
         access_credentials_same_code_count: null,
         exact_query_path_used: exactQueryPathUsed,
-        lookup_error:
-  String((accessCredentialError as any)?.message || (customerBadgeError as any)?.message || ""),
+        lookup_error: String(
+          (accessCredentialError as any)?.message ||
+            (customerBadgeError as any)?.message ||
+            ""
+        ),
       },
     };
   }
 
   exactQueryPathUsed.push(
-    "customers.badge_code=badge OR customers.controller_code=badge",
+    "customers.badge_code=badge OR customers.controller_code=badge"
   );
 
   const { data: customerByLegacyBadge, error: customerByLegacyBadgeError } =
@@ -232,6 +222,101 @@ async function findBadgeMatch(
   };
 }
 
+async function findStaffAccess(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  badge: string,
+  source: string
+) {
+  const { data: staffCredential, error: staffCredentialError } = await supabase
+    .from("staff_access_credentials")
+    .select("id, staff_user_id, code, type, status")
+    .eq("status", "active")
+    .eq("code", badge)
+    .limit(1)
+    .maybeSingle();
+
+  if (staffCredentialError) {
+    console.error("staff_access_credentials lookup failed", {
+      badge,
+      error: staffCredentialError.message,
+    });
+
+    return null;
+  }
+
+  if (!staffCredential?.staff_user_id) {
+    return null;
+  }
+
+  const { data: staffUser, error: staffUserError } = await supabase
+    .from("staff_users")
+    .select(
+      `
+      id,
+      full_name,
+      email,
+      phone,
+      is_active,
+      role_id,
+      staff_roles (
+        role_key,
+        role_name
+      )
+    `
+    )
+    .eq("id", staffCredential.staff_user_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (staffUserError) {
+    console.error("staff_users lookup failed", {
+      staff_user_id: staffCredential.staff_user_id,
+      error: staffUserError.message,
+    });
+
+    return {
+      ok: true,
+      allowed: false,
+      reason: "Staff non valido",
+      badge_code: badge,
+      entity_type: "staff",
+    };
+  }
+
+  if (!staffUser || staffUser.is_active === false) {
+    return {
+      ok: true,
+      allowed: false,
+      reason: "Staff non attivo",
+      badge_code: badge,
+      entity_type: "staff",
+      staff_user_id: staffCredential.staff_user_id,
+    };
+  }
+
+  await supabase.from("customer_access_logs").insert({
+    customer_id: null,
+    branch_id: null,
+    was_allowed: true,
+    reason: `Accesso staff autorizzato: ${staffUser.full_name || ""}`.trim(),
+    badge_code: staffCredential.code || badge,
+    controller_code: staffCredential.code || badge,
+  });
+
+  return {
+    ok: true,
+    allowed: true,
+    reason: "Accesso staff autorizzato",
+    entity_type: "staff",
+    staff_user_id: staffUser.id,
+    staff_name: staffUser.full_name,
+    staff_role: (staffUser.staff_roles as any)?.role_name || null,
+    badge_code: staffCredential.code || badge,
+    controller_code: staffCredential.code || badge,
+    source,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -251,23 +336,16 @@ export async function POST(req: Request) {
     const badgeLookup = await findBadgeMatch(supabase, badge);
 
     if (!badgeLookup.match) {
+      const staffResult = await findStaffAccess(supabase, badge, source);
+
+      if (staffResult) {
+        return NextResponse.json(staffResult);
+      }
+
       await supabase.from("unknown_badge_logs").insert({
         badge_code: badge,
         reason: "Badge non riconosciuto",
         source,
-      });
-
-      console.warn("Badge non riconosciuto", {
-        badge,
-        source,
-        searched: [
-          "access_credentials.code",
-          "access_credentials.controller_code",
-          "customer_badges.badge_code",
-          "customers.badge_code",
-          "customers.controller_code",
-        ],
-        lookup_error: badgeLookup.debug.lookup_error,
       });
 
       return NextResponse.json({
@@ -282,6 +360,7 @@ export async function POST(req: Request) {
             "customer_badges.badge_code",
             "customers.badge_code",
             "customers.controller_code",
+            "staff_access_credentials.code",
           ],
           access_credentials_status_filter: "active",
           received_badge: badgeLookup.debug.received_badge,
@@ -291,7 +370,10 @@ export async function POST(req: Request) {
           customer_found: badgeLookup.debug.customer_found,
           access_credentials_same_code_count:
             badgeLookup.debug.access_credentials_same_code_count,
-          exact_query_path_used: badgeLookup.debug.exact_query_path_used,
+          exact_query_path_used: [
+            ...badgeLookup.debug.exact_query_path_used,
+            "staff_access_credentials.status=active AND code=badge",
+          ],
           lookup_error: badgeLookup.debug.lookup_error,
         },
       });
@@ -305,14 +387,6 @@ export async function POST(req: Request) {
       .eq("id", badgeMatch.customer_id)
       .limit(1)
       .maybeSingle();
-
-    console.log("access check customer found", {
-      found: Boolean(customer),
-      customer_id: badgeMatch.customer_id,
-      credential_id: badgeMatch.credential_id,
-      credential_source: badgeMatch.source,
-      error: (customerError as any)?.message ?? null,
-    });
 
     if (customerError || !customer || customer.is_active === false) {
       await supabase.from("unknown_badge_logs").insert({
@@ -482,6 +556,7 @@ export async function POST(req: Request) {
       ok: true,
       allowed: true,
       reason: "Accesso consentito",
+      entity_type: "customer",
       customer_id: customerId,
       badge_code: badgeMatch.badge_code,
       controller_code: badgeMatch.controller_code,
@@ -498,7 +573,7 @@ export async function POST(req: Request) {
         allowed: false,
         reason: message,
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

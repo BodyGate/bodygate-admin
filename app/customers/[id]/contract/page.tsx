@@ -63,6 +63,10 @@ export default async function ContractPage({ params }: Props) {
     documentId = newDocument?.id;
   }
 
+  const customerName =
+    customer.full_name ||
+    `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+
   return (
     <main
       style={{
@@ -81,7 +85,11 @@ export default async function ContractPage({ params }: Props) {
         }}
       >
         {documentId ? (
-          <ContractOtpPanel documentId={documentId} />
+          <ContractOtpPanel
+            documentId={documentId}
+            customerPhone={customer.phone || ""}
+            customerName={customerName || "Cliente"}
+          />
         ) : (
           <div
             style={{

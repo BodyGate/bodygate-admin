@@ -4,12 +4,15 @@ import { useState } from "react";
 
 export default function ContractOtpPanel({
   documentId,
+  customerPhone,
+  customerName,
 }: {
   documentId: string;
+  customerPhone: string;
+  customerName: string;
 }) {
   const [otp, setOtp] = useState("");
-  const [generatedOtp, setGeneratedOtp] =
-    useState("");
+  const [generatedOtp, setGeneratedOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -18,32 +21,23 @@ export default function ContractOtpPanel({
     setMessage("");
 
     try {
-      const response = await fetch(
-        "/api/contracts/send-otp",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            documentId,
-          }),
-        }
-      );
+      const response = await fetch("/api/contracts/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          documentId,
+        }),
+      });
 
       const result = await response.json();
 
       if (result.ok) {
         setGeneratedOtp(result.otp);
-        setMessage(
-          "OTP generato correttamente."
-        );
+        setMessage("OTP generato correttamente.");
       } else {
-        setMessage(
-          result.message ||
-            "Errore generazione OTP."
-        );
+        setMessage(result.message || "Errore generazione OTP.");
       }
     } catch {
       setMessage("Errore server.");
@@ -52,37 +46,67 @@ export default function ContractOtpPanel({
     setLoading(false);
   }
 
+  function normalizePhone(phone: string) {
+    const clean = phone.replace(/[^\d]/g, "");
+
+    if (!clean) return "";
+
+    if (clean.startsWith("39")) {
+      return clean;
+    }
+
+    if (clean.startsWith("0")) {
+      return `39${clean}`;
+    }
+
+    return `39${clean}`;
+  }
+
+  function sendWhatsappOtp() {
+    if (!generatedOtp) {
+      setMessage("Genera prima l'OTP.");
+      return;
+    }
+
+    const phone = normalizePhone(customerPhone);
+
+    if (!phone) {
+      setMessage("Numero telefono cliente mancante. Inserisci il numero nella scheda cliente.");
+      return;
+    }
+
+    const text = encodeURIComponent(
+      `Ciao ${customerName || "cliente"},\n\n` +
+        `il tuo codice OTP BodyGate per firmare il contratto è:\n\n` +
+        `${generatedOtp}\n\n` +
+        `Non condividere questo codice con altre persone.`
+    );
+
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  }
+
   async function verifyOtp() {
     setLoading(true);
     setMessage("");
 
     try {
-      const response = await fetch(
-        "/api/contracts/verify-otp",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            documentId,
-            otp,
-          }),
-        }
-      );
+      const response = await fetch("/api/contracts/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          documentId,
+          otp,
+        }),
+      });
 
       const result = await response.json();
 
       if (result.ok) {
-        setMessage(
-          "Documento firmato correttamente."
-        );
+        setMessage("Documento firmato correttamente.");
       } else {
-        setMessage(
-          result.message ||
-            "OTP non valido."
-        );
+        setMessage(result.message || "OTP non valido.");
       }
     } catch {
       setMessage("Errore server.");
@@ -119,8 +143,7 @@ export default function ContractOtpPanel({
           color: "#555",
         }}
       >
-        Genera un codice OTP per confermare
-        la firma del contratto.
+        Genera il codice OTP e invialo al cliente tramite WhatsApp.
       </div>
 
       <div
@@ -131,28 +154,29 @@ export default function ContractOtpPanel({
           flexWrap: "wrap",
         }}
       >
-        <button
-          onClick={generateOtp}
-          disabled={loading}
-          style={buttonStyle}
-        >
+        <button onClick={generateOtp} disabled={loading} style={buttonStyle}>
           Genera OTP
+        </button>
+
+        <button
+          onClick={sendWhatsappOtp}
+          disabled={!generatedOtp}
+          style={{
+            ...buttonStyle,
+            background: "#25D366",
+          }}
+        >
+          Invia OTP WhatsApp
         </button>
 
         <input
           value={otp}
-          onChange={(e) =>
-            setOtp(e.target.value)
-          }
+          onChange={(e) => setOtp(e.target.value)}
           placeholder="Inserisci OTP"
           style={inputStyle}
         />
 
-        <button
-          onClick={verifyOtp}
-          disabled={loading}
-          style={buttonStyle}
-        >
+        <button onClick={verifyOtp} disabled={loading} style={buttonStyle}>
           Conferma firma
         </button>
       </div>

@@ -8,94 +8,85 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-const allowedFields = [
-  "first_name",
-  "last_name",
-  "phone",
-  "email",
-  "fiscal_code",
-  "birth_date",
-  "gender",
-  "address",
-  "city",
-  "postal_code",
-  "emergency_contact_name",
-  "emergency_contact_phone",
-  "reception_notes",
-  "badge_code",
-  "controller_code",
-  "is_active",
-];
-
-function cleanValue(value: any) {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? null : trimmed;
-  }
-
-  return value;
-}
-
 export async function POST(req: Request) {
   try {
-    if (!supabaseUrl || !serviceRoleKey) {
+    const body = await req.json();
+
+    const paymentId = String(body.payment_id || "").trim();
+    const customerId = String(body.customer_id || "").trim();
+    const correctionReason = String(body.correction_reason || "").trim();
+
+    if (!paymentId || !customerId) {
+      return NextResponse.json(
+        { ok: false, error: "payment_id e customer_id sono obbligatori" },
+        { status: 400 }
+      );
+    }
+
+    if (!correctionReason) {
+      return NextResponse.json(
+        { ok: false, error: "Motivo rettifica obbligatorio" },
+        { status: 400 }
+      );
+    }
+
+    const amount = Number(body.amount || 0);
+    if (!amount || amount <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "Importo non valido" },
+        { status: 400 }
+      );
+    }
+
+    const { data: currentPayment, error: currentError } = await supabaseAdmin
+      .from("customer_payments")
+      .select("*")
+      .eq("id", paymentId)
+      .eq("customer_id", customerId)
+      .maybeSingle();
+
+    if (currentError || !currentPayment) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Variabili Supabase mancanti. Controlla NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.",
+          error: "Pagamento non trovato",
+          detail: currentError,
         },
-        { status: 500 }
+        { status: 404 }
       );
     }
 
-    const body = await req.json();
-
-    const customerId = String(body.customer_id || "").trim();
-    const profile = body.profile || {};
-
-    if (!customerId) {
+    if (currentPayment.status === "cancelled") {
       return NextResponse.json(
-        { ok: false, error: "customer_id mancante" },
+        { ok: false, error: "Pagamento già annullato, non modificabile" },
         { status: 400 }
       );
     }
 
-    const firstName = String(profile.first_name || "").trim();
-    const lastName = String(profile.last_name || "").trim();
+    const payload = {
+      amount,
+      payment_method: String(body.payment_method || "cash").trim(),
+      description: String(body.description || "").trim() || null,
+      paid_at: body.paid_at || currentPayment.paid_at || new Date().toISOString(),
+      status: String(body.status || "paid").trim(),
+      correction_reason: correctionReason,
+      updated_at: new Date().toISOString(),
+    };
 
-    if (!firstName || !lastName) {
-      return NextResponse.json(
-        { ok: false, error: "Nome e cognome sono obbligatori" },
-        { status: 400 }
-      );
-    }
-
-    const payload: Record<string, any> = {};
-
-    for (const field of allowedFields) {
-      if (Object.prototype.hasOwnProperty.call(profile, field)) {
-        payload[field] = cleanValue(profile[field]);
-      }
-    }
-
-    payload.first_name = firstName;
-    payload.last_name = lastName;
-    payload.is_active = profile.is_active !== false;
-
-    const { data: customer, error: customerError } = await supabaseAdmin
-      .from("customers")
+    const { data: payment, error: updateError } = await supabaseAdmin
+      .from("customer_payments")
       .update(payload)
-      .eq("id", customerId)
+      .eq("id", paymentId)
+      .eq("customer_id", customerId)
       .select("*")
       .single();
 
-    if (customerError || !customer) {
+    if (updateError || !payment) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Errore aggiornamento anagrafica cliente",
-          detail: customerError,
+          error: "Errore aggiornamento pagamento",
+          detail: updateError,
         },
         { status: 500 }
       );
@@ -103,14 +94,14 @@ export async function POST(req: Request) {
 
     await supabaseAdmin.from("customer_timeline").insert({
       customer_id: customerId,
-      type: "customer",
-      title: "Anagrafica cliente aggiornata",
-      description: "Dati anagrafici modificati dalla scheda cliente",
+      type: "payment",
+      title: "Pagamento rettificato",
+      description: `Pagamento modificato. Motivo: ${correctionReason}`,
     });
 
     return NextResponse.json({
       ok: true,
-      customer,
+      payment,
     });
   } catch (error: any) {
     return NextResponse.json(

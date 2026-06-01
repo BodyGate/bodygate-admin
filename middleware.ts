@@ -6,13 +6,16 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/logout",
 
-  // App cliente mobile / PWA: deve essere pubblica tramite token
+  // Mobile Pass pubblico
   "/mobile",
+  "/staff-mobile",
+"/api/staff-mobile/send",
 
-  // API pubbliche controllate
+  // API Mobile Pass
   "/api/customers/create-mobile-pass",
+  "/api/mobile-pass/send",
 
-  // API tornello / bridge / DNake: devono restare pubbliche anche senza sessione utente
+  // API accesso tornello / bridge
   "/api/access/check",
   "/api/access/log",
   "/api/dnake",
@@ -26,7 +29,9 @@ function isPathMatch(pathname: string, path: string) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicPath = publicPaths.some((path) => isPathMatch(pathname, path));
+  const isPublicPath = publicPaths.some((path) =>
+    isPathMatch(pathname, path)
+  );
 
   const isStaticFile =
     pathname.startsWith("/_next") ||

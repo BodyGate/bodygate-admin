@@ -58,9 +58,9 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    const customerId = String(body.customer_id || "").trim();
-    const planId = String(body.plan_id || "").trim();
-    const paymentMethod = String(body.payment_method || "cash").trim();
+    const customerId = String(body.customer_id || body.customerId || "").trim();
+    const planId = String(body.plan_id || body.planId || "").trim();
+    const paymentMethod = String(body.payment_method || body.paymentMethod || "cash").trim();
     const notes = String(body.notes || "").trim();
 
     if (!customerId) {
@@ -144,11 +144,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const now = new Date().toISOString();
     const today = new Date();
     const startsAt = dateOnly(today);
     const endsAt = dateOnly(addDays(today, durationDays));
-
     const branchId = customer.branch_id || plan.branch_id || null;
+    const customerName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+    const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})`;
 
     await supabaseAdmin
       .from("customer_subscriptions")
@@ -183,8 +185,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})`;
-
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from("customer_payments")
       .insert({
@@ -193,7 +193,8 @@ export async function POST(req: Request) {
         description: paymentDescription,
         amount,
         payment_method: paymentMethod,
-        paid_at: new Date().toISOString(),
+        status: "paid",
+        paid_at: now,
       })
       .select("*")
       .single();
@@ -210,10 +211,69 @@ export async function POST(req: Request) {
       );
     }
 
+    const { data: accountingPayment, error: accountingPaymentError } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        customer_id: customerId,
+        payment_method_id: null,
+        amount,
+        payment_type: "subscription",
+        description: paymentDescription,
+        status: "paid",
+        paid_at: now,
+        created_by: "admin@bodygate.it",
+      })
+      .select("*")
+      .single();
+
+    if (accountingPaymentError || !accountingPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Abbonamento creato, ma errore registrazione incasso contabile",
+          detail: accountingPaymentError,
+          subscription_id: subscription.id,
+          customer_payment_id: payment.id,
+        },
+        { status: 500 }
+      );
+    }
+
+    const { error: cashMovementError } = await supabaseAdmin
+      .from("cash_movements")
+      .insert({
+        movement_type: "income",
+        amount,
+        category: "subscription",
+        description: paymentDescription,
+        payment_id: accountingPayment.id,
+        created_by: "admin@bodygate.it",
+        movement_at: now,
+      });
+
+    if (cashMovementError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Abbonamento e pagamento creati, ma errore movimento cassa",
+          detail: cashMovementError,
+          subscription_id: subscription.id,
+          customer_payment_id: payment.id,
+          payment_id: accountingPayment.id,
+        },
+        { status: 500 }
+      );
+    }
+
+    await supabaseAdmin.from("customer_timeline").insert({
+      customer_id: customerId,
+      type: "subscription",
+      title: "Abbonamento rinnovato",
+      description: `${plan.name} €${amount.toFixed(2)} valido fino al ${endsAt}`,
+      created_at: now,
+    });
+
     const receiptNumber = await getNextReceiptNumber();
-    const customerName = `${customer.first_name || ""} ${
-      customer.last_name || ""
-    }`.trim();
 
     const { data: receipt, error: receiptError } = await supabaseAdmin
       .from("customer_receipts")
@@ -227,7 +287,7 @@ export async function POST(req: Request) {
         description: `${paymentDescription}${customerName ? ` - ${customerName}` : ""}`,
         customer_copy_label: "COPIA CLIENTE",
         gym_copy_label: "COPIA PALESTRA",
-        issued_at: new Date().toISOString(),
+        issued_at: now,
       })
       .select("*")
       .single();
@@ -240,6 +300,7 @@ export async function POST(req: Request) {
           detail: receiptError,
           subscription_id: subscription.id,
           payment_id: payment.id,
+          accounting_payment_id: accountingPayment.id,
         },
         { status: 500 }
       );
@@ -256,6 +317,7 @@ export async function POST(req: Request) {
       },
       subscription,
       payment,
+      accounting_payment: accountingPayment,
       receipt,
       receipt_url: `/customers/${customerId}/receipt/${receipt.id}`,
       print_url: `/customers/${customerId}/receipt/${receipt.id}?print=1`,

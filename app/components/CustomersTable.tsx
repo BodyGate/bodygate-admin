@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import CustomerStatus from "./CustomerStatus";
 
 type Customer = {
   id: string;
@@ -18,54 +17,113 @@ type Customer = {
   created_at: string;
 };
 
+type Tone = "green" | "red" | "yellow" | "blue" | "neutral";
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("it-IT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function daysUntil(value?: string | null) {
+  if (!value) return null;
+  const expiry = new Date(value);
+  if (Number.isNaN(expiry.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expiry.setHours(0, 0, 0, 0);
+
+  return Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+}
+
+function normalize(value?: string | null) {
+  return String(value || "").toLowerCase().trim();
+}
+
+function getName(customer: Customer) {
+  const full = customer.full_name?.trim();
+  const composed = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+  return full || composed || "Cliente senza nome";
+}
+
+function initials(name: string) {
+  const parts = name.split(" ").filter(Boolean).slice(0, 2);
+  return parts.length ? parts.map((p) => p[0]?.toUpperCase()).join("") : "BG";
+}
+
+function getAccessState(customer: Customer): { label: string; tone: Tone; hint: string } {
+  const status = normalize(customer.subscription_status);
+  const days = daysUntil(customer.subscription_expiry);
+
+  if (!customer.active) {
+    return { label: "Bloccato", tone: "red", hint: "Cliente non attivo" };
+  }
+
+  if (status.includes("expired") || status.includes("scad") || (days !== null && days < 0)) {
+    return { label: "Da verificare", tone: "red", hint: "Abbonamento scaduto" };
+  }
+
+  if (days !== null && days <= 7) {
+    return { label: "In scadenza", tone: "yellow", hint: `Scade tra ${days} giorni` };
+  }
+
+  return { label: "Accesso attivo", tone: "green", hint: "Cliente operativo" };
+}
+
+function Metric({ value, label, tone = "neutral" }: { value: number | string; label: string; tone?: Tone }) {
+  return (
+    <div className={`crm3-metric crm3-${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function Status({ tone, children }: { tone: Tone; children: React.ReactNode }) {
+  return <span className={`crm3-status crm3-status-${tone}`}>{children}</span>;
+}
+
 export default function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [queryError, setQueryError] = useState<string | null>(null);
   const [loadedOnce, setLoadedOnce] = useState(false);
+  const [queryError, setQueryError] = useState<string | null>(null);
 
   async function loadCustomers() {
     setLoading(true);
     setQueryError(null);
 
     try {
-      const response = await fetch("/api/customers/list", {
-        method: "GET",
-        cache: "no-store",
-      });
-
+      const response = await fetch("/api/customers/list", { cache: "no-store" });
       const payload = await response.json();
 
       if (!response.ok || !payload?.ok) {
-        const errorMessage =
-          payload?.error ||
-          `Errore HTTP ${response.status} durante il caricamento clienti`;
-
         setCustomers([]);
-        setQueryError(`Errore caricamento clienti: ${errorMessage}`);
+        setQueryError(payload?.error || "Impossibile caricare i clienti.");
         return;
       }
 
-      setCustomers((payload.customers || []) as Customer[]);
+      const list = (payload.customers || []) as Customer[];
+      setCustomers(list);
+
+      if (!selectedId && list.length > 0) {
+        setSelectedId(list[0].id);
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "errore sconosciuto";
       setCustomers([]);
-      setQueryError(`Errore caricamento clienti: ${message}`);
+      setQueryError(error instanceof Error ? error.message : "Errore imprevisto.");
     } finally {
       setLoadedOnce(true);
       setLoading(false);
     }
-  }
-
-  function getCustomerName(customer: Customer) {
-    const fromFullName = customer.full_name?.trim();
-
-    const fromFirstLast = `${customer.first_name || ""} ${
-      customer.last_name || ""
-    }`.trim();
-
-    return fromFullName || fromFirstLast || "Cliente senza nome";
   }
 
   useEffect(() => {
@@ -73,167 +131,701 @@ export default function CustomersTable() {
   }, []);
 
   const filteredCustomers = useMemo(() => {
-    const value = search.toLowerCase().trim();
+    const q = search.toLowerCase().trim();
 
-    if (!value) return customers;
+    if (!q) return customers;
 
     return customers.filter((customer) => {
-      const customerName = getCustomerName(customer).toLowerCase();
+      const name = getName(customer).toLowerCase();
 
       return (
-        customerName.includes(value) ||
-        customer.email?.toLowerCase().includes(value) ||
-        customer.phone?.toLowerCase().includes(value) ||
-        customer.badge_code?.toLowerCase().includes(value)
+        name.includes(q) ||
+        String(customer.phone || "").toLowerCase().includes(q) ||
+        String(customer.email || "").toLowerCase().includes(q) ||
+        String(customer.badge_code || "").toLowerCase().includes(q)
       );
     });
   }, [customers, search]);
 
-  if (loading) {
-    return <div className="card">Caricamento clienti...</div>;
-  }
+  const selectedCustomer = useMemo(() => {
+    return (
+      filteredCustomers.find((customer) => customer.id === selectedId) ||
+      filteredCustomers[0] ||
+      customers.find((customer) => customer.id === selectedId) ||
+      null
+    );
+  }, [customers, filteredCustomers, selectedId]);
+
+  const metrics = useMemo(() => {
+    let active = 0;
+    let attention = 0;
+    let expiring = 0;
+    let withBadge = 0;
+
+    customers.forEach((customer) => {
+      const state = getAccessState(customer);
+
+      if (state.tone === "green") active += 1;
+      if (state.tone === "red") attention += 1;
+      if (state.tone === "yellow") expiring += 1;
+      if (customer.badge_code) withBadge += 1;
+    });
+
+    return {
+      total: customers.length,
+      active,
+      attention,
+      expiring,
+      withBadge,
+    };
+  }, [customers]);
 
   return (
-    <div className="card">
-      <h2 className="card-title">Anagrafica clienti</h2>
-      <p className="card-subtitle">
-        Gestione badge, abbonamenti e stato accesso.
-      </p>
+    <section className="crm3-page">
+      <style jsx>{`
+        .crm3-page {
+          min-height: calc(100vh - 120px);
+          color: #fff;
+        }
 
-      <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cerca cliente, badge, email..."
-          style={{
-            flex: 1,
-            padding: "12px 14px",
-            borderRadius: 14,
-            border: "1px solid var(--border)",
-            background: "var(--bg-soft)",
-            color: "var(--text)",
-          }}
-        />
+        .crm3-shell {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
 
-        <button
-          onClick={loadCustomers}
-          style={{
-            padding: "12px 18px",
-            borderRadius: 14,
-            border: "none",
-            background: "#ef4444",
-            color: "white",
-            fontWeight: 700,
-          }}
-        >
-          Aggiorna
-        </button>
-      </div>
+        .crm3-hero {
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 30px;
+          padding: 24px;
+          background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.20), transparent 34%),
+            linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+            rgba(7, 7, 9, 0.94);
+          box-shadow: 0 28px 80px rgba(0,0,0,.42);
+        }
 
-      {queryError && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: "12px 14px",
-            borderRadius: 12,
-            border: "1px solid #7f1d1d",
-            background: "rgba(127, 29, 29, 0.2)",
-            color: "#fecaca",
-            fontSize: 13,
-          }}
-        >
-          {queryError}
-        </div>
-      )}
+        .crm3-hero-inner {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          align-items: flex-end;
+        }
 
-      {!queryError && loadedOnce && filteredCustomers.length === 0 && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: "12px 14px",
-            borderRadius: 12,
-            border: "1px solid var(--border)",
-            background: "var(--bg-soft)",
-            color: "var(--muted)",
-            fontSize: 13,
-          }}
-        >
-          Nessun cliente trovato.
-        </div>
-      )}
+        .crm3-eyebrow {
+          color: #ef4444;
+          font-size: 11px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .18em;
+          margin-bottom: 8px;
+        }
 
-      <div style={{ overflowX: "auto", marginTop: 22 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ color: "var(--muted)", fontSize: 13 }}>
-              <th style={{ textAlign: "left", padding: 12 }}>Cliente</th>
-              <th style={{ textAlign: "left", padding: 12 }}>Contatti</th>
-              <th style={{ textAlign: "left", padding: 12 }}>Badge</th>
-              <th style={{ textAlign: "left", padding: 12 }}>Stato</th>
-              <th style={{ textAlign: "left", padding: 12 }}>Scadenza</th>
-              <th style={{ textAlign: "left", padding: 12 }}>Azioni</th>
-            </tr>
-          </thead>
+        .crm3-title {
+          margin: 0;
+          font-size: clamp(34px, 5vw, 54px);
+          line-height: .92;
+          letter-spacing: -.06em;
+          font-weight: 950;
+        }
 
-          <tbody>
-            {filteredCustomers.map((customer) => {
-              const customerName = getCustomerName(customer);
+        .crm3-subtitle {
+          margin-top: 12px;
+          color: #a1a1aa;
+          font-size: 14px;
+          max-width: 720px;
+          line-height: 1.55;
+        }
 
-              return (
-                <tr
-                  key={customer.id}
-                  style={{
-                    borderTop: "1px solid var(--border)",
-                  }}
-                >
-                  <td style={{ padding: 12 }}>
-                    <strong>{customerName}</strong>
-                    <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                      ID: {customer.id.slice(0, 8)}
-                    </div>
-                  </td>
+        .crm3-actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
 
-                  <td style={{ padding: 12 }}>
-                    <div>{customer.email || "-"}</div>
-                    <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                      {customer.phone || "-"}
-                    </div>
-                  </td>
+        .crm3-button {
+          min-height: 44px;
+          padding: 0 16px;
+          border-radius: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          text-decoration: none;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.06);
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+        }
 
-                  <td style={{ padding: 12 }}>{customer.badge_code || "-"}</td>
+        .crm3-button-primary {
+          background: linear-gradient(135deg, #ef4444, #991b1b);
+          box-shadow: 0 18px 36px rgba(239, 68, 68, 0.24);
+        }
 
-                  <td style={{ padding: 12 }}>
-                    <CustomerStatus
-                      active={customer.active}
-                      subscriptionStatus={customer.subscription_status}
-                    />
-                  </td>
+        .crm3-metrics {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 12px;
+        }
 
-                  <td style={{ padding: 12 }}>
-                    {customer.subscription_expiry
-                      ? new Date(
-                          customer.subscription_expiry
-                        ).toLocaleDateString("it-IT")
-                      : "-"}
-                  </td>
+        .crm3-metric {
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 22px;
+          padding: 18px;
+          background:
+            radial-gradient(circle at top right, var(--glow), transparent 48%),
+            rgba(10,10,12,.92);
+        }
 
-                  <td style={{ padding: 12 }}>
-                    <Link
-                      href={`/customers/${customer.id}`}
-                      style={{
-                        color: "white",
-                        fontWeight: 700,
-                      }}
+        .crm3-metric strong {
+          display: block;
+          font-size: 34px;
+          line-height: .9;
+          letter-spacing: -.05em;
+          font-weight: 950;
+        }
+
+        .crm3-metric span {
+          display: block;
+          margin-top: 10px;
+          color: #9ca3af;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+        }
+
+        .crm3-green { --glow: rgba(34,197,94,.18); }
+        .crm3-red { --glow: rgba(239,68,68,.22); }
+        .crm3-yellow { --glow: rgba(250,204,21,.18); }
+        .crm3-blue { --glow: rgba(56,189,248,.17); }
+        .crm3-neutral { --glow: rgba(255,255,255,.06); }
+
+        .crm3-workspace {
+          display: grid;
+          grid-template-columns: 390px minmax(0, 1fr);
+          gap: 18px;
+          min-height: 690px;
+        }
+
+        .crm3-list-panel,
+        .crm3-detail-panel {
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 28px;
+          background:
+            linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018)),
+            rgba(8,8,10,.94);
+          overflow: hidden;
+          box-shadow: 0 22px 60px rgba(0,0,0,.34);
+        }
+
+        .crm3-list-head {
+          padding: 18px;
+          border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .crm3-search {
+          width: 100%;
+          height: 48px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.055);
+          color: #fff;
+          padding: 0 15px;
+          outline: none;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .crm3-count {
+          margin-top: 12px;
+          color: #8b8b8b;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .crm3-list {
+          max-height: 610px;
+          overflow: auto;
+          padding: 10px;
+        }
+
+        .crm3-list-item {
+          width: 100%;
+          border: 1px solid transparent;
+          background: transparent;
+          color: #fff;
+          display: grid;
+          grid-template-columns: 46px 1fr auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px;
+          border-radius: 18px;
+          cursor: pointer;
+          text-align: left;
+        }
+
+        .crm3-list-item:hover {
+          background: rgba(255,255,255,.045);
+        }
+
+        .crm3-list-item-active {
+          background: rgba(239,68,68,.12);
+          border-color: rgba(239,68,68,.28);
+        }
+
+        .crm3-avatar {
+          width: 46px;
+          height: 46px;
+          border-radius: 15px;
+          display: grid;
+          place-items: center;
+          color: #fff;
+          font-weight: 950;
+          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          box-shadow: 0 14px 28px rgba(239, 68, 68, .2);
+        }
+
+        .crm3-list-name {
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .crm3-list-sub {
+          margin-top: 5px;
+          color: #8b8b8b;
+          font-size: 12px;
+          font-weight: 700;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 210px;
+        }
+
+        .crm3-mini-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          background: var(--dot);
+          box-shadow: 0 0 15px var(--dot);
+        }
+
+        .crm3-dot-green { --dot: #22c55e; }
+        .crm3-dot-red { --dot: #ef4444; }
+        .crm3-dot-yellow { --dot: #eab308; }
+        .crm3-dot-blue,
+        .crm3-dot-neutral { --dot: #71717a; }
+
+        .crm3-detail {
+          padding: 26px;
+        }
+
+        .crm3-detail-hero {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          align-items: flex-start;
+          border-bottom: 1px solid rgba(255,255,255,.08);
+          padding-bottom: 22px;
+          margin-bottom: 22px;
+        }
+
+        .crm3-detail-main {
+          display: flex;
+          gap: 18px;
+          align-items: center;
+          min-width: 0;
+        }
+
+        .crm3-detail-avatar {
+          width: 82px;
+          height: 82px;
+          border-radius: 26px;
+          display: grid;
+          place-items: center;
+          color: #fff;
+          font-size: 28px;
+          font-weight: 950;
+          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          box-shadow: 0 20px 44px rgba(239, 68, 68, .25);
+        }
+
+        .crm3-detail-name {
+          font-size: clamp(30px, 4vw, 48px);
+          line-height: .95;
+          letter-spacing: -.055em;
+          font-weight: 950;
+        }
+
+        .crm3-detail-contact {
+          margin-top: 10px;
+          color: #a1a1aa;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .crm3-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+        }
+
+        .crm3-status::before {
+          content: "";
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: currentColor;
+          box-shadow: 0 0 15px currentColor;
+        }
+
+        .crm3-status-green {
+          color: #86efac;
+          background: rgba(34,197,94,.10);
+          border: 1px solid rgba(34,197,94,.28);
+        }
+
+        .crm3-status-red {
+          color: #fecaca;
+          background: rgba(239,68,68,.10);
+          border: 1px solid rgba(239,68,68,.32);
+        }
+
+        .crm3-status-yellow {
+          color: #fde68a;
+          background: rgba(250,204,21,.10);
+          border: 1px solid rgba(250,204,21,.30);
+        }
+
+        .crm3-status-blue,
+        .crm3-status-neutral {
+          color: #d4d4d8;
+          background: rgba(255,255,255,.06);
+          border: 1px solid rgba(255,255,255,.10);
+        }
+
+        .crm3-detail-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 22px;
+        }
+
+        .crm3-info {
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 22px;
+          padding: 18px;
+          background: rgba(255,255,255,.035);
+        }
+
+        .crm3-info span {
+          color: #8b8b8b;
+          font-size: 11px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .09em;
+        }
+
+        .crm3-info strong {
+          display: block;
+          margin-top: 10px;
+          color: #fff;
+          font-size: 16px;
+          font-weight: 950;
+          word-break: break-word;
+        }
+
+        .crm3-action-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 22px;
+        }
+
+        .crm3-action {
+          min-height: 76px;
+          border-radius: 20px;
+          padding: 16px;
+          text-decoration: none;
+          color: #fff;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.045);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .crm3-action strong {
+          font-size: 15px;
+          font-weight: 950;
+        }
+
+        .crm3-action span {
+          color: #9ca3af;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .crm3-action-primary {
+          background: linear-gradient(135deg, #ef4444, #991b1b);
+          box-shadow: 0 18px 38px rgba(239,68,68,.22);
+        }
+
+        .crm3-note {
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 22px;
+          padding: 20px;
+          background: rgba(255,255,255,.035);
+          color: #a1a1aa;
+          line-height: 1.6;
+          font-size: 14px;
+        }
+
+        .crm3-message {
+          border-radius: 20px;
+          padding: 18px;
+          background: rgba(255,255,255,.045);
+          color: #d4d4d8;
+          font-weight: 800;
+        }
+
+        .crm3-message-error {
+          color: #fecaca;
+          border: 1px solid rgba(239,68,68,.28);
+          background: rgba(239,68,68,.08);
+        }
+
+        @media (max-width: 1280px) {
+          .crm3-workspace {
+            grid-template-columns: 330px minmax(0, 1fr);
+          }
+
+          .crm3-detail-grid,
+          .crm3-action-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .crm3-metrics {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 860px) {
+          .crm3-hero-inner,
+          .crm3-detail-hero {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .crm3-workspace {
+            grid-template-columns: 1fr;
+          }
+
+          .crm3-list {
+            max-height: 360px;
+          }
+
+          .crm3-metrics {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="crm3-shell">
+        <header className="crm3-hero">
+          <div className="crm3-hero-inner">
+            <div>
+              <div className="crm3-eyebrow">CRM operativo fitness</div>
+              <h2 className="crm3-title">Clienti</h2>
+              <div className="crm3-subtitle">
+                Ricerca, stato accesso, rinnovi e incassi in una vista unica. Pensato per lavorare veloce in reception.
+              </div>
+            </div>
+
+            <div className="crm3-actions">
+              <Link href="/customers/new" className="crm3-button crm3-button-primary">
+                + Nuovo cliente
+              </Link>
+              <Link href="/reception" className="crm3-button">
+                Reception
+              </Link>
+              <button type="button" className="crm3-button" onClick={loadCustomers}>
+                Aggiorna
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section className="crm3-metrics">
+          <Metric value={metrics.total} label="Clienti totali" tone="blue" />
+          <Metric value={metrics.active} label="Accesso attivo" tone="green" />
+          <Metric value={metrics.attention} label="Da verificare" tone={metrics.attention > 0 ? "red" : "neutral"} />
+          <Metric value={metrics.expiring} label="Scadenze vicine" tone={metrics.expiring > 0 ? "yellow" : "neutral"} />
+          <Metric value={metrics.withBadge} label="Con badge" tone="neutral" />
+        </section>
+
+        {loading && <div className="crm3-message">Caricamento CRM clienti...</div>}
+        {queryError && <div className="crm3-message crm3-message-error">{queryError}</div>}
+
+        {!queryError && loadedOnce && customers.length === 0 && (
+          <div className="crm3-message">Nessun cliente trovato.</div>
+        )}
+
+        {!loading && !queryError && customers.length > 0 && (
+          <section className="crm3-workspace">
+            <aside className="crm3-list-panel">
+              <div className="crm3-list-head">
+                <input
+                  className="crm3-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cerca cliente, badge, telefono o email..."
+                />
+                <div className="crm3-count">
+                  {filteredCustomers.length} risultati su {customers.length}
+                </div>
+              </div>
+
+              <div className="crm3-list">
+                {filteredCustomers.map((customer) => {
+                  const name = getName(customer);
+                  const state = getAccessState(customer);
+                  const contact = customer.phone || customer.email || customer.badge_code || "Dati da completare";
+                  const active = selectedCustomer?.id === customer.id;
+
+                  return (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      className={`crm3-list-item ${active ? "crm3-list-item-active" : ""}`}
+                      onClick={() => setSelectedId(customer.id)}
                     >
-                      Apri scheda
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      <div className="crm3-avatar">{initials(name)}</div>
+                      <div>
+                        <div className="crm3-list-name">{name}</div>
+                        <div className="crm3-list-sub">{contact}</div>
+                      </div>
+                      <span className={`crm3-mini-dot crm3-dot-${state.tone}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <section className="crm3-detail-panel">
+              {selectedCustomer && (
+                <div className="crm3-detail">
+                  {(() => {
+                    const name = getName(selectedCustomer);
+                    const state = getAccessState(selectedCustomer);
+                    const subscriptionText =
+                      selectedCustomer.subscription_status ||
+                      (selectedCustomer.active ? "Attivo" : "Non attivo");
+
+                    return (
+                      <>
+                        <div className="crm3-detail-hero">
+                          <div className="crm3-detail-main">
+                            <div className="crm3-detail-avatar">{initials(name)}</div>
+                            <div>
+                              <div className="crm3-detail-name">{name}</div>
+                              <div className="crm3-detail-contact">
+                                {selectedCustomer.phone ||
+                                  selectedCustomer.email ||
+                                  "Contatto da completare"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Status tone={state.tone}>{state.label}</Status>
+                        </div>
+
+                        <div className="crm3-detail-grid">
+                          <div className="crm3-info">
+                            <span>Telefono</span>
+                            <strong>{selectedCustomer.phone || "Non inserito"}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Email</span>
+                            <strong>{selectedCustomer.email || "Non inserita"}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Badge</span>
+                            <strong>{selectedCustomer.badge_code || "Da associare"}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Abbonamento</span>
+                            <strong>{subscriptionText}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Scadenza</span>
+                            <strong>{formatDate(selectedCustomer.subscription_expiry)}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Stato</span>
+                            <strong>{state.hint}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>Creato il</span>
+                            <strong>{formatDate(selectedCustomer.created_at)}</strong>
+                          </div>
+
+                          <div className="crm3-info">
+                            <span>ID operativo</span>
+                            <strong>{selectedCustomer.id.slice(0, 8)}</strong>
+                          </div>
+                        </div>
+
+                        <div className="crm3-action-grid">
+                          <Link className="crm3-action crm3-action-primary" href={`/customers/${selectedCustomer.id}`}>
+                            <strong>Apri scheda</strong>
+                            <span>Profilo completo</span>
+                          </Link>
+
+                          <Link className="crm3-action" href={`/customers/${selectedCustomer.id}`}>
+                            <strong>Rinnova</strong>
+                            <span>Abbonamento o quota</span>
+                          </Link>
+
+                          <Link className="crm3-action" href={`/payments?customer=${selectedCustomer.id}`}>
+                            <strong>Incasso</strong>
+                            <span>Nuovo pagamento</span>
+                          </Link>
+
+                          <Link className="crm3-action" href={`/customers/${selectedCustomer.id}`}>
+                            <strong>Accesso</strong>
+                            <span>Badge, QR, Mobile Pass</span>
+                          </Link>
+                        </div>
+
+                        <div className="crm3-note">
+                          Questa vista è pensata per la reception: cerca un cliente, verifica subito se può accedere e scegli l'azione operativa senza aprire tabelle o schermate secondarie.
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </section>
+          </section>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

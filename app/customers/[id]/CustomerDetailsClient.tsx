@@ -371,78 +371,46 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   }
 
   async function renewMembershipFee() {
-    if (!customer?.branch_id) return alert("Cliente senza sede.");
+  if (!customer?.id) {
+    alert("Cliente non caricato.");
+    return;
+  }
 
-    const validUntil = new Date();
-    validUntil.setDate(validUntil.getDate() + 365);
+  const confirmed = window.confirm(
+    "Confermi il rinnovo della quota associativa annuale (€10)?"
+  );
 
-    const membershipAmount = 10;
-    const paymentMethodId = await getCashPaymentMethodId();
+  if (!confirmed) return;
 
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount: membershipAmount,
-        payment_type: "membership_fee",
+  try {
+    const response = await fetch("/api/payments/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customer.id,
+        paymentType: "membership_fee",
+        amount: 10,
         description: "Quota associativa annuale",
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        created_by: "admin@bodygate.it",
-      })
-      .select("id")
-      .single();
+      }),
+    });
 
-    if (paymentError) {
-      alert("Errore registrazione pagamento quota associativa.");
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || "Errore rinnovo quota associativa.");
       return;
     }
 
-    await supabase.from("cash_movements").insert({
-      movement_type: "income",
-      amount: membershipAmount,
-      category: "membership_fee",
-      description: "Incasso quota associativa",
-      payment_id: payment?.id || null,
-      created_by: "admin@bodygate.it",
-      movement_at: new Date().toISOString(),
-    });
-
-    await supabase.from("customer_membership_fees").insert({
-      customer_id: customerId,
-      branch_id: customer.branch_id,
-      amount: membershipAmount,
-      valid_from: today,
-      valid_until: validUntil.toISOString().slice(0, 10),
-      payment_method: "cash",
-    });
-
-    await supabase.from("audit_logs").insert({
-      staff_email: "admin@bodygate.it",
-      staff_name: "Admin BodyGate",
-      action: "membership_fee_renewed",
-      entity_type: "customer",
-      entity_id: customerId,
-      details: {
-        customer_name: customerName,
-        amount: membershipAmount,
-        valid_until: validUntil.toISOString().slice(0, 10),
-      },
-    });
-
-    await supabase.from("customer_timeline").insert({
-      customer_id: customerId,
-      type: "membership",
-      title: "Quota associativa rinnovata",
-      description: `Quota €${membershipAmount} valida fino al ${validUntil
-        .toISOString()
-        .slice(0, 10)}`,
-    });
-
     await loadAll();
-    alert("Quota associativa rinnovata e pagamento registrato.");
+
+    alert("Quota associativa rinnovata correttamente.");
+  } catch (error) {
+    console.error(error);
+    alert("Errore imprevisto.");
   }
+}
 
   async function renewSubscription(planIdOverride?: string) {
     if (!customer?.id) return alert("Cliente non caricato.");
@@ -507,65 +475,98 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   
 
   async function addNote() {
-    if (!newNote.trim()) return;
-
-    await supabase.from("customer_internal_notes").insert({
-      customer_id: customerId,
-      note: newNote.trim(),
-      created_by: "Operatore",
-    });
-
-    await supabase.from("customer_timeline").insert({
-      customer_id: customerId,
-      type: "note",
-      title: "Nota interna aggiunta",
-      description: newNote.trim(),
-    });
-
-    setNewNote("");
-    await loadAll();
+  if (!customer?.id) {
+    alert("Cliente non caricato.");
+    return;
   }
 
-  async function addBlock() {
-    if (!blockReason.trim()) return;
-
-    await supabase.from("customer_blocks").insert({
-      customer_id: customerId,
-      reason: blockReason.trim(),
-      block_type: "manual",
-      is_active: true,
-      created_by: "Operatore",
-    });
-
-    await supabase.from("customer_timeline").insert({
-      customer_id: customerId,
-      type: "block",
-      title: "Cliente bloccato",
-      description: blockReason.trim(),
-    });
-
-    setBlockReason("");
-    await loadAll();
+  if (!newNote.trim()) {
+    alert("Scrivi una nota.");
+    return;
   }
 
-  async function disableBlock(blockId: string) {
-    await supabase
-      .from("customer_blocks")
-      .update({
-        is_active: false,
-        ends_at: new Date().toISOString(),
-      })
-      .eq("id", blockId);
+  const response = await fetch("/api/customers/add-note", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      customerId: customer.id,
+      note: newNote,
+    }),
+  });
 
-    await supabase.from("customer_timeline").insert({
-      customer_id: customerId,
-      type: "block",
-      title: "Blocco cliente disattivato",
-      description: "Cliente sbloccato manualmente",
-    });
+  const result = await response.json();
 
-    await loadAll();
+  if (!response.ok || !result.ok) {
+    alert(result.error || "Errore aggiunta nota.");
+    return;
   }
+
+  setNewNote("");
+  await loadAll();
+}
+
+async function addBlock() {
+  if (!customer?.id) {
+    alert("Cliente non caricato.");
+    return;
+  }
+
+  if (!blockReason.trim()) {
+    alert("Inserisci il motivo del blocco.");
+    return;
+  }
+
+  const response = await fetch("/api/customers/add-block", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      customerId: customer.id,
+      reason: blockReason,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.ok) {
+    alert(result.error || "Errore aggiunta blocco.");
+    return;
+  }
+
+  setBlockReason("");
+  await loadAll();
+}
+
+async function disableBlock(blockId: string) {
+  if (!customer?.id) {
+    alert("Cliente non caricato.");
+    return;
+  }
+
+  const response = await fetch("/api/customers/disable-block", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      customerId: customer.id,
+      blockId,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.ok) {
+    alert(result.error || "Errore disattivazione blocco.");
+    return;
+  }
+
+  await loadAll();
+}
+
 
 
   async function generateDnakeQr() {

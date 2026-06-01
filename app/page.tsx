@@ -2,447 +2,460 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "./lib/supabaseClient";
+import BGButton from "./components/ui/BGButton";
+import BGCard from "./components/ui/BGCard";
+import BGEmptyState from "./components/ui/BGEmptyState";
+import BGPageHeader from "./components/ui/BGPageHeader";
+import BGStatCard from "./components/ui/BGStatCard";
+import BGStatusBadge from "./components/ui/BGStatusBadge";
+import "./components/ui/bodygate-ui.css";
 
-type AccessLog = {
-  id: string;
-  customer_id: string | null;
-  badge_code: string | null;
-  controller_code: string | null;
-  reason: string | null;
-  access_time: string | null;
-  created_at: string | null;
-  was_allowed?: boolean | null;
-  allowed?: boolean | null;
+type DashboardOverview = {
+  ok: boolean;
+  generated_at: string;
+  kpis: {
+    active_customers: number;
+    accesses_today: number;
+    denied_today: number;
+    revenue_today: number;
+    revenue_month: number;
+    active_blocks: number;
+  };
+  bridge: {
+    status: string;
+    last_seen_at: string | null;
+    raw: any;
+  };
+  alerts: {
+    expired_medical: any[];
+    expiring_medical: any[];
+    expired_subscriptions: any[];
+    expiring_subscriptions: any[];
+  };
+  latest_access: any[];
 };
 
-type Customer = {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  phone?: string | null;
-  is_active?: boolean | null;
-};
-
-type Subscription = {
-  id: string;
-  customer_id: string | null;
-  ends_at: string | null;
-  is_active: boolean | null;
-};
-
-type Payment = {
-  id: string;
-  amount: number | null;
-  paid_at: string | null;
-  created_at: string | null;
-};
-
-function startOfTodayISO() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+function euro(value: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 }
 
-function endOfTodayISO() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-function addDaysISO(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
-}
-
-function formatTime(value?: string | null) {
-  if (!value) return "--:--";
-  return new Date(value).toLocaleTimeString("it-IT", {
+function dateTime(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
-function formatEuro(value: number) {
-  return value.toLocaleString("it-IT", {
-    style: "currency",
-    currency: "EUR",
-  });
-}
-
-function isAllowed(log: AccessLog) {
-  if (typeof log.was_allowed === "boolean") return log.was_allowed;
-  if (typeof log.allowed === "boolean") return log.allowed;
-  return String(log.reason || "").toLowerCase().includes("consentito");
-}
-
-function customerName(customer?: Customer | null) {
-  if (!customer) return "Cliente non associato";
-  return `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || "Cliente";
-}
-
-const cardStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, rgba(24,24,27,0.96), rgba(12,12,13,0.96))",
-  border: "1px solid rgba(255,255,255,0.09)",
-  borderRadius: 22,
-  padding: 22,
-  boxShadow: "0 18px 44px rgba(0,0,0,0.22)",
-};
-
-const buttonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: 46,
-  padding: "0 18px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(255,255,255,0.07)",
-  color: "#fff",
-  textDecoration: "none",
-  fontWeight: 900,
-  fontSize: 14,
-};
-
 export default function DashboardPage() {
+  const [data, setData] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [logs, setLogs] = useState<AccessLog[]>([]);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [query, setQuery] = useState("");
-  const [bridgeOnline, setBridgeOnline] = useState<boolean | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function loadDashboard() {
-    setLoading(true);
+    try {
+      setErrorMessage("");
+      const res = await fetch("/api/dashboard/overview", { cache: "no-store" });
+      const json = await res.json();
 
-    const todayStart = startOfTodayISO();
-    const todayEnd = endOfTodayISO();
-    const next7 = addDaysISO(7);
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Errore caricamento dashboard.");
+      }
 
-    const [
-      customersRes,
-      logsRes,
-      subscriptionsRes,
-      paymentsRes,
-      bridgeRes,
-    ] = await Promise.allSettled([
-      supabase
-        .from("customers")
-        .select("id, first_name, last_name, phone, is_active")
-        .order("created_at", { ascending: false })
-        .limit(300),
-      supabase
-        .from("customer_access_logs")
-        .select("id, customer_id, badge_code, controller_code, reason, access_time, created_at, was_allowed")
-        .gte("created_at", todayStart)
-        .lte("created_at", todayEnd)
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("customer_subscriptions")
-        .select("id, customer_id, ends_at, is_active")
-        .lte("ends_at", next7)
-        .order("ends_at", { ascending: true })
-        .limit(50),
-      supabase
-        .from("customer_payments")
-        .select("id, amount, paid_at, created_at")
-        .gte("created_at", todayStart)
-        .lte("created_at", todayEnd)
-        .limit(200),
-      fetch("/api/bridge/status").then((r) => r.json()),
-    ]);
-
-    if (customersRes.status === "fulfilled") {
-      setCustomers((customersRes.value.data || []) as Customer[]);
+      setData(json);
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Errore imprevisto.");
+    } finally {
+      setLoading(false);
     }
-
-    if (logsRes.status === "fulfilled") {
-      setLogs((logsRes.value.data || []) as AccessLog[]);
-    }
-
-    if (subscriptionsRes.status === "fulfilled") {
-      setSubscriptions((subscriptionsRes.value.data || []) as Subscription[]);
-    }
-
-    if (paymentsRes.status === "fulfilled") {
-      setPayments((paymentsRes.value.data || []) as Payment[]);
-    }
-
-    if (bridgeRes.status === "fulfilled") {
-      setBridgeOnline(Boolean((bridgeRes.value as any)?.online || (bridgeRes.value as any)?.ok));
-    } else {
-      setBridgeOnline(false);
-    }
-
-    setLoading(false);
   }
 
   useEffect(() => {
     loadDashboard();
-    const timer = setInterval(loadDashboard, 15000);
+    const timer = setInterval(loadDashboard, 30000);
     return () => clearInterval(timer);
   }, []);
 
-  const customerMap = useMemo(() => {
-    const map = new Map<string, Customer>();
-    customers.forEach((c) => map.set(c.id, c));
-    return map;
-  }, [customers]);
+  const totalAlerts = useMemo(() => {
+    if (!data) return 0;
 
-  const allowedToday = logs.filter(isAllowed).length;
-  const deniedToday = logs.length - allowedToday;
-  const activeCustomers = customers.filter((c) => c.is_active !== false).length;
-  const expiringSubscriptions = subscriptions.filter((s) => s.is_active !== false).length;
-  const todayRevenue = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return (
+      data.alerts.expired_medical.length +
+      data.alerts.expiring_medical.length +
+      data.alerts.expired_subscriptions.length +
+      data.alerts.expiring_subscriptions.length +
+      data.kpis.active_blocks
+    );
+  }, [data]);
 
-  const filteredCustomers = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return customers
-      .filter((c) => {
-        const full = `${c.first_name || ""} ${c.last_name || ""} ${c.phone || ""}`.toLowerCase();
-        return full.includes(q);
-      })
-      .slice(0, 8);
-  }, [query, customers]);
+  const bridgeStatus = data?.bridge?.status || "unknown";
+  const bridgeOnline = bridgeStatus === "online" || bridgeStatus === "ok";
 
   return (
-    <div style={{ display: "grid", gap: 22 }}>
-      <section
-        style={{
-          ...cardStyle,
-          padding: 28,
+    <main className="command-page-v2">
+      <style jsx>{`
+        .command-page-v2 {
+          min-height: 100vh;
+          padding: 26px;
+          color: #fff;
           background:
-            "radial-gradient(circle at top left, rgba(239,68,68,0.22), transparent 34%), linear-gradient(180deg, rgba(24,24,27,0.96), rgba(10,10,12,0.96))",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 20 }}>
-          <div>
-            <div
-              style={{
-                color: "#f87171",
-                fontWeight: 950,
-                letterSpacing: "2.5px",
-                fontSize: 13,
-                textTransform: "uppercase",
-                marginBottom: 10,
-              }}
-            >
-              BodyGate Reception
-            </div>
-            <h1 style={{ color: "#fff", fontSize: 42, margin: 0, letterSpacing: "-1.7px" }}>
-              Dashboard operativa
-            </h1>
-            <p style={{ color: "#cbd5e1", margin: "10px 0 0", fontSize: 16 }}>
-              Cerca clienti, rinnova abbonamenti, controlla accessi e gestisci la reception.
-            </p>
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.22), transparent 30%),
+            radial-gradient(circle at 75% 0%, rgba(255,255,255,.08), transparent 24%),
+            linear-gradient(135deg, #050505, #0a0a0a 46%, #111);
+        }
+
+        .top-actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 18px;
+        }
+
+        .command-grid {
+          display: grid;
+          grid-template-columns: 1.12fr .88fr;
+          gap: 18px;
+        }
+
+        .panel-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+
+        .panel-title {
+          font-size: 21px;
+          font-weight: 950;
+          letter-spacing: -.04em;
+        }
+
+        .alert-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .alert-tile {
+          min-height: 124px;
+          border-radius: 22px;
+          padding: 18px;
+          border: 1px solid rgba(255,255,255,.09);
+          background: rgba(255,255,255,.035);
+        }
+
+        .alert-tile.danger {
+          border-color: rgba(239,68,68,.34);
+          background: radial-gradient(circle at top right, rgba(239,68,68,.22), transparent 55%), rgba(255,255,255,.035);
+        }
+
+        .alert-tile.warning {
+          border-color: rgba(250,204,21,.27);
+          background: radial-gradient(circle at top right, rgba(250,204,21,.20), transparent 55%), rgba(255,255,255,.035);
+        }
+
+        .alert-number {
+          font-size: 38px;
+          line-height: .95;
+          font-weight: 950;
+          letter-spacing: -.06em;
+        }
+
+        .alert-label {
+          margin-top: 10px;
+          color: #cfcfcf;
+          font-size: 13px;
+          line-height: 1.35;
+          font-weight: 800;
+        }
+
+        .access-list,
+        .deadline-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .access-item {
+          display: grid;
+          grid-template-columns: 12px 1fr auto;
+          align-items: center;
+          gap: 12px;
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(255,255,255,.035);
+          border: 1px solid rgba(255,255,255,.075);
+        }
+
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          background: #737373;
+          box-shadow: 0 0 16px currentColor;
+        }
+
+        .dot.ok {
+          background: #22c55e;
+          color: #22c55e;
+        }
+
+        .dot.no {
+          background: #ef4444;
+          color: #ef4444;
+        }
+
+        .access-title {
+          font-weight: 950;
+          font-size: 13px;
+          color: #fff;
+        }
+
+        .access-sub {
+          margin-top: 4px;
+          color: #8c8c8c;
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .quick-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .quick-link {
+          min-height: 112px;
+          border-radius: 22px;
+          padding: 17px;
+          text-decoration: none;
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          border: 1px solid rgba(255,255,255,.09);
+          background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.024)), rgba(8,8,8,.82);
+          transition: .18s ease;
+        }
+
+        .quick-link:hover {
+          transform: translateY(-2px);
+          border-color: rgba(239,68,68,.45);
+          box-shadow: 0 20px 55px rgba(0,0,0,.35);
+        }
+
+        .quick-title {
+          font-size: 16px;
+          font-weight: 950;
+        }
+
+        .quick-sub {
+          color: #8d8d8d;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+
+        .error {
+          border-radius: 22px;
+          padding: 18px;
+          border: 1px solid rgba(239,68,68,.38);
+          background: rgba(239,68,68,.1);
+          color: #fecaca;
+          margin-bottom: 18px;
+        }
+
+        .loading {
+          border-radius: 22px;
+          padding: 22px;
+          background: rgba(255,255,255,.05);
+          border: 1px solid rgba(255,255,255,.1);
+          color: #ddd;
+        }
+
+        @media (max-width: 1220px) {
+          .kpi-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
+          .command-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .alert-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 720px) {
+          .command-page-v2 {
+            padding: 14px;
+          }
+
+          .kpi-grid,
+          .alert-grid,
+          .quick-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .access-item {
+            grid-template-columns: 12px 1fr;
+          }
+        }
+      `}</style>
+
+      <BGPageHeader
+        eyebrow="BodyGate Command Center"
+        title="Controllo palestra in tempo reale."
+        subtitle="Accessi, incassi, scadenze, alert e stato sistema in una schermata unica, pensata per reception e direzione."
+        actions={
+          <div className="top-actions">
+            <BGStatusBadge tone={bridgeOnline ? "success" : "danger"}>
+              {bridgeOnline ? "Bridge online" : "Bridge non rilevato"}
+            </BGStatusBadge>
+            <BGButton onClick={loadDashboard} variant="secondary">
+              Aggiorna
+            </BGButton>
           </div>
+        }
+      />
 
-          <div
-            style={{
-              alignSelf: "flex-start",
-              border: `1px solid ${bridgeOnline ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.35)"}`,
-              background: bridgeOnline ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-              color: bridgeOnline ? "#86efac" : "#f87171",
-              borderRadius: 999,
-              padding: "12px 18px",
-              fontWeight: 950,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {bridgeOnline ? "Bridge online" : "Bridge offline"}
-          </div>
-        </div>
-      </section>
+      {loading && <div className="loading">Caricamento Command Center...</div>}
+      {errorMessage && <div className="error">{errorMessage}</div>}
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 16,
-        }}
-      >
-        {[
-          ["Accessi oggi", String(allowedToday), "Ingressi autorizzati"],
-          ["Negati oggi", String(deniedToday), "Accessi bloccati"],
-          ["Scadenze 7 giorni", String(expiringSubscriptions), "Abbonamenti in scadenza"],
-          ["Incassi oggi", formatEuro(todayRevenue), "Pagamenti registrati"],
-        ].map(([title, value, subtitle]) => (
-          <div key={title} style={cardStyle}>
-            <div style={{ color: "#cbd5e1", fontWeight: 900, fontSize: 14 }}>{title}</div>
-            <div style={{ color: "#fff", fontSize: 42, fontWeight: 950, marginTop: 12 }}>{value}</div>
-            <div style={{ color: "#94a3b8", fontSize: 13, marginTop: 6 }}>{subtitle}</div>
-          </div>
-        ))}
-      </section>
+      {!loading && data && (
+        <>
+          <section className="kpi-grid">
+            <BGStatCard label="Clienti attivi" value={data.kpis.active_customers} note="Anagrafiche operative" />
+            <BGStatCard label="Accessi oggi" value={data.kpis.accesses_today} note="Ingressi registrati" tone="green" />
+            <BGStatCard label="Negati oggi" value={data.kpis.denied_today} note="Accessi da monitorare" tone={data.kpis.denied_today > 0 ? "red" : "neutral"} />
+            <BGStatCard label="Incassi oggi" value={euro(data.kpis.revenue_today)} note="Pagamenti registrati" tone="green" />
+            <BGStatCard label="Incassi mese" value={euro(data.kpis.revenue_month)} note="Mese corrente" tone="blue" />
+            <BGStatCard label="Blocchi attivi" value={data.kpis.active_blocks} note="Clienti da verificare" tone={data.kpis.active_blocks > 0 ? "red" : "neutral"} />
+          </section>
 
-      <section style={{ ...cardStyle, display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "center" }}>
-          <div>
-            <h2 style={{ color: "#fff", margin: 0, fontSize: 24 }}>Ricerca cliente rapida</h2>
-            <p style={{ color: "#94a3b8", margin: "6px 0 0" }}>
-              Cerca per nome, cognome o telefono. Poi apri subito la scheda cliente.
-            </p>
-          </div>
-          <Link href="/customers" style={{ ...buttonStyle, background: "#ef4444" }}>
-            Elenco clienti
-          </Link>
-        </div>
+          <section className="command-grid">
+            <BGCard>
+              <div className="panel-title-row">
+                <div className="panel-title">Alert operativi</div>
+                <BGStatusBadge tone={totalAlerts > 0 ? "warning" : "success"}>
+                  {totalAlerts > 0 ? `${totalAlerts} alert` : "Tutto ok"}
+                </BGStatusBadge>
+              </div>
 
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cerca cliente..."
-          style={{
-            width: "100%",
-            minHeight: 54,
-            borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.12)",
-            background: "rgba(255,255,255,0.06)",
-            color: "#fff",
-            padding: "0 18px",
-            fontSize: 16,
-            outline: "none",
-          }}
-        />
+              <div className="alert-grid">
+                <div className="alert-tile danger">
+                  <div className="alert-number">{data.alerts.expired_medical.length}</div>
+                  <div className="alert-label">Certificati scaduti</div>
+                </div>
+                <div className="alert-tile warning">
+                  <div className="alert-number">{data.alerts.expiring_medical.length}</div>
+                  <div className="alert-label">Certificati in scadenza</div>
+                </div>
+                <div className="alert-tile danger">
+                  <div className="alert-number">{data.alerts.expired_subscriptions.length}</div>
+                  <div className="alert-label">Abbonamenti scaduti</div>
+                </div>
+                <div className="alert-tile warning">
+                  <div className="alert-number">{data.alerts.expiring_subscriptions.length}</div>
+                  <div className="alert-label">Abbonamenti in scadenza</div>
+                </div>
+              </div>
+            </BGCard>
 
-        {query.trim() ? (
-          <div style={{ display: "grid", gap: 10 }}>
-            {filteredCustomers.length ? (
-              filteredCustomers.map((customer) => (
-                <Link
-                  key={customer.id}
-                  href={`/customers/${customer.id}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "#fff",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    background: "rgba(255,255,255,0.04)",
-                    padding: "13px 15px",
-                    borderRadius: 14,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontWeight: 900 }}>{customerName(customer)}</span>
-                  <span style={{ color: "#94a3b8", fontSize: 13 }}>{customer.phone || "Apri scheda"}</span>
+            <BGCard>
+              <div className="panel-title-row">
+                <div className="panel-title">Azioni rapide</div>
+                <BGStatusBadge tone="info">Reception</BGStatusBadge>
+              </div>
+
+              <div className="quick-grid">
+                <Link className="quick-link" href="/reception">
+                  <span className="quick-title">Reception Desk</span>
+                  <span className="quick-sub">Cliente rapido, accessi, stato sistema e operatività giornaliera.</span>
                 </Link>
-              ))
-            ) : (
-              <div style={{ color: "#94a3b8" }}>Nessun cliente trovato.</div>
-            )}
-          </div>
-        ) : null}
-      </section>
+                <Link className="quick-link" href="/customers/new">
+                  <span className="quick-title">Nuovo cliente</span>
+                  <span className="quick-sub">Crea anagrafica, contatti e dati iniziali.</span>
+                </Link>
+                <Link className="quick-link" href="/payments">
+                  <span className="quick-title">Nuovo incasso</span>
+                  <span className="quick-sub">Registra pagamenti, rinnovi e ricevute.</span>
+                </Link>
+                <Link className="quick-link" href="/notifications">
+                  <span className="quick-title">Notification Center</span>
+                  <span className="quick-sub">Scadenze, blocchi e alert da lavorare.</span>
+                </Link>
+              </div>
+            </BGCard>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.2fr 0.8fr",
-          gap: 18,
-        }}
-      >
-        <div style={cardStyle}>
-          <h2 style={{ color: "#fff", margin: 0, fontSize: 24 }}>Ultimi accessi</h2>
-          <p style={{ color: "#94a3b8", margin: "6px 0 18px" }}>
-            Aggiornamento automatico ogni 15 secondi.
-          </p>
+            <BGCard>
+              <div className="panel-title-row">
+                <div className="panel-title">Ultimi accessi</div>
+                <BGStatusBadge tone="info">Live log</BGStatusBadge>
+              </div>
 
-          <div style={{ display: "grid", gap: 10 }}>
-            {logs.length ? (
-              logs.slice(0, 10).map((log) => {
-                const c = log.customer_id ? customerMap.get(log.customer_id) : null;
-                const ok = isAllowed(log);
-
-                return (
-                  <div
-                    key={log.id}
-                    style={{
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      background: ok ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.08)",
-                      borderRadius: 14,
-                      padding: "12px 14px",
-                      display: "grid",
-                      gridTemplateColumns: "70px 1fr auto",
-                      gap: 12,
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ color: "#cbd5e1", fontWeight: 900 }}>
-                      {formatTime(log.access_time || log.created_at)}
-                    </div>
+              <div className="access-list">
+                {data.latest_access.length === 0 && <BGEmptyState title="Nessun accesso recente" description="Gli ingressi appariranno qui appena registrati." />}
+                {data.latest_access.map((item) => (
+                  <div className="access-item" key={item.id}>
+                    <span className={`dot ${item.allowed ? "ok" : "no"}`} />
                     <div>
-                      <div style={{ color: "#fff", fontWeight: 900 }}>
-                        {customerName(c)}
-                      </div>
-                      <div style={{ color: "#94a3b8", fontSize: 12 }}>
-                        {log.controller_code || log.badge_code || "Credenziale"} · {log.reason || ""}
-                      </div>
+                      <div className="access-title">{item.allowed ? "Accesso consentito" : "Accesso negato"}</div>
+                      <div className="access-sub">Codice: {item.controller_code || item.badge_code || "—"} · {item.reason || "Nessun motivo"}</div>
                     </div>
-                    <div
-                      style={{
-                        color: ok ? "#86efac" : "#fca5a5",
-                        fontWeight: 950,
-                      }}
-                    >
-                      {ok ? "Consentito" : "Negato"}
+                    <div className="access-sub">{dateTime(item.created_at)}</div>
+                  </div>
+                ))}
+              </div>
+            </BGCard>
+
+            <BGCard>
+              <div className="panel-title-row">
+                <div className="panel-title">Scadenze imminenti</div>
+                <BGStatusBadge tone="warning">15 giorni</BGStatusBadge>
+              </div>
+
+              <div className="deadline-list">
+                {data.alerts.expiring_subscriptions.length === 0 && data.alerts.expiring_medical.length === 0 && (
+                  <BGEmptyState title="Nessuna scadenza imminente" description="Abbonamenti e certificati risultano sotto controllo." />
+                )}
+                {data.alerts.expiring_subscriptions.map((item) => (
+                  <div className="access-item" key={`sub-${item.id}`}>
+                    <span className="dot no" />
+                    <div>
+                      <div className="access-title">Abbonamento in scadenza</div>
+                      <div className="access-sub">Cliente: {item.customer_id} · Scade: {item.ends_at}</div>
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div style={{ color: "#94a3b8" }}>
-                {loading ? "Caricamento accessi..." : "Nessun accesso oggi."}
+                ))}
+                {data.alerts.expiring_medical.map((item) => (
+                  <div className="access-item" key={`med-${item.id}`}>
+                    <span className="dot no" />
+                    <div>
+                      <div className="access-title">Certificato in scadenza</div>
+                      <div className="access-sub">{item.first_name} {item.last_name} · Scade: {item.medical_certificate_end}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        <div style={cardStyle}>
-          <h2 style={{ color: "#fff", margin: 0, fontSize: 24 }}>Azioni rapide</h2>
-          <p style={{ color: "#94a3b8", margin: "6px 0 18px" }}>
-            Le operazioni più frequenti della reception.
-          </p>
-
-          <div style={{ display: "grid", gap: 12 }}>
-            <Link href="/customers/new" style={{ ...buttonStyle, background: "#ef4444" }}>
-              + Nuovo cliente
-            </Link>
-            <Link href="/customers" style={buttonStyle}>
-              Rinnova abbonamento
-            </Link>
-            <Link href="/badges" style={buttonStyle}>
-              Gestisci credenziali
-            </Link>
-            <Link href="/access-logs" style={buttonStyle}>
-              Log accessi
-            </Link>
-            <Link href="/payments" style={buttonStyle}>
-              Incassi e pagamenti
-            </Link>
-          </div>
-
-          <div
-            style={{
-              marginTop: 18,
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(59,130,246,0.08)",
-              border: "1px solid rgba(59,130,246,0.18)",
-              color: "#bfdbfe",
-              fontSize: 13,
-              lineHeight: 1.45,
-            }}
-          >
-            Clienti attivi registrati: <b>{activeCustomers}</b>
-          </div>
-        </div>
-      </section>
-    </div>
+            </BGCard>
+          </section>
+        </>
+      )}
+    </main>
   );
 }

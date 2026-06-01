@@ -2,27 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BadgeCheck,
+  BarChart3,
+  Bell,
+  CalendarDays,
+  CreditCard,
+  DoorOpen,
+  Dumbbell,
+  LayoutDashboard,
+  LogOut,
+  Monitor,
+  Receipt,
+  Settings,
+  Users,
+} from "lucide-react";
 
 type MenuItem = {
   label: string;
   href: string;
-  badge?: string;
+  icon: React.ReactNode;
 };
 
 const mainMenu: MenuItem[] = [
-  { label: "Dashboard", href: "/" },
-  { label: "Clienti", href: "/customers" },
-  { label: "Credenziali", href: "/badges" },
-  { label: "Accessi", href: "/access-logs" },
-  { label: "Abbonamenti", href: "/subscriptions" },
-  { label: "Pagamenti", href: "/payments" },
-  { label: "Contabilità", href: "/accounting" },
-  { label: "Reception", href: "/reception" },
-  { label: "Training", href: "/training" },
-  { label: "Analytics", href: "/analytics" },
-  { label: "Notifiche", href: "/notifications" },
-  { label: "Sistema", href: "/system" },
-  { label: "Impostazioni", href: "/settings" },
+  { label: "Dashboard", href: "/", icon: <LayoutDashboard size={20} /> },
+  { label: "Clienti", href: "/customers", icon: <Users size={20} /> },
+  { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
+  { label: "Accessi", href: "/access-logs", icon: <DoorOpen size={20} /> },
+  { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} /> },
+  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} /> },
+  { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} /> },
+  { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
+  { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
+  { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
+  { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} /> },
+  { label: "Sistema", href: "/system", icon: <Settings size={20} /> },
+  { label: "Impostazioni", href: "/settings", icon: <Settings size={20} /> },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -36,76 +51,52 @@ export default function Sidebar() {
   return (
     <aside
       style={{
-        width: 292,
-        minWidth: 292,
+        width: 88,
+        minWidth: 88,
         height: "100vh",
         position: "sticky",
         top: 0,
-        background:
-          "linear-gradient(180deg, rgba(12,12,14,0.98), rgba(5,5,6,0.98))",
-        borderRight: "1px solid rgba(255,255,255,0.09)",
-        padding: "26px 20px",
+        zIndex: 40,
+        padding: "18px 12px",
         display: "flex",
         flexDirection: "column",
-        gap: 22,
-        overflowY: "auto",
+        alignItems: "center",
+        gap: 16,
+        background:
+          "radial-gradient(circle at top, rgba(239,68,68,0.14), transparent 38%), rgba(5,5,6,0.96)",
+        backdropFilter: "blur(18px)",
       }}
     >
-      <div>
-        <Link
-          href="/"
-          style={{
-            textDecoration: "none",
-            color: "#fff",
-            fontSize: 34,
-            fontWeight: 950,
-            letterSpacing: "-1.4px",
-            display: "block",
-            lineHeight: 1,
-          }}
-        >
-          BodyGate
-        </Link>
-        <div
-          style={{
-            marginTop: 8,
-            color: "#9ca3af",
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          Smart Gym Platform
-        </div>
-      </div>
-
-      <div
+      <Link
+        href="/"
+        title="BodyGate"
         style={{
-          border: "1px solid rgba(59,130,246,0.22)",
-          background: "rgba(15,23,42,0.72)",
-          borderRadius: 18,
-          padding: 18,
+          width: 56,
+          height: 56,
+          borderRadius: 20,
+          display: "grid",
+          placeItems: "center",
+          textDecoration: "none",
+          color: "#fff",
+          fontSize: 18,
+          fontWeight: 950,
+          background: "linear-gradient(135deg, #ef4444, #7f1d1d)",
+          boxShadow: "0 18px 38px rgba(239,68,68,0.24)",
         }}
       >
-        <div style={{ color: "#93c5fd", fontSize: 12, marginBottom: 8 }}>
-          Staff attuale
-        </div>
-        <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>
-          Operatore
-        </div>
-        <div
-          style={{
-            color: "#60a5fa",
-            fontSize: 12,
-            fontWeight: 900,
-            marginTop: 6,
-            textTransform: "uppercase",
-          }}
-        >
-          Reception
-        </div>
-      </div>
+        BG
+      </Link>
 
-      <nav style={{ display: "grid", gap: 7 }}>
+      <nav
+        style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+          overflowY: "auto",
+        }}
+      >
         {mainMenu.map((item) => {
           const active = isActive(pathname, item.href);
 
@@ -113,75 +104,70 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={item.label}
+              aria-label={item.label}
               style={{
+                width: 56,
+                height: 52,
+                borderRadius: 18,
+                display: "grid",
+                placeItems: "center",
+                color: active ? "#fff" : "#a1a1aa",
                 textDecoration: "none",
-                color: active ? "#fff" : "#cbd5e1",
                 background: active
-                  ? "linear-gradient(90deg, rgba(239,68,68,0.95), rgba(153,27,27,0.55))"
+                  ? "linear-gradient(135deg, rgba(239,68,68,0.95), rgba(127,29,29,0.75))"
                   : "rgba(255,255,255,0.035)",
                 border: active
-                  ? "1px solid rgba(248,113,113,0.65)"
+                  ? "1px solid rgba(248,113,113,0.55)"
                   : "1px solid rgba(255,255,255,0.055)",
-                borderRadius: 14,
-                padding: "12px 14px",
-                fontSize: 14,
-                fontWeight: active ? 900 : 750,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                transition: "all 160ms ease",
+                boxShadow: active
+                  ? "0 16px 32px rgba(239,68,68,0.22)"
+                  : "none",
               }}
             >
-              <span>{item.label}</span>
-              {item.badge ? (
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#fff",
-                    background: "rgba(255,255,255,0.16)",
-                    padding: "3px 7px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {item.badge}
-                </span>
-              ) : null}
+              {item.icon}
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ flex: 1 }} />
-
-      <div
-        style={{
-          border: "1px solid rgba(34,197,94,0.18)",
-          background: "rgba(20,20,20,0.86)",
-          borderRadius: 18,
-          padding: 18,
-        }}
-      >
-        <div style={{ color: "#9ca3af", fontSize: 13, marginBottom: 12 }}>
-          Sistema online
+      <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
+        <div
+          title="Sistema operativo"
+          style={{
+            width: 50,
+            height: 38,
+            borderRadius: 16,
+            display: "grid",
+            placeItems: "center",
+            color: "#86efac",
+            background: "rgba(34,197,94,0.08)",
+            border: "1px solid rgba(34,197,94,0.22)",
+            fontWeight: 950,
+          }}
+        >
+          ●
         </div>
+
         <button
+          title="Logout"
           onClick={async () => {
             await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
             window.location.href = "/login";
           }}
           style={{
-            width: "100%",
-            border: 0,
-            borderRadius: 14,
-            padding: "13px 14px",
-            background: "#ef4444",
-            color: "#fff",
-            fontWeight: 900,
+            width: 50,
+            height: 42,
+            borderRadius: 16,
             cursor: "pointer",
-            fontSize: 14,
+            color: "#fecaca",
+            background: "rgba(239,68,68,0.11)",
+            border: "1px solid rgba(239,68,68,0.22)",
+            display: "grid",
+            placeItems: "center",
           }}
         >
-          Logout
+          <LogOut size={18} />
         </button>
       </div>
     </aside>

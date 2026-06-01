@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const customerId = String(body.customer_id || "").trim();
+    const customerId = String(body.customer_id || body.customerId || "").trim();
 
     if (!customerId) {
       return NextResponse.json(
@@ -176,6 +176,7 @@ export async function POST(req: Request) {
     }
 
     const qrPayload = String(qrJson.qrcode);
+    const now = new Date().toISOString();
 
     const { error: dnakeSaveError } = await supabaseAdmin
       .from("customer_dnake_users")
@@ -187,7 +188,7 @@ export async function POST(req: Request) {
           qrcode_timestamp: qrcodeTimestamp,
           qr_payload: qrPayload,
           qr_status: "active",
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         },
         { onConflict: "dnake_user_id" }
       );
@@ -226,6 +227,14 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    await supabaseAdmin.from("customer_timeline").insert({
+      customer_id: customerId,
+      type: "dnake_qr",
+      title: "QR DNake generato",
+      description: `QR DNake attivo per ${dnakeName} · User ID ${dnakeUserId}`,
+      created_at: now,
+    });
 
     return NextResponse.json({
       ok: true,
