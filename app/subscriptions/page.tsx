@@ -26,7 +26,6 @@ type SubscriptionPlan = {
 };
 
 type SubscriptionRow = {
-  id: string;
   customer_id: string;
   starts_at: string | null;
   ends_at: string | null;
@@ -142,7 +141,6 @@ export default function SubscriptionsPage() {
       const { data, error } = await supabase
         .from("customer_subscriptions")
         .select(`
-          id,
           customer_id,
           starts_at,
           ends_at,
@@ -348,7 +346,7 @@ export default function SubscriptionsPage() {
                   const remainingDays = daysUntil(subscription.ends_at);
 
                   return (
-                    <tr key={subscription.id}>
+                    <tr key={subscription.customer_id}>
                       <td>
                         <div className="customer-name">{customerName(customer)}</div>
                       </td>
