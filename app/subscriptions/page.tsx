@@ -37,6 +37,12 @@ type SubscriptionRow = {
 };
 
 type SubscriptionStatus = "Scaduto" | "In scadenza" | "Attivo" | "Disattivato";
+type StatusFilter =
+  | "Tutti"
+  | "Scaduti"
+  | "In scadenza"
+  | "Attivi"
+  | "Disattivati";
 
 type StatusView = {
   label: SubscriptionStatus;
@@ -44,6 +50,13 @@ type StatusView = {
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+const STATUS_FILTERS: StatusFilter[] = [
+  "Tutti",
+  "Attivi",
+  "In scadenza",
+  "Scaduti",
+  "Disattivati",
+];
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] || null;
@@ -143,6 +156,20 @@ function statusRank(subscription: SubscriptionRow) {
   return ranks[subscriptionStatus(subscription).label];
 }
 
+function filterMatchesStatus(
+  subscription: SubscriptionRow,
+  statusFilter: StatusFilter,
+) {
+  const status = subscriptionStatus(subscription).label;
+
+  if (statusFilter === "Tutti") return true;
+  if (statusFilter === "Attivi") return status === "Attivo";
+  if (statusFilter === "Scaduti") return status === "Scaduto";
+  if (statusFilter === "Disattivati") return status === "Disattivato";
+
+  return status === "In scadenza";
+}
+
 function sortSubscriptions(subscriptions: SubscriptionRow[]) {
   return [...subscriptions].sort((left, right) => {
     const rankDiff = statusRank(left) - statusRank(right);
@@ -161,6 +188,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Tutti");
 
   async function loadSubscriptions(showLoading = true) {
     try {
@@ -278,9 +306,12 @@ export default function SubscriptionsPage() {
 
   const filteredSubscriptions = useMemo(() => {
     const value = search.trim().toLowerCase();
-    if (!value) return subscriptions;
 
     return subscriptions.filter((subscription) => {
+      if (!filterMatchesStatus(subscription, statusFilter)) return false;
+
+      if (!value) return true;
+
       const customer = firstRelation(subscription.customers);
       const plan = firstRelation(subscription.subscription_plans);
 
@@ -294,7 +325,7 @@ export default function SubscriptionsPage() {
         .toLowerCase()
         .includes(value);
     });
-  }, [subscriptions, search]);
+  }, [subscriptions, search, statusFilter]);
 
   return (
     <main className="subscriptions-page-v2">
@@ -363,12 +394,32 @@ export default function SubscriptionsPage() {
             </div>
           </div>
 
-          <input
-            className="subscriptions-search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cerca cliente, badge, telefono o piano..."
-          />
+          <div className="subscriptions-tools">
+            <div
+              className="subscriptions-filters"
+              aria-label="Filtra per stato"
+            >
+              {STATUS_FILTERS.map((filter) => (
+                <button
+                  key={filter}
+                  className={`subscriptions-filter ${statusFilter === filter ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setStatusFilter(filter)}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+            <input
+              className="subscriptions-search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Cerca cliente, badge, telefono o piano..."
+            />
+            <div className="subscriptions-found-count">
+              {filteredSubscriptions.length} clienti trovati
+            </div>
+          </div>
         </div>
 
         {errorMessage && (
@@ -412,18 +463,11 @@ export default function SubscriptionsPage() {
                         <div className="customer-name">
                           {customerName(customer)}
                         </div>
-                        <div className="customer-id">
-                          Ultimo abbonamento cliente
-                        </div>
                       </td>
                       <td>
                         <div className="contact-stack">
-                          <span>
-                            {customer?.badge_code
-                              ? `Badge ${customer.badge_code}`
-                              : "Badge —"}
-                          </span>
-                          <span>{customer?.phone || "Telefono —"}</span>
+                          <span>Badge: {customer?.badge_code || "—"}</span>
+                          <span>Tel: {customer?.phone || "—"}</span>
                         </div>
                       </td>
                       <td>
@@ -536,6 +580,43 @@ export default function SubscriptionsPage() {
           line-height: 1.5;
         }
 
+        .subscriptions-tools {
+          display: flex;
+          width: min(100%, 620px);
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 10px;
+        }
+
+        .subscriptions-filters {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .subscriptions-filter {
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.055);
+          color: #bdbdbd;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 900;
+          padding: 9px 12px;
+          transition:
+            border-color 0.2s ease,
+            background 0.2s ease,
+            color 0.2s ease;
+        }
+
+        .subscriptions-filter:hover,
+        .subscriptions-filter.active {
+          border-color: rgba(239, 68, 68, 0.42);
+          background: rgba(239, 68, 68, 0.14);
+          color: #fff;
+        }
+
         .subscriptions-search {
           width: min(100%, 380px);
           min-height: 46px;
@@ -551,6 +632,12 @@ export default function SubscriptionsPage() {
 
         .subscriptions-search::placeholder {
           color: #777;
+        }
+
+        .subscriptions-found-count {
+          color: #bdbdbd;
+          font-size: 12px;
+          font-weight: 900;
         }
 
         .subscriptions-error,
@@ -681,8 +768,17 @@ export default function SubscriptionsPage() {
             flex-direction: column;
           }
 
+          .subscriptions-tools,
           .subscriptions-search {
             width: 100%;
+          }
+
+          .subscriptions-tools {
+            align-items: stretch;
+          }
+
+          .subscriptions-filters {
+            justify-content: flex-start;
           }
         }
       `}</style>
