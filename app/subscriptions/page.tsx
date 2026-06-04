@@ -11,7 +11,6 @@ import "../components/ui/bodygate-ui.css";
 import { supabase } from "../lib/supabaseClient";
 
 type Customer = {
-  id: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
@@ -20,26 +19,33 @@ type Customer = {
 };
 
 type SubscriptionPlan = {
-  id: string;
   name: string | null;
   is_active: boolean | null;
 };
 
 type SubscriptionRow = {
   customer_id: string;
+  plan_id: string | null;
   starts_at: string | null;
   ends_at: string | null;
-  is_active: boolean | null;
   amount: number | string | null;
   created_at: string | null;
   customers: Customer | Customer[] | null;
   subscription_plans: SubscriptionPlan | SubscriptionPlan[] | null;
 };
 
-type StatusView = {
-  label: string;
+type SubscriptionStatus = {
+  label: "Scaduto" | "In scadenza" | "Attivo" | "Disattivato";
   tone: "success" | "danger" | "warning" | "neutral";
   rank: number;
+};
+
+type Metrics = {
+  active: number;
+  expiringSoon: number;
+  expired: number;
+  activePlans: number;
+  monthRevenue: number;
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -49,22 +55,51 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return value || null;
 }
 
-function dateOnly(date: Date) {
-  const clone = new Date(date);
-  clone.setHours(0, 0, 0, 0);
-  return clone;
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
 }
 
 function daysUntil(value?: string | null) {
   if (!value) return null;
-  const today = dateOnly(new Date());
-  const target = dateOnly(new Date(value));
-  return Math.ceil((target.getTime() - today.getTime()) / DAY_MS);
+
+  const target = new Date(value);
+  if (Number.isNaN(target.getTime())) return null;
+
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - startOfToday().getTime()) / DAY_MS);
+}
+
+function dateRank(value?: string | null) {
+  if (!value) return 0;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function latestRank(subscription: SubscriptionRow) {
+  return Math.max(
+    dateRank(subscription.created_at),
+    dateRank(subscription.starts_at),
+    dateRank(subscription.ends_at)
+  );
+}
+
+function isLatestSubscription(candidate: SubscriptionRow, current: SubscriptionRow) {
+  const candidateRank = latestRank(candidate);
+  const currentRank = latestRank(current);
+
+  if (candidateRank !== currentRank) return candidateRank > currentRank;
+  return dateRank(candidate.ends_at) > dateRank(current.ends_at);
 }
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("it-IT", {
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("it-IT", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -83,26 +118,7 @@ function customerName(customer: Customer | null) {
   return name || "Cliente senza nome";
 }
 
-function latestDateValue(subscription: SubscriptionRow) {
-  const value = subscription.created_at || subscription.starts_at || subscription.ends_at;
-  if (!value) return 0;
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function isNewerSubscription(candidate: SubscriptionRow, current: SubscriptionRow) {
-  const candidateDate = latestDateValue(candidate);
-  const currentDate = latestDateValue(current);
-
-  if (candidateDate !== currentDate) return candidateDate > currentDate;
-
-  const candidateEnd = candidate.ends_at ? new Date(candidate.ends_at).getTime() : 0;
-  const currentEnd = current.ends_at ? new Date(current.ends_at).getTime() : 0;
-
-  return candidateEnd > currentEnd;
-}
-
-function subscriptionStatus(subscription: SubscriptionRow): StatusView {
+function subscriptionStatus(subscription: SubscriptionRow): SubscriptionStatus {
   const customer = firstRelation(subscription.customers);
   const remainingDays = daysUntil(subscription.ends_at);
 
@@ -110,11 +126,7 @@ function subscriptionStatus(subscription: SubscriptionRow): StatusView {
     return { label: "Disattivato", tone: "neutral", rank: 3 };
   }
 
-  if (remainingDays === null || customer?.is_active !== true) {
-    return { label: "Da verificare", tone: "warning", rank: 4 };
-  }
-
-  if (remainingDays < 0) {
+  if (remainingDays === null || remainingDays < 0) {
     return { label: "Scaduto", tone: "danger", rank: 0 };
   }
 
@@ -123,6 +135,16 @@ function subscriptionStatus(subscription: SubscriptionRow): StatusView {
   }
 
   return { label: "Attivo", tone: "success", rank: 2 };
+}
+
+function formatRemainingDays(subscription: SubscriptionRow) {
+  const status = subscriptionStatus(subscription);
+  const remainingDays = daysUntil(subscription.ends_at);
+
+  if (status.label === "Disattivato") return "—";
+  if (remainingDays === null) return "—";
+  if (remainingDays < 0) return `${Math.abs(remainingDays)} gg fa`;
+  return `${remainingDays} gg`;
 }
 
 export default function SubscriptionsPage() {
@@ -142,13 +164,12 @@ export default function SubscriptionsPage() {
         .from("customer_subscriptions")
         .select(`
           customer_id,
+          plan_id,
           starts_at,
           ends_at,
-          is_active,
           amount,
           created_at,
           customers (
-            id,
             first_name,
             last_name,
             phone,
@@ -156,7 +177,6 @@ export default function SubscriptionsPage() {
             is_active
           ),
           subscription_plans (
-            id,
             name,
             is_active
           )
@@ -188,7 +208,7 @@ export default function SubscriptionsPage() {
     subscriptions.forEach((subscription) => {
       const current = latestByCustomer.get(subscription.customer_id);
 
-      if (!current || isNewerSubscription(subscription, current)) {
+      if (!current || isLatestSubscription(subscription, current)) {
         latestByCustomer.set(subscription.customer_id, subscription);
       }
     });
@@ -205,50 +225,38 @@ export default function SubscriptionsPage() {
     });
   }, [subscriptions]);
 
-  const metrics = useMemo(() => {
-    const today = dateOnly(new Date());
+  const metrics = useMemo<Metrics>(() => {
+    const today = startOfToday();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
     const activePlanIds = new Set<string>();
 
-    let active = 0;
-    let expiringSoon = 0;
-    let expired = 0;
-    let monthRevenue = 0;
+    return currentSubscriptions.reduce(
+      (totals, subscription) => {
+        const status = subscriptionStatus(subscription);
+        const plan = firstRelation(subscription.subscription_plans);
+        const createdAt = subscription.created_at ? new Date(subscription.created_at) : null;
 
-    currentSubscriptions.forEach((subscription) => {
-      const status = subscriptionStatus(subscription);
-      const plan = firstRelation(subscription.subscription_plans);
-      const createdAt = subscription.created_at ? new Date(subscription.created_at) : null;
+        if (status.label === "Attivo" || status.label === "In scadenza") {
+          totals.active += 1;
+        }
 
-      if (status.rank === 1 || status.rank === 2) {
-        active += 1;
-      }
+        if (status.label === "In scadenza") totals.expiringSoon += 1;
+        if (status.label === "Scaduto") totals.expired += 1;
 
-      if (status.rank === 1) {
-        expiringSoon += 1;
-      }
+        if (subscription.plan_id && plan?.is_active !== false) {
+          activePlanIds.add(subscription.plan_id);
+        }
 
-      if (status.rank === 0) {
-        expired += 1;
-      }
+        if (createdAt && createdAt >= monthStart && createdAt < nextMonthStart) {
+          totals.monthRevenue += Number(subscription.amount || 0);
+        }
 
-      if (plan?.id && plan.is_active !== false) {
-        activePlanIds.add(plan.id);
-      }
-
-      if (createdAt && createdAt >= monthStart && createdAt < nextMonthStart) {
-        monthRevenue += Number(subscription.amount || 0);
-      }
-    });
-
-    return {
-      active,
-      expiringSoon,
-      expired,
-      activePlans: activePlanIds.size,
-      monthRevenue,
-    };
+        totals.activePlans = activePlanIds.size;
+        return totals;
+      },
+      { active: 0, expiringSoon: 0, expired: 0, activePlans: 0, monthRevenue: 0 }
+    );
   }, [currentSubscriptions]);
 
   const filteredSubscriptions = useMemo(() => {
@@ -276,7 +284,7 @@ export default function SubscriptionsPage() {
       <BGPageHeader
         eyebrow="BodyGate Abbonamenti"
         title="Abbonamenti"
-        subtitle="Controllo operativo degli abbonamenti: scadenze, incassi del mese e accesso rapido alla scheda cliente per rinnovi e dettagli."
+        subtitle="Vista operativa degli abbonamenti correnti: una riga per cliente, KPI sullo stato attuale e accesso rapido alla scheda cliente per gestire i rinnovi."
         actions={
           <div className="subscriptions-actions">
             <BGStatusBadge tone={errorMessage ? "danger" : "success"}>
@@ -293,8 +301,8 @@ export default function SubscriptionsPage() {
         <BGStatCard label="Attivi" value={metrics.active} note="Abbonamenti validi oggi" tone="green" />
         <BGStatCard label="In scadenza" value={metrics.expiringSoon} note="Entro i prossimi 7 giorni" tone="yellow" />
         <BGStatCard label="Scaduti" value={metrics.expired} note="Da recuperare o archiviare" tone={metrics.expired > 0 ? "red" : "neutral"} />
-        <BGStatCard label="Piani attivi" value={metrics.activePlans} note="Piani collegati agli abbonamenti" tone="blue" />
-        <BGStatCard label="Incasso mese" value={euro(metrics.monthRevenue)} note="Somma abbonamenti creati nel mese" tone="green" />
+        <BGStatCard label="Piani attivi" value={metrics.activePlans} note="Piani collegati agli ultimi abbonamenti" tone="blue" />
+        <BGStatCard label="Incasso mese" value={euro(metrics.monthRevenue)} note="Ultimi abbonamenti cliente creati nel mese" tone="green" />
       </section>
 
       <BGCard>
@@ -302,7 +310,7 @@ export default function SubscriptionsPage() {
           <div>
             <div className="subscriptions-panel-title">Scadenziario abbonamenti</div>
             <div className="subscriptions-panel-subtitle">
-              Vista corrente: una sola riga per cliente con lo storico completo dentro la scheda cliente.
+              Mostra solo l&apos;ultimo abbonamento per cliente. Lo storico completo resta nella scheda cliente.
             </div>
           </div>
 
@@ -321,7 +329,7 @@ export default function SubscriptionsPage() {
         ) : filteredSubscriptions.length === 0 ? (
           <BGEmptyState
             title="Nessun abbonamento trovato"
-            description="Quando saranno presenti abbonamenti correnti in customer_subscriptions, compariranno in questa vista."
+            description="Quando saranno presenti abbonamenti in customer_subscriptions, compariranno in questa vista operativa."
           />
         ) : (
           <div className="subscriptions-table-wrap">
@@ -344,6 +352,7 @@ export default function SubscriptionsPage() {
                   const plan = firstRelation(subscription.subscription_plans);
                   const status = subscriptionStatus(subscription);
                   const remainingDays = daysUntil(subscription.ends_at);
+                  const daysClass = status.label === "Scaduto" ? "danger" : status.label === "In scadenza" ? "warning" : "";
 
                   return (
                     <tr key={subscription.customer_id}>
@@ -367,8 +376,8 @@ export default function SubscriptionsPage() {
                         <BGStatusBadge tone={status.tone}>{status.label}</BGStatusBadge>
                       </td>
                       <td>
-                        <span className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}>
-                          {remainingDays === null ? "—" : remainingDays < 0 ? `${Math.abs(remainingDays)} gg fa` : `${remainingDays} gg`}
+                        <span className={`days-pill ${daysClass}`}>
+                          {remainingDays === null && status.label === "Scaduto" ? "Scaduto" : formatRemainingDays(subscription)}
                         </span>
                       </td>
                       <td className="amount-cell">{euro(subscription.amount)}</td>
@@ -564,11 +573,6 @@ export default function SubscriptionsPage() {
         @media (max-width: 760px) {
           .subscriptions-page-v2 {
             padding: 16px;
-          }
-
-          .subscriptions-kpi-grid,
-          .subscriptions-panel-head {
-            grid-template-columns: 1fr;
           }
 
           .subscriptions-kpi-grid {
