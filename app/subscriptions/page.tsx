@@ -36,8 +36,10 @@ type SubscriptionRow = {
   subscription_plans: SubscriptionPlan | SubscriptionPlan[] | null;
 };
 
+type SubscriptionStatus = "Scaduto" | "In scadenza" | "Attivo" | "Disattivato";
+
 type StatusView = {
-  label: string;
+  label: SubscriptionStatus;
   tone: "success" | "danger" | "warning" | "neutral";
 };
 
@@ -58,6 +60,9 @@ function daysUntil(value?: string | null) {
   if (!value) return null;
   const today = dateOnly(new Date());
   const target = dateOnly(new Date(value));
+
+  if (Number.isNaN(target.getTime())) return null;
+
   return Math.ceil((target.getTime() - today.getTime()) / DAY_MS);
 }
 
@@ -78,7 +83,8 @@ function euro(value: number | string | null | undefined) {
 }
 
 function customerName(customer: Customer | null) {
-  const name = `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
+  const name =
+    `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
   return name || "Cliente senza nome";
 }
 
@@ -89,19 +95,65 @@ function subscriptionStatus(subscription: SubscriptionRow): StatusView {
     return { label: "Disattivato", tone: "neutral" };
   }
 
-  if (remainingDays === null) {
-    return { label: "Da verificare", tone: "warning" };
-  }
-
-  if (remainingDays < 0) {
+  if (remainingDays !== null && remainingDays < 0) {
     return { label: "Scaduto", tone: "danger" };
   }
 
-  if (remainingDays <= 7) {
+  if (remainingDays !== null && remainingDays <= 7) {
     return { label: "In scadenza", tone: "warning" };
   }
 
   return { label: "Attivo", tone: "success" };
+}
+
+function latestDateValue(subscription: SubscriptionRow) {
+  const candidates = [
+    subscription.created_at,
+    subscription.starts_at,
+    subscription.ends_at,
+  ]
+    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
+    .filter((value) => !Number.isNaN(value));
+
+  return Math.max(...candidates, 0);
+}
+
+function latestSubscriptionsByCustomer(subscriptions: SubscriptionRow[]) {
+  const latestByCustomer = new Map<string, SubscriptionRow>();
+
+  subscriptions.forEach((subscription) => {
+    const current = latestByCustomer.get(subscription.customer_id);
+
+    if (!current || latestDateValue(subscription) > latestDateValue(current)) {
+      latestByCustomer.set(subscription.customer_id, subscription);
+    }
+  });
+
+  return Array.from(latestByCustomer.values());
+}
+
+function statusRank(subscription: SubscriptionRow) {
+  const ranks: Record<SubscriptionStatus, number> = {
+    Scaduto: 0,
+    "In scadenza": 1,
+    Attivo: 2,
+    Disattivato: 3,
+  };
+
+  return ranks[subscriptionStatus(subscription).label];
+}
+
+function sortSubscriptions(subscriptions: SubscriptionRow[]) {
+  return [...subscriptions].sort((left, right) => {
+    const rankDiff = statusRank(left) - statusRank(right);
+    if (rankDiff !== 0) return rankDiff;
+
+    const leftDays = daysUntil(left.ends_at) ?? Number.MAX_SAFE_INTEGER;
+    const rightDays = daysUntil(right.ends_at) ?? Number.MAX_SAFE_INTEGER;
+    if (leftDays !== rightDays) return leftDays - rightDays;
+
+    return latestDateValue(right) - latestDateValue(left);
+  });
 }
 
 export default function SubscriptionsPage() {
@@ -119,7 +171,8 @@ export default function SubscriptionsPage() {
 
       const { data, error } = await supabase
         .from("customer_subscriptions")
-        .select(`
+        .select(
+          `
           id,
           customer_id,
           starts_at,
@@ -139,13 +192,23 @@ export default function SubscriptionsPage() {
             name,
             is_active
           )
-        `)
-        .order("ends_at", { ascending: true });
+        `,
+        )
+        .order("created_at", { ascending: false })
+        .order("starts_at", { ascending: false })
+        .order("ends_at", { ascending: false });
 
       if (error) throw error;
-      setSubscriptions((data || []) as SubscriptionRow[]);
+
+      const latestSubscriptions = latestSubscriptionsByCustomer(
+        (data || []) as SubscriptionRow[],
+      );
+      setSubscriptions(sortSubscriptions(latestSubscriptions));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Errore imprevisto durante il caricamento.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Errore imprevisto durante il caricamento.";
       setErrorMessage(message);
       setSubscriptions([]);
     } finally {
@@ -164,7 +227,11 @@ export default function SubscriptionsPage() {
   const metrics = useMemo(() => {
     const today = dateOnly(new Date());
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      1,
+    );
     const activePlanIds = new Set<string>();
 
     let active = 0;
@@ -173,16 +240,21 @@ export default function SubscriptionsPage() {
     let monthRevenue = 0;
 
     subscriptions.forEach((subscription) => {
-      const remainingDays = daysUntil(subscription.ends_at);
+      const status = subscriptionStatus(subscription).label;
       const plan = firstRelation(subscription.subscription_plans);
-      const createdAt = subscription.created_at ? new Date(subscription.created_at) : null;
+      const createdAt = subscription.created_at
+        ? new Date(subscription.created_at)
+        : null;
 
-      if (subscription.is_active !== false && remainingDays !== null && remainingDays >= 0) {
+      if (status === "Attivo") {
         active += 1;
-        if (remainingDays <= 7) expiringSoon += 1;
       }
 
-      if (remainingDays !== null && remainingDays < 0) {
+      if (status === "In scadenza") {
+        expiringSoon += 1;
+      }
+
+      if (status === "Scaduto") {
         expired += 1;
       }
 
@@ -235,7 +307,11 @@ export default function SubscriptionsPage() {
             <BGStatusBadge tone={errorMessage ? "danger" : "success"}>
               {errorMessage ? "Errore dati" : "Supabase live"}
             </BGStatusBadge>
-            <BGButton onClick={loadSubscriptions} variant="secondary" disabled={loading}>
+            <BGButton
+              onClick={loadSubscriptions}
+              variant="secondary"
+              disabled={loading}
+            >
               Aggiorna
             </BGButton>
           </div>
@@ -243,19 +319,47 @@ export default function SubscriptionsPage() {
       />
 
       <section className="subscriptions-kpi-grid">
-        <BGStatCard label="Attivi" value={metrics.active} note="Abbonamenti validi oggi" tone="green" />
-        <BGStatCard label="In scadenza" value={metrics.expiringSoon} note="Entro i prossimi 7 giorni" tone="yellow" />
-        <BGStatCard label="Scaduti" value={metrics.expired} note="Da recuperare o archiviare" tone={metrics.expired > 0 ? "red" : "neutral"} />
-        <BGStatCard label="Piani attivi" value={metrics.activePlans} note="Piani collegati agli abbonamenti" tone="blue" />
-        <BGStatCard label="Incasso mese" value={euro(metrics.monthRevenue)} note="Somma abbonamenti creati nel mese" tone="green" />
+        <BGStatCard
+          label="Attivi"
+          value={metrics.active}
+          note="Abbonamenti validi oggi"
+          tone="green"
+        />
+        <BGStatCard
+          label="In scadenza"
+          value={metrics.expiringSoon}
+          note="Entro i prossimi 7 giorni"
+          tone="yellow"
+        />
+        <BGStatCard
+          label="Scaduti"
+          value={metrics.expired}
+          note="Da recuperare o archiviare"
+          tone={metrics.expired > 0 ? "red" : "neutral"}
+        />
+        <BGStatCard
+          label="Piani attivi"
+          value={metrics.activePlans}
+          note="Piani collegati agli abbonamenti"
+          tone="blue"
+        />
+        <BGStatCard
+          label="Incasso mese"
+          value={euro(metrics.monthRevenue)}
+          note="Somma abbonamenti creati nel mese"
+          tone="green"
+        />
       </section>
 
       <BGCard>
         <div className="subscriptions-panel-head">
           <div>
-            <div className="subscriptions-panel-title">Scadenziario abbonamenti</div>
+            <div className="subscriptions-panel-title">
+              Scadenziario abbonamenti
+            </div>
             <div className="subscriptions-panel-subtitle">
-              Il rinnovo resta nella scheda cliente: da qui si consulta e si apre il profilo corretto.
+              Il rinnovo resta nella scheda cliente: da qui si consulta e si
+              apre il profilo corretto.
             </div>
           </div>
 
@@ -267,10 +371,14 @@ export default function SubscriptionsPage() {
           />
         </div>
 
-        {errorMessage && <div className="subscriptions-error">{errorMessage}</div>}
+        {errorMessage && (
+          <div className="subscriptions-error">{errorMessage}</div>
+        )}
 
         {loading ? (
-          <div className="subscriptions-loading">Caricamento abbonamenti...</div>
+          <div className="subscriptions-loading">
+            Caricamento abbonamenti...
+          </div>
         ) : filteredSubscriptions.length === 0 ? (
           <BGEmptyState
             title="Nessun abbonamento trovato"
@@ -301,33 +409,63 @@ export default function SubscriptionsPage() {
                   return (
                     <tr key={subscription.id}>
                       <td>
-                        <div className="customer-name">{customerName(customer)}</div>
-                        <div className="customer-id">ID {subscription.customer_id}</div>
+                        <div className="customer-name">
+                          {customerName(customer)}
+                        </div>
+                        <div className="customer-id">
+                          Ultimo abbonamento cliente
+                        </div>
                       </td>
                       <td>
                         <div className="contact-stack">
-                          <span>{customer?.badge_code ? `Badge ${customer.badge_code}` : "Badge —"}</span>
+                          <span>
+                            {customer?.badge_code
+                              ? `Badge ${customer.badge_code}`
+                              : "Badge —"}
+                          </span>
                           <span>{customer?.phone || "Telefono —"}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="plan-name">{plan?.name || "Piano non assegnato"}</div>
-                        <div className="plan-state">{plan?.is_active === false ? "Piano disattivato" : "Piano attivo"}</div>
+                        <div className="plan-name">
+                          {plan?.name || "Piano non assegnato"}
+                        </div>
+                        <div className="plan-state">
+                          {plan?.is_active === false
+                            ? "Piano disattivato"
+                            : "Piano attivo"}
+                        </div>
                       </td>
                       <td>
-                        <div className="period-range">{formatDate(subscription.starts_at)} → {formatDate(subscription.ends_at)}</div>
+                        <div className="period-range">
+                          {formatDate(subscription.starts_at)} →{" "}
+                          {formatDate(subscription.ends_at)}
+                        </div>
                       </td>
                       <td>
-                        <BGStatusBadge tone={status.tone}>{status.label}</BGStatusBadge>
+                        <BGStatusBadge tone={status.tone}>
+                          {status.label}
+                        </BGStatusBadge>
                       </td>
                       <td>
-                        <span className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}>
-                          {remainingDays === null ? "—" : remainingDays < 0 ? `${Math.abs(remainingDays)} gg fa` : `${remainingDays} gg`}
+                        <span
+                          className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}
+                        >
+                          {remainingDays === null
+                            ? "—"
+                            : remainingDays < 0
+                              ? `${Math.abs(remainingDays)} gg fa`
+                              : `${remainingDays} gg`}
                         </span>
                       </td>
-                      <td className="amount-cell">{euro(subscription.amount)}</td>
+                      <td className="amount-cell">
+                        {euro(subscription.amount)}
+                      </td>
                       <td>
-                        <BGButton href={`/customers/${subscription.customer_id}`} variant="ghost">
+                        <BGButton
+                          href={`/customers/${subscription.customer_id}`}
+                          variant="ghost"
+                        >
                           Apri scheda cliente
                         </BGButton>
                       </td>
@@ -346,8 +484,16 @@ export default function SubscriptionsPage() {
           padding: 26px;
           color: #fff;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.24), transparent 30%),
-            radial-gradient(circle at 76% 8%, rgba(255, 255, 255, 0.08), transparent 25%),
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.24),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 76% 8%,
+              rgba(255, 255, 255, 0.08),
+              transparent 25%
+            ),
             linear-gradient(135deg, #050505, #090909 48%, #111);
         }
 
