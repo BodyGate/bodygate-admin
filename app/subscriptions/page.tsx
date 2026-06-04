@@ -111,7 +111,7 @@ function subscriptionStatus(subscription: SubscriptionRow): StatusView {
     return { label: "Disattivato", tone: "neutral", rank: 3 };
   }
 
-  if (remainingDays === null) {
+  if (remainingDays === null || customer?.is_active !== true) {
     return { label: "Da verificare", tone: "warning", rank: 4 };
   }
 
@@ -518,7 +518,6 @@ export default function SubscriptionsPage() {
           font-weight: 950;
         }
 
-        .customer-id,
         .plan-state,
         .contact-stack,
         .period-range {
