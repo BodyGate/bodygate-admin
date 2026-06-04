@@ -36,12 +36,23 @@ type SubscriptionRow = {
   subscription_plans: SubscriptionPlan | SubscriptionPlan[] | null;
 };
 
+type SubscriptionStatus = "Scaduto" | "In scadenza" | "Attivo" | "Disattivato";
+type SubscriptionFilter = "Tutti" | SubscriptionStatus;
+
 type StatusView = {
-  label: string;
+  label: SubscriptionStatus;
   tone: "success" | "danger" | "warning" | "neutral";
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+
+const SUBSCRIPTION_FILTERS: { label: string; value: SubscriptionFilter }[] = [
+  { label: "Tutti", value: "Tutti" },
+  { label: "Attivi", value: "Attivo" },
+  { label: "In scadenza", value: "In scadenza" },
+  { label: "Scaduti", value: "Scaduto" },
+  { label: "Disattivati", value: "Disattivato" },
+];
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] || null;
@@ -58,6 +69,9 @@ function daysUntil(value?: string | null) {
   if (!value) return null;
   const today = dateOnly(new Date());
   const target = dateOnly(new Date(value));
+
+  if (Number.isNaN(target.getTime())) return null;
+
   return Math.ceil((target.getTime() - today.getTime()) / DAY_MS);
 }
 
@@ -78,7 +92,8 @@ function euro(value: number | string | null | undefined) {
 }
 
 function customerName(customer: Customer | null) {
-  const name = `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
+  const name =
+    `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
   return name || "Cliente senza nome";
 }
 
@@ -89,19 +104,65 @@ function subscriptionStatus(subscription: SubscriptionRow): StatusView {
     return { label: "Disattivato", tone: "neutral" };
   }
 
-  if (remainingDays === null) {
-    return { label: "Da verificare", tone: "warning" };
-  }
-
-  if (remainingDays < 0) {
+  if (remainingDays !== null && remainingDays < 0) {
     return { label: "Scaduto", tone: "danger" };
   }
 
-  if (remainingDays <= 7) {
+  if (remainingDays !== null && remainingDays <= 7) {
     return { label: "In scadenza", tone: "warning" };
   }
 
   return { label: "Attivo", tone: "success" };
+}
+
+function latestDateValue(subscription: SubscriptionRow) {
+  const candidates = [
+    subscription.created_at,
+    subscription.starts_at,
+    subscription.ends_at,
+  ]
+    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
+    .filter((value) => !Number.isNaN(value));
+
+  return Math.max(...candidates, 0);
+}
+
+function latestSubscriptionsByCustomer(subscriptions: SubscriptionRow[]) {
+  const latestByCustomer = new Map<string, SubscriptionRow>();
+
+  subscriptions.forEach((subscription) => {
+    const current = latestByCustomer.get(subscription.customer_id);
+
+    if (!current || latestDateValue(subscription) > latestDateValue(current)) {
+      latestByCustomer.set(subscription.customer_id, subscription);
+    }
+  });
+
+  return Array.from(latestByCustomer.values());
+}
+
+function statusRank(subscription: SubscriptionRow) {
+  const ranks: Record<SubscriptionStatus, number> = {
+    Scaduto: 0,
+    "In scadenza": 1,
+    Attivo: 2,
+    Disattivato: 3,
+  };
+
+  return ranks[subscriptionStatus(subscription).label];
+}
+
+function sortSubscriptions(subscriptions: SubscriptionRow[]) {
+  return [...subscriptions].sort((left, right) => {
+    const rankDiff = statusRank(left) - statusRank(right);
+    if (rankDiff !== 0) return rankDiff;
+
+    const leftDays = daysUntil(left.ends_at) ?? Number.MAX_SAFE_INTEGER;
+    const rightDays = daysUntil(right.ends_at) ?? Number.MAX_SAFE_INTEGER;
+    if (leftDays !== rightDays) return leftDays - rightDays;
+
+    return latestDateValue(right) - latestDateValue(left);
+  });
 }
 
 export default function SubscriptionsPage() {
@@ -109,6 +170,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<SubscriptionFilter>("Tutti");
 
   async function loadSubscriptions(showLoading = true) {
     try {
@@ -119,7 +181,8 @@ export default function SubscriptionsPage() {
 
       const { data, error } = await supabase
         .from("customer_subscriptions")
-        .select(`
+        .select(
+          `
           id,
           customer_id,
           starts_at,
@@ -139,13 +202,23 @@ export default function SubscriptionsPage() {
             name,
             is_active
           )
-        `)
-        .order("ends_at", { ascending: true });
+        `,
+        )
+        .order("created_at", { ascending: false })
+        .order("starts_at", { ascending: false })
+        .order("ends_at", { ascending: false });
 
       if (error) throw error;
-      setSubscriptions((data || []) as SubscriptionRow[]);
+
+      const latestSubscriptions = latestSubscriptionsByCustomer(
+        (data || []) as SubscriptionRow[],
+      );
+      setSubscriptions(sortSubscriptions(latestSubscriptions));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Errore imprevisto durante il caricamento.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Errore imprevisto durante il caricamento.";
       setErrorMessage(message);
       setSubscriptions([]);
     } finally {
@@ -164,7 +237,11 @@ export default function SubscriptionsPage() {
   const metrics = useMemo(() => {
     const today = dateOnly(new Date());
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      1,
+    );
     const activePlanIds = new Set<string>();
 
     let active = 0;
@@ -173,16 +250,21 @@ export default function SubscriptionsPage() {
     let monthRevenue = 0;
 
     subscriptions.forEach((subscription) => {
-      const remainingDays = daysUntil(subscription.ends_at);
+      const status = subscriptionStatus(subscription).label;
       const plan = firstRelation(subscription.subscription_plans);
-      const createdAt = subscription.created_at ? new Date(subscription.created_at) : null;
+      const createdAt = subscription.created_at
+        ? new Date(subscription.created_at)
+        : null;
 
-      if (subscription.is_active !== false && remainingDays !== null && remainingDays >= 0) {
+      if (status === "Attivo") {
         active += 1;
-        if (remainingDays <= 7) expiringSoon += 1;
       }
 
-      if (remainingDays !== null && remainingDays < 0) {
+      if (status === "In scadenza") {
+        expiringSoon += 1;
+      }
+
+      if (status === "Scaduto") {
         expired += 1;
       }
 
@@ -206,9 +288,16 @@ export default function SubscriptionsPage() {
 
   const filteredSubscriptions = useMemo(() => {
     const value = search.trim().toLowerCase();
-    if (!value) return subscriptions;
 
     return subscriptions.filter((subscription) => {
+      const status = subscriptionStatus(subscription).label;
+
+      if (activeFilter !== "Tutti" && status !== activeFilter) {
+        return false;
+      }
+
+      if (!value) return true;
+
       const customer = firstRelation(subscription.customers);
       const plan = firstRelation(subscription.subscription_plans);
 
@@ -222,7 +311,7 @@ export default function SubscriptionsPage() {
         .toLowerCase()
         .includes(value);
     });
-  }, [subscriptions, search]);
+  }, [activeFilter, subscriptions, search]);
 
   return (
     <main className="subscriptions-page-v2">
@@ -235,7 +324,11 @@ export default function SubscriptionsPage() {
             <BGStatusBadge tone={errorMessage ? "danger" : "success"}>
               {errorMessage ? "Errore dati" : "Supabase live"}
             </BGStatusBadge>
-            <BGButton onClick={loadSubscriptions} variant="secondary" disabled={loading}>
+            <BGButton
+              onClick={loadSubscriptions}
+              variant="secondary"
+              disabled={loading}
+            >
               Aggiorna
             </BGButton>
           </div>
@@ -243,34 +336,87 @@ export default function SubscriptionsPage() {
       />
 
       <section className="subscriptions-kpi-grid">
-        <BGStatCard label="Attivi" value={metrics.active} note="Abbonamenti validi oggi" tone="green" />
-        <BGStatCard label="In scadenza" value={metrics.expiringSoon} note="Entro i prossimi 7 giorni" tone="yellow" />
-        <BGStatCard label="Scaduti" value={metrics.expired} note="Da recuperare o archiviare" tone={metrics.expired > 0 ? "red" : "neutral"} />
-        <BGStatCard label="Piani attivi" value={metrics.activePlans} note="Piani collegati agli abbonamenti" tone="blue" />
-        <BGStatCard label="Incasso mese" value={euro(metrics.monthRevenue)} note="Somma abbonamenti creati nel mese" tone="green" />
+        <BGStatCard
+          label="Attivi"
+          value={metrics.active}
+          note="Abbonamenti validi oggi"
+          tone="green"
+        />
+        <BGStatCard
+          label="In scadenza"
+          value={metrics.expiringSoon}
+          note="Entro i prossimi 7 giorni"
+          tone="yellow"
+        />
+        <BGStatCard
+          label="Scaduti"
+          value={metrics.expired}
+          note="Da recuperare o archiviare"
+          tone={metrics.expired > 0 ? "red" : "neutral"}
+        />
+        <BGStatCard
+          label="Piani attivi"
+          value={metrics.activePlans}
+          note="Piani collegati agli abbonamenti"
+          tone="blue"
+        />
+        <BGStatCard
+          label="Incasso mese"
+          value={euro(metrics.monthRevenue)}
+          note="Somma abbonamenti creati nel mese"
+          tone="green"
+        />
       </section>
 
       <BGCard>
         <div className="subscriptions-panel-head">
           <div>
-            <div className="subscriptions-panel-title">Scadenziario abbonamenti</div>
+            <div className="subscriptions-panel-title">
+              Scadenziario abbonamenti
+            </div>
             <div className="subscriptions-panel-subtitle">
-              Il rinnovo resta nella scheda cliente: da qui si consulta e si apre il profilo corretto.
+              Il rinnovo resta nella scheda cliente: da qui si consulta e si
+              apre il profilo corretto.
             </div>
           </div>
 
-          <input
-            className="subscriptions-search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cerca cliente, badge, telefono o piano..."
-          />
+          <div className="subscriptions-search-area">
+            <input
+              className="subscriptions-search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Cerca cliente, badge, telefono o piano..."
+            />
+            <div className="subscriptions-found-count">
+              {filteredSubscriptions.length} clienti trovati
+            </div>
+          </div>
         </div>
 
-        {errorMessage && <div className="subscriptions-error">{errorMessage}</div>}
+        <div
+          className="subscriptions-filter-row"
+          aria-label="Filtri abbonamenti"
+        >
+          {SUBSCRIPTION_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              className={`subscriptions-filter-chip ${activeFilter === filter.value ? "active" : ""}`}
+              type="button"
+              onClick={() => setActiveFilter(filter.value)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        {errorMessage && (
+          <div className="subscriptions-error">{errorMessage}</div>
+        )}
 
         {loading ? (
-          <div className="subscriptions-loading">Caricamento abbonamenti...</div>
+          <div className="subscriptions-loading">
+            Caricamento abbonamenti...
+          </div>
         ) : filteredSubscriptions.length === 0 ? (
           <BGEmptyState
             title="Nessun abbonamento trovato"
@@ -301,33 +447,61 @@ export default function SubscriptionsPage() {
                   return (
                     <tr key={subscription.id}>
                       <td>
-                        <div className="customer-name">{customerName(customer)}</div>
-                        <div className="customer-id">ID {subscription.customer_id}</div>
-                      </td>
-                      <td>
-                        <div className="contact-stack">
-                          <span>{customer?.badge_code ? `Badge ${customer.badge_code}` : "Badge —"}</span>
-                          <span>{customer?.phone || "Telefono —"}</span>
+                        <div className="customer-name">
+                          {customerName(customer)}
                         </div>
                       </td>
                       <td>
-                        <div className="plan-name">{plan?.name || "Piano non assegnato"}</div>
-                        <div className="plan-state">{plan?.is_active === false ? "Piano disattivato" : "Piano attivo"}</div>
+                        <div className="contact-stack">
+                          <span>
+                            <strong>Badge:</strong>{" "}
+                            {customer?.badge_code || "—"}
+                          </span>
+                          <span>
+                            <strong>Tel:</strong> {customer?.phone || "—"}
+                          </span>
+                        </div>
                       </td>
                       <td>
-                        <div className="period-range">{formatDate(subscription.starts_at)} → {formatDate(subscription.ends_at)}</div>
+                        <div className="plan-name">
+                          {plan?.name || "Piano non assegnato"}
+                        </div>
+                        <div className="plan-state">
+                          {plan?.is_active === false
+                            ? "Piano disattivato"
+                            : "Piano attivo"}
+                        </div>
                       </td>
                       <td>
-                        <BGStatusBadge tone={status.tone}>{status.label}</BGStatusBadge>
+                        <div className="period-range">
+                          {formatDate(subscription.starts_at)} →{" "}
+                          {formatDate(subscription.ends_at)}
+                        </div>
                       </td>
                       <td>
-                        <span className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}>
-                          {remainingDays === null ? "—" : remainingDays < 0 ? `${Math.abs(remainingDays)} gg fa` : `${remainingDays} gg`}
+                        <BGStatusBadge tone={status.tone}>
+                          {status.label}
+                        </BGStatusBadge>
+                      </td>
+                      <td>
+                        <span
+                          className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}
+                        >
+                          {remainingDays === null
+                            ? "—"
+                            : remainingDays < 0
+                              ? `${Math.abs(remainingDays)} gg fa`
+                              : `${remainingDays} gg`}
                         </span>
                       </td>
-                      <td className="amount-cell">{euro(subscription.amount)}</td>
+                      <td className="amount-cell">
+                        {euro(subscription.amount)}
+                      </td>
                       <td>
-                        <BGButton href={`/customers/${subscription.customer_id}`} variant="ghost">
+                        <BGButton
+                          href={`/customers/${subscription.customer_id}`}
+                          variant="ghost"
+                        >
                           Apri scheda cliente
                         </BGButton>
                       </td>
@@ -346,8 +520,16 @@ export default function SubscriptionsPage() {
           padding: 26px;
           color: #fff;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.24), transparent 30%),
-            radial-gradient(circle at 76% 8%, rgba(255, 255, 255, 0.08), transparent 25%),
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.24),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 76% 8%,
+              rgba(255, 255, 255, 0.08),
+              transparent 25%
+            ),
             linear-gradient(135deg, #050505, #090909 48%, #111);
         }
 
@@ -390,8 +572,16 @@ export default function SubscriptionsPage() {
           line-height: 1.5;
         }
 
-        .subscriptions-search {
+        .subscriptions-search-area {
+          display: flex;
+          align-items: flex-end;
+          flex-direction: column;
+          gap: 8px;
           width: min(100%, 380px);
+        }
+
+        .subscriptions-search {
+          width: 100%;
           min-height: 46px;
           border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.12);
@@ -405,6 +595,54 @@ export default function SubscriptionsPage() {
 
         .subscriptions-search::placeholder {
           color: #777;
+        }
+
+        .subscriptions-found-count {
+          color: #fca5a5;
+          font-size: 12px;
+          font-weight: 950;
+          letter-spacing: 0.02em;
+        }
+
+        .subscriptions-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          padding-bottom: 18px;
+          margin-bottom: 18px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .subscriptions-filter-chip {
+          min-height: 38px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.055);
+          color: #d4d4d4;
+          cursor: pointer;
+          padding: 0 14px;
+          font-size: 12px;
+          font-weight: 950;
+          transition:
+            background 0.16s ease,
+            border-color 0.16s ease,
+            color 0.16s ease,
+            transform 0.16s ease;
+        }
+
+        .subscriptions-filter-chip:hover {
+          border-color: rgba(239, 68, 68, 0.38);
+          background: rgba(239, 68, 68, 0.11);
+          color: #fff;
+          transform: translateY(-1px);
+        }
+
+        .subscriptions-filter-chip.active {
+          border-color: rgba(239, 68, 68, 0.58);
+          background: linear-gradient(135deg, #ef4444, #991b1b);
+          box-shadow: 0 14px 34px rgba(239, 68, 68, 0.18);
+          color: #fff;
         }
 
         .subscriptions-error,
@@ -485,6 +723,11 @@ export default function SubscriptionsPage() {
           gap: 4px;
         }
 
+        .contact-stack strong {
+          color: #f5f5f5;
+          font-weight: 950;
+        }
+
         .days-pill {
           display: inline-flex;
           min-width: 76px;
@@ -533,6 +776,15 @@ export default function SubscriptionsPage() {
           .subscriptions-panel-head {
             align-items: stretch;
             flex-direction: column;
+          }
+
+          .subscriptions-search-area {
+            align-items: stretch;
+            width: 100%;
+          }
+
+          .subscriptions-found-count {
+            text-align: left;
           }
 
           .subscriptions-search {
