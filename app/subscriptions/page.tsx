@@ -708,7 +708,6 @@ export default function SubscriptionsPage() {
           font-weight: 950;
         }
 
-        .customer-id,
         .plan-state,
         .contact-stack,
         .period-range {
