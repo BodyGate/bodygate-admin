@@ -16,6 +16,7 @@ type Customer = {
   last_name: string | null;
   phone: string | null;
   badge_code: string | null;
+  is_active: boolean | null;
 };
 
 type SubscriptionPlan = {
@@ -43,6 +44,8 @@ type StatusFilter =
   | "In scadenza"
   | "Attivi"
   | "Disattivati";
+type AccessFilter = "Tutti" | "Accesso OK" | "Accesso bloccato";
+type AccessStatus = "Accesso OK" | "Accesso bloccato";
 
 type StatusView = {
   label: SubscriptionStatus;
@@ -56,6 +59,11 @@ const STATUS_FILTERS: StatusFilter[] = [
   "In scadenza",
   "Scaduti",
   "Disattivati",
+];
+const ACCESS_FILTERS: AccessFilter[] = [
+  "Tutti",
+  "Accesso OK",
+  "Accesso bloccato",
 ];
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -131,6 +139,18 @@ function latestDateValue(subscription: SubscriptionRow) {
   return Math.max(...candidates, 0);
 }
 
+function accessStatus(subscription: SubscriptionRow): AccessStatus {
+  const customer = firstRelation(subscription.customers);
+  const status = subscriptionStatus(subscription).label;
+  const subscriptionAllowsAccess =
+    subscription.is_active !== false && status !== "Scaduto";
+  const customerAllowsAccess = customer ? customer.is_active !== false : false;
+
+  return subscriptionAllowsAccess && customerAllowsAccess
+    ? "Accesso OK"
+    : "Accesso bloccato";
+}
+
 function latestSubscriptionsByCustomer(subscriptions: SubscriptionRow[]) {
   const latestByCustomer = new Map<string, SubscriptionRow>();
 
@@ -170,14 +190,50 @@ function filterMatchesStatus(
   return status === "In scadenza";
 }
 
+function endDateValue(subscription: SubscriptionRow) {
+  const value = subscription.ends_at
+    ? new Date(subscription.ends_at).getTime()
+    : Number.NaN;
+
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function filterMatchesAccess(
+  subscription: SubscriptionRow,
+  accessFilter: AccessFilter,
+) {
+  if (accessFilter === "Tutti") return true;
+
+  return accessStatus(subscription) === accessFilter;
+}
+
+function subscriptionRowClass(subscription: SubscriptionRow) {
+  const status = subscriptionStatus(subscription).label;
+
+  if (status === "Scaduto") return "subscription-row subscription-row-expired";
+  if (status === "In scadenza")
+    return "subscription-row subscription-row-expiring";
+
+  return "subscription-row";
+}
+
 function sortSubscriptions(subscriptions: SubscriptionRow[]) {
   return [...subscriptions].sort((left, right) => {
     const rankDiff = statusRank(left) - statusRank(right);
     if (rankDiff !== 0) return rankDiff;
 
-    const leftDays = daysUntil(left.ends_at) ?? Number.MAX_SAFE_INTEGER;
-    const rightDays = daysUntil(right.ends_at) ?? Number.MAX_SAFE_INTEGER;
-    if (leftDays !== rightDays) return leftDays - rightDays;
+    const leftStatus = subscriptionStatus(left).label;
+
+    if (leftStatus === "Scaduto") {
+      const endDiff = endDateValue(right) - endDateValue(left);
+      if (endDiff !== 0) return endDiff;
+    }
+
+    if (leftStatus === "In scadenza" || leftStatus === "Attivo") {
+      const leftDays = daysUntil(left.ends_at) ?? Number.MAX_SAFE_INTEGER;
+      const rightDays = daysUntil(right.ends_at) ?? Number.MAX_SAFE_INTEGER;
+      if (leftDays !== rightDays) return leftDays - rightDays;
+    }
 
     return latestDateValue(right) - latestDateValue(left);
   });
@@ -189,6 +245,7 @@ export default function SubscriptionsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Tutti");
+  const [accessFilter, setAccessFilter] = useState<AccessFilter>("Tutti");
 
   async function loadSubscriptions(showLoading = true) {
     try {
@@ -213,7 +270,8 @@ export default function SubscriptionsPage() {
             first_name,
             last_name,
             phone,
-            badge_code
+            badge_code,
+            is_active
           ),
           subscription_plans (
             id,
@@ -309,6 +367,7 @@ export default function SubscriptionsPage() {
 
     return subscriptions.filter((subscription) => {
       if (!filterMatchesStatus(subscription, statusFilter)) return false;
+      if (!filterMatchesAccess(subscription, accessFilter)) return false;
 
       if (!value) return true;
 
@@ -325,7 +384,7 @@ export default function SubscriptionsPage() {
         .toLowerCase()
         .includes(value);
     });
-  }, [subscriptions, search, statusFilter]);
+  }, [subscriptions, search, statusFilter, accessFilter]);
 
   return (
     <main className="subscriptions-page-v2">
@@ -410,6 +469,21 @@ export default function SubscriptionsPage() {
                 </button>
               ))}
             </div>
+            <div
+              className="subscriptions-filters subscriptions-access-filters"
+              aria-label="Filtra per accesso"
+            >
+              {ACCESS_FILTERS.map((filter) => (
+                <button
+                  key={filter}
+                  className={`subscriptions-filter ${accessFilter === filter ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setAccessFilter(filter)}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
             <input
               className="subscriptions-search"
               value={search}
@@ -445,6 +519,7 @@ export default function SubscriptionsPage() {
                   <th>Piano</th>
                   <th>Periodo</th>
                   <th>Stato</th>
+                  <th>Accesso</th>
                   <th>Giorni residui</th>
                   <th>Importo</th>
                   <th>Azioni</th>
@@ -456,9 +531,13 @@ export default function SubscriptionsPage() {
                   const plan = firstRelation(subscription.subscription_plans);
                   const status = subscriptionStatus(subscription);
                   const remainingDays = daysUntil(subscription.ends_at);
+                  const access = accessStatus(subscription);
 
                   return (
-                    <tr key={subscription.id}>
+                    <tr
+                      key={subscription.id}
+                      className={subscriptionRowClass(subscription)}
+                    >
                       <td>
                         <div className="customer-name">
                           {customerName(customer)}
@@ -492,6 +571,13 @@ export default function SubscriptionsPage() {
                         </BGStatusBadge>
                       </td>
                       <td>
+                        <BGStatusBadge
+                          tone={access === "Accesso OK" ? "success" : "danger"}
+                        >
+                          {access}
+                        </BGStatusBadge>
+                      </td>
+                      <td>
                         <span
                           className={`days-pill ${remainingDays !== null && remainingDays < 0 ? "danger" : remainingDays !== null && remainingDays <= 7 ? "warning" : ""}`}
                         >
@@ -506,12 +592,20 @@ export default function SubscriptionsPage() {
                         {euro(subscription.amount)}
                       </td>
                       <td>
-                        <BGButton
-                          href={`/customers/${subscription.customer_id}`}
-                          variant="ghost"
-                        >
-                          Apri scheda cliente
-                        </BGButton>
+                        <div className="subscription-action-stack">
+                          <BGButton
+                            href={`/customers/${subscription.customer_id}`}
+                            variant="ghost"
+                          >
+                            Apri scheda cliente
+                          </BGButton>
+                          <BGButton
+                            href={`/customers/${subscription.customer_id}`}
+                            variant="secondary"
+                          >
+                            Rinnova
+                          </BGButton>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -665,7 +759,7 @@ export default function SubscriptionsPage() {
 
         .subscriptions-table {
           width: 100%;
-          min-width: 1180px;
+          min-width: 1280px;
           border-collapse: collapse;
         }
 
@@ -690,6 +784,28 @@ export default function SubscriptionsPage() {
 
         .subscriptions-table tbody tr {
           background: rgba(255, 255, 255, 0.018);
+        }
+
+        .subscriptions-table tbody tr.subscription-row-expired {
+          box-shadow:
+            inset 3px 0 0 rgba(239, 68, 68, 0.72),
+            0 0 18px rgba(239, 68, 68, 0.08);
+          background: rgba(239, 68, 68, 0.035);
+        }
+
+        .subscriptions-table tbody tr.subscription-row-expired td {
+          border-top-color: rgba(239, 68, 68, 0.22);
+        }
+
+        .subscriptions-table tbody tr.subscription-row-expiring {
+          box-shadow:
+            inset 3px 0 0 rgba(250, 204, 21, 0.68),
+            0 0 18px rgba(250, 204, 21, 0.07);
+          background: rgba(250, 204, 21, 0.032);
+        }
+
+        .subscriptions-table tbody tr.subscription-row-expiring td {
+          border-top-color: rgba(250, 204, 21, 0.2);
         }
 
         .subscriptions-table tbody tr:hover {
@@ -741,6 +857,13 @@ export default function SubscriptionsPage() {
           border-color: rgba(239, 68, 68, 0.3);
           background: rgba(239, 68, 68, 0.1);
           color: #fecaca;
+        }
+
+        .subscription-action-stack {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
         @media (max-width: 1180px) {
