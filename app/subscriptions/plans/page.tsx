@@ -58,6 +58,8 @@ const BUSINESS_PRESETS: PresetPlan[] = [
   { name: "Annuale", price: "350", durationDays: "365" },
 ];
 
+const ALL_BRANCHES_VALUE = "";
+
 function toNumber(value: number | string | null | undefined) {
   return Number(value || 0);
 }
@@ -72,6 +74,29 @@ function euro(value: number | string | null | undefined) {
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function sortPlansByDisplayOrder(plans: SubscriptionPlan[]) {
+  return [...plans].sort((firstPlan, secondPlan) => {
+    const sortOrderDifference =
+      toNumber(firstPlan.sort_order) - toNumber(secondPlan.sort_order);
+
+    if (sortOrderDifference !== 0) return sortOrderDifference;
+
+    return (firstPlan.name || "").localeCompare(secondPlan.name || "", "it", {
+      sensitivity: "base",
+    });
+  });
+}
+
+function getUniquePlanBranchIds(plans: SubscriptionPlan[]) {
+  return Array.from(
+    new Set(
+      plans
+        .map((plan) => plan.branch_id)
+        .filter((branchId): branchId is string => Boolean(branchId))
+    )
+  );
 }
 
 function planToForm(plan: SubscriptionPlan): PlanForm {
@@ -124,7 +149,7 @@ export default function SubscriptionPlansPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedBranchId) loadPlans(selectedBranchId);
+    loadPlans(selectedBranchId);
   }, [selectedBranchId]);
 
   const selectedBranch = useMemo(
@@ -149,9 +174,6 @@ export default function SubscriptionPlansPage() {
   }, [plans]);
 
   async function loadBranches() {
-    setLoading(true);
-    setErrorMessage("");
-
     const { data, error } = await supabase
       .from("branches")
       .select("id, name, city")
@@ -161,41 +183,46 @@ export default function SubscriptionPlansPage() {
     if (error) {
       setErrorMessage("Impossibile caricare le sedi attive.");
       setBranches([]);
-      setPlans([]);
-      setLoading(false);
       return;
     }
 
-    const branchList = data || [];
-    setBranches(branchList);
-
-    if (branchList.length > 0) {
-      setSelectedBranchId((current) => current || branchList[0].id);
-    } else {
-      setLoading(false);
-    }
+    setBranches(data || []);
   }
 
-  async function loadPlans(branchId: string) {
+  async function loadPlans(branchId = ALL_BRANCHES_VALUE) {
     setLoading(true);
     setErrorMessage("");
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("subscription_plans")
       .select("id, branch_id, name, price, promo_price, duration_days, sort_order, is_active")
-      .eq("branch_id", branchId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
+
+    if (branchId) {
+      query = query.eq("branch_id", branchId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       setErrorMessage("Impossibile caricare i piani abbonamento.");
       setPlans([]);
     } else {
-      setPlans(data || []);
+      const sortedPlans = sortPlansByDisplayOrder(data || []);
+      setPlans(sortedPlans);
       setNewPlan((current) => ({
         ...current,
-        sortOrder: String((data || []).length + 1),
+        sortOrder: String(sortedPlans.length + 1),
       }));
+
+      if (!branchId) {
+        const planBranchIds = getUniquePlanBranchIds(sortedPlans);
+
+        if (planBranchIds.length === 1) {
+          setSelectedBranchId((current) => current || planBranchIds[0]);
+        }
+      }
     }
 
     setLoading(false);
@@ -306,7 +333,7 @@ export default function SubscriptionPlansPage() {
     } else {
       setMessage("Piano abbonamento aggiornato.");
       closeEditor();
-      if (selectedBranchId) await loadPlans(selectedBranchId);
+      await loadPlans(selectedBranchId);
     }
 
     setSaving(false);
@@ -327,7 +354,7 @@ export default function SubscriptionPlansPage() {
       setErrorMessage("Cambio stato non riuscito.");
     } else {
       setMessage(nextActiveState ? "Piano riattivato." : "Piano disattivato.");
-      if (selectedBranchId) await loadPlans(selectedBranchId);
+      await loadPlans(selectedBranchId);
       if (editingPlan?.id === plan.id) {
         setEditingPlan((current) =>
           current ? { ...current, is_active: nextActiveState } : current
@@ -350,7 +377,7 @@ export default function SubscriptionPlansPage() {
             <BGStatusBadge tone={errorMessage ? "danger" : "info"}>
               {errorMessage ? "Attenzione" : "Solo piani"}
             </BGStatusBadge>
-            <BGButton onClick={() => selectedBranchId && loadPlans(selectedBranchId)} variant="secondary">
+            <BGButton onClick={() => loadPlans(selectedBranchId)} variant="secondary">
               Aggiorna
             </BGButton>
           </div>
@@ -366,8 +393,12 @@ export default function SubscriptionPlansPage() {
           value={selectedBranchId}
           onChange={(event) => setSelectedBranchId(event.target.value)}
           className="plans-select"
-          disabled={branches.length === 0 || saving}
+          disabled={saving}
         >
+          <option value={ALL_BRANCHES_VALUE}>Tutte le sedi</option>
+          {selectedBranchId && !selectedBranch && (
+            <option value={selectedBranchId}>Sede associata ai piani</option>
+          )}
           {branches.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name || "Sede BodyGate"}{branch.city ? ` · ${branch.city}` : ""}
@@ -397,7 +428,7 @@ export default function SubscriptionPlansPage() {
                 <h2>Piani configurati</h2>
                 <p>
                   Ordinati per ordine visualizzazione e poi nome piano
-                  {selectedBranch ? ` · ${selectedBranch.name || "Sede BodyGate"}` : ""}.
+                  {selectedBranch ? ` · ${selectedBranch.name || "Sede BodyGate"}` : " · tutte le sedi"}.
                 </p>
               </div>
               {loading && <BGStatusBadge tone="warning">Caricamento</BGStatusBadge>}
