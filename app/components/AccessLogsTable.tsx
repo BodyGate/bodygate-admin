@@ -132,11 +132,11 @@ export default function AccessLogsTable() {
       <BGDataTable minWidth={1080}>
         <thead>
           <tr>
-            <th>Data/Ora</th>
-            <th>Stato</th>
+            <th className="bg-table-nowrap">Data/Ora</th>
+            <th className="bg-table-align-center">Stato</th>
             <th>Cliente</th>
-            <th>Badge</th>
-            <th>Controller</th>
+            <th className="bg-table-nowrap">Badge</th>
+            <th className="bg-table-nowrap">Controller</th>
             <th>Motivo</th>
           </tr>
         </thead>
@@ -154,11 +154,11 @@ export default function AccessLogsTable() {
           ) : (
             logs.map((log) => (
               <tr key={log.id}>
-                <td className="bg-table-strong">
+                <td className="bg-table-strong bg-table-nowrap">
                   {formatDate(log.access_time)}
                 </td>
 
-                <td>
+                <td className="bg-table-align-center">
                   <BGStatusBadge tone={log.was_allowed ? "success" : "danger"}>
                     {log.was_allowed ? "Consentito" : "Negato"}
                   </BGStatusBadge>
@@ -166,11 +166,11 @@ export default function AccessLogsTable() {
 
                 <td className="bg-table-strong">{getCustomerName(log)}</td>
 
-                <td className="bg-table-code">{log.badge_code || "—"}</td>
+                <td className="bg-table-code bg-table-nowrap">{log.badge_code || "—"}</td>
 
-                <td className="bg-table-code">{log.controller_code || "—"}</td>
+                <td className="bg-table-code bg-table-nowrap">{log.controller_code || "—"}</td>
 
-                <td className="bg-table-muted">
+                <td className="bg-table-muted bg-table-reason">
                   {log.reason || "Nessun motivo registrato"}
                 </td>
               </tr>

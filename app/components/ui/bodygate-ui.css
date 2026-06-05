@@ -1,7 +1,9 @@
 .bg-card {
+  display: grid;
+  gap: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 26px;
-  padding: 22px;
+  padding: 24px;
   background:
     linear-gradient(
       145deg,
@@ -96,14 +98,15 @@
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-self: center;
 }
 
 .bg-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 12px 16px;
+  min-height: 46px;
+  padding: 0 18px;
   border-radius: 16px;
   border: 1px solid transparent;
   font-size: 13px;
@@ -113,6 +116,7 @@
   cursor: pointer;
   transition: 0.18s ease;
   white-space: nowrap;
+  line-height: 1;
 }
 .bg-button:hover {
   transform: translateY(-1px);
@@ -192,6 +196,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-height: 32px;
   padding: 7px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -201,6 +206,8 @@
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 .bg-status::before {
   content: "";
@@ -232,6 +239,10 @@
 }
 
 .bg-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 132px;
   border: 1px dashed rgba(255, 255, 255, 0.14);
   border-radius: 22px;
   padding: 26px;
@@ -244,7 +255,7 @@
   font-weight: 950;
 }
 .bg-empty-description {
-  margin-top: 8px;
+  margin-top: 0;
   color: #8d8d8d;
   font-size: 13px;
   line-height: 1.5;
@@ -266,9 +277,13 @@
   gap: 18px;
 }
 
+.bg-card > .bg-section-header:first-child {
+  margin-bottom: 0;
+}
+
 .bg-section-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
@@ -289,6 +304,7 @@
 }
 .bg-section-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -296,15 +312,17 @@
 
 .bg-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: start;
 }
 .bg-form-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 
 .bg-field {
   display: grid;
+  grid-template-rows: auto minmax(48px, auto);
   gap: 8px;
   min-width: 0;
 }
@@ -324,6 +342,7 @@
 .bg-select,
 .bg-textarea {
   width: 100%;
+  max-width: 100%;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   background:
@@ -346,11 +365,25 @@
 .bg-select {
   min-height: 48px;
   padding: 0 14px;
+  line-height: 1.2;
 }
 .bg-textarea {
   min-height: 110px;
   padding: 14px;
   resize: vertical;
+  line-height: 1.45;
+}
+
+.bg-label-value-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.bg-label-value-row > :last-child {
+  justify-self: end;
+  text-align: right;
 }
 .bg-input::placeholder,
 .bg-textarea::placeholder {
@@ -379,8 +412,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 9px 13px;
+  min-height: 40px;
+  padding: 0 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   color: #fff;
@@ -389,6 +422,7 @@
   font-size: 12px;
   font-weight: 950;
   line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     transform 0.18s ease,
@@ -450,7 +484,7 @@
   font-size: 14px;
 }
 .bg-table th {
-  padding: 16px 18px;
+  padding: 15px 18px;
   color: #8b8b8b;
   font-size: 11px;
   font-weight: 950;
@@ -460,7 +494,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .bg-table td {
-  padding: 17px 18px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   vertical-align: middle;
 }
@@ -482,6 +516,16 @@
   color: #9ca3af;
   line-height: 1.5;
 }
+.bg-table-align-center {
+  text-align: center;
+}
+.bg-table-nowrap {
+  white-space: nowrap;
+}
+.bg-table-reason {
+  max-width: 360px;
+  min-width: 220px;
+}
 .bg-table-strong {
   color: #fff;
   font-weight: 900;
@@ -491,6 +535,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+  align-items: stretch;
 }
 .bg-kpi-number {
   display: block;
@@ -572,7 +617,7 @@
 .bg-check-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 12px 14px;
@@ -580,9 +625,11 @@
   color: #d4d4d8;
   font-size: 13px;
   font-weight: 850;
+  line-height: 1.35;
 }
 
 .bg-check-row input[type="checkbox"] {
+  flex: 0 0 auto;
   width: 18px;
   height: 18px;
   accent-color: #ef4444;
