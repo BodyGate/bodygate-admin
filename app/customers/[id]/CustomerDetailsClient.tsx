@@ -797,14 +797,25 @@ async function disableBlock(blockId: string) {
         }
 
         .back-link {
-          color: #a3a3a3;
+          display: inline-flex;
+          align-items: center;
+          min-height: 38px;
+          padding: 9px 13px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,.11);
+          color: #d4d4d8;
+          background: rgba(255,255,255,.04);
           text-decoration: none;
-          font-size: 14px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 950;
+          transition: .18s ease;
         }
 
         .back-link:hover {
           color: #ffffff;
+          border-color: rgba(239,68,68,.34);
+          background: rgba(239,68,68,.11);
+          transform: translateY(-1px);
         }
 
         .hero-layout {
@@ -990,6 +1001,10 @@ async function disableBlock(blockId: string) {
           flex-wrap: wrap;
         }
 
+        .actions-inline {
+          margin-top: 0;
+        }
+
         button,
         select,
         input {
@@ -1031,6 +1046,21 @@ async function disableBlock(blockId: string) {
         button:hover {
           transform: translateY(-1px);
           opacity: 0.92;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible,
+        .back-link:focus-visible {
+          outline: 2px solid rgba(239,68,68,.76);
+          outline-offset: 3px;
+        }
+
+        button:disabled {
+          cursor: not-allowed;
+          opacity: .55;
+          transform: none;
         }
 
         .secondary-btn {
@@ -1181,6 +1211,40 @@ async function disableBlock(blockId: string) {
           line-height: 1.45;
           word-break: break-all;
           margin: 12px 0;
+        }
+
+        .qr-meta-spaced { margin-top: 12px; }
+        .qr-meta-warning { margin-top: 10px; }
+
+        .quick-plan-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 14px;
+        }
+
+        .quick-plan-btn {
+          min-height: 112px;
+          display: grid;
+          gap: 7px;
+          text-align: left;
+          border-radius: 18px;
+          padding: 16px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: linear-gradient(180deg, rgba(239,68,68,0.18), rgba(255,255,255,0.055));
+          box-shadow: 0 16px 34px rgba(0,0,0,.2);
+        }
+
+        .quick-plan-title { font-size: 17px; font-weight: 950; }
+        .quick-plan-price { font-size: 25px; font-weight: 950; }
+        .quick-plan-meta, .small-muted { color: #9ca3af; font-size: 12px; font-weight: 700; }
+
+        .manual-renew-box {
+          margin-top: 16px;
+          padding: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.035);
         }
 
 
@@ -1352,7 +1416,7 @@ async function disableBlock(blockId: string) {
                   </div>
                 </div>
 
-                <div className="actions" style={{ marginTop: 0 }}>
+                <div className="actions actions-inline">
                   <button
                     type="button"
                     className="secondary-btn"
@@ -1681,7 +1745,7 @@ async function disableBlock(blockId: string) {
               )}
 
               {qrCredentials.length > 0 && (
-                <div className="qr-meta" style={{ marginTop: 12 }}>
+                <div className="qr-meta qr-meta-spaced">
                   Credenziali QR salvate: {qrCredentials.length}
                 </div>
               )}
@@ -1729,7 +1793,7 @@ async function disableBlock(blockId: string) {
               </div>
 
               {!customer?.phone ? (
-                <div className="qr-meta danger-text" style={{ marginTop: 10 }}>
+                <div className="qr-meta danger-text qr-meta-warning">
                   Telefono cliente mancante: WhatsApp si aprirà senza destinatario.
                 </div>
               ) : null}
@@ -1746,7 +1810,7 @@ async function disableBlock(blockId: string) {
             Rinnova quota associativa 10€
           </button>
 
-          <div className="quick-plan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
+          <div className="quick-plan-grid">
             {plans.length === 0 && (
               <div className="empty">Nessun piano attivo configurato.</div>
             )}
@@ -1760,19 +1824,18 @@ async function disableBlock(blockId: string) {
                   key={plan.id}
                   type="button"
                   className="quick-plan-btn"
-                  style={{ border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(239,68,68,0.18), rgba(255,255,255,0.055))", color: "white", borderRadius: 18, padding: 16, display: "grid", gap: 7, textAlign: "left", cursor: "pointer", minHeight: 112 }}
                   onClick={() => renewSubscription(plan.id)}
                 >
-                  <span style={{ fontSize: 17, fontWeight: 950 }}>{plan.name}</span>
-                  <strong style={{ fontSize: 25, fontWeight: 950 }}>€ {price.toFixed(2)}</strong>
-                  <small style={{ color: "#9ca3af", fontSize: 12, fontWeight: 700 }}>{duration} giorni · da oggi</small>
+                  <span className="quick-plan-title">{plan.name}</span>
+                  <strong className="quick-plan-price">€ {price.toFixed(2)}</strong>
+                  <small className="quick-plan-meta">{duration} giorni · da oggi</small>
                 </button>
               );
             })}
           </div>
 
-          <div className="manual-renew-box" style={{ marginTop: 16, padding: 14, borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.035)" }}>
-            <div className="small-muted" style={{ color: "#9ca3af", fontSize: 12, fontWeight: 700 }}>Rinnovo manuale / piano personalizzato</div>
+          <div className="manual-renew-box">
+            <div className="small-muted">Rinnovo manuale / piano personalizzato</div>
             <div className="actions">
               <select
                 value={selectedPlanId}
