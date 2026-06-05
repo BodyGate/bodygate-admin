@@ -21,7 +21,7 @@ export default function BGSelect({
   const select = (
     <select
       id={selectId}
-      className={`bg-select ${className}`.trim()}
+      className={`bg-select bg-form-control ${className}`.trim()}
       {...props}
     >
       {children}
@@ -31,10 +31,10 @@ export default function BGSelect({
   if (!label) return select;
 
   return (
-    <label className="bg-field" htmlFor={selectId}>
-      <span className="bg-field-label">{label}</span>
+    <label className="bg-field bg-form-field" htmlFor={selectId}>
+      <span className="bg-field-label bg-form-label">{label}</span>
       {select}
-      {hint && <span className="bg-field-hint">{hint}</span>}
+      {hint && <span className="bg-field-hint bg-form-help">{hint}</span>}
     </label>
   );
 }

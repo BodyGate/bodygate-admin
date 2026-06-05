@@ -3,7 +3,7 @@ import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function AccessLogsPage() {
   return (
-    <main className="space-y-6">
+    <main className="bg-page-shell">
       <BGPageHeader
         eyebrow="Access Control"
         title="Access Logs"

@@ -186,7 +186,7 @@ export default function NewCustomerPage() {
   }
 
   return (
-    <main className="new-customer-page">
+    <main className="new-customer-page bg-page-shell">
       <style jsx>{`
         .new-customer-page {
           color: white;
@@ -345,9 +345,9 @@ export default function NewCustomerPage() {
         }
       />
 
-      <form onSubmit={submit}>
-        <div className="sections">
-          <section className="card bg-card">
+      <form className="bg-content-grid" onSubmit={submit}>
+        <div className="sections bg-content-main">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">1. Anagrafica</div>
             <div className="grid bg-form-grid">
               <Field
@@ -395,7 +395,7 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card bg-card">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">2. Residenza</div>
             <div className="grid grid-3 bg-form-grid bg-form-grid-3">
               <Field
@@ -431,7 +431,7 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card bg-card">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">3. Documento</div>
             <div className="grid bg-form-grid">
               <Select
@@ -465,7 +465,7 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card bg-card">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">4. Emergenza e profilo</div>
             <div className="grid bg-form-grid">
               <Field
@@ -521,7 +521,7 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card bg-card">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">5. Certificato e accesso</div>
             <div className="grid bg-form-grid">
               <Field
@@ -558,7 +558,7 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card bg-card">
+          <section className="card bg-card bg-form-panel">
             <div className="card-title">6. Piano e pagamento</div>
             <div className="grid bg-form-grid">
               <Select
@@ -584,7 +584,7 @@ export default function NewCustomerPage() {
               />
             </div>
 
-            <label className="check-row bg-check-row">
+            <label className="check-row bg-check-row bg-checkbox-row">
               <input
                 type="checkbox"
                 checked={form.privacy_consent}
@@ -593,7 +593,7 @@ export default function NewCustomerPage() {
               <span>Consenso privacy obbligatorio</span>
             </label>
 
-            <label className="check-row bg-check-row">
+            <label className="check-row bg-check-row bg-checkbox-row">
               <input
                 type="checkbox"
                 checked={form.marketing_consent}
@@ -602,7 +602,7 @@ export default function NewCustomerPage() {
               <span>Consenso marketing</span>
             </label>
 
-            <label className="check-row bg-check-row">
+            <label className="check-row bg-check-row bg-checkbox-row">
               <input
                 type="checkbox"
                 checked={form.photo_video_consent}
@@ -615,7 +615,7 @@ export default function NewCustomerPage() {
           </section>
         </div>
 
-        <aside className="summary">
+        <aside className="summary bg-content-sidebar bg-card-premium">
           <div className="summary-title">Riepilogo</div>
 
           <div className="line">
@@ -674,8 +674,8 @@ function Field({
   type?: string;
 }) {
   return (
-    <label className="bg-field">
-      <span className="bg-field-label">{label}</span>
+    <label className="bg-field bg-form-field">
+      <span className="bg-field-label bg-form-label">{label}</span>
       <BGInput
         type={type}
         value={value}
@@ -699,8 +699,8 @@ function Select({
   labels?: Record<string, string>;
 }) {
   return (
-    <label className="bg-field">
-      <span className="bg-field-label">{label}</span>
+    <label className="bg-field bg-form-field">
+      <span className="bg-field-label bg-form-label">{label}</span>
       <BGSelect
         value={value}
         onChange={(event) => onChange(event.target.value)}

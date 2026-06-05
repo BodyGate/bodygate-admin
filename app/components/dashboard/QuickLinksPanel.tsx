@@ -1,70 +1,45 @@
 "use client";
 
-import Link from "next/link";
+import BGQuickActionCard from "../ui/BGQuickActionCard";
 
 export default function QuickLinksPanel() {
   return (
-    <section style={panelStyle}>
-      <h2 style={sectionTitleStyle}>Backoffice</h2>
+    <section className="bg-card bg-card-premium bg-section">
+      <div className="bg-section-header">
+        <div>
+          <h2 className="bg-section-title">Backoffice</h2>
+          <p className="bg-section-subtitle">
+            Gestione clienti, badge, abbonamenti, pagamenti e programmi.
+          </p>
+        </div>
+      </div>
 
-      <p style={sectionTextStyle}>
-        Gestione clienti, badge, abbonamenti, pagamenti e programmi.
-      </p>
-
-      <div style={quickLinksStyle}>
-        <Link href="/customers" style={quickLinkStyle}>
-          Clienti
-        </Link>
-
-        <Link href="/badges" style={quickLinkStyle}>
-          Badge
-        </Link>
-
-        <Link href="/subscriptions" style={quickLinkStyle}>
-          Abbonamenti
-        </Link>
-
-        <Link href="/payments" style={quickLinkStyle}>
-          Pagamenti
-        </Link>
+      <div className="bg-actions-grid">
+        <BGQuickActionCard
+          href="/customers"
+          icon="C"
+          title="Clienti"
+          description="Anagrafiche, stato iscrizioni e schede operative."
+        />
+        <BGQuickActionCard
+          href="/badges"
+          icon="B"
+          title="Badge"
+          description="Credenziali fisiche, badge associati e accessi."
+        />
+        <BGQuickActionCard
+          href="/subscriptions"
+          icon="S"
+          title="Abbonamenti"
+          description="Piani, scadenze e rinnovi in evidenza."
+        />
+        <BGQuickActionCard
+          href="/payments"
+          icon="€"
+          title="Pagamenti"
+          description="Incassi, ricevute e storico economico."
+        />
       </div>
     </section>
   );
 }
-
-const panelStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, #181818, #101010)",
-  border: "1px solid var(--border)",
-  borderRadius: "28px",
-  padding: "28px",
-  boxShadow: "0 12px 35px rgba(0,0,0,0.28)",
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  color: "var(--text)",
-  fontSize: "22px",
-  margin: "0 0 10px",
-  letterSpacing: "-0.5px",
-};
-
-const sectionTextStyle: React.CSSProperties = {
-  color: "var(--muted)",
-  margin: "0 0 22px",
-  lineHeight: 1.6,
-};
-
-const quickLinksStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "12px",
-};
-
-const quickLinkStyle: React.CSSProperties = {
-  background: "var(--panel-2)",
-  color: "var(--text)",
-  border: "1px solid var(--border)",
-  borderRadius: "18px",
-  padding: "16px",
-  textDecoration: "none",
-  fontWeight: 800,
-};

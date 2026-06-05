@@ -769,7 +769,7 @@ async function disableBlock(blockId: string) {
 
   if (loading) {
     return (
-      <div className="customer-page">
+      <div className="customer-page bg-page-shell">
         <div className="loading-card">Caricamento cliente...</div>
       </div>
     );
@@ -777,7 +777,7 @@ async function disableBlock(blockId: string) {
 
   if (errorMessage || !customer) {
     return (
-      <div className="customer-page">
+      <div className="customer-page bg-page-shell">
         <div className="error-card">
           <h2>Cliente non caricato</h2>
           <pre className="error-details">{errorMessage}</pre>
@@ -788,7 +788,7 @@ async function disableBlock(blockId: string) {
   }
 
   return (
-    <div className="customer-page">
+    <div className="customer-page bg-page-shell">
       <style jsx>{`
         .customer-page {
           padding: 32px;
@@ -1499,8 +1499,8 @@ async function disableBlock(blockId: string) {
                 </div>
               </div>
 
-              <div className="edit-form-grid">
-                <div className="edit-field">
+              <div className="edit-form-grid bg-form-grid bg-form-grid-3">
+                <div className="edit-field bg-form-field">
                   <label>Nome</label>
                   <input
                     value={editForm.first_name || ""}
@@ -1508,7 +1508,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Cognome</label>
                   <input
                     value={editForm.last_name || ""}
@@ -1516,7 +1516,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Telefono</label>
                   <input
                     value={editForm.phone || ""}
@@ -1524,7 +1524,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Email</label>
                   <input
                     type="email"
@@ -1533,7 +1533,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Codice fiscale</label>
                   <input
                     value={editForm.fiscal_code || ""}
@@ -1541,7 +1541,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Data nascita</label>
                   <input
                     type="date"
@@ -1550,7 +1550,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Sesso</label>
                   <select
                     value={editForm.gender || ""}
@@ -1563,7 +1563,7 @@ async function disableBlock(blockId: string) {
                   </select>
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Indirizzo</label>
                   <input
                     value={editForm.address || ""}
@@ -1571,7 +1571,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Città</label>
                   <input
                     value={editForm.city || ""}
@@ -1579,7 +1579,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>CAP</label>
                   <input
                     value={editForm.postal_code || ""}
@@ -1587,7 +1587,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Contatto emergenza</label>
                   <input
                     value={editForm.emergency_contact_name || ""}
@@ -1595,7 +1595,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Telefono emergenza</label>
                   <input
                     value={editForm.emergency_contact_phone || ""}
@@ -1603,7 +1603,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Badge principale</label>
                   <input
                     value={editForm.badge_code || ""}
@@ -1611,7 +1611,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Controller code</label>
                   <input
                     value={editForm.controller_code || ""}
@@ -1619,7 +1619,7 @@ async function disableBlock(blockId: string) {
                   />
                 </div>
 
-                <div className="edit-field">
+                <div className="edit-field bg-form-field">
                   <label>Stato cliente</label>
                   <div className="checkbox-field">
                     <input
@@ -1631,7 +1631,7 @@ async function disableBlock(blockId: string) {
                   </div>
                 </div>
 
-                <div className="edit-field edit-field-full">
+                <div className="edit-field bg-form-field edit-field-full">
                   <label>Note reception</label>
                   <textarea
                     value={editForm.reception_notes || ""}
@@ -1709,7 +1709,7 @@ async function disableBlock(blockId: string) {
             }}
           />
 
-          <div className="card credentials-card">
+          <div className="card credentials-card bg-card-premium">
             <h2>Credenziali accesso</h2>
 
             <div className="credential-summary">
@@ -1911,7 +1911,7 @@ async function disableBlock(blockId: string) {
   </select>
 </div>
 
-          <div className="quick-plan-grid">
+          <div className="quick-plan-grid bg-actions-grid">
             {plans.length === 0 && (
               <div className="empty">Nessun piano attivo configurato.</div>
             )}

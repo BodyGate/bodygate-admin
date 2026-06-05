@@ -1,14 +1,41 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BGButton from "./components/ui/BGButton";
 import BGCard from "./components/ui/BGCard";
 import BGEmptyState from "./components/ui/BGEmptyState";
 import BGPageHeader from "./components/ui/BGPageHeader";
+import BGQuickActionCard from "./components/ui/BGQuickActionCard";
 import BGStatCard from "./components/ui/BGStatCard";
 import BGStatusBadge from "./components/ui/BGStatusBadge";
 import "./components/ui/bodygate-ui.css";
+
+type DashboardAccessItem = {
+  id?: string | number | null;
+  allowed?: boolean | null;
+  created_at?: string | null;
+  display_name?: string | null;
+  customer_name?: string | null;
+  staff_name?: string | null;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  controller_code?: string | null;
+  badge_code?: string | null;
+  was_allowed?: boolean | null;
+  reason?: string | null;
+  access_time?: string | null;
+};
+
+type DashboardAlertItem = {
+  id?: string | number | null;
+  customer_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  customer_id?: string | null;
+  ends_at?: string | null;
+  medical_certificate_end?: string | null;
+};
 
 type DashboardOverview = {
   ok: boolean;
@@ -24,15 +51,15 @@ type DashboardOverview = {
   bridge: {
     status: string;
     last_seen_at: string | null;
-    raw: any;
+    raw: unknown;
   };
   alerts: {
-    expired_medical: any[];
-    expiring_medical: any[];
-    expired_subscriptions: any[];
-    expiring_subscriptions: any[];
+    expired_medical: DashboardAlertItem[];
+    expiring_medical: DashboardAlertItem[];
+    expired_subscriptions: DashboardAlertItem[];
+    expiring_subscriptions: DashboardAlertItem[];
   };
-  latest_access: any[];
+  latest_access: DashboardAccessItem[];
 };
 
 function euro(value: number) {
@@ -53,7 +80,7 @@ function dateTime(value?: string | null) {
   });
 }
 
-function accessPersonName(item: any) {
+function accessPersonName(item: DashboardAccessItem) {
   return (
     item.display_name ||
     item.customer_name ||
@@ -80,15 +107,15 @@ export default function DashboardPage() {
       }
 
       setData(json);
-    } catch (error: any) {
-      setErrorMessage(error?.message || "Errore imprevisto.");
+    } catch (error: unknown) {
+      setErrorMessage(error instanceof Error ? error.message : "Errore imprevisto.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadDashboard();
+    void Promise.resolve().then(loadDashboard);
     const timer = setInterval(loadDashboard, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -393,23 +420,31 @@ export default function DashboardPage() {
                 <BGStatusBadge tone="info">Reception</BGStatusBadge>
               </div>
 
-              <div className="quick-grid">
-                <Link className="quick-link" href="/reception">
-                  <span className="quick-title">Reception Desk</span>
-                  <span className="quick-sub">Cliente rapido, accessi, stato sistema e operatività giornaliera.</span>
-                </Link>
-                <Link className="quick-link" href="/customers/new">
-                  <span className="quick-title">Nuovo cliente</span>
-                  <span className="quick-sub">Crea anagrafica, contatti e dati iniziali.</span>
-                </Link>
-                <Link className="quick-link" href="/payments">
-                  <span className="quick-title">Nuovo incasso</span>
-                  <span className="quick-sub">Registra pagamenti, rinnovi e ricevute.</span>
-                </Link>
-                <Link className="quick-link" href="/notifications">
-                  <span className="quick-title">Notification Center</span>
-                  <span className="quick-sub">Scadenze, blocchi e alert da lavorare.</span>
-                </Link>
+              <div className="quick-grid bg-actions-grid">
+                <BGQuickActionCard
+                  href="/reception"
+                  icon="⌁"
+                  title="Reception Desk"
+                  description="Cliente rapido, accessi, stato sistema e operatività giornaliera."
+                />
+                <BGQuickActionCard
+                  href="/customers/new"
+                  icon="+"
+                  title="Nuovo cliente"
+                  description="Crea anagrafica, contatti, quota e credenziali iniziali."
+                />
+                <BGQuickActionCard
+                  href="/payments"
+                  icon="€"
+                  title="Nuovo incasso"
+                  description="Registra pagamenti, rinnovi e ricevute dal flusso operativo."
+                />
+                <BGQuickActionCard
+                  href="/notifications"
+                  icon="!"
+                  title="Notification Center"
+                  description="Scadenze, blocchi e alert da lavorare con priorità."
+                />
               </div>
             </BGCard>
 
@@ -428,7 +463,7 @@ export default function DashboardPage() {
                 )}
 
                 {data.latest_access.map((item) => (
-                  <div className="access-item" key={item.id}>
+                  <div className="access-item" key={item.id || `${item.created_at}-${accessPersonName(item)}`}>
                     <span className={`dot ${item.allowed ? "ok" : "no"}`} />
 
                     <div>

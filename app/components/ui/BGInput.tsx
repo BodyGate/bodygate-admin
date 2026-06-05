@@ -18,16 +18,16 @@ export default function BGInput({
     id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
   const input = (
-    <input id={inputId} className={`bg-input ${className}`.trim()} {...props} />
+    <input id={inputId} className={`bg-input bg-form-control ${className}`.trim()} {...props} />
   );
 
   if (!label) return input;
 
   return (
-    <label className="bg-field" htmlFor={inputId}>
-      <span className="bg-field-label">{label}</span>
+    <label className="bg-field bg-form-field" htmlFor={inputId}>
+      <span className="bg-field-label bg-form-label">{label}</span>
       {input}
-      {hint && <span className="bg-field-hint">{hint}</span>}
+      {hint && <span className="bg-field-hint bg-form-help">{hint}</span>}
     </label>
   );
 }
