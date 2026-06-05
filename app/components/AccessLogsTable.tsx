@@ -27,9 +27,12 @@ type AccessLog = {
 export default function AccessLogsTable() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function loadLogs() {
     setLoading(true);
+
+    setErrorMessage("");
 
     const { data, error } = await supabase
       .from("customer_access_logs")
@@ -53,8 +56,8 @@ export default function AccessLogsTable() {
       .limit(50);
 
     if (error) {
-      console.error("Errore caricamento access logs:", error);
       setLogs([]);
+      setErrorMessage(error.message || "Errore caricamento access logs.");
       setLoading(false);
       return;
     }
@@ -123,6 +126,8 @@ export default function AccessLogsTable() {
         subtitle="Ultimi 50 eventi reali ricevuti dal tornello, con stato e motivo separati per lettura immediata."
         actions={<BGActionButton onClick={loadLogs}>Aggiorna</BGActionButton>}
       />
+
+      {errorMessage && <div className="bg-inline-message">{errorMessage}</div>}
 
       <BGDataTable minWidth={1080}>
         <thead>

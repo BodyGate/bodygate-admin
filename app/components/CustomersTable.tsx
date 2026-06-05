@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import BGActionButton from "./ui/BGActionButton";
+import BGActionLink from "./ui/BGActionLink";
+import BGEmptyState from "./ui/BGEmptyState";
+import BGInput from "./ui/BGInput";
+import BGStatCard from "./ui/BGStatCard";
+import BGStatusBadge from "./ui/BGStatusBadge";
 
 type Customer = {
   id: string;
@@ -43,12 +48,15 @@ function daysUntil(value?: string | null) {
 }
 
 function normalize(value?: string | null) {
-  return String(value || "").toLowerCase().trim();
+  return String(value || "")
+    .toLowerCase()
+    .trim();
 }
 
 function getName(customer: Customer) {
   const full = customer.full_name?.trim();
-  const composed = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+  const composed =
+    `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
   return full || composed || "Cliente senza nome";
 }
 
@@ -57,7 +65,11 @@ function initials(name: string) {
   return parts.length ? parts.map((p) => p[0]?.toUpperCase()).join("") : "BG";
 }
 
-function getAccessState(customer: Customer): { label: string; tone: Tone; hint: string } {
+function getAccessState(customer: Customer): {
+  label: string;
+  tone: Tone;
+  hint: string;
+} {
   const status = normalize(customer.subscription_status);
   const days = daysUntil(customer.subscription_expiry);
 
@@ -65,28 +77,23 @@ function getAccessState(customer: Customer): { label: string; tone: Tone; hint: 
     return { label: "Bloccato", tone: "red", hint: "Cliente non attivo" };
   }
 
-  if (status.includes("expired") || status.includes("scad") || (days !== null && days < 0)) {
+  if (
+    status.includes("expired") ||
+    status.includes("scad") ||
+    (days !== null && days < 0)
+  ) {
     return { label: "Da verificare", tone: "red", hint: "Abbonamento scaduto" };
   }
 
   if (days !== null && days <= 7) {
-    return { label: "In scadenza", tone: "yellow", hint: `Scade tra ${days} giorni` };
+    return {
+      label: "In scadenza",
+      tone: "yellow",
+      hint: `Scade tra ${days} giorni`,
+    };
   }
 
   return { label: "Accesso attivo", tone: "green", hint: "Cliente operativo" };
-}
-
-function Metric({ value, label, tone = "neutral" }: { value: number | string; label: string; tone?: Tone }) {
-  return (
-    <div className={`crm3-metric crm3-${tone}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function Status({ tone, children }: { tone: Tone; children: React.ReactNode }) {
-  return <span className={`crm3-status crm3-status-${tone}`}>{children}</span>;
 }
 
 export default function CustomersTable() {
@@ -102,7 +109,9 @@ export default function CustomersTable() {
     setQueryError(null);
 
     try {
-      const response = await fetch("/api/customers/list", { cache: "no-store" });
+      const response = await fetch("/api/customers/list", {
+        cache: "no-store",
+      });
       const payload = await response.json();
 
       if (!response.ok || !payload?.ok) {
@@ -119,7 +128,9 @@ export default function CustomersTable() {
       }
     } catch (error) {
       setCustomers([]);
-      setQueryError(error instanceof Error ? error.message : "Errore imprevisto.");
+      setQueryError(
+        error instanceof Error ? error.message : "Errore imprevisto.",
+      );
     } finally {
       setLoadedOnce(true);
       setLoading(false);
@@ -127,7 +138,8 @@ export default function CustomersTable() {
   }
 
   useEffect(() => {
-    loadCustomers();
+    void Promise.resolve().then(loadCustomers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredCustomers = useMemo(() => {
@@ -140,9 +152,15 @@ export default function CustomersTable() {
 
       return (
         name.includes(q) ||
-        String(customer.phone || "").toLowerCase().includes(q) ||
-        String(customer.email || "").toLowerCase().includes(q) ||
-        String(customer.badge_code || "").toLowerCase().includes(q)
+        String(customer.phone || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(customer.email || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(customer.badge_code || "")
+          .toLowerCase()
+          .includes(q)
       );
     });
   }, [customers, search]);
@@ -199,10 +217,18 @@ export default function CustomersTable() {
           border-radius: 30px;
           padding: 24px;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.20), transparent 34%),
-            linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.2),
+              transparent 34%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.075),
+              rgba(255, 255, 255, 0.025)
+            ),
             rgba(7, 7, 9, 0.94);
-          box-shadow: 0 28px 80px rgba(0,0,0,.42);
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
         }
 
         .crm3-hero-inner {
@@ -217,15 +243,15 @@ export default function CustomersTable() {
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: .18em;
+          letter-spacing: 0.18em;
           margin-bottom: 8px;
         }
 
         .crm3-title {
           margin: 0;
           font-size: clamp(34px, 5vw, 54px);
-          line-height: .92;
-          letter-spacing: -.06em;
+          line-height: 0.92;
+          letter-spacing: -0.06em;
           font-weight: 950;
         }
 
@@ -244,65 +270,11 @@ export default function CustomersTable() {
           justify-content: flex-end;
         }
 
-        .crm3-button {
-          min-height: 44px;
-          padding: 0 16px;
-          border-radius: 16px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          text-decoration: none;
-          border: 1px solid rgba(255,255,255,.10);
-          background: rgba(255,255,255,.06);
-          font-size: 13px;
-          font-weight: 900;
-          cursor: pointer;
-        }
-
-        .crm3-button-primary {
-          background: linear-gradient(135deg, #ef4444, #991b1b);
-          box-shadow: 0 18px 36px rgba(239, 68, 68, 0.24);
-        }
-
         .crm3-metrics {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 12px;
         }
-
-        .crm3-metric {
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 22px;
-          padding: 18px;
-          background:
-            radial-gradient(circle at top right, var(--glow), transparent 48%),
-            rgba(10,10,12,.92);
-        }
-
-        .crm3-metric strong {
-          display: block;
-          font-size: 34px;
-          line-height: .9;
-          letter-spacing: -.05em;
-          font-weight: 950;
-        }
-
-        .crm3-metric span {
-          display: block;
-          margin-top: 10px;
-          color: #9ca3af;
-          font-size: 11px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: .08em;
-        }
-
-        .crm3-green { --glow: rgba(34,197,94,.18); }
-        .crm3-red { --glow: rgba(239,68,68,.22); }
-        .crm3-yellow { --glow: rgba(250,204,21,.18); }
-        .crm3-blue { --glow: rgba(56,189,248,.17); }
-        .crm3-neutral { --glow: rgba(255,255,255,.06); }
 
         .crm3-workspace {
           display: grid;
@@ -313,31 +285,22 @@ export default function CustomersTable() {
 
         .crm3-list-panel,
         .crm3-detail-panel {
-          border: 1px solid rgba(255,255,255,.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 28px;
           background:
-            linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018)),
-            rgba(8,8,10,.94);
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.055),
+              rgba(255, 255, 255, 0.018)
+            ),
+            rgba(8, 8, 10, 0.94);
           overflow: hidden;
-          box-shadow: 0 22px 60px rgba(0,0,0,.34);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
         }
 
         .crm3-list-head {
           padding: 18px;
-          border-bottom: 1px solid rgba(255,255,255,.08);
-        }
-
-        .crm3-search {
-          width: 100%;
-          height: 48px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,.10);
-          background: rgba(255,255,255,.055);
-          color: #fff;
-          padding: 0 15px;
-          outline: none;
-          font-size: 14px;
-          font-weight: 700;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .crm3-count {
@@ -369,12 +332,12 @@ export default function CustomersTable() {
         }
 
         .crm3-list-item:hover {
-          background: rgba(255,255,255,.045);
+          background: rgba(255, 255, 255, 0.045);
         }
 
         .crm3-list-item-active {
-          background: rgba(239,68,68,.12);
-          border-color: rgba(239,68,68,.28);
+          background: rgba(239, 68, 68, 0.12);
+          border-color: rgba(239, 68, 68, 0.28);
         }
 
         .crm3-avatar {
@@ -386,7 +349,7 @@ export default function CustomersTable() {
           color: #fff;
           font-weight: 950;
           background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 14px 28px rgba(239, 68, 68, .2);
+          box-shadow: 0 14px 28px rgba(239, 68, 68, 0.2);
         }
 
         .crm3-list-name {
@@ -414,11 +377,19 @@ export default function CustomersTable() {
           box-shadow: 0 0 15px var(--dot);
         }
 
-        .crm3-dot-green { --dot: #22c55e; }
-        .crm3-dot-red { --dot: #ef4444; }
-        .crm3-dot-yellow { --dot: #eab308; }
+        .crm3-dot-green {
+          --dot: #22c55e;
+        }
+        .crm3-dot-red {
+          --dot: #ef4444;
+        }
+        .crm3-dot-yellow {
+          --dot: #eab308;
+        }
         .crm3-dot-blue,
-        .crm3-dot-neutral { --dot: #71717a; }
+        .crm3-dot-neutral {
+          --dot: #71717a;
+        }
 
         .crm3-detail {
           padding: 26px;
@@ -429,7 +400,7 @@ export default function CustomersTable() {
           justify-content: space-between;
           gap: 20px;
           align-items: flex-start;
-          border-bottom: 1px solid rgba(255,255,255,.08);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           padding-bottom: 22px;
           margin-bottom: 22px;
         }
@@ -451,13 +422,13 @@ export default function CustomersTable() {
           font-size: 28px;
           font-weight: 950;
           background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 20px 44px rgba(239, 68, 68, .25);
+          box-shadow: 0 20px 44px rgba(239, 68, 68, 0.25);
         }
 
         .crm3-detail-name {
           font-size: clamp(30px, 4vw, 48px);
-          line-height: .95;
-          letter-spacing: -.055em;
+          line-height: 0.95;
+          letter-spacing: -0.055em;
           font-weight: 950;
         }
 
@@ -468,52 +439,6 @@ export default function CustomersTable() {
           font-weight: 700;
         }
 
-        .crm3-status {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 9px 12px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 950;
-          text-transform: uppercase;
-          letter-spacing: .04em;
-        }
-
-        .crm3-status::before {
-          content: "";
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: currentColor;
-          box-shadow: 0 0 15px currentColor;
-        }
-
-        .crm3-status-green {
-          color: #86efac;
-          background: rgba(34,197,94,.10);
-          border: 1px solid rgba(34,197,94,.28);
-        }
-
-        .crm3-status-red {
-          color: #fecaca;
-          background: rgba(239,68,68,.10);
-          border: 1px solid rgba(239,68,68,.32);
-        }
-
-        .crm3-status-yellow {
-          color: #fde68a;
-          background: rgba(250,204,21,.10);
-          border: 1px solid rgba(250,204,21,.30);
-        }
-
-        .crm3-status-blue,
-        .crm3-status-neutral {
-          color: #d4d4d8;
-          background: rgba(255,255,255,.06);
-          border: 1px solid rgba(255,255,255,.10);
-        }
-
         .crm3-detail-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -522,10 +447,10 @@ export default function CustomersTable() {
         }
 
         .crm3-info {
-          border: 1px solid rgba(255,255,255,.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 22px;
           padding: 18px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
         }
 
         .crm3-info span {
@@ -533,7 +458,7 @@ export default function CustomersTable() {
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: .09em;
+          letter-spacing: 0.09em;
         }
 
         .crm3-info strong {
@@ -558,8 +483,8 @@ export default function CustomersTable() {
           padding: 16px;
           text-decoration: none;
           color: #fff;
-          border: 1px solid rgba(255,255,255,.08);
-          background: rgba(255,255,255,.045);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.045);
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -578,14 +503,14 @@ export default function CustomersTable() {
 
         .crm3-action-primary {
           background: linear-gradient(135deg, #ef4444, #991b1b);
-          box-shadow: 0 18px 38px rgba(239,68,68,.22);
+          box-shadow: 0 18px 38px rgba(239, 68, 68, 0.22);
         }
 
         .crm3-note {
-          border: 1px solid rgba(255,255,255,.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 22px;
           padding: 20px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
           color: #a1a1aa;
           line-height: 1.6;
           font-size: 14px;
@@ -594,15 +519,15 @@ export default function CustomersTable() {
         .crm3-message {
           border-radius: 20px;
           padding: 18px;
-          background: rgba(255,255,255,.045);
+          background: rgba(255, 255, 255, 0.045);
           color: #d4d4d8;
           font-weight: 800;
         }
 
         .crm3-message-error {
           color: #fecaca;
-          border: 1px solid rgba(239,68,68,.28);
-          background: rgba(239,68,68,.08);
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          background: rgba(239, 68, 68, 0.08);
         }
 
         @media (max-width: 1280px) {
@@ -648,45 +573,70 @@ export default function CustomersTable() {
               <div className="crm3-eyebrow">CRM operativo fitness</div>
               <h2 className="crm3-title">Clienti</h2>
               <div className="crm3-subtitle">
-                Ricerca, stato accesso, rinnovi e incassi in una vista unica. Pensato per lavorare veloce in reception.
+                Ricerca, stato accesso, rinnovi e incassi in una vista unica.
+                Pensato per lavorare veloce in reception.
               </div>
             </div>
 
             <div className="crm3-actions">
-              <Link href="/customers/new" className="crm3-button crm3-button-primary">
+              <BGActionLink href="/customers/new" variant="primary">
                 + Nuovo cliente
-              </Link>
-              <Link href="/reception" className="crm3-button">
-                Reception
-              </Link>
-              <button type="button" className="crm3-button" onClick={loadCustomers}>
+              </BGActionLink>
+              <BGActionLink href="/reception">Reception</BGActionLink>
+              <BGActionButton type="button" onClick={loadCustomers}>
                 Aggiorna
-              </button>
+              </BGActionButton>
             </div>
           </div>
         </header>
 
         <section className="crm3-metrics">
-          <Metric value={metrics.total} label="Clienti totali" tone="blue" />
-          <Metric value={metrics.active} label="Accesso attivo" tone="green" />
-          <Metric value={metrics.attention} label="Da verificare" tone={metrics.attention > 0 ? "red" : "neutral"} />
-          <Metric value={metrics.expiring} label="Scadenze vicine" tone={metrics.expiring > 0 ? "yellow" : "neutral"} />
-          <Metric value={metrics.withBadge} label="Con badge" tone="neutral" />
+          <BGStatCard
+            value={metrics.total}
+            label="Clienti totali"
+            tone="blue"
+          />
+          <BGStatCard
+            value={metrics.active}
+            label="Accesso attivo"
+            tone="green"
+          />
+          <BGStatCard
+            value={metrics.attention}
+            label="Da verificare"
+            tone={metrics.attention > 0 ? "red" : "neutral"}
+          />
+          <BGStatCard
+            value={metrics.expiring}
+            label="Scadenze vicine"
+            tone={metrics.expiring > 0 ? "yellow" : "neutral"}
+          />
+          <BGStatCard
+            value={metrics.withBadge}
+            label="Con badge"
+            tone="neutral"
+          />
         </section>
 
-        {loading && <div className="crm3-message">Caricamento CRM clienti...</div>}
-        {queryError && <div className="crm3-message crm3-message-error">{queryError}</div>}
+        {loading && (
+          <div className="crm3-message">Caricamento CRM clienti...</div>
+        )}
+        {queryError && (
+          <div className="crm3-message crm3-message-error">{queryError}</div>
+        )}
 
         {!queryError && loadedOnce && customers.length === 0 && (
-          <div className="crm3-message">Nessun cliente trovato.</div>
+          <BGEmptyState
+            title="Nessun cliente trovato"
+            description="Crea un nuovo cliente per popolare il CRM operativo."
+          />
         )}
 
         {!loading && !queryError && customers.length > 0 && (
           <section className="crm3-workspace">
             <aside className="crm3-list-panel">
               <div className="crm3-list-head">
-                <input
-                  className="crm3-search"
+                <BGInput
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Cerca cliente, badge, telefono o email..."
@@ -700,7 +650,11 @@ export default function CustomersTable() {
                 {filteredCustomers.map((customer) => {
                   const name = getName(customer);
                   const state = getAccessState(customer);
-                  const contact = customer.phone || customer.email || customer.badge_code || "Dati da completare";
+                  const contact =
+                    customer.phone ||
+                    customer.email ||
+                    customer.badge_code ||
+                    "Dati da completare";
                   const active = selectedCustomer?.id === customer.id;
 
                   return (
@@ -715,7 +669,9 @@ export default function CustomersTable() {
                         <div className="crm3-list-name">{name}</div>
                         <div className="crm3-list-sub">{contact}</div>
                       </div>
-                      <span className={`crm3-mini-dot crm3-dot-${state.tone}`} />
+                      <span
+                        className={`crm3-mini-dot crm3-dot-${state.tone}`}
+                      />
                     </button>
                   );
                 })}
@@ -736,7 +692,9 @@ export default function CustomersTable() {
                       <>
                         <div className="crm3-detail-hero">
                           <div className="crm3-detail-main">
-                            <div className="crm3-detail-avatar">{initials(name)}</div>
+                            <div className="crm3-detail-avatar">
+                              {initials(name)}
+                            </div>
                             <div>
                               <div className="crm3-detail-name">{name}</div>
                               <div className="crm3-detail-contact">
@@ -747,23 +705,41 @@ export default function CustomersTable() {
                             </div>
                           </div>
 
-                          <Status tone={state.tone}>{state.label}</Status>
+                          <BGStatusBadge
+                            tone={
+                              state.tone === "green"
+                                ? "success"
+                                : state.tone === "red"
+                                  ? "danger"
+                                  : state.tone === "yellow"
+                                    ? "warning"
+                                    : "neutral"
+                            }
+                          >
+                            {state.label}
+                          </BGStatusBadge>
                         </div>
 
                         <div className="crm3-detail-grid">
                           <div className="crm3-info">
                             <span>Telefono</span>
-                            <strong>{selectedCustomer.phone || "Non inserito"}</strong>
+                            <strong>
+                              {selectedCustomer.phone || "Non inserito"}
+                            </strong>
                           </div>
 
                           <div className="crm3-info">
                             <span>Email</span>
-                            <strong>{selectedCustomer.email || "Non inserita"}</strong>
+                            <strong>
+                              {selectedCustomer.email || "Non inserita"}
+                            </strong>
                           </div>
 
                           <div className="crm3-info">
                             <span>Badge</span>
-                            <strong>{selectedCustomer.badge_code || "Da associare"}</strong>
+                            <strong>
+                              {selectedCustomer.badge_code || "Da associare"}
+                            </strong>
                           </div>
 
                           <div className="crm3-info">
@@ -773,7 +749,9 @@ export default function CustomersTable() {
 
                           <div className="crm3-info">
                             <span>Scadenza</span>
-                            <strong>{formatDate(selectedCustomer.subscription_expiry)}</strong>
+                            <strong>
+                              {formatDate(selectedCustomer.subscription_expiry)}
+                            </strong>
                           </div>
 
                           <div className="crm3-info">
@@ -783,7 +761,9 @@ export default function CustomersTable() {
 
                           <div className="crm3-info">
                             <span>Creato il</span>
-                            <strong>{formatDate(selectedCustomer.created_at)}</strong>
+                            <strong>
+                              {formatDate(selectedCustomer.created_at)}
+                            </strong>
                           </div>
 
                           <div className="crm3-info">
@@ -793,29 +773,45 @@ export default function CustomersTable() {
                         </div>
 
                         <div className="crm3-action-grid">
-                          <Link className="crm3-action crm3-action-primary" href={`/customers/${selectedCustomer.id}`}>
+                          <BGActionLink
+                            className="crm3-action crm3-action-primary"
+                            variant="primary"
+                            href={`/customers/${selectedCustomer.id}`}
+                          >
                             <strong>Apri scheda</strong>
                             <span>Profilo completo</span>
-                          </Link>
+                          </BGActionLink>
 
-                          <Link className="crm3-action" href={`/customers/${selectedCustomer.id}`}>
+                          <BGActionLink
+                            className="crm3-action"
+                            href={`/customers/${selectedCustomer.id}`}
+                          >
                             <strong>Rinnova</strong>
                             <span>Abbonamento o quota</span>
-                          </Link>
+                          </BGActionLink>
 
-                          <Link className="crm3-action" href={`/payments?customer=${selectedCustomer.id}`}>
+                          <BGActionLink
+                            className="crm3-action"
+                            href={`/payments?customer=${selectedCustomer.id}`}
+                          >
                             <strong>Incasso</strong>
                             <span>Nuovo pagamento</span>
-                          </Link>
+                          </BGActionLink>
 
-                          <Link className="crm3-action" href={`/customers/${selectedCustomer.id}`}>
+                          <BGActionLink
+                            className="crm3-action"
+                            href={`/customers/${selectedCustomer.id}`}
+                          >
                             <strong>Accesso</strong>
                             <span>Badge, QR, Mobile Pass</span>
-                          </Link>
+                          </BGActionLink>
                         </div>
 
                         <div className="crm3-note">
-                          Questa vista è pensata per la reception: cerca un cliente, verifica subito se può accedere e scegli l'azione operativa senza aprire tabelle o schermate secondarie.
+                          Questa vista è pensata per la reception: cerca un
+                          cliente, verifica subito se può accedere e scegli
+                          l&apos;azione operativa senza aprire tabelle o
+                          schermate secondarie.
                         </div>
                       </>
                     );

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import BGActionLink from "../../components/ui/BGActionLink";
 import BGButton from "../../components/ui/BGButton";
+import BGPageHeader from "../../components/ui/BGPageHeader";
 import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
 
@@ -193,68 +194,6 @@ export default function NewCustomerPage() {
           gap: 22px;
         }
 
-        .hero,
-        .card,
-        .summary {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.07),
-              rgba(255, 255, 255, 0.02)
-            ),
-            rgba(8, 8, 10, 0.94);
-          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
-          backdrop-filter: blur(14px);
-        }
-
-        .hero {
-          border-radius: 30px;
-          padding: 26px;
-          background:
-            radial-gradient(
-              circle at top left,
-              rgba(239, 68, 68, 0.2),
-              transparent 34%
-            ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.075),
-              rgba(255, 255, 255, 0.025)
-            ),
-            rgba(8, 8, 10, 0.94);
-        }
-
-        .back-row {
-          display: flex;
-          justify-content: flex-start;
-        }
-
-        .eyebrow {
-          margin-top: 24px;
-          color: #ef4444;
-          font-size: 11px;
-          font-weight: 950;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-        }
-
-        h1 {
-          margin: 10px 0 0;
-          font-size: clamp(36px, 5vw, 62px);
-          line-height: 0.9;
-          letter-spacing: -0.06em;
-          font-weight: 950;
-        }
-
-        .subtitle {
-          margin-top: 14px;
-          max-width: 760px;
-          color: #a1a1aa;
-          font-size: 15px;
-          line-height: 1.6;
-        }
-
         form {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 360px;
@@ -289,47 +228,26 @@ export default function NewCustomerPage() {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        label {
-          display: grid;
-          gap: 8px;
-        }
-
-        span {
-          color: #8b8b8b;
-          font-size: 11px;
-          font-weight: 950;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
-
-        .check-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 0;
-          color: #d4d4d8;
-          font-weight: 800;
-        }
-
-        .check-row input {
-          width: 18px;
-          height: 18px;
-          accent-color: #ef4444;
-        }
-
         .summary {
           position: sticky;
           top: 96px;
+          border: 1px solid rgba(239, 68, 68, 0.24);
           border-radius: 28px;
           padding: 24px;
-          border-color: rgba(239, 68, 68, 0.22);
           background:
             radial-gradient(
               circle at top right,
               rgba(239, 68, 68, 0.2),
               transparent 44%
             ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.07),
+              rgba(255, 255, 255, 0.02)
+            ),
             rgba(8, 8, 10, 0.96);
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+          backdrop-filter: blur(14px);
         }
 
         .summary-title {
@@ -397,26 +315,22 @@ export default function NewCustomerPage() {
         }
       `}</style>
 
-      <section className="hero">
-        <div className="back-row">
+      <BGPageHeader
+        eyebrow="BodyGate Onboarding Platinum"
+        title="Nuovo cliente"
+        subtitle="Crea anagrafica, quota associativa, abbonamento, pagamento, credenziali e contratto in un unico flusso guidato."
+        actions={
           <BGActionLink href="/customers" variant="ghost">
             ← Torna ai clienti
           </BGActionLink>
-        </div>
-
-        <div className="eyebrow">BodyGate Onboarding Platinum</div>
-        <h1>Nuovo cliente</h1>
-        <div className="subtitle">
-          Crea anagrafica, quota associativa, abbonamento, pagamento,
-          credenziali e contratto in un unico flusso guidato.
-        </div>
-      </section>
+        }
+      />
 
       <form onSubmit={submit}>
         <div className="sections">
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">1. Anagrafica</div>
-            <div className="grid">
+            <div className="grid bg-form-grid">
               <Field
                 label="Nome *"
                 value={form.first_name}
@@ -462,9 +376,9 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">2. Residenza</div>
-            <div className="grid grid-3">
+            <div className="grid grid-3 bg-form-grid bg-form-grid-3">
               <Field
                 label="Indirizzo"
                 value={form.address}
@@ -498,9 +412,9 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">3. Documento</div>
-            <div className="grid">
+            <div className="grid bg-form-grid">
               <Select
                 label="Tipo documento"
                 value={form.document_type}
@@ -532,9 +446,9 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">4. Emergenza e profilo</div>
-            <div className="grid">
+            <div className="grid bg-form-grid">
               <Field
                 label="Contatto emergenza"
                 value={form.emergency_contact_name}
@@ -588,9 +502,9 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">5. Certificato e accesso</div>
-            <div className="grid">
+            <div className="grid bg-form-grid">
               <Field
                 label="Inizio certificato"
                 type="date"
@@ -625,9 +539,9 @@ export default function NewCustomerPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card bg-card">
             <div className="card-title">6. Piano e pagamento</div>
-            <div className="grid">
+            <div className="grid bg-form-grid">
               <Select
                 label="Abbonamento"
                 value={form.subscription_plan}
@@ -651,7 +565,7 @@ export default function NewCustomerPage() {
               />
             </div>
 
-            <div className="check-row">
+            <div className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.privacy_consent}
@@ -660,7 +574,7 @@ export default function NewCustomerPage() {
               Consenso privacy obbligatorio
             </div>
 
-            <div className="check-row">
+            <div className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.marketing_consent}
@@ -669,7 +583,7 @@ export default function NewCustomerPage() {
               Consenso marketing
             </div>
 
-            <div className="check-row">
+            <div className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.photo_video_consent}
@@ -720,7 +634,9 @@ export default function NewCustomerPage() {
               : "Crea cliente, QR e vai al contratto"}
           </BGButton>
 
-          {message && <div className="message">{message}</div>}
+          {message && (
+            <div className="message bg-inline-message">{message}</div>
+          )}
         </aside>
       </form>
     </main>
@@ -739,8 +655,8 @@ function Field({
   type?: string;
 }) {
   return (
-    <label>
-      <span>{label}</span>
+    <label className="bg-field">
+      <span className="bg-field-label">{label}</span>
       <BGInput
         type={type}
         value={value}
@@ -764,8 +680,8 @@ function Select({
   labels?: Record<string, string>;
 }) {
   return (
-    <label>
-      <span>{label}</span>
+    <label className="bg-field">
+      <span className="bg-field-label">{label}</span>
       <BGSelect
         value={value}
         onChange={(event) => onChange(event.target.value)}
