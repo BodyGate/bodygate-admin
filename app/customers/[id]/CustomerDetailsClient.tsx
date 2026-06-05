@@ -821,11 +821,15 @@ async function disableBlock(blockId: string) {
         }
 
         .hero {
-          background: linear-gradient(135deg, #141414, #090909);
-          border: 1px solid #262626;
-          border-radius: 26px;
+          background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.22), transparent 34%),
+            linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025)),
+            rgba(8, 8, 10, 0.94);
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          border-radius: 30px;
           padding: 28px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+          backdrop-filter: blur(14px);
         }
 
         .hero-top {
@@ -891,9 +895,9 @@ async function disableBlock(blockId: string) {
         }
 
         .info-mini-card {
-          background: #101010;
-          border: 1px solid #262626;
-          border-radius: 16px;
+          background: rgba(255,255,255,.04);
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 18px;
           padding: 12px 14px;
         }
 
@@ -942,10 +946,11 @@ async function disableBlock(blockId: string) {
         .card,
         .error-card,
         .loading-card {
-          background: #101010;
-          border: 1px solid #262626;
-          border-radius: 22px;
+          background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), rgba(10,10,10,.9);
+          border: 1px solid rgba(255,255,255,.10);
+          border-radius: 24px;
           padding: 22px;
+          box-shadow: 0 22px 60px rgba(0,0,0,.32);
         }
 
         .error-details {
@@ -982,32 +987,45 @@ async function disableBlock(blockId: string) {
           display: flex;
           gap: 12px;
           margin-top: 14px;
+          flex-wrap: wrap;
         }
 
         button,
         select,
         input {
-          border-radius: 14px;
-          border: 1px solid #303030;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.11);
           padding: 13px 15px;
           font-size: 14px;
           outline: none;
+          font-family: inherit;
         }
 
         input,
         select {
-          background: #050505;
+          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
           color: #fff;
           width: 100%;
+          font-weight: 800;
         }
 
+        input:focus,
+        select:focus,
+        textarea:focus {
+          border-color: rgba(239,68,68,.62);
+          box-shadow: 0 0 0 4px rgba(239,68,68,.16);
+        }
+
+        select option { background: #111; color: #fff; }
+
         button {
-          background: #ef4444;
+          background: linear-gradient(135deg, #ef4444, #991b1b);
           color: white;
-          border: none;
-          font-weight: 900;
+          border: 1px solid rgba(239,68,68,.38);
+          font-weight: 950;
           cursor: pointer;
           transition: 0.2s;
+          box-shadow: 0 16px 30px rgba(239,68,68,.18);
         }
 
         button:hover {
@@ -1016,17 +1034,19 @@ async function disableBlock(blockId: string) {
         }
 
         .secondary-btn {
-          background: #ffffff;
-          color: #000000;
+          background: rgba(255,255,255,.07);
+          color: #f5f5f5;
+          border: 1px solid rgba(255,255,255,.13);
+          box-shadow: none;
         }
 
         .row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: 1px solid #262626;
-          background: #080808;
-          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.035);
+          border-radius: 18px;
           padding: 14px;
           margin-top: 10px;
           gap: 14px;
@@ -1044,9 +1064,12 @@ async function disableBlock(blockId: string) {
         }
 
         .empty {
-          color: #737373;
+          color: #9ca3af;
           font-size: 14px;
-          padding: 12px 0;
+          padding: 14px;
+          border: 1px dashed rgba(255,255,255,.12);
+          border-radius: 16px;
+          background: rgba(255,255,255,.025);
         }
 
 
@@ -1210,17 +1233,18 @@ async function disableBlock(blockId: string) {
         }
 
         textarea {
-          border-radius: 14px;
-          border: 1px solid #303030;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.11);
           padding: 13px 15px;
           font-size: 14px;
           outline: none;
-          background: #050505;
+          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
           color: #fff;
           width: 100%;
           min-height: 92px;
           resize: vertical;
           font-family: inherit;
+          font-weight: 800;
         }
 
         .edit-field-full {
