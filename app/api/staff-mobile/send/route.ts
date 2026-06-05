@@ -36,18 +36,23 @@ function getPublicAppUrl() {
   ).replace(/\/$/, "");
 }
 
-function makeStaffToken() {
-  return `BGS_${crypto.randomBytes(12).toString("base64url").toUpperCase()}`;
+function getLocalApiUrl() {
+  return (process.env.BODYGATE_LOCAL_URL || "http://localhost:3000").replace(
+    /\/$/,
+    ""
+  );
 }
 
-function makeStaffQrCode() {
-  return `staff_${crypto.randomBytes(16).toString("base64url")}`;
+function makeStaffToken() {
+  return `BGS_${crypto.randomBytes(12).toString("base64url").toUpperCase()}`;
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const staffUserId = String(body.staff_user_id || body.staffUserId || "").trim();
+    const staffUserId = String(
+      body.staff_user_id || body.staffUserId || ""
+    ).trim();
 
     if (!staffUserId) {
       return NextResponse.json(
@@ -60,20 +65,7 @@ export async function POST(req: Request) {
 
     const { data: staffUser, error: staffError } = await supabase
       .from("staff_users")
-      .select(
-        `
-        id,
-        full_name,
-        email,
-        phone,
-        is_active,
-        role_id,
-        staff_roles (
-          role_key,
-          role_name
-        )
-      `
-      )
+      .select("id, full_name, email, phone, is_active, role_id")
       .eq("id", staffUserId)
       .maybeSingle();
 
@@ -106,27 +98,79 @@ export async function POST(req: Request) {
       .eq("staff_user_id", staffUserId)
       .eq("type", "qr")
       .eq("status", "active")
+      .like("code", "local_user=%")
       .maybeSingle();
 
     if (qrError) throw qrError;
 
-    if (!qrCredential) {
-      const qrCode = makeStaffQrCode();
+    if (!qrCredential?.code) {
+      const localApiUrl = getLocalApiUrl();
 
-      const { data: newQr, error: createQrError } = await supabase
+      const createQrRes = await fetch(
+        `${localApiUrl}/api/dnake/create-staff-qr`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            staff_user_id: staffUserId,
+          }),
+        }
+      );
+
+      const createQrText = await createQrRes.text();
+
+      let createQrJson: any = null;
+
+      try {
+        createQrJson = JSON.parse(createQrText);
+      } catch {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "La route locale /api/dnake/create-staff-qr non ha restituito JSON valido.",
+            status: createQrRes.status,
+            response: createQrText.slice(0, 500),
+          },
+          { status: 500 }
+        );
+      }
+
+      if (!createQrRes.ok || !createQrJson.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: createQrJson.error || "Errore creazione QR DNake staff",
+            detail: createQrJson,
+          },
+          { status: 500 }
+        );
+      }
+
+      const { data: refreshedQr, error: refreshedQrError } = await supabase
         .from("staff_access_credentials")
-        .insert({
-          staff_user_id: staffUserId,
-          type: "qr",
-          code: qrCode,
-          status: "active",
-        })
         .select("id, code, type, status")
-        .single();
+        .eq("staff_user_id", staffUserId)
+        .eq("type", "qr")
+        .eq("status", "active")
+        .like("code", "local_user=%")
+        .maybeSingle();
 
-      if (createQrError) throw createQrError;
+      if (refreshedQrError) throw refreshedQrError;
 
-      qrCredential = newQr;
+      qrCredential = refreshedQr;
+    }
+
+    if (!qrCredential?.code) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "QR DNake staff non disponibile dopo la generazione.",
+        },
+        { status: 500 }
+      );
     }
 
     let { data: mobilePass, error: passError } = await supabase
@@ -157,14 +201,14 @@ export async function POST(req: Request) {
       mobilePass = newPass;
     }
 
-    const appUrl = getPublicAppUrl();
-    const passUrl = `${appUrl}/staff-mobile/${mobilePass.public_token}`;
+    const publicAppUrl = getPublicAppUrl();
+    const passUrl = `${publicAppUrl}/staff-mobile/${mobilePass.public_token}`;
 
     const message =
       `Ciao ${staffUser.full_name || "staff"},\n\n` +
       `il tuo accesso staff Body Energy è stato attivato.\n\n` +
       `Puoi usare il tuo Staff Mobile Pass da questo link:\n${passUrl}\n\n` +
-      `Aprilo e mostra il QR al lettore per accedere.\n\n` +
+      `Aprilo e mostra il QR DNake al lettore per accedere.\n\n` +
       `Body Energy ASD`;
 
     const whatsappUrl = `https://wa.me/${normalizePhone(

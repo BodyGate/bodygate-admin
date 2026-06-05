@@ -23,17 +23,21 @@ function titleFromPath(pathname: string) {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  const isReceiptPage =
+    pathname.startsWith("/customers/") && pathname.includes("/receipt/");
+
   const isPublicStandalonePage =
     pathname.startsWith("/mobile") ||
     pathname.startsWith("/staff-mobile") ||
-    pathname.startsWith("/login");
+    pathname.startsWith("/login") ||
+    isReceiptPage;
 
   if (isPublicStandalonePage) {
     return (
       <main
         style={{
           minHeight: "100vh",
-          background: "#050505",
+          background: isReceiptPage ? "#ffffff" : "#050505",
         }}
       >
         {children}

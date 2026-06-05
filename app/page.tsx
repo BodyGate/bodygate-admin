@@ -53,6 +53,17 @@ function dateTime(value?: string | null) {
   });
 }
 
+function accessPersonName(item: any) {
+  return (
+    item.display_name ||
+    item.customer_name ||
+    item.staff_name ||
+    item.full_name ||
+    `${item.first_name || ""} ${item.last_name || ""}`.trim() ||
+    `Codice: ${item.controller_code || item.badge_code || "—"}`
+  );
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -409,14 +420,29 @@ export default function DashboardPage() {
               </div>
 
               <div className="access-list">
-                {data.latest_access.length === 0 && <BGEmptyState title="Nessun accesso recente" description="Gli ingressi appariranno qui appena registrati." />}
+                {data.latest_access.length === 0 && (
+                  <BGEmptyState
+                    title="Nessun accesso recente"
+                    description="Gli ingressi appariranno qui appena registrati."
+                  />
+                )}
+
                 {data.latest_access.map((item) => (
                   <div className="access-item" key={item.id}>
                     <span className={`dot ${item.allowed ? "ok" : "no"}`} />
+
                     <div>
-                      <div className="access-title">{item.allowed ? "Accesso consentito" : "Accesso negato"}</div>
-                      <div className="access-sub">Codice: {item.controller_code || item.badge_code || "—"} · {item.reason || "Nessun motivo"}</div>
+                      <div className="access-title">
+                        {item.allowed ? "Accesso consentito" : "Accesso negato"}
+                      </div>
+
+                      <div className="access-sub">
+                        {accessPersonName(item)}
+                        {" · "}
+                        {item.reason || "Nessun motivo"}
+                      </div>
                     </div>
+
                     <div className="access-sub">{dateTime(item.created_at)}</div>
                   </div>
                 ))}
@@ -430,24 +456,46 @@ export default function DashboardPage() {
               </div>
 
               <div className="deadline-list">
-                {data.alerts.expiring_subscriptions.length === 0 && data.alerts.expiring_medical.length === 0 && (
-                  <BGEmptyState title="Nessuna scadenza imminente" description="Abbonamenti e certificati risultano sotto controllo." />
-                )}
-                {data.alerts.expiring_subscriptions.map((item) => (
-                  <div className="access-item" key={`sub-${item.id}`}>
-                    <span className="dot no" />
-                    <div>
-                      <div className="access-title">Abbonamento in scadenza</div>
-                      <div className="access-sub">Cliente: {item.customer_id} · Scade: {item.ends_at}</div>
+                {data.alerts.expiring_subscriptions.length === 0 &&
+                  data.alerts.expiring_medical.length === 0 && (
+                    <BGEmptyState
+                      title="Nessuna scadenza imminente"
+                      description="Abbonamenti e certificati risultano sotto controllo."
+                    />
+                  )}
+
+                {data.alerts.expiring_subscriptions.map((item) => {
+                  const customerName =
+                    item.customer_name ||
+                    `${item.first_name || ""} ${item.last_name || ""}`.trim() ||
+                    item.customer_id;
+
+                  const expiryDate = item.ends_at
+                    ? new Date(item.ends_at).toLocaleDateString("it-IT")
+                    : "—";
+
+                  return (
+                    <div className="access-item" key={`sub-${item.id}`}>
+                      <span className="dot no" />
+                      <div>
+                        <div className="access-title">Abbonamento in scadenza</div>
+                        <div className="access-sub">
+                          Cliente: {customerName} · Scade: {expiryDate}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+
                 {data.alerts.expiring_medical.map((item) => (
                   <div className="access-item" key={`med-${item.id}`}>
                     <span className="dot no" />
                     <div>
                       <div className="access-title">Certificato in scadenza</div>
-                      <div className="access-sub">{item.first_name} {item.last_name} · Scade: {item.medical_certificate_end}</div>
+                      <div className="access-sub">
+                        {item.first_name} {item.last_name} · Scade:{" "}
+                        {item.medical_certificate_end}
+                      </div>
                     </div>
                   </div>
                 ))}

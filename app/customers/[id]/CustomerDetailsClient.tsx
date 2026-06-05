@@ -32,6 +32,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [errorMessage, setErrorMessage] = useState("");
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
   const [newNote, setNewNote] = useState("");
   const [blockReason, setBlockReason] = useState("");
 
@@ -373,6 +374,13 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     return data?.id || null;
   }
 
+  function paymentMethodLabel(method: string) {
+  if (method === "cash") return "Contanti";
+  if (method === "pos") return "POS";
+  if (method === "bank_transfer") return "Bonifico";
+  return "Contanti";
+}
+
   async function renewMembershipFee() {
   if (!customer?.id) {
     alert("Cliente non caricato.");
@@ -425,14 +433,15 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     if (!plan) return alert("Piano non trovato.");
 
     const confirmed = window.confirm(
-      `Confermi rinnovo ${plan.name}?\n\n` +
-        `Importo: € ${Number(plan.promo_price || plan.price || 0).toFixed(2)}\n` +
-        `Durata: ${Number(plan.duration_days || 0)} giorni\n\n` +
-        `Verranno creati automaticamente:\n` +
-        `- Abbonamento\n` +
-        `- Pagamento\n` +
-        `- Ricevuta in duplice copia`
-    );
+  `Confermi rinnovo ${plan.name}?\n\n` +
+    `Importo: € ${Number(plan.promo_price || plan.price || 0).toFixed(2)}\n` +
+    `Durata: ${Number(plan.duration_days || 0)} giorni\n` +
+    `Pagamento: ${paymentMethodLabel(selectedPaymentMethod)}\n\n` +
+    `Verranno creati automaticamente:\n` +
+    `- Abbonamento\n` +
+    `- Pagamento\n` +
+    `- Ricevuta in duplice copia`
+);
 
     if (!confirmed) return;
 
@@ -445,7 +454,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         body: JSON.stringify({
           customer_id: customer.id,
           plan_id: targetPlanId,
-          payment_method: "cash",
+          payment_method: selectedPaymentMethod,
         }),
       });
 
@@ -1809,6 +1818,43 @@ async function disableBlock(blockId: string) {
           <button onClick={renewMembershipFee}>
             Rinnova quota associativa 10€
           </button>
+          <div
+  style={{
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.035)",
+  }}
+>
+  <div
+    style={{
+      color: "#9ca3af",
+      fontSize: 12,
+      fontWeight: 700,
+      marginBottom: 8,
+    }}
+  >
+    Metodo pagamento
+  </div>
+
+  <select
+    value={selectedPaymentMethod}
+    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 10,
+      background: "#111827",
+      color: "#fff",
+      border: "1px solid rgba(255,255,255,0.12)",
+    }}
+  >
+    <option value="cash">Contanti</option>
+    <option value="pos">POS</option>
+    <option value="bank_transfer">Bonifico</option>
+  </select>
+</div>
 
           <div className="quick-plan-grid">
             {plans.length === 0 && (
