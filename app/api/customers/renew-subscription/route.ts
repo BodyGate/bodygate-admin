@@ -239,32 +239,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const { error: cashMovementError } = await supabaseAdmin
-      .from("cash_movements")
-      .insert({
-        movement_type: "income",
-        amount,
-        category: "subscription",
-        description: paymentDescription,
-        payment_id: accountingPayment.id,
-        created_by: "admin@bodygate.it",
-        movement_at: now,
-      });
-
-    if (cashMovementError) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Abbonamento e pagamento creati, ma errore movimento cassa",
-          detail: cashMovementError,
-          subscription_id: subscription.id,
-          customer_payment_id: payment.id,
-          payment_id: accountingPayment.id,
-        },
-        { status: 500 }
-      );
-    }
-
     await supabaseAdmin.from("customer_timeline").insert({
       customer_id: customerId,
       type: "subscription",
@@ -322,11 +296,11 @@ export async function POST(req: Request) {
       receipt_url: `/customers/${customerId}/receipt/${receipt.id}`,
       print_url: `/customers/${customerId}/receipt/${receipt.id}?print=1`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message || "Errore sconosciuto",
+        error: error instanceof Error ? error.message : "Errore sconosciuto",
       },
       { status: 500 }
     );
