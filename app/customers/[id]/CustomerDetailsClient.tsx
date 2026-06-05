@@ -1,5 +1,8 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { supabase } from "../../lib/supabaseClient";
@@ -49,7 +52,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         ?.qr_payload || "";
 
     if (!activeQrPayload) {
-      setQrDataUrl("");
+      Promise.resolve().then(() => setQrDataUrl(""));
       return;
     }
 
@@ -454,18 +457,31 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         return;
       }
 
-      alert(
-        `Rinnovo completato.\n\n` +
-          `Cliente: ${json.customer_name || ""}\n` +
-          `Piano: ${json.plan?.name || plan.name}\n` +
-          `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
-      );
+      if (json.print_url) {
+        const receiptWindow = window.open(json.print_url, "_blank");
+
+        if (receiptWindow === null) {
+          alert(
+            "Rinnovo completato, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico pagamenti."
+          );
+        } else {
+          alert(
+            `Rinnovo completato.\n\n` +
+              `Cliente: ${json.customer_name || ""}\n` +
+              `Piano: ${json.plan?.name || plan.name}\n` +
+              `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
+          );
+        }
+      } else {
+        alert(
+          `Rinnovo completato.\n\n` +
+            `Cliente: ${json.customer_name || ""}\n` +
+            `Piano: ${json.plan?.name || plan.name}\n` +
+            `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
+        );
+      }
 
       await loadAll();
-
-      if (json.print_url) {
-        window.open(json.print_url, "_blank");
-      }
     } catch (error) {
       console.error("renewSubscription failed", error);
       alert("Errore imprevisto durante il rinnovo abbonamento.");
@@ -1251,9 +1267,9 @@ async function disableBlock(blockId: string) {
       </style>
 
       <div className="topbar">
-        <a className="back-link" href="/customers">
+        <Link className="back-link" href="/customers">
           ← Torna ai clienti
-        </a>
+        </Link>
       </div>
 
       <div className="hero-layout">
