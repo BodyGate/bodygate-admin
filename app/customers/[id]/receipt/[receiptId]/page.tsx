@@ -35,6 +35,13 @@ function customerName(customer: any) {
   return `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim() || "Cliente";
 }
 
+function paymentMethodLabel(method?: string | null) {
+  if (method === "cash") return "Contanti";
+  if (method === "pos") return "POS";
+  if (method === "bank_transfer") return "Bonifico";
+  return method || "Contanti";
+}
+
 async function loadReceipt(customerId: string, receiptId: string) {
   const { data: receipt, error: receiptError } = await supabaseAdmin
     .from("customer_receipts")
@@ -54,16 +61,8 @@ async function loadReceipt(customerId: string, receiptId: string) {
     };
   }
 
-  const [
-    customerRes,
-    paymentRes,
-    subscriptionRes,
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("customers")
-      .select("*")
-      .eq("id", customerId)
-      .maybeSingle(),
+  const [customerRes, paymentRes, subscriptionRes] = await Promise.all([
+    supabaseAdmin.from("customers").select("*").eq("id", customerId).maybeSingle(),
     receipt.payment_id
       ? supabaseAdmin
           .from("customer_payments")
@@ -125,6 +124,7 @@ function ReceiptCopy({
         <div>
           <div className="brand">BODY ENERGY A.S.D.</div>
           <div className="muted">Viale Amedeo D&apos;Aosta 3, Palermo</div>
+          <div className="muted">C.F. 97308970827</div>
           <div className="muted">Tel. 0917785001 · bodyenergy.asd@gmail.com</div>
         </div>
 
@@ -155,7 +155,7 @@ function ReceiptCopy({
         <div className="box">
           <div className="box-title">Emissione</div>
           <div>Data: {formatDateTime(receipt.issued_at || receipt.created_at)}</div>
-          <div>Metodo pagamento: {payment?.payment_method || "cash"}</div>
+          <div>Metodo pagamento: {paymentMethodLabel(payment?.payment_method)}</div>
           <div>Tipo: {receipt.receipt_type || "subscription"}</div>
         </div>
       </div>
@@ -198,6 +198,11 @@ function ReceiptCopy({
         <strong>{formatEuro(receipt.amount)}</strong>
       </div>
 
+      <div className="legal-note">
+        Somma non soggetta ad IVA ai sensi del quarto comma dell&apos; Art.10 del D.P.R. 633/72
+        e successive modifiche ed integrazioni.
+      </div>
+
       <div className="signatures">
         <div>
           <div className="line" />
@@ -209,10 +214,6 @@ function ReceiptCopy({
           <span>Firma incaricato</span>
         </div>
       </div>
-
-      <footer>
-        Documento generato da BodyGate. Conservare la copia palestra per registro interno.
-      </footer>
     </section>
   );
 }
@@ -254,40 +255,39 @@ export default async function ReceiptPage({
     <main className="page">
       <div className="toolbar no-print">
         <a href={`/customers/${id}`}>← Torna al cliente</a>
-        <button onClick={undefined as any} className="hidden-button" />
-        <button
-          type="button"
-          onClick={undefined as any}
-          className="print-fallback"
-        >
+        <button type="button" className="print-fallback">
           Stampa
         </button>
       </div>
 
-      <ReceiptCopy
-        label={receipt.customer_copy_label || "COPIA CLIENTE"}
-        receipt={receipt}
-        customer={customer}
-        payment={payment}
-        subscription={subscription}
-        plan={plan}
-      />
+      <div className="a4-sheet">
+        <ReceiptCopy
+          label={receipt.customer_copy_label || "COPIA CLIENTE"}
+          receipt={receipt}
+          customer={customer}
+          payment={payment}
+          subscription={subscription}
+          plan={plan}
+        />
 
-      <div className="cut-line">✂</div>
+        <div className="cut-line">
+          <span>✂ taglio</span>
+        </div>
 
-      <ReceiptCopy
-        label={receipt.gym_copy_label || "COPIA PALESTRA"}
-        receipt={receipt}
-        customer={customer}
-        payment={payment}
-        subscription={subscription}
-        plan={plan}
-      />
+        <ReceiptCopy
+          label={receipt.gym_copy_label || "COPIA PALESTRA"}
+          receipt={receipt}
+          customer={customer}
+          payment={payment}
+          subscription={subscription}
+          plan={plan}
+        />
+      </div>
 
       {shouldPrint ? (
         <script
           dangerouslySetInnerHTML={{
-            __html: "setTimeout(function(){ window.print(); }, 500);",
+            __html: "setTimeout(function(){ window.print(); }, 650);",
           }}
         />
       ) : null}
@@ -310,6 +310,7 @@ export default async function ReceiptPage({
           box-sizing: border-box;
         }
 
+        html,
         body {
           margin: 0;
           background: #e5e7eb;
@@ -319,12 +320,12 @@ export default async function ReceiptPage({
 
         .page {
           min-height: 100vh;
-          padding: 24px;
+          padding: 20px;
         }
 
         .toolbar {
-          max-width: 900px;
-          margin: 0 auto 16px;
+          max-width: 210mm;
+          margin: 0 auto 14px;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -335,7 +336,7 @@ export default async function ReceiptPage({
         .toolbar button {
           border: 0;
           border-radius: 12px;
-          padding: 12px 16px;
+          padding: 11px 15px;
           background: #111827;
           color: white;
           text-decoration: none;
@@ -343,49 +344,54 @@ export default async function ReceiptPage({
           cursor: pointer;
         }
 
-        .hidden-button {
-          display: none;
-        }
-
-        .receipt-copy {
+        .a4-sheet {
           width: 210mm;
-          min-height: 138mm;
+          height: 297mm;
           max-width: 100%;
           margin: 0 auto;
           background: white;
           border: 1px solid #d1d5db;
-          padding: 13mm;
-          page-break-inside: avoid;
+          display: grid;
+          grid-template-rows: 1fr auto 1fr;
+          overflow: hidden;
+        }
+
+        .receipt-copy {
+          width: 100%;
+          height: 100%;
+          padding: 8mm 11mm 6mm;
+          background: white;
+          overflow: hidden;
         }
 
         .receipt-header {
           display: flex;
           justify-content: space-between;
-          gap: 20px;
-          border-bottom: 3px solid #111827;
-          padding-bottom: 12px;
+          gap: 16px;
+          border-bottom: 2px solid #111827;
+          padding-bottom: 7px;
         }
 
         .brand {
-          font-size: 24px;
+          font-size: 19px;
           font-weight: 950;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.4px;
           color: #991b1b;
         }
 
         .muted {
           color: #6b7280;
-          font-size: 12px;
-          line-height: 1.5;
+          font-size: 10.2px;
+          line-height: 1.3;
         }
 
         .copy-label {
           border: 2px solid #991b1b;
           color: #991b1b;
-          padding: 8px 12px;
+          padding: 6px 10px;
           border-radius: 8px;
           font-weight: 950;
-          font-size: 14px;
+          font-size: 12px;
           align-self: flex-start;
           white-space: nowrap;
         }
@@ -394,83 +400,83 @@ export default async function ReceiptPage({
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin: 18px 0;
-          gap: 20px;
+          margin: 9px 0;
+          gap: 16px;
         }
 
         h1 {
           margin: 0;
-          font-size: 30px;
-          letter-spacing: -1px;
+          font-size: 22px;
+          letter-spacing: -0.7px;
         }
 
         .receipt-title p {
-          margin: 4px 0 0;
+          margin: 3px 0 0;
           color: #6b7280;
-          font-size: 13px;
+          font-size: 10.3px;
         }
 
         .receipt-number {
           text-align: right;
           color: #374151;
-          font-size: 13px;
+          font-size: 10.8px;
         }
 
         .receipt-number strong {
           display: block;
-          font-size: 17px;
+          font-size: 13.5px;
           color: #111827;
-          margin-top: 3px;
+          margin-top: 2px;
         }
 
         .grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 8px;
+          margin-bottom: 8px;
         }
 
         .box {
           border: 1px solid #d1d5db;
-          border-radius: 10px;
-          padding: 12px;
-          font-size: 13px;
-          line-height: 1.55;
+          border-radius: 8px;
+          padding: 7px;
+          font-size: 10.5px;
+          line-height: 1.3;
         }
 
         .box-title {
           color: #991b1b;
           font-weight: 950;
           text-transform: uppercase;
-          font-size: 11px;
-          letter-spacing: 0.8px;
-          margin-bottom: 5px;
+          font-size: 9.3px;
+          letter-spacing: 0.7px;
+          margin-bottom: 4px;
         }
 
         .strong {
           font-weight: 950;
-          font-size: 15px;
+          font-size: 11.8px;
         }
 
         table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 13px;
+          font-size: 10.5px;
         }
 
         th {
           text-align: left;
           background: #111827;
           color: white;
-          padding: 10px;
-          font-size: 12px;
+          padding: 6px;
+          font-size: 9.5px;
           text-transform: uppercase;
-          letter-spacing: 0.6px;
+          letter-spacing: 0.5px;
         }
 
         td {
           border: 1px solid #d1d5db;
-          padding: 12px 10px;
+          padding: 7px 6px;
           vertical-align: top;
         }
 
@@ -480,57 +486,69 @@ export default async function ReceiptPage({
 
         .amount {
           font-weight: 950;
-          font-size: 16px;
+          font-size: 12.5px;
         }
 
         .total-row {
-          margin-top: 14px;
+          margin-top: 8px;
           display: flex;
           justify-content: flex-end;
-          gap: 24px;
+          gap: 18px;
           align-items: center;
-          font-size: 16px;
+          font-size: 12px;
         }
 
         .total-row strong {
-          font-size: 24px;
+          font-size: 18px;
           color: #991b1b;
+        }
+
+        .legal-note {
+          margin-top: 8px;
+          padding: 6px 7px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          color: #374151;
+          background: #f9fafb;
+          font-size: 9.5px;
+          line-height: 1.35;
+          font-weight: 700;
         }
 
         .signatures {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 50px;
-          margin-top: 28px;
+          gap: 42px;
+          margin-top: 17px;
         }
 
         .line {
           height: 1px;
           background: #111827;
-          margin-bottom: 6px;
+          margin-bottom: 5px;
         }
 
         .signatures span {
-          font-size: 12px;
+          font-size: 10.3px;
           color: #6b7280;
-        }
-
-        footer {
-          margin-top: 18px;
-          color: #6b7280;
-          font-size: 11px;
-          border-top: 1px solid #e5e7eb;
-          padding-top: 8px;
         }
 
         .cut-line {
-          width: 210mm;
-          max-width: 100%;
-          margin: 8px auto;
-          color: #6b7280;
-          text-align: center;
+          width: 100%;
+          height: 8mm;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           border-top: 1px dashed #9ca3af;
-          line-height: 0;
+          border-bottom: 1px dashed #9ca3af;
+          color: #6b7280;
+          font-size: 10px;
+          line-height: 1;
+        }
+
+        .cut-line span {
+          background: white;
+          padding: 0 8px;
         }
 
         .error-box {
@@ -543,29 +561,43 @@ export default async function ReceiptPage({
         }
 
         @media print {
+          html,
           body {
-            background: white;
+            width: 210mm;
+            height: 297mm;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
           }
 
           .page {
-            padding: 0;
+            width: 210mm;
+            height: 297mm;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: hidden !important;
           }
 
           .no-print {
             display: none !important;
           }
 
-          .receipt-copy {
-            width: 100%;
-            min-height: 138mm;
-            border: 0;
-            margin: 0;
-            padding: 9mm 12mm;
+          .a4-sheet {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            page-break-after: avoid;
+            page-break-before: avoid;
+            page-break-inside: avoid;
           }
 
+          .receipt-copy,
           .cut-line {
-            margin: 0;
-            width: 100%;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
 
           @page {

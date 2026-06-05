@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 function startOfToday() {
@@ -19,11 +20,72 @@ function startOfMonth() {
   return d.toISOString();
 }
 
+function extractStaffName(reason?: string | null) {
+  const text = String(reason || "");
+  const prefix = "Accesso staff autorizzato:";
+
+  if (text.includes(prefix)) {
+    return text.split(prefix)[1]?.trim() || "Staff BodyGate";
+  }
+
+  return "";
+}
+
+function normalizeSubscriptionAlert(row: any) {
+  const customer = Array.isArray(row.customers)
+    ? row.customers[0]
+    : row.customers;
+
+  const firstName = customer?.first_name || "";
+  const lastName = customer?.last_name || "";
+  const customerName = `${firstName} ${lastName}`.trim();
+
+  return {
+    id: row.id,
+    customer_id: row.customer_id,
+    first_name: firstName,
+    last_name: lastName,
+    customer_name: customerName || row.customer_id,
+    ends_at: row.ends_at,
+  };
+}
+
+function normalizeAccessLog(row: any) {
+  const customer = Array.isArray(row.customers)
+    ? row.customers[0]
+    : row.customers;
+
+  const customerName = customer
+    ? `${customer.first_name || ""} ${customer.last_name || ""}`.trim()
+    : "";
+
+  const staffName = extractStaffName(row.reason);
+  const isStaff = !!staffName;
+
+  return {
+    id: row.id,
+    created_at: row.created_at || row.access_time,
+    access_time: row.access_time || row.created_at,
+    badge_code: row.badge_code,
+    controller_code: row.controller_code,
+    allowed: row.was_allowed ?? false,
+    was_allowed: row.was_allowed ?? false,
+    reason: row.reason,
+    customer_id: row.customer_id,
+    customer_name: isStaff ? staffName : customerName || null,
+    display_name: isStaff ? staffName : customerName || null,
+    entity_type: isStaff ? "staff" : "customer",
+  };
+}
+
 export async function GET() {
   try {
     const todayIso = startOfToday();
     const monthIso = startOfMonth();
     const todayDate = todayIso.slice(0, 10);
+    const plus15Date = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15)
+      .toISOString()
+      .slice(0, 10);
 
     const [
       customersResult,
@@ -31,7 +93,7 @@ export async function GET() {
       deniedTodayResult,
       paymentsTodayResult,
       paymentsMonthResult,
-      latestAccessResult,
+      latestCustomerAccessResult,
       expiredMedicalResult,
       expiringMedicalResult,
       expiredSubscriptionsResult,
@@ -39,17 +101,20 @@ export async function GET() {
       activeBlocksResult,
       bridgeResult,
     ] = await Promise.all([
-      supabase.from("customers").select("id", { count: "exact", head: true }).eq("is_active", true),
+      supabase
+        .from("customers")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
 
       supabase
-        .from("access_logs")
+        .from("customer_access_logs")
         .select("id", { count: "exact", head: true })
         .gte("created_at", todayIso),
 
       supabase
-        .from("access_logs")
+        .from("customer_access_logs")
         .select("id", { count: "exact", head: true })
-        .eq("allowed", false)
+        .eq("was_allowed", false)
         .gte("created_at", todayIso),
 
       supabase
@@ -65,8 +130,24 @@ export async function GET() {
         .gte("paid_at", monthIso),
 
       supabase
-        .from("access_logs")
-        .select("id, created_at, badge_code, controller_code, allowed, reason, customer_id")
+        .from("customer_access_logs")
+        .select(
+          `
+          id,
+          created_at,
+          access_time,
+          badge_code,
+          controller_code,
+          was_allowed,
+          reason,
+          customer_id,
+          customers (
+            id,
+            first_name,
+            last_name
+          )
+        `
+        )
         .order("created_at", { ascending: false })
         .limit(8),
 
@@ -82,28 +163,44 @@ export async function GET() {
         .select("id, first_name, last_name, medical_certificate_end")
         .eq("is_active", true)
         .gte("medical_certificate_end", todayDate)
-        .lte(
-          "medical_certificate_end",
-          new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString().slice(0, 10)
-        )
+        .lte("medical_certificate_end", plus15Date)
         .limit(6),
 
       supabase
         .from("customer_subscriptions")
-        .select("id, customer_id, ends_at")
+        .select(
+          `
+          id,
+          customer_id,
+          ends_at,
+          customers (
+            id,
+            first_name,
+            last_name
+          )
+        `
+        )
         .eq("is_active", true)
         .lt("ends_at", todayDate)
         .limit(6),
 
       supabase
         .from("customer_subscriptions")
-        .select("id, customer_id, ends_at")
+        .select(
+          `
+          id,
+          customer_id,
+          ends_at,
+          customers (
+            id,
+            first_name,
+            last_name
+          )
+        `
+        )
         .eq("is_active", true)
         .gte("ends_at", todayDate)
-        .lte(
-          "ends_at",
-          new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString().slice(0, 10)
-        )
+        .lte("ends_at", plus15Date)
         .limit(6),
 
       supabase
@@ -111,7 +208,11 @@ export async function GET() {
         .select("id", { count: "exact", head: true })
         .eq("is_active", true),
 
-      supabase.from("bridge_status").select("*").order("created_at", { ascending: false }).limit(1),
+      supabase
+        .from("bridge_status")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1),
     ]);
 
     const paymentsToday = paymentsTodayResult.data || [];
@@ -148,10 +249,16 @@ export async function GET() {
       alerts: {
         expired_medical: expiredMedicalResult.data || [],
         expiring_medical: expiringMedicalResult.data || [],
-        expired_subscriptions: expiredSubscriptionsResult.data || [],
-        expiring_subscriptions: expiringSubscriptionsResult.data || [],
+        expired_subscriptions: (expiredSubscriptionsResult.data || []).map(
+          normalizeSubscriptionAlert
+        ),
+        expiring_subscriptions: (expiringSubscriptionsResult.data || []).map(
+          normalizeSubscriptionAlert
+        ),
       },
-      latest_access: latestAccessResult.data || [],
+      latest_access: (latestCustomerAccessResult.data || []).map(
+        normalizeAccessLog
+      ),
     });
   } catch (error: any) {
     return NextResponse.json(

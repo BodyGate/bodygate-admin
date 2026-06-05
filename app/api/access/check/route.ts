@@ -229,9 +229,9 @@ async function findStaffAccess(
 ) {
   const { data: staffCredential, error: staffCredentialError } = await supabase
     .from("staff_access_credentials")
-    .select("id, staff_user_id, code, type, status")
+    .select("id, staff_user_id, code, controller_code, type, status")
     .eq("status", "active")
-    .eq("code", badge)
+    .or(`code.eq.${badge},controller_code.eq.${badge}`)
     .limit(1)
     .maybeSingle();
 
@@ -280,6 +280,8 @@ async function findStaffAccess(
       reason: "Staff non valido",
       badge_code: badge,
       entity_type: "staff",
+      customer_id: null,
+      customer_name: "Staff non valido",
     };
   }
 
@@ -291,28 +293,41 @@ async function findStaffAccess(
       badge_code: badge,
       entity_type: "staff",
       staff_user_id: staffCredential.staff_user_id,
+      customer_id: null,
+      customer_name: "Staff non attivo",
     };
   }
+
+  const staffName = staffUser.full_name || "Staff BodyGate";
+  const staffRole = (staffUser.staff_roles as any)?.role_name || null;
 
   await supabase.from("customer_access_logs").insert({
     customer_id: null,
     branch_id: null,
     was_allowed: true,
-    reason: `Accesso staff autorizzato: ${staffUser.full_name || ""}`.trim(),
+    reason: `Accesso staff autorizzato: ${staffName}`,
     badge_code: staffCredential.code || badge,
-    controller_code: staffCredential.code || badge,
+    controller_code: staffCredential.controller_code || badge,
   });
 
   return {
     ok: true,
     allowed: true,
     reason: "Accesso staff autorizzato",
+
     entity_type: "staff",
+
     staff_user_id: staffUser.id,
-    staff_name: staffUser.full_name,
-    staff_role: (staffUser.staff_roles as any)?.role_name || null,
+    staff_name: staffName,
+    staff_role: staffRole,
+
+    // Compatibilità con BodyGate Bridge attuale
+    customer_id: null,
+    customer_name: staffName,
+
     badge_code: staffCredential.code || badge,
-    controller_code: staffCredential.code || badge,
+    controller_code: staffCredential.controller_code || badge,
+
     source,
   };
 }
@@ -361,6 +376,7 @@ export async function POST(req: Request) {
             "customers.badge_code",
             "customers.controller_code",
             "staff_access_credentials.code",
+            "staff_access_credentials.controller_code",
           ],
           access_credentials_status_filter: "active",
           received_badge: badgeLookup.debug.received_badge,
@@ -372,7 +388,7 @@ export async function POST(req: Request) {
             badgeLookup.debug.access_credentials_same_code_count,
           exact_query_path_used: [
             ...badgeLookup.debug.exact_query_path_used,
-            "staff_access_credentials.status=active AND code=badge",
+            "staff_access_credentials.status=active AND (code=badge OR controller_code=badge)",
           ],
           lookup_error: badgeLookup.debug.lookup_error,
         },
