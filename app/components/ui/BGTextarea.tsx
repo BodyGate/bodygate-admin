@@ -20,7 +20,7 @@ export default function BGTextarea({
   const textarea = (
     <textarea
       id={textareaId}
-      className={`bg-textarea ${className}`.trim()}
+      className={`bg-textarea bg-form-control ${className}`.trim()}
       {...props}
     />
   );
@@ -28,10 +28,10 @@ export default function BGTextarea({
   if (!label) return textarea;
 
   return (
-    <label className="bg-field" htmlFor={textareaId}>
-      <span className="bg-field-label">{label}</span>
+    <label className="bg-field bg-form-field" htmlFor={textareaId}>
+      <span className="bg-field-label bg-form-label">{label}</span>
       {textarea}
-      {hint && <span className="bg-field-hint">{hint}</span>}
+      {hint && <span className="bg-field-hint bg-form-help">{hint}</span>}
     </label>
   );
 }

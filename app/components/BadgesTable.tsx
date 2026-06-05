@@ -44,7 +44,7 @@ export default function BadgesTable() {
   }
 
   useEffect(() => {
-    loadBadges();
+    void Promise.resolve().then(loadBadges);
   }, []);
 
   const filteredCustomers = useMemo(() => {
@@ -67,7 +67,7 @@ export default function BadgesTable() {
   ).length;
 
   return (
-    <div style={{ display: "grid", gap: "22px" }}>
+    <div className="bg-stack-lg">
       <div
         style={{
           display: "grid",
@@ -140,18 +140,10 @@ export default function BadgesTable() {
           </div>
 
           <input
+            className="bg-input bg-form-control"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Ricerca badge o cliente..."
-            style={{
-              background: "var(--bg-soft)",
-              border: "1px solid var(--border)",
-              borderRadius: "14px",
-              padding: "14px 16px",
-              color: "var(--text)",
-              minWidth: "260px",
-              outline: "none",
-            }}
           />
         </div>
 
@@ -174,21 +166,10 @@ export default function BadgesTable() {
             Nessun badge trovato.
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                minWidth: "900px",
-              }}
-            >
+          <div className="bg-table-wrap">
+            <table className="bg-table" style={{ minWidth: "900px" }}>
               <thead>
-                <tr
-                  style={{
-                    background: "var(--bg-soft)",
-                    textAlign: "left",
-                  }}
-                >
+                <tr>
                   <th style={thStyle}>Cliente</th>
                   <th style={thStyle}>Badge</th>
                   <th style={thStyle}>Stato</th>
@@ -219,12 +200,7 @@ export default function BadgesTable() {
                       };
 
                   return (
-                    <tr
-                      key={customer.id}
-                      style={{
-                        borderTop: "1px solid var(--border)",
-                      }}
-                    >
+                    <tr key={customer.id} className="bg-table-row">
                       <td style={tdStyle}>
                         <div style={{ fontWeight: "bold" }}>
                           {customer.full_name}
@@ -286,15 +262,7 @@ export default function BadgesTable() {
                       <td style={tdStyle}>
                         <Link
                           href={`/customers/${customer.id}`}
-                          style={{
-                            background: "var(--accent)",
-                            color: "white",
-                            padding: "12px 14px",
-                            borderRadius: "12px",
-                            textDecoration: "none",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
+                          className="bg-action-link bg-action-link-primary"
                         >
                           Apri scheda
                         </Link>

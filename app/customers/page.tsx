@@ -4,7 +4,7 @@ import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function CustomersPage() {
   return (
-    <main className="space-y-6">
+    <main className="bg-page-shell">
       <BGPageHeader
         eyebrow="CRM BodyGate"
         title="Customers"

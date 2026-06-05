@@ -6,5 +6,5 @@ type BGStatusBadgeProps = {
 };
 
 export default function BGStatusBadge({ children, tone = "neutral" }: BGStatusBadgeProps) {
-  return <span className={`bg-status bg-status-${tone}`}>{children}</span>;
+  return <span className={`bg-status bg-status-badge bg-status-${tone}`}>{children}</span>;
 }
