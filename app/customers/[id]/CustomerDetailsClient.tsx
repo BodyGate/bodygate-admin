@@ -856,7 +856,7 @@ async function disableBlock(blockId: string) {
           display: flex;
           justify-content: space-between;
           gap: 24px;
-          align-items: flex-start;
+          align-items: center;
         }
 
         .profile-area {
@@ -864,6 +864,7 @@ async function disableBlock(blockId: string) {
           gap: 22px;
           align-items: flex-start;
           flex-wrap: wrap;
+          min-width: 0;
         }
 
         .avatar {
@@ -912,9 +913,14 @@ async function disableBlock(blockId: string) {
           grid-template-columns: repeat(2, minmax(180px, 1fr));
           gap: 12px;
           margin-top: 18px;
+          align-items: stretch;
         }
 
         .info-mini-card {
+          display: grid;
+          grid-template-rows: auto 1fr;
+          gap: 7px;
+          min-height: 78px;
           background: rgba(255,255,255,.04);
           border: 1px solid rgba(255,255,255,.09);
           border-radius: 18px;
@@ -924,7 +930,6 @@ async function disableBlock(blockId: string) {
         .info-label {
           color: #737373;
           font-size: 11px;
-          margin-bottom: 5px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -936,7 +941,11 @@ async function disableBlock(blockId: string) {
         }
 
         .badge-status {
-          padding: 13px 18px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 42px;
+          padding: 0 18px;
           border-radius: 999px;
           font-weight: 900;
           font-size: 13px;
@@ -957,9 +966,10 @@ async function disableBlock(blockId: string) {
 
         .status-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 16px;
           margin-top: 28px;
+          align-items: stretch;
         }
 
         .status-box,
@@ -973,6 +983,18 @@ async function disableBlock(blockId: string) {
           box-shadow: 0 22px 60px rgba(0,0,0,.32);
         }
 
+
+        .card h2,
+        .credentials-card h2 {
+          line-height: 1.15;
+        }
+
+        .status-box {
+          display: grid;
+          grid-template-rows: auto 1fr;
+          gap: 8px;
+          min-height: 118px;
+        }
         .error-details {
           white-space: pre-wrap;
           word-break: break-word;
@@ -998,13 +1020,15 @@ async function disableBlock(blockId: string) {
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 22px;
           margin-bottom: 22px;
+          align-items: start;
         }
 
         .actions {
           display: flex;
+          align-items: center;
           gap: 12px;
           margin-top: 14px;
           flex-wrap: wrap;
@@ -1017,9 +1041,10 @@ async function disableBlock(blockId: string) {
         button,
         select,
         input {
+          min-height: 46px;
           border-radius: 16px;
           border: 1px solid rgba(255,255,255,.11);
-          padding: 13px 15px;
+          padding: 0 15px;
           font-size: 14px;
           outline: none;
           font-family: inherit;
@@ -1030,6 +1055,7 @@ async function disableBlock(blockId: string) {
           background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
           color: #fff;
           width: 100%;
+          max-width: 100%;
           font-weight: 800;
         }
 
@@ -1050,6 +1076,8 @@ async function disableBlock(blockId: string) {
           cursor: pointer;
           transition: 0.2s;
           box-shadow: 0 16px 30px rgba(239,68,68,.18);
+          line-height: 1;
+          white-space: nowrap;
         }
 
         button:hover {
@@ -1091,8 +1119,13 @@ async function disableBlock(blockId: string) {
           gap: 14px;
         }
 
+        .row > div:first-child {
+          min-width: 0;
+        }
+
         .row-title {
           font-weight: 900;
+          word-break: break-word;
         }
 
         .row-subtitle,
@@ -1105,10 +1138,11 @@ async function disableBlock(blockId: string) {
         .empty {
           color: #9ca3af;
           font-size: 14px;
-          padding: 14px;
+          padding: 18px;
           border: 1px dashed rgba(255,255,255,.12);
           border-radius: 16px;
           background: rgba(255,255,255,.025);
+          text-align: center;
         }
 
 
@@ -1122,9 +1156,12 @@ async function disableBlock(blockId: string) {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
           margin-bottom: 14px;
+          align-items: stretch;
         }
 
         .credential-mini {
+          display: grid;
+          gap: 6px;
           background: #050505;
           border: 1px solid #262626;
           border-radius: 14px;
@@ -1161,6 +1198,7 @@ async function disableBlock(blockId: string) {
 
         .credential-pill-list {
           display: flex;
+          align-items: center;
           flex-wrap: wrap;
           gap: 8px;
         }
@@ -1179,6 +1217,7 @@ async function disableBlock(blockId: string) {
           border-radius: 18px;
           padding: 14px;
           display: inline-flex;
+          justify-self: start;
           margin: 6px 0 12px;
         }
 
@@ -1235,6 +1274,7 @@ async function disableBlock(blockId: string) {
         .quick-plan-btn {
           min-height: 112px;
           display: grid;
+          align-content: center;
           gap: 7px;
           text-align: left;
           border-radius: 18px;
@@ -1288,13 +1328,16 @@ async function disableBlock(blockId: string) {
 
         .edit-form-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(180px, 1fr));
           gap: 14px;
+          align-items: start;
         }
 
         .edit-field {
           display: grid;
+          grid-template-rows: auto minmax(46px, auto);
           gap: 7px;
+          min-width: 0;
         }
 
         .edit-field label {
@@ -1322,6 +1365,7 @@ async function disableBlock(blockId: string) {
 
         .edit-field-full {
           grid-column: 1 / -1;
+          grid-template-rows: auto auto;
         }
 
         .checkbox-field {
@@ -1355,9 +1399,20 @@ async function disableBlock(blockId: string) {
 
           .hero-top,
           .actions,
-          .topbar {
+          .topbar,
+          .edit-panel-header {
             flex-direction: column;
             align-items: stretch;
+          }
+
+          .hero-actions {
+            justify-content: flex-start;
+          }
+
+          .edit-form-grid,
+          .quick-plan-grid,
+          .credential-summary {
+            grid-template-columns: 1fr;
           }
         }
       `}

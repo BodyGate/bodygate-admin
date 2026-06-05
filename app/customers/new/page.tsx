@@ -196,8 +196,8 @@ export default function NewCustomerPage() {
 
         form {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) 360px;
-          gap: 20px;
+          grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+          gap: 22px;
           align-items: start;
         }
 
@@ -207,6 +207,8 @@ export default function NewCustomerPage() {
         }
 
         .card {
+          display: grid;
+          gap: 18px;
           border-radius: 28px;
           padding: 24px;
         }
@@ -215,17 +217,18 @@ export default function NewCustomerPage() {
           font-size: 22px;
           font-weight: 950;
           letter-spacing: -0.04em;
-          margin-bottom: 18px;
+          line-height: 1.1;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
+          gap: 16px;
+          align-items: start;
         }
 
         .grid-3 {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(180px, 1fr));
         }
 
         .summary {
@@ -233,6 +236,8 @@ export default function NewCustomerPage() {
           top: 96px;
           border: 1px solid rgba(239, 68, 68, 0.24);
           border-radius: 28px;
+          display: grid;
+          gap: 16px;
           padding: 24px;
           background:
             radial-gradient(
@@ -254,12 +259,14 @@ export default function NewCustomerPage() {
           font-size: 24px;
           font-weight: 950;
           letter-spacing: -0.04em;
+          line-height: 1.1;
         }
 
         .line {
-          display: flex;
-          justify-content: space-between;
-          gap: 14px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 16px;
           padding: 14px 0;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           color: #d4d4d8;
@@ -267,12 +274,19 @@ export default function NewCustomerPage() {
           font-weight: 800;
         }
 
+        .line span {
+          min-width: 0;
+          line-height: 1.35;
+        }
+
         .line strong {
+          justify-self: end;
           text-align: right;
+          line-height: 1.25;
         }
 
         .total {
-          margin-top: 18px;
+          margin-top: 2px;
           font-size: 42px;
           line-height: 0.95;
           font-weight: 950;
@@ -311,6 +325,11 @@ export default function NewCustomerPage() {
           .grid,
           .grid-3 {
             grid-template-columns: 1fr;
+          }
+
+          .card,
+          .summary {
+            padding: 20px;
           }
         }
       `}</style>
@@ -565,25 +584,25 @@ export default function NewCustomerPage() {
               />
             </div>
 
-            <div className="check-row bg-check-row">
+            <label className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.privacy_consent}
                 onChange={(e) => update("privacy_consent", e.target.checked)}
               />
-              Consenso privacy obbligatorio
-            </div>
+              <span>Consenso privacy obbligatorio</span>
+            </label>
 
-            <div className="check-row bg-check-row">
+            <label className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.marketing_consent}
                 onChange={(e) => update("marketing_consent", e.target.checked)}
               />
-              Consenso marketing
-            </div>
+              <span>Consenso marketing</span>
+            </label>
 
-            <div className="check-row bg-check-row">
+            <label className="check-row bg-check-row">
               <input
                 type="checkbox"
                 checked={form.photo_video_consent}
@@ -591,8 +610,8 @@ export default function NewCustomerPage() {
                   update("photo_video_consent", e.target.checked)
                 }
               />
-              Consenso foto e video
-            </div>
+              <span>Consenso foto e video</span>
+            </label>
           </section>
         </div>
 

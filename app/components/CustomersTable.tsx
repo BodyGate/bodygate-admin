@@ -265,15 +265,22 @@ export default function CustomersTable() {
 
         .crm3-actions {
           display: flex;
+          align-items: center;
           gap: 10px;
           flex-wrap: wrap;
           justify-content: flex-end;
+        }
+
+        .crm3-actions :global(.bg-action-link),
+        .crm3-actions :global(.bg-action-button) {
+          min-height: 42px;
         }
 
         .crm3-metrics {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 12px;
+          align-items: stretch;
         }
 
         .crm3-workspace {
@@ -299,12 +306,13 @@ export default function CustomersTable() {
         }
 
         .crm3-list-head {
+          display: grid;
+          gap: 12px;
           padding: 18px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .crm3-count {
-          margin-top: 12px;
           color: #8b8b8b;
           font-size: 12px;
           font-weight: 800;
@@ -322,7 +330,7 @@ export default function CustomersTable() {
           background: transparent;
           color: #fff;
           display: grid;
-          grid-template-columns: 46px 1fr auto;
+          grid-template-columns: 46px minmax(0, 1fr) auto;
           gap: 12px;
           align-items: center;
           padding: 12px;
@@ -392,6 +400,8 @@ export default function CustomersTable() {
         }
 
         .crm3-detail {
+          display: grid;
+          gap: 22px;
           padding: 26px;
         }
 
@@ -399,10 +409,9 @@ export default function CustomersTable() {
           display: flex;
           justify-content: space-between;
           gap: 20px;
-          align-items: flex-start;
+          align-items: center;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           padding-bottom: 22px;
-          margin-bottom: 22px;
         }
 
         .crm3-detail-main {
@@ -443,12 +452,15 @@ export default function CustomersTable() {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 14px;
-          margin-bottom: 22px;
         }
 
         .crm3-info {
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 22px;
+          display: grid;
+          grid-template-rows: auto 1fr;
+          gap: 10px;
+          min-height: 96px;
           padding: 18px;
           background: rgba(255, 255, 255, 0.035);
         }
@@ -463,7 +475,7 @@ export default function CustomersTable() {
 
         .crm3-info strong {
           display: block;
-          margin-top: 10px;
+          margin-top: 0;
           color: #fff;
           font-size: 16px;
           font-weight: 950;
@@ -474,7 +486,6 @@ export default function CustomersTable() {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 12px;
-          margin-bottom: 22px;
         }
 
         .crm3-action {
@@ -487,7 +498,8 @@ export default function CustomersTable() {
           background: rgba(255, 255, 255, 0.045);
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: center;
+          gap: 8px;
         }
 
         .crm3-action strong {
@@ -549,7 +561,11 @@ export default function CustomersTable() {
           .crm3-hero-inner,
           .crm3-detail-hero {
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
+          }
+
+          .crm3-actions {
+            justify-content: flex-start;
           }
 
           .crm3-workspace {
@@ -560,7 +576,9 @@ export default function CustomersTable() {
             max-height: 360px;
           }
 
-          .crm3-metrics {
+          .crm3-metrics,
+          .crm3-detail-grid,
+          .crm3-action-grid {
             grid-template-columns: 1fr;
           }
         }
