@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import StatusBadge from "./StatusBadge";
+import BGActionButton from "./ui/BGActionButton";
+import BGCard from "./ui/BGCard";
+import BGDataTable from "./ui/BGDataTable";
+import BGEmptyState from "./ui/BGEmptyState";
+import BGSectionHeader from "./ui/BGSectionHeader";
+import BGStatusBadge from "./ui/BGStatusBadge";
 
 type AccessLog = {
   id: string;
@@ -28,7 +33,8 @@ export default function AccessLogsTable() {
 
     const { data, error } = await supabase
       .from("customer_access_logs")
-      .select(`
+      .select(
+        `
         id,
         access_time,
         customer_id,
@@ -41,7 +47,8 @@ export default function AccessLogsTable() {
           first_name,
           last_name
         )
-      `)
+      `,
+      )
       .order("access_time", { ascending: false })
       .limit(50);
 
@@ -62,7 +69,7 @@ export default function AccessLogsTable() {
 
     const fullName = `${firstName} ${lastName}`.trim();
 
-    return fullName || "-";
+    return fullName || "Cliente non associato";
   }
 
   function formatDate(date: string | null) {
@@ -76,7 +83,7 @@ export default function AccessLogsTable() {
   }
 
   useEffect(() => {
-    loadLogs();
+    void Promise.resolve().then(loadLogs);
 
     const channel = supabase
       .channel("customer_access_logs_live")
@@ -89,7 +96,7 @@ export default function AccessLogsTable() {
         },
         () => {
           loadLogs();
-        }
+        },
       )
       .subscribe();
 
@@ -100,94 +107,72 @@ export default function AccessLogsTable() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-[var(--muted-text)]">
-        Caricamento accessi...
-      </div>
+      <BGCard className="bg-access-card">
+        <BGEmptyState
+          title="Caricamento accessi..."
+          description="Sincronizzazione con gli ultimi eventi del tornello."
+        />
+      </BGCard>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-sm">
-      <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text)]">
-            Registro accessi live
-          </h2>
+    <BGCard className="bg-access-card">
+      <BGSectionHeader
+        title="Registro accessi live"
+        subtitle="Ultimi 50 eventi reali ricevuti dal tornello, con stato e motivo separati per lettura immediata."
+        actions={<BGActionButton onClick={loadLogs}>Aggiorna</BGActionButton>}
+      />
 
-          <p className="mt-1 text-sm text-[var(--muted-text)]">
-            Ultimi 50 eventi reali ricevuti dal tornello
-          </p>
-        </div>
+      <BGDataTable minWidth={1080}>
+        <thead>
+          <tr>
+            <th>Data/Ora</th>
+            <th>Stato</th>
+            <th>Cliente</th>
+            <th>Badge</th>
+            <th>Controller</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
 
-        <button
-          onClick={loadLogs}
-          className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Aggiorna
-        </button>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-[var(--soft)] text-xs uppercase text-[var(--muted-text)]">
+        <tbody>
+          {logs.length === 0 ? (
             <tr>
-              <th className="px-5 py-4">Data/Ora</th>
-              <th className="px-5 py-4">Stato</th>
-              <th className="px-5 py-4">Cliente</th>
-              <th className="px-5 py-4">Badge</th>
-              <th className="px-5 py-4">Controller</th>
-              <th className="px-5 py-4">Motivo</th>
+              <td colSpan={6}>
+                <BGEmptyState
+                  title="Nessun accesso registrato"
+                  description="Gli eventi compariranno qui appena ricevuti dal tornello."
+                />
+              </td>
             </tr>
-          </thead>
+          ) : (
+            logs.map((log) => (
+              <tr key={log.id}>
+                <td className="bg-table-strong">
+                  {formatDate(log.access_time)}
+                </td>
 
-          <tbody>
-            {logs.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-5 py-8 text-center text-[var(--muted-text)]"
-                >
-                  Nessun accesso registrato.
+                <td>
+                  <BGStatusBadge tone={log.was_allowed ? "success" : "danger"}>
+                    {log.was_allowed ? "Consentito" : "Negato"}
+                  </BGStatusBadge>
+                </td>
+
+                <td className="bg-table-strong">{getCustomerName(log)}</td>
+
+                <td className="bg-table-code">{log.badge_code || "—"}</td>
+
+                <td className="bg-table-code">{log.controller_code || "—"}</td>
+
+                <td className="bg-table-muted">
+                  {log.reason || "Nessun motivo registrato"}
                 </td>
               </tr>
-            ) : (
-              logs.map((log) => (
-                <tr
-                  key={log.id}
-                  className="border-t border-[var(--border)] transition hover:bg-[var(--soft)]"
-                >
-                  <td className="px-5 py-4 text-[var(--text)]">
-                    {formatDate(log.access_time)}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <StatusBadge
-                      allowed={log.was_allowed}
-                      reason={log.reason}
-                    />
-                  </td>
-
-                  <td className="px-5 py-4 font-semibold text-[var(--text)]">
-                    {getCustomerName(log)}
-                  </td>
-
-                  <td className="px-5 py-4 font-mono text-[var(--text)]">
-                    {log.badge_code || "-"}
-                  </td>
-
-                  <td className="px-5 py-4 font-mono text-[var(--text)]">
-                    {log.controller_code || "-"}
-                  </td>
-
-                  <td className="px-5 py-4 text-[var(--muted-text)]">
-                    {log.reason || "-"}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+            ))
+          )}
+        </tbody>
+      </BGDataTable>
+    </BGCard>
   );
 }

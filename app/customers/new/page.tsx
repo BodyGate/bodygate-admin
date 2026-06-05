@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import BGActionLink from "../../components/ui/BGActionLink";
+import BGButton from "../../components/ui/BGButton";
+import BGInput from "../../components/ui/BGInput";
+import BGSelect from "../../components/ui/BGSelect";
 
 const plans = [
   { id: "", name: "Solo quota associativa", price: 0, duration: 0 },
@@ -26,7 +29,9 @@ const accessTypes = [
 ];
 
 function accessTypeLabel(value: string) {
-  return accessTypes.find((item) => item.id === value)?.label || "QR Code + card";
+  return (
+    accessTypes.find((item) => item.id === value)?.label || "QR Code + card"
+  );
 }
 
 async function postJson(url: string, body: Record<string, unknown>) {
@@ -39,7 +44,9 @@ async function postJson(url: string, body: Record<string, unknown>) {
   const result = await response.json().catch(() => null);
 
   if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || result?.message || `Errore chiamata ${url}`);
+    throw new Error(
+      result?.error || result?.message || `Errore chiamata ${url}`,
+    );
   }
 
   return result;
@@ -129,7 +136,9 @@ export default function NewCustomerPage() {
       !form.badge_code.trim() &&
       !form.controller_code.trim()
     ) {
-      setMessage("Per usare la card devi inserire badge code o controller code.");
+      setMessage(
+        "Per usare la card devi inserire badge code o controller code.",
+      );
       return;
     }
 
@@ -187,25 +196,38 @@ export default function NewCustomerPage() {
         .hero,
         .card,
         .summary {
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(8, 8, 10, 0.94);
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.07),
+              rgba(255, 255, 255, 0.02)
+            ),
+            rgba(8, 8, 10, 0.94);
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+          backdrop-filter: blur(14px);
         }
 
         .hero {
           border-radius: 30px;
           padding: 26px;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.2), transparent 34%),
-            linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.2),
+              transparent 34%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.075),
+              rgba(255, 255, 255, 0.025)
+            ),
             rgba(8, 8, 10, 0.94);
         }
 
-        .back {
-          color: #ef4444;
-          text-decoration: none;
-          font-weight: 900;
-          font-size: 13px;
+        .back-row {
+          display: flex;
+          justify-content: flex-start;
         }
 
         .eyebrow {
@@ -280,24 +302,6 @@ export default function NewCustomerPage() {
           letter-spacing: 0.08em;
         }
 
-        input,
-        select {
-          width: 100%;
-          height: 48px;
-          border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.055);
-          color: white;
-          padding: 0 14px;
-          outline: none;
-          font-weight: 800;
-          box-sizing: border-box;
-        }
-
-        select option {
-          color: black;
-        }
-
         .check-row {
           display: flex;
           align-items: center;
@@ -310,6 +314,7 @@ export default function NewCustomerPage() {
         .check-row input {
           width: 18px;
           height: 18px;
+          accent-color: #ef4444;
         }
 
         .summary {
@@ -319,7 +324,11 @@ export default function NewCustomerPage() {
           padding: 24px;
           border-color: rgba(239, 68, 68, 0.22);
           background:
-            radial-gradient(circle at top right, rgba(239, 68, 68, 0.2), transparent 44%),
+            radial-gradient(
+              circle at top right,
+              rgba(239, 68, 68, 0.2),
+              transparent 44%
+            ),
             rgba(8, 8, 10, 0.96);
         }
 
@@ -352,23 +361,11 @@ export default function NewCustomerPage() {
           letter-spacing: -0.06em;
         }
 
-        .submit {
+        .summary :global(.bg-button) {
           margin-top: 22px;
           width: 100%;
           min-height: 54px;
-          border: 0;
-          border-radius: 18px;
-          color: white;
-          background: linear-gradient(135deg, #ef4444, #991b1b);
           font-size: 15px;
-          font-weight: 950;
-          cursor: pointer;
-          box-shadow: 0 18px 36px rgba(239, 68, 68, 0.24);
-        }
-
-        .submit:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
         }
 
         .message {
@@ -401,14 +398,17 @@ export default function NewCustomerPage() {
       `}</style>
 
       <section className="hero">
-        <Link href="/customers" className="back">
-          ← Torna ai clienti
-        </Link>
+        <div className="back-row">
+          <BGActionLink href="/customers" variant="ghost">
+            ← Torna ai clienti
+          </BGActionLink>
+        </div>
 
         <div className="eyebrow">BodyGate Onboarding Platinum</div>
         <h1>Nuovo cliente</h1>
         <div className="subtitle">
-          Crea anagrafica, quota associativa, abbonamento, pagamento, credenziali e contratto in un unico flusso guidato.
+          Crea anagrafica, quota associativa, abbonamento, pagamento,
+          credenziali e contratto in un unico flusso guidato.
         </div>
       </section>
 
@@ -417,82 +417,266 @@ export default function NewCustomerPage() {
           <section className="card">
             <div className="card-title">1. Anagrafica</div>
             <div className="grid">
-              <Field label="Nome *" value={form.first_name} onChange={(v) => update("first_name", v)} />
-              <Field label="Cognome *" value={form.last_name} onChange={(v) => update("last_name", v)} />
-              <Select label="Sesso" value={form.gender} onChange={(v) => update("gender", v)} options={["", "Maschio", "Femmina", "Altro"]} />
-              <Field label="Data nascita" type="date" value={form.birth_date} onChange={(v) => update("birth_date", v)} />
-              <Field label="Luogo nascita" value={form.birth_place} onChange={(v) => update("birth_place", v)} />
-              <Field label="Codice fiscale *" value={form.fiscal_code} onChange={(v) => update("fiscal_code", v)} />
-              <Field label="Telefono *" value={form.phone} onChange={(v) => update("phone", v)} />
-              <Field label="Email" value={form.email} onChange={(v) => update("email", v)} />
+              <Field
+                label="Nome *"
+                value={form.first_name}
+                onChange={(v) => update("first_name", v)}
+              />
+              <Field
+                label="Cognome *"
+                value={form.last_name}
+                onChange={(v) => update("last_name", v)}
+              />
+              <Select
+                label="Sesso"
+                value={form.gender}
+                onChange={(v) => update("gender", v)}
+                options={["", "Maschio", "Femmina", "Altro"]}
+              />
+              <Field
+                label="Data nascita"
+                type="date"
+                value={form.birth_date}
+                onChange={(v) => update("birth_date", v)}
+              />
+              <Field
+                label="Luogo nascita"
+                value={form.birth_place}
+                onChange={(v) => update("birth_place", v)}
+              />
+              <Field
+                label="Codice fiscale *"
+                value={form.fiscal_code}
+                onChange={(v) => update("fiscal_code", v)}
+              />
+              <Field
+                label="Telefono *"
+                value={form.phone}
+                onChange={(v) => update("phone", v)}
+              />
+              <Field
+                label="Email"
+                value={form.email}
+                onChange={(v) => update("email", v)}
+              />
             </div>
           </section>
 
           <section className="card">
             <div className="card-title">2. Residenza</div>
             <div className="grid grid-3">
-              <Field label="Indirizzo" value={form.address} onChange={(v) => update("address", v)} />
-              <Field label="Numero civico" value={form.street_number} onChange={(v) => update("street_number", v)} />
-              <Field label="CAP" value={form.postal_code} onChange={(v) => update("postal_code", v)} />
-              <Field label="Città" value={form.city} onChange={(v) => update("city", v)} />
-              <Field label="Provincia" value={form.province} onChange={(v) => update("province", v)} />
-              <Field label="Nazione" value={form.country} onChange={(v) => update("country", v)} />
+              <Field
+                label="Indirizzo"
+                value={form.address}
+                onChange={(v) => update("address", v)}
+              />
+              <Field
+                label="Numero civico"
+                value={form.street_number}
+                onChange={(v) => update("street_number", v)}
+              />
+              <Field
+                label="CAP"
+                value={form.postal_code}
+                onChange={(v) => update("postal_code", v)}
+              />
+              <Field
+                label="Città"
+                value={form.city}
+                onChange={(v) => update("city", v)}
+              />
+              <Field
+                label="Provincia"
+                value={form.province}
+                onChange={(v) => update("province", v)}
+              />
+              <Field
+                label="Nazione"
+                value={form.country}
+                onChange={(v) => update("country", v)}
+              />
             </div>
           </section>
 
           <section className="card">
             <div className="card-title">3. Documento</div>
             <div className="grid">
-              <Select label="Tipo documento" value={form.document_type} onChange={(v) => update("document_type", v)} options={["", "Carta identità", "Patente", "Passaporto"]} />
-              <Field label="Numero documento" value={form.document_number} onChange={(v) => update("document_number", v)} />
-              <Field label="Rilasciato da" value={form.document_issued_by} onChange={(v) => update("document_issued_by", v)} />
-              <Field label="Data rilascio" type="date" value={form.document_issued_at} onChange={(v) => update("document_issued_at", v)} />
-              <Field label="Data scadenza" type="date" value={form.document_expires_at} onChange={(v) => update("document_expires_at", v)} />
+              <Select
+                label="Tipo documento"
+                value={form.document_type}
+                onChange={(v) => update("document_type", v)}
+                options={["", "Carta identità", "Patente", "Passaporto"]}
+              />
+              <Field
+                label="Numero documento"
+                value={form.document_number}
+                onChange={(v) => update("document_number", v)}
+              />
+              <Field
+                label="Rilasciato da"
+                value={form.document_issued_by}
+                onChange={(v) => update("document_issued_by", v)}
+              />
+              <Field
+                label="Data rilascio"
+                type="date"
+                value={form.document_issued_at}
+                onChange={(v) => update("document_issued_at", v)}
+              />
+              <Field
+                label="Data scadenza"
+                type="date"
+                value={form.document_expires_at}
+                onChange={(v) => update("document_expires_at", v)}
+              />
             </div>
           </section>
 
           <section className="card">
             <div className="card-title">4. Emergenza e profilo</div>
             <div className="grid">
-              <Field label="Contatto emergenza" value={form.emergency_contact_name} onChange={(v) => update("emergency_contact_name", v)} />
-              <Field label="Telefono emergenza" value={form.emergency_contact_phone} onChange={(v) => update("emergency_contact_phone", v)} />
-              <Field label="Parentela" value={form.emergency_contact_relation} onChange={(v) => update("emergency_contact_relation", v)} />
-              <Field label="Professione" value={form.profession} onChange={(v) => update("profession", v)} />
-              <Select label="Obiettivo fitness" value={form.fitness_goal} onChange={(v) => update("fitness_goal", v)} options={["", "Dimagrimento", "Massa muscolare", "Fitness", "Bodybuilding", "Powerlifting", "Riabilitazione", "Altro"]} />
-              <Select label="Come ci ha conosciuto" value={form.marketing_source} onChange={(v) => update("marketing_source", v)} options={["", "Instagram", "Facebook", "TikTok", "Google", "Passaparola", "Volantino", "Altro"]} />
+              <Field
+                label="Contatto emergenza"
+                value={form.emergency_contact_name}
+                onChange={(v) => update("emergency_contact_name", v)}
+              />
+              <Field
+                label="Telefono emergenza"
+                value={form.emergency_contact_phone}
+                onChange={(v) => update("emergency_contact_phone", v)}
+              />
+              <Field
+                label="Parentela"
+                value={form.emergency_contact_relation}
+                onChange={(v) => update("emergency_contact_relation", v)}
+              />
+              <Field
+                label="Professione"
+                value={form.profession}
+                onChange={(v) => update("profession", v)}
+              />
+              <Select
+                label="Obiettivo fitness"
+                value={form.fitness_goal}
+                onChange={(v) => update("fitness_goal", v)}
+                options={[
+                  "",
+                  "Dimagrimento",
+                  "Massa muscolare",
+                  "Fitness",
+                  "Bodybuilding",
+                  "Powerlifting",
+                  "Riabilitazione",
+                  "Altro",
+                ]}
+              />
+              <Select
+                label="Come ci ha conosciuto"
+                value={form.marketing_source}
+                onChange={(v) => update("marketing_source", v)}
+                options={[
+                  "",
+                  "Instagram",
+                  "Facebook",
+                  "TikTok",
+                  "Google",
+                  "Passaparola",
+                  "Volantino",
+                  "Altro",
+                ]}
+              />
             </div>
           </section>
 
           <section className="card">
             <div className="card-title">5. Certificato e accesso</div>
             <div className="grid">
-              <Field label="Inizio certificato" type="date" value={form.medical_certificate_start_date} onChange={(v) => update("medical_certificate_start_date", v)} />
-              <Field label="Fine certificato" type="date" value={form.medical_certificate_end_date} onChange={(v) => update("medical_certificate_end_date", v)} />
-              <Select label="Tipo accesso" value={form.access_type} onChange={(v) => update("access_type", v)} options={accessTypes.map((a) => a.id)} labels={Object.fromEntries(accessTypes.map((a) => [a.id, a.label]))} />
-              <Field label="Codice badge / card" value={form.badge_code} onChange={(v) => update("badge_code", v)} />
-              <Field label="Controller code" value={form.controller_code} onChange={(v) => update("controller_code", v)} />
+              <Field
+                label="Inizio certificato"
+                type="date"
+                value={form.medical_certificate_start_date}
+                onChange={(v) => update("medical_certificate_start_date", v)}
+              />
+              <Field
+                label="Fine certificato"
+                type="date"
+                value={form.medical_certificate_end_date}
+                onChange={(v) => update("medical_certificate_end_date", v)}
+              />
+              <Select
+                label="Tipo accesso"
+                value={form.access_type}
+                onChange={(v) => update("access_type", v)}
+                options={accessTypes.map((a) => a.id)}
+                labels={Object.fromEntries(
+                  accessTypes.map((a) => [a.id, a.label]),
+                )}
+              />
+              <Field
+                label="Codice badge / card"
+                value={form.badge_code}
+                onChange={(v) => update("badge_code", v)}
+              />
+              <Field
+                label="Controller code"
+                value={form.controller_code}
+                onChange={(v) => update("controller_code", v)}
+              />
             </div>
           </section>
 
           <section className="card">
             <div className="card-title">6. Piano e pagamento</div>
             <div className="grid">
-              <Select label="Abbonamento" value={form.subscription_plan} onChange={(v) => update("subscription_plan", v)} options={plans.map((p) => p.id)} labels={Object.fromEntries(plans.map((p) => [p.id, `${p.name}${p.price ? ` - EUR ${p.price}` : ""}`]))} />
-              <Select label="Metodo pagamento" value={form.payment_method} onChange={(v) => update("payment_method", v)} options={paymentMethods.map((m) => m.id)} labels={Object.fromEntries(paymentMethods.map((m) => [m.id, m.label]))} />
+              <Select
+                label="Abbonamento"
+                value={form.subscription_plan}
+                onChange={(v) => update("subscription_plan", v)}
+                options={plans.map((p) => p.id)}
+                labels={Object.fromEntries(
+                  plans.map((p) => [
+                    p.id,
+                    `${p.name}${p.price ? ` - EUR ${p.price}` : ""}`,
+                  ]),
+                )}
+              />
+              <Select
+                label="Metodo pagamento"
+                value={form.payment_method}
+                onChange={(v) => update("payment_method", v)}
+                options={paymentMethods.map((m) => m.id)}
+                labels={Object.fromEntries(
+                  paymentMethods.map((m) => [m.id, m.label]),
+                )}
+              />
             </div>
 
             <div className="check-row">
-              <input type="checkbox" checked={form.privacy_consent} onChange={(e) => update("privacy_consent", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={form.privacy_consent}
+                onChange={(e) => update("privacy_consent", e.target.checked)}
+              />
               Consenso privacy obbligatorio
             </div>
 
             <div className="check-row">
-              <input type="checkbox" checked={form.marketing_consent} onChange={(e) => update("marketing_consent", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={form.marketing_consent}
+                onChange={(e) => update("marketing_consent", e.target.checked)}
+              />
               Consenso marketing
             </div>
 
             <div className="check-row">
-              <input type="checkbox" checked={form.photo_video_consent} onChange={(e) => update("photo_video_consent", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={form.photo_video_consent}
+                onChange={(e) =>
+                  update("photo_video_consent", e.target.checked)
+                }
+              />
               Consenso foto e video
             </div>
           </section>
@@ -523,14 +707,18 @@ export default function NewCustomerPage() {
 
           <div className="line">
             <span>Pagamento</span>
-            <strong>{paymentMethods.find((m) => m.id === form.payment_method)?.label}</strong>
+            <strong>
+              {paymentMethods.find((m) => m.id === form.payment_method)?.label}
+            </strong>
           </div>
 
           <div className="total">EUR {totalAmount}</div>
 
-          <button type="submit" className="submit" disabled={saving}>
-            {saving ? "Creazione in corso..." : "Crea cliente, QR e vai al contratto"}
-          </button>
+          <BGButton type="submit" disabled={saving}>
+            {saving
+              ? "Creazione in corso..."
+              : "Crea cliente, QR e vai al contratto"}
+          </BGButton>
 
           {message && <div className="message">{message}</div>}
         </aside>
@@ -553,7 +741,11 @@ function Field({
   return (
     <label>
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <BGInput
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }
@@ -574,13 +766,16 @@ function Select({
   return (
     <label>
       <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <BGSelect
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option || "empty"} value={option}>
             {labels[option] || option || "Seleziona"}
           </option>
         ))}
-      </select>
+      </BGSelect>
     </label>
   );
 }

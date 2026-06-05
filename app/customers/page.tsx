@@ -1,16 +1,16 @@
 import CustomersTable from "../components/CustomersTable";
+import BGButton from "../components/ui/BGButton";
+import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function CustomersPage() {
   return (
     <main className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-[var(--text)]">
-          Customers
-        </h1>
-        <p className="mt-2 text-[var(--muted-text)]">
-          Gestione clienti, badge, abbonamenti e autorizzazioni di accesso.
-        </p>
-      </div>
+      <BGPageHeader
+        eyebrow="CRM BodyGate"
+        title="Customers"
+        subtitle="Gestione clienti, badge, abbonamenti e autorizzazioni di accesso in una vista operativa premium."
+        actions={<BGButton href="/customers/new">Nuovo cliente</BGButton>}
+      />
 
       <CustomersTable />
     </main>
