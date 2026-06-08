@@ -11,9 +11,6 @@ import MedicalCertificateCard from "../components/MedicalCertificateCard";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
-import BGTabs from "../../components/ui/BGTabs";
-import BGCustomerCommandHeader from "../../components/ui/BGCustomerCommandHeader";
-import BGCustomerSummaryCard from "../../components/ui/BGCustomerSummaryCard";
 
 type Customer = any;
 type Plan = any;
@@ -801,6 +798,14 @@ async function disableBlock(blockId: string) {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 3);
 
+  function renderCommandAction(tab: CustomerTab, children: ReactNode, variant: "primary" | "secondary" | "danger" = "secondary") {
+    return (
+      <button type="button" className={`command-action ${variant}`} onClick={() => openTab(tab)}>
+        {children}
+      </button>
+    );
+  }
+
   const renderEditPanel = () =>
     isEditingCustomer ? (
       <div className="edit-panel">
@@ -1164,38 +1169,54 @@ async function disableBlock(blockId: string) {
         <Link className="back-link" href="/customers">← Torna ai clienti</Link>
       </div>
 
-      <BGCustomerCommandHeader
-        customerName={customerName}
-        initials={initials}
-        photoUrl={customer.photo_url}
-        phone={customer.phone}
-        email={customer.email}
-        badgeCode={customer.badge_code}
-        controllerCode={customer.controller_code}
-        accessAllowed={accessAllowed}
-        actions={[
-          { label: "Rinnova", variant: "primary", onClick: () => openTab("subscriptions") },
-          { label: "Pagamenti", variant: "primary", onClick: () => openTab("payments") },
-          { label: "Ricevute", onClick: () => openTab("payments") },
-          { label: "Accessi", onClick: () => openTab("access") },
-          { label: "Modifica", onClick: () => { openTab("profile"); startEditCustomer(); } },
-          { label: "Blocca", variant: "danger", onClick: () => openTab("access") },
-        ]}
-      >
-        {renderStatusStrip()}
-      </BGCustomerCommandHeader>
+      <header className="command-center">
+        <div className="command-main">
+          <div className="profile-area">
+            {customer?.photo_url ? <img className="avatar" src={customer.photo_url} alt={customerName} /> : <div className="avatar-placeholder">{initials}</div>}
+            <div>
+              <h1>{customerName}</h1>
+              <div className="contact-line">
+                <span>{customer.phone || "Telefono mancante"}</span>
+                <span>·</span>
+                <span>{customer.email || "Email mancante"}</span>
+              </div>
+              <div className="badge-line">
+                <span className="mini-badge">Badge {customer.badge_code || "-"}</span>
+                <span className="mini-badge">Controller {customer.controller_code || "-"}</span>
+                <span className={`badge-status ${accessAllowed ? "ok" : "ko"}`}>{accessAllowed ? "Accesso attivo" : "Accesso bloccato"}</span>
+              </div>
+            </div>
+          </div>
 
-      <BGTabs tabs={tabs} activeTab={activeTab} onChange={openTab} ariaLabel="Sezioni cliente" />
+          <div className="command-actions">
+            {renderCommandAction("subscriptions", "Rinnova", "primary")}
+            {renderCommandAction("payments", "Nuovo incasso", "primary")}
+            {renderCommandAction("payments", "Ricevute")}
+            {renderCommandAction("access", "Accessi")}
+            <button type="button" className="command-action secondary" onClick={() => { openTab("profile"); startEditCustomer(); }}>Modifica</button>
+            {renderCommandAction("access", "Blocca", "danger")}
+          </div>
+        </div>
+        {renderStatusStrip()}
+      </header>
+
+      <nav className="tabs" aria-label="Sezioni cliente">
+        {tabs.map((tab) => (
+          <button key={tab.id} type="button" className={`tab-button ${activeTab === tab.id ? "active" : ""}`} onClick={() => openTab(tab.id)}>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
       {activeTab === "overview" && (
         <div className="overview-grid">
-          <BGCustomerSummaryCard label="Abbonamento" value={activeSubscription ? activeSubscription.subscription_plans?.name || "Attivo" : "Non attivo"} detail={activeSubscription ? `Scade ${activeSubscription.ends_at}` : "Rinnovo richiesto"} ok={!!activeSubscription} onOpen={() => openTab("subscriptions")} />
-          <BGCustomerSummaryCard label="Quota associativa" value={activeMembership ? "Valida" : "Scaduta"} detail={activeMembership ? `Scade ${activeMembership.valid_until}` : "Da rinnovare"} ok={!!activeMembership} onOpen={() => openTab("subscriptions")} />
-          <BGCustomerSummaryCard label="Certificato medico" value={certificateValid ? "Valido" : "Mancante"} detail={certificateValid ? `Scade ${medicalCertificateEnd}` : "Carica documento"} ok={!!certificateValid} onOpen={() => openTab("documents")} />
-          <BGCustomerSummaryCard label="Pagamenti" value="Storico" detail="Incassi e annulli" ok onOpen={() => openTab("payments")} />
-          <BGCustomerSummaryCard label="Ricevute" value="Archivio" detail="Visualizza / stampa" ok onOpen={() => openTab("payments")} />
-          <BGCustomerSummaryCard label="Accessi" value={lastAccess ? (lastAccess.was_allowed ? "Ultimo consentito" : "Ultimo negato") : "Nessuno"} detail={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "Nessun log"} ok={!lastAccess || !!lastAccess.was_allowed} onOpen={() => openTab("access")} />
-          <BGCustomerSummaryCard label="Note" value={`${notes.length} note`} detail={latestNotes[0]?.note || "Nessuna nota recente"} ok onOpen={() => openTab("notes")} />
+          <OverviewCard label="Abbonamento" value={activeSubscription ? activeSubscription.subscription_plans?.name || "Attivo" : "Non attivo"} detail={activeSubscription ? `Scade ${activeSubscription.ends_at}` : "Rinnovo richiesto"} ok={!!activeSubscription} onOpen={() => openTab("subscriptions")} />
+          <OverviewCard label="Quota associativa" value={activeMembership ? "Valida" : "Scaduta"} detail={activeMembership ? `Scade ${activeMembership.valid_until}` : "Da rinnovare"} ok={!!activeMembership} onOpen={() => openTab("subscriptions")} />
+          <OverviewCard label="Certificato medico" value={certificateValid ? "Valido" : "Mancante"} detail={certificateValid ? `Scade ${medicalCertificateEnd}` : "Carica documento"} ok={!!certificateValid} onOpen={() => openTab("documents")} />
+          <OverviewCard label="Pagamenti" value="Storico" detail="Incassi e annulli" ok onOpen={() => openTab("payments")} />
+          <OverviewCard label="Ricevute" value="Archivio" detail="Visualizza / stampa" ok onOpen={() => openTab("payments")} />
+          <OverviewCard label="Accessi" value={lastAccess ? (lastAccess.was_allowed ? "Ultimo consentito" : "Ultimo negato") : "Nessuno"} detail={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "Nessun log"} ok={!lastAccess || !!lastAccess.was_allowed} onOpen={() => openTab("access")} />
+          <OverviewCard label="Note" value={`${notes.length} note`} detail={latestNotes[0]?.note || "Nessuna nota recente"} ok onOpen={() => openTab("notes")} />
           <div className="overview-card">
             <div className="overview-label">Timeline recente</div>
             <div className="compact-list">
@@ -1283,6 +1304,18 @@ function StatusPill({ label, value, ok }: { label: string; value: string; ok: bo
     <div className="status-pill">
       <div className="status-label">{label}</div>
       <div className={`status-value ${ok ? "success-text" : "danger-text"}`}>{value}</div>
+    </div>
+  );
+}
+
+function OverviewCard({ label, value, detail, ok, onOpen }: { label: string; value: string; detail: string; ok: boolean; onOpen: () => void }) {
+  return (
+    <div className="overview-card">
+      <div className="overview-label">{label}</div>
+      <span className={`mini-badge ${ok ? "ok" : "ko"}`}>{ok ? "OK" : "Attenzione"}</span>
+      <div className="overview-value">{value}</div>
+      <p className="muted">{detail}</p>
+      <button type="button" className="command-action secondary" onClick={onOpen}>Gestisci</button>
     </div>
   );
 }
