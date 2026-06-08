@@ -2,7 +2,6 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { supabase } from "../../lib/supabaseClient";
@@ -11,9 +10,23 @@ import MedicalCertificateCard from "../components/MedicalCertificateCard";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
+import BGButton from "../../components/ui/BGButton";
+import BGCard from "../../components/ui/BGCard";
+import BGEmptyState from "../../components/ui/BGEmptyState";
+import BGSectionHeader from "../../components/ui/BGSectionHeader";
+import BGStatusBadge from "../../components/ui/BGStatusBadge";
+import BGPremiumTabs from "../../components/ui/BGPremiumTabs";
 
 type Customer = any;
 type Plan = any;
+type SectionKey =
+  | "overview"
+  | "profile"
+  | "subscriptions"
+  | "payments"
+  | "access"
+  | "documents"
+  | "timeline";
 
 export default function CustomerDetailsClient({ customerId }: { customerId: string }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -31,6 +44,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [mobilePassUrl, setMobilePassUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [activeSection, setActiveSection] = useState<SectionKey>("overview");
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
@@ -771,7 +785,7 @@ async function disableBlock(blockId: string) {
   if (loading) {
     return (
       <div className="customer-page bg-page-shell">
-        <div className="loading-card">Caricamento cliente...</div>
+        <BGCard variant="premium">Caricamento cliente...</BGCard>
       </div>
     );
   }
@@ -779,431 +793,334 @@ async function disableBlock(blockId: string) {
   if (errorMessage || !customer) {
     return (
       <div className="customer-page bg-page-shell">
-        <div className="error-card">
-          <h2>Cliente non caricato</h2>
+        <BGCard variant="danger">
+          <BGSectionHeader title="Cliente non caricato" subtitle="Verifica permessi e disponibilità dei dati Supabase." />
           <pre className="error-details">{errorMessage}</pre>
           <small>ID: {customerId}</small>
-        </div>
+        </BGCard>
       </div>
     );
   }
+
+  const tabs: Array<{ key: SectionKey; label: string; eyebrow: string; icon: string }> = [
+    { key: "overview", label: "Panoramica", eyebrow: "Sintesi", icon: "◆" },
+    { key: "profile", label: "Profilo", eyebrow: "Anagrafica", icon: "👤" },
+    { key: "subscriptions", label: "Abbonamenti", eyebrow: "Piani", icon: "🏋" },
+    { key: "payments", label: "Pagamenti & Ricevute", eyebrow: "Cassa", icon: "€" },
+    { key: "access", label: "Accessi", eyebrow: "Gate", icon: "⌁" },
+    { key: "documents", label: "Documenti", eyebrow: "Medico", icon: "▣" },
+    { key: "timeline", label: "Note & Timeline", eyebrow: "CRM", icon: "●" },
+  ];
+
+  const recentAccessLogs = accessLogs.slice(0, 3);
+  const recentNotes = notes.slice(0, 3);
+  const recentTimelineEvents = [
+    ...subscriptions.slice(0, 2).map((item) => ({
+      key: `sub-${item.id}`,
+      title: item.subscription_plans?.name || "Abbonamento",
+      subtitle: `${item.starts_at} → ${item.ends_at}`,
+      date: item.created_at || item.starts_at,
+    })),
+    ...membershipFees.slice(0, 1).map((item) => ({
+      key: `fee-${item.id}`,
+      title: "Quota associativa",
+      subtitle: `${item.valid_from} → ${item.valid_until}`,
+      date: item.created_at || item.valid_from,
+    })),
+  ].slice(0, 3);
+  const contractUrl = customer.contract_url || customer.contract_pdf_url || customer.agreement_url || "";
+  const shortPlans = plans.slice(0, 6);
 
   return (
     <div className="customer-page bg-page-shell">
       <style jsx>{`
         .customer-page {
-          padding: 32px;
+          padding: 30px;
           color: #ffffff;
-          background: #050505;
+          background:
+            radial-gradient(circle at 10% 0%, rgba(239, 68, 68, 0.12), transparent 28%),
+            #050505;
           min-height: 100vh;
         }
-
         .topbar {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 22px;
+          justify-content: space-between;
           gap: 16px;
+          margin-bottom: 18px;
         }
-
-        .back-link {
-          display: inline-flex;
-          align-items: center;
-          min-height: 38px;
-          padding: 9px 13px;
-          border-radius: 14px;
-          border: 1px solid rgba(255,255,255,.11);
-          color: #d4d4d8;
-          background: rgba(255,255,255,.04);
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 950;
-          transition: .18s ease;
-        }
-
-        .back-link:hover {
-          color: #ffffff;
-          border-color: rgba(239,68,68,.34);
-          background: rgba(239,68,68,.11);
-          transform: translateY(-1px);
-        }
-
-        .hero-layout {
+        .customer-hero {
           display: grid;
-          grid-template-columns: 1fr 360px;
+          grid-template-columns: minmax(0, 1fr) auto;
           gap: 22px;
-          margin-bottom: 24px;
+          align-items: stretch;
+          margin-bottom: 18px;
         }
-
-        .side-stack {
+        .hero-main {
           display: flex;
-          flex-direction: column;
-          gap: 22px;
-        }
-
-        .hero {
-          background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.22), transparent 34%),
-            linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025)),
-            rgba(8, 8, 10, 0.94);
-          border: 1px solid rgba(255, 255, 255, 0.10);
-          border-radius: 30px;
-          padding: 28px;
-          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
-          backdrop-filter: blur(14px);
-        }
-
-        .hero-top {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
-        }
-
-        .profile-area {
-          display: flex;
-          gap: 22px;
+          gap: 18px;
           align-items: flex-start;
-          flex-wrap: wrap;
           min-width: 0;
         }
-
-        .avatar {
-          width: 92px;
-          height: 92px;
-          border-radius: 24px;
-          object-fit: cover;
-          border: 2px solid #262626;
-          flex-shrink: 0;
+        .avatar, .avatar-placeholder {
+          width: 86px;
+          height: 86px;
+          border-radius: 25px;
+          flex: 0 0 auto;
+          border: 2px solid rgba(255,255,255,.12);
+          box-shadow: 0 18px 38px rgba(0,0,0,.36);
         }
-
+        .avatar { object-fit: cover; }
         .avatar-placeholder {
-          width: 92px;
-          height: 92px;
-          border-radius: 24px;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
-          font-weight: 900;
-          flex-shrink: 0;
+          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          color: #fff;
+          font-size: 27px;
+          font-weight: 950;
         }
-
-        h1 {
-          font-size: 32px;
+        .hero-copy { min-width: 0; }
+        .hero-copy h1 {
           margin: 0;
-          font-weight: 900;
-          letter-spacing: -0.5px;
+          font-size: clamp(30px, 4vw, 48px);
+          line-height: .95;
+          letter-spacing: -.06em;
+          font-weight: 950;
         }
-
-        h2 {
-          font-size: 20px;
-          margin: 0 0 18px;
-          font-weight: 900;
-        }
-
-        .muted {
-          color: #a3a3a3;
-          margin-top: 8px;
-          font-size: 14px;
-        }
-
-        .customer-info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(180px, 1fr));
-          gap: 12px;
-          margin-top: 18px;
-          align-items: stretch;
-        }
-
-        .info-mini-card {
-          display: grid;
-          grid-template-rows: auto 1fr;
-          gap: 7px;
-          min-height: 78px;
-          background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.09);
-          border-radius: 18px;
-          padding: 12px 14px;
-        }
-
-        .info-label {
-          color: #737373;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .info-value {
-          font-size: 14px;
-          font-weight: 800;
-          word-break: break-word;
-        }
-
-        .badge-status {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 42px;
-          padding: 0 18px;
-          border-radius: 999px;
-          font-weight: 900;
-          font-size: 13px;
-          white-space: nowrap;
-        }
-
-        .ok {
-          background: rgba(34, 197, 94, 0.14);
-          color: #4ade80;
-          border: 1px solid rgba(34, 197, 94, 0.35);
-        }
-
-        .ko {
-          background: rgba(239, 68, 68, 0.14);
-          color: #fb7185;
-          border: 1px solid rgba(239, 68, 68, 0.35);
-        }
-
-        .status-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 16px;
-          margin-top: 28px;
-          align-items: stretch;
-        }
-
-        .status-box,
-        .card,
-        .error-card,
-        .loading-card {
-          background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), rgba(10,10,10,.9);
-          border: 1px solid rgba(255,255,255,.10);
-          border-radius: 24px;
-          padding: 22px;
-          box-shadow: 0 22px 60px rgba(0,0,0,.32);
-        }
-
-
-        .card h2,
-        .credentials-card h2 {
-          line-height: 1.15;
-        }
-
-        .status-box {
-          display: grid;
-          grid-template-rows: auto 1fr;
-          gap: 8px;
-          min-height: 118px;
-        }
-        .error-details {
-          white-space: pre-wrap;
-          word-break: break-word;
-          color: #fca5a5;
-          background: #050505;
-          border: 1px solid #262626;
-          border-radius: 14px;
-          padding: 14px;
+        .hero-meta, .muted, .small-muted {
+          color: #9ca3af;
           font-size: 13px;
           line-height: 1.5;
         }
-
-        .status-label {
-          color: #a3a3a3;
-          font-size: 13px;
-          margin-bottom: 8px;
+        .hero-meta {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 12px;
         }
-
-        .status-value {
-          font-size: 15px;
-          font-weight: 800;
+        .hero-statuses {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(145px, 1fr));
+          gap: 10px;
+          margin-top: 16px;
         }
-
-        .grid {
+        .hero-actions {
+          width: min(370px, 100%);
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 22px;
-          margin-bottom: 22px;
+          gap: 10px;
+          align-content: start;
+        }
+        .section-panel { display: grid; gap: 18px; }
+        .overview-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+        }
+        .content-grid, .two-col-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
           align-items: start;
         }
-
-        .actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-top: 14px;
-          flex-wrap: wrap;
+        .three-col-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
         }
-
-        .actions-inline {
-          margin-top: 0;
-        }
-
-        button,
-        select,
-        input {
-          min-height: 46px;
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,.11);
-          padding: 0 15px;
-          font-size: 14px;
-          outline: none;
-          font-family: inherit;
-        }
-
-        input,
-        select {
-          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
-          color: #fff;
-          width: 100%;
-          max-width: 100%;
-          font-weight: 800;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-          border-color: rgba(239,68,68,.62);
-          box-shadow: 0 0 0 4px rgba(239,68,68,.16);
-        }
-
-        select option { background: #111; color: #fff; }
-
-        button {
-          background: linear-gradient(135deg, #ef4444, #991b1b);
-          color: white;
-          border: 1px solid rgba(239,68,68,.38);
-          font-weight: 950;
-          cursor: pointer;
-          transition: 0.2s;
-          box-shadow: 0 16px 30px rgba(239,68,68,.18);
-          line-height: 1;
-          white-space: nowrap;
-        }
-
-        button:hover {
-          transform: translateY(-1px);
-          opacity: 0.92;
-        }
-
-        button:focus-visible,
-        input:focus-visible,
-        select:focus-visible,
-        textarea:focus-visible,
-        .back-link:focus-visible {
-          outline: 2px solid rgba(239,68,68,.76);
-          outline-offset: 3px;
-        }
-
-        button:disabled {
-          cursor: not-allowed;
-          opacity: .55;
-          transform: none;
-        }
-
-        .secondary-btn {
-          background: rgba(255,255,255,.07);
-          color: #f5f5f5;
-          border: 1px solid rgba(255,255,255,.13);
-          box-shadow: none;
-        }
-
-        .row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border: 1px solid rgba(255,255,255,.08);
+        .status-box {
+          display: grid;
+          gap: 8px;
+          min-height: 104px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 20px;
+          padding: 15px;
           background: rgba(255,255,255,.035);
-          border-radius: 18px;
-          padding: 14px;
-          margin-top: 10px;
-          gap: 14px;
         }
-
-        .row > div:first-child {
+        .status-label {
+          color: #8b8b8b;
+          font-size: 11px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+        }
+        .status-value {
+          color: #fff;
+          font-size: 14px;
+          font-weight: 900;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        .mini-card {
+          min-height: 154px;
+          display: grid;
+          align-content: space-between;
+          gap: 14px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 22px;
+          padding: 18px;
+          background: rgba(255,255,255,.035);
+        }
+        .mini-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .mini-title, .row-title, .plan-title {
+          color: #fff;
+          font-size: 15px;
+          font-weight: 950;
+          line-height: 1.25;
+          overflow-wrap: anywhere;
+        }
+        .mini-value {
+          color: #f5f5f5;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .info-mini-card, .credential-mini {
+          display: grid;
+          gap: 7px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 18px;
+          padding: 13px 14px;
+          background: rgba(255,255,255,.035);
           min-width: 0;
         }
-
-        .row-title {
-          font-weight: 900;
-          word-break: break-word;
+        .info-label, .credential-section-title, .credential-mini-label {
+          color: #8b8b8b;
+          font-size: 11px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .08em;
         }
-
-        .row-subtitle,
-        .row-right {
+        .info-value, .credential-mini-value {
+          color: #fff;
+          font-size: 14px;
+          font-weight: 900;
+          overflow-wrap: anywhere;
+        }
+        .actions, .actions-inline {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .actions-spread { justify-content: space-between; }
+        .row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 14px;
+          align-items: center;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(255,255,255,.035);
+        }
+        .row-subtitle, .row-right {
           color: #a3a3a3;
           font-size: 13px;
           margin-top: 4px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
         }
-
-        .empty {
-          color: #9ca3af;
-          font-size: 14px;
-          padding: 18px;
-          border: 1px dashed rgba(255,255,255,.12);
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(180px, 1fr));
+          gap: 14px;
+        }
+        .edit-field {
+          display: grid;
+          grid-template-rows: auto minmax(46px, auto);
+          gap: 7px;
+          min-width: 0;
+        }
+        .edit-field label {
+          color: #a3a3a3;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.7px;
+          font-weight: 900;
+        }
+        .edit-field-full { grid-column: 1 / -1; }
+        input, select, textarea {
+          width: 100%;
+          max-width: 100%;
           border-radius: 16px;
-          background: rgba(255,255,255,.025);
-          text-align: center;
+          border: 1px solid rgba(255,255,255,.11);
+          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
+          color: #fff;
+          outline: none;
+          font-size: 14px;
+          font-weight: 800;
+          font-family: inherit;
         }
-
-
-        .credentials-card {
-          border: 1px solid rgba(239, 68, 68, 0.35);
-          background: linear-gradient(180deg, #141414, #090909);
+        input, select { min-height: 48px; padding: 0 14px; }
+        textarea { min-height: 112px; padding: 14px; resize: vertical; line-height: 1.45; }
+        input:focus, select:focus, textarea:focus {
+          border-color: rgba(239,68,68,.62);
+          box-shadow: 0 0 0 4px rgba(239,68,68,.16);
         }
-
+        select option { background: #111; color: #fff; }
+        .checkbox-field {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-height: 48px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.11);
+          padding: 0 14px;
+          background: rgba(255,255,255,.035);
+        }
+        .checkbox-field input { width: 18px; min-height: 18px; accent-color: #ef4444; }
+        .payment-box, .manual-renew-box {
+          padding: 15px;
+          border-radius: 20px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.035);
+        }
+        .quick-plan-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .quick-plan-btn {
+          width: 100%;
+          min-height: 130px;
+          display: grid;
+          align-content: space-between;
+          gap: 10px;
+          text-align: left;
+          border-radius: 20px;
+          padding: 16px;
+          border: 1px solid rgba(239,68,68,0.28);
+          background: radial-gradient(circle at top left, rgba(239,68,68,.2), transparent 56%), rgba(255,255,255,.045);
+          color: #fff;
+          cursor: pointer;
+        }
+        .plan-price { font-size: 24px; font-weight: 950; letter-spacing: -.04em; }
         .credential-summary {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
-          margin-bottom: 14px;
-          align-items: stretch;
         }
-
-        .credential-mini {
-          display: grid;
-          gap: 6px;
-          background: #050505;
-          border: 1px solid #262626;
-          border-radius: 14px;
-          padding: 12px;
-        }
-
-        .credential-mini-label {
-          color: #737373;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 5px;
-        }
-
-        .credential-mini-value {
-          font-weight: 900;
-          font-size: 14px;
-        }
-
         .credential-section {
-          border-top: 1px solid #262626;
-          padding-top: 14px;
-          margin-top: 14px;
+          border-top: 1px solid rgba(255,255,255,.08);
+          padding-top: 16px;
+          margin-top: 16px;
+          display: grid;
+          gap: 12px;
         }
-
-        .credential-section-title {
-          font-size: 13px;
-          color: #a3a3a3;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.6px;
-          margin-bottom: 10px;
-        }
-
-        .credential-pill-list {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
+        .credential-pill-list { display: flex; flex-wrap: wrap; gap: 8px; }
         .credential-pill {
           border-radius: 999px;
           background: #050505;
@@ -1212,45 +1129,15 @@ async function disableBlock(blockId: string) {
           font-size: 12px;
           font-weight: 800;
         }
-
         .qr-box {
-          background: #ffffff;
+          background: #fff;
           border-radius: 18px;
           padding: 14px;
           display: inline-flex;
-          justify-self: start;
-          margin: 6px 0 12px;
+          width: fit-content;
         }
-
-        .qr-box img {
-          width: 210px;
-          height: 210px;
-          display: block;
-        }
-
-        .qr-meta {
-          color: #a3a3a3;
-          font-size: 13px;
-          line-height: 1.7;
-          word-break: break-word;
-        }
-
-        .danger-text {
-          color: #fb7185;
-        }
-
-        .success-text {
-          color: #4ade80;
-        }
-
-
-        .mobile-pass-section {
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          padding-top: 18px;
-          margin-top: 18px;
-        }
-
-        .mobile-pass-url {
+        .qr-box img { width: 210px; height: 210px; display: block; }
+        .mobile-pass-url, .error-details {
           border: 1px solid rgba(59, 130, 246, 0.22);
           background: rgba(59, 130, 246, 0.08);
           color: #bfdbfe;
@@ -1258,828 +1145,280 @@ async function disableBlock(blockId: string) {
           padding: 12px;
           font-size: 12px;
           line-height: 1.45;
-          word-break: break-all;
-          margin: 12px 0;
+          overflow-wrap: anywhere;
+          white-space: pre-wrap;
         }
-
-        .qr-meta-spaced { margin-top: 12px; }
-        .qr-meta-warning { margin-top: 10px; }
-
-        .quick-plan-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          margin-top: 14px;
+        .danger-text { color: #fb7185; }
+        .success-text { color: #4ade80; }
+        @media (max-width: 1180px) {
+          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .hero-statuses, .form-grid, .quick-plan-grid { grid-template-columns: 1fr; }
+          .hero-actions { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
-
-        .quick-plan-btn {
-          min-height: 112px;
-          display: grid;
-          align-content: center;
-          gap: 7px;
-          text-align: left;
-          border-radius: 18px;
-          padding: 16px;
-          border: 1px solid rgba(255,255,255,0.12);
-          background: linear-gradient(180deg, rgba(239,68,68,0.18), rgba(255,255,255,0.055));
-          box-shadow: 0 16px 34px rgba(0,0,0,.2);
+        @media (max-width: 720px) {
+          .customer-page { padding: 18px; }
+          .hero-main, .topbar { flex-direction: column; align-items: stretch; }
+          .hero-actions, .info-grid, .credential-summary, .three-col-grid { grid-template-columns: 1fr; }
+          .row { grid-template-columns: 1fr; }
         }
-
-        .quick-plan-title { font-size: 17px; font-weight: 950; }
-        .quick-plan-price { font-size: 25px; font-weight: 950; }
-        .quick-plan-meta, .small-muted { color: #9ca3af; font-size: 12px; font-weight: 700; }
-
-        .manual-renew-box {
-          margin-top: 16px;
-          padding: 14px;
-          border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.035);
-        }
-
-
-        .hero-actions {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          justify-content: flex-end;
-          flex-wrap: wrap;
-        }
-
-        .edit-panel {
-          margin-top: 22px;
-          border: 1px solid rgba(239, 68, 68, 0.32);
-          background: rgba(239, 68, 68, 0.055);
-          border-radius: 22px;
-          padding: 18px;
-        }
-
-        .edit-panel-header {
-          display: flex;
-          justify-content: space-between;
-          gap: 14px;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-
-        .edit-panel-title {
-          font-size: 18px;
-          font-weight: 950;
-        }
-
-        .edit-form-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(180px, 1fr));
-          gap: 14px;
-          align-items: start;
-        }
-
-        .edit-field {
-          display: grid;
-          grid-template-rows: auto minmax(46px, auto);
-          gap: 7px;
-          min-width: 0;
-        }
-
-        .edit-field label {
-          color: #a3a3a3;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.7px;
-          font-weight: 900;
-        }
-
-        textarea {
-          border-radius: 16px;
-          border: 1px solid rgba(255,255,255,.11);
-          padding: 13px 15px;
-          font-size: 14px;
-          outline: none;
-          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
-          color: #fff;
-          width: 100%;
-          min-height: 92px;
-          resize: vertical;
-          font-family: inherit;
-          font-weight: 800;
-        }
-
-        .edit-field-full {
-          grid-column: 1 / -1;
-          grid-template-rows: auto auto;
-        }
-
-        .checkbox-field {
-          border: 1px solid #303030;
-          border-radius: 14px;
-          padding: 13px 15px;
-          background: #050505;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-height: 47px;
-        }
-
-        .checkbox-field input {
-          width: auto;
-          accent-color: #ef4444;
-        }
-
-        .checkbox-field span {
-          font-weight: 900;
-          color: #ffffff;
-        }
-
-        @media (max-width: 1100px) {
-          .hero-layout,
-          .status-grid,
-          .grid,
-          .customer-info-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .hero-top,
-          .actions,
-          .topbar,
-          .edit-panel-header {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .hero-actions {
-            justify-content: flex-start;
-          }
-
-          .edit-form-grid,
-          .quick-plan-grid,
-          .credential-summary {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}
-      </style>
+      `}</style>
 
       <div className="topbar">
-        <Link className="back-link" href="/customers">
-          ← Torna ai clienti
-        </Link>
+        <BGButton href="/customers" variant="ghost">← Torna ai clienti</BGButton>
       </div>
 
-      <div className="hero-layout">
-        <div className="hero">
-          <div className="hero-top">
-            <div className="profile-area">
-              {customer?.photo_url ? (
-                <img className="avatar" src={customer.photo_url} alt={customerName} />
-              ) : (
-                <div className="avatar-placeholder">{initials}</div>
-              )}
-
-              <div>
-                <h1>{customerName}</h1>
-
-                <p className="muted">
-                  Badge: {customer.badge_code || "-"} · Controller:{" "}
-                  {customer.controller_code || "-"}
-                </p>
-
-                <div className="customer-info-grid">
-                  {customerInfo.map((item) => (
-                    <div className="info-mini-card" key={item.label}>
-                      <div className="info-label">{item.label}</div>
-                      <div className="info-value">{item.value}</div>
-                    </div>
-                  ))}
-                </div>
+      <BGCard variant="premium" className="customer-hero">
+        <div>
+          <div className="hero-main">
+            {customer?.photo_url ? (
+              <img className="avatar" src={customer.photo_url} alt={customerName} />
+            ) : (
+              <div className="avatar-placeholder">{initials}</div>
+            )}
+            <div className="hero-copy">
+              <div className="bg-eyebrow">Scheda cliente BodyGate</div>
+              <h1>{customerName}</h1>
+              <div className="hero-meta">
+                <span>{customer.phone || "Telefono non presente"}</span>
+                <span>•</span>
+                <span>{customer.email || "Email non presente"}</span>
+              </div>
+              <div className="actions" style={{ marginTop: 12 }}>
+                <BGStatusBadge tone={accessAllowed ? "success" : "danger"}>
+                  {accessAllowed ? "Accesso attivo" : "Accesso bloccato"}
+                </BGStatusBadge>
+                <BGStatusBadge tone={customer?.is_active === false ? "danger" : "info"}>
+                  {customer?.is_active === false ? "Cliente disattivo" : "Cliente attivo"}
+                </BGStatusBadge>
+                <BGStatusBadge tone={customer.badge_code || customer.controller_code ? "success" : "warning"}>
+                  {customer.badge_code || customer.controller_code ? "Badge collegato" : "Badge mancante"}
+                </BGStatusBadge>
               </div>
             </div>
+          </div>
+          <div className="hero-statuses">
+            <StatusBox label="Abbonamento" value={activeSubscription ? `${activeSubscription.subscription_plans?.name || "Attivo"} · ${activeSubscription.ends_at}` : "Assente o scaduto"} ok={!!activeSubscription} />
+            <StatusBox label="Certificato medico" value={certificateValid ? `Valido fino al ${medicalCertificateEnd}` : "Scaduto o mancante"} ok={!!certificateValid} />
+            <StatusBox label="Quota associativa" value={activeMembership ? `Valida fino al ${activeMembership.valid_until}` : "Assente o scaduta"} ok={!!activeMembership} />
+            <StatusBox label="Blocchi" value={activeBlock ? activeBlock.reason : "Nessun blocco"} ok={!activeBlock} />
+          </div>
+        </div>
+        <div className="hero-actions">
+          <BGButton onClick={() => setActiveSection("subscriptions")}>Rinnova</BGButton>
+          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Pagamenti</BGButton>
+          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Ricevute</BGButton>
+          <BGButton variant="secondary" onClick={() => setActiveSection("access")}>Accessi</BGButton>
+          <BGButton variant="ghost" onClick={() => { startEditCustomer(); setActiveSection("profile"); }}>Modifica</BGButton>
+          <BGButton variant="danger" onClick={() => setActiveSection("access")}>Blocca</BGButton>
+        </div>
+      </BGCard>
 
-            <div className="hero-actions">
-              <div className={`badge-status ${accessAllowed ? "ok" : "ko"}`}>
-                {accessAllowed ? "ACCESSO ATTIVO" : "ACCESSO BLOCCATO"}
-              </div>
+      <BGPremiumTabs items={tabs} activeKey={activeSection} onChange={setActiveSection} ariaLabel="Sezioni scheda cliente" />
 
-              {!isEditingCustomer ? (
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={startEditCustomer}
-                >
-                  Modifica anagrafica
-                </button>
-              ) : null}
+      {activeSection === "overview" ? (
+        <section className="section-panel">
+          <div className="overview-grid">
+            <OverviewCard title="Abbonamento" ok={!!activeSubscription} value={activeSubscription ? `${activeSubscription.subscription_plans?.name || "Attivo"}` : "Da rinnovare"} note={activeSubscription ? `Scade ${activeSubscription.ends_at}` : "Nessun piano attivo"} action="Gestisci" onAction={() => setActiveSection("subscriptions")} />
+            <OverviewCard title="Quota associativa" ok={!!activeMembership} value={activeMembership ? "Regolare" : "Da rinnovare"} note={activeMembership ? `Scade ${activeMembership.valid_until}` : "Quota mancante"} action="Gestisci" onAction={() => setActiveSection("subscriptions")} />
+            <OverviewCard title="Certificato medico" ok={!!certificateValid} value={certificateValid ? "Valido" : "Critico"} note={certificateValid ? `Scade ${medicalCertificateEnd}` : "Upload o rinnovo richiesto"} action="Apri" onAction={() => setActiveSection("documents")} />
+            <OverviewCard title="Pagamenti" ok value={`${subscriptions.length + membershipFees.length} movimenti`} note="Storici completi in sezione cassa" action="Apri" onAction={() => setActiveSection("payments")} />
+            <OverviewCard title="Ricevute" ok value="Registro ricevute" note="A4 e ristampe mantenute" action="Apri" onAction={() => setActiveSection("payments")} />
+            <OverviewCard title="Accessi" ok={accessAllowed} value={accessAllowed ? "Consentiti" : "Da verificare"} note={`${recentAccessLogs.length} ultimi accessi in sintesi`} action="Apri" onAction={() => setActiveSection("access")} />
+            <OverviewCard title="Note" ok={recentNotes.length === 0} value={`${notes.length} note`} note={recentNotes[0]?.note || "Nessuna nota urgente"} action="Gestisci" onAction={() => setActiveSection("timeline")} />
+            <OverviewCard title="Timeline recente" ok value={`${recentTimelineEvents.length} eventi`} note={recentTimelineEvents[0]?.title || "Nessun evento recente"} action="Apri" onAction={() => setActiveSection("timeline")} />
+          </div>
+
+          <div className="two-col-grid">
+            <HistoryCard title="Ultimi accessi" subtitle="Massimo 3 eventi recenti.">
+              {recentAccessLogs.length === 0 ? (
+                <BGEmptyState title="Nessun accesso recente" description="Gli eventi completi sono nella sezione Accessi." />
+              ) : recentAccessLogs.map((log) => (
+                <InfoRow key={log.id} title={log.was_allowed ? "Accesso consentito" : "Accesso negato"} subtitle={new Date(log.access_time).toLocaleString()} right={log.reason || "-"} />
+              ))}
+            </HistoryCard>
+
+            <HistoryCard title="Timeline sintetica" subtitle="Massimo 3 eventi operativi.">
+              {recentTimelineEvents.length === 0 ? (
+                <BGEmptyState title="Timeline vuota" description="Nessun evento operativo recente." />
+              ) : recentTimelineEvents.map((event) => (
+                <InfoRow key={event.key} title={event.title} subtitle={event.subtitle} right={event.date ? new Date(event.date).toLocaleDateString() : ""} />
+              ))}
+            </HistoryCard>
+          </div>
+        </section>
+      ) : null}
+
+      {activeSection === "profile" ? (
+        <section className="content-grid">
+          <BGCard variant="premium">
+            <BGSectionHeader title="Profilo cliente" subtitle="Dati anagrafici completi e modifica professionale." actions={!isEditingCustomer ? <BGButton variant="secondary" onClick={startEditCustomer}>Modifica anagrafica</BGButton> : null} />
+            <div className="info-grid">
+              {customerInfo.map((item) => <InfoMini key={item.label} label={item.label} value={item.value} />)}
+              <InfoMini label="Badge" value={customer.badge_code || "-"} />
+              <InfoMini label="Controller" value={customer.controller_code || "-"} />
+              <InfoMini label="Note reception" value={customer.reception_notes || "-"} />
             </div>
+          </BGCard>
+
+          <div className="section-panel">
+            <CustomerPhotoUpload customerId={customer.id} currentPhotoUrl={customer.photo_url} onUploaded={(url) => setCustomer((prev: any) => ({ ...prev, photo_url: url }))} />
           </div>
 
           {isEditingCustomer ? (
-            <div className="edit-panel">
-              <div className="edit-panel-header">
-                <div>
-                  <div className="edit-panel-title">Modifica anagrafica professionale</div>
-                  <div className="muted">
-                    Aggiorna i dati cliente, credenziali principali e stato attività.
-                  </div>
-                </div>
-
-                <div className="actions actions-inline">
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={cancelEditCustomer}
-                    disabled={savingCustomer}
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={saveCustomerProfile}
-                    disabled={savingCustomer}
-                  >
-                    {savingCustomer ? "Salvataggio..." : "Salva"}
-                  </button>
-                </div>
+            <BGCard variant="warning" className="edit-panel" >
+              <BGSectionHeader title="Modifica anagrafica professionale" subtitle="Aggiorna dati cliente, credenziali principali e stato attività." actions={<div className="actions-inline"><BGButton variant="ghost" onClick={cancelEditCustomer} disabled={savingCustomer}>Annulla</BGButton><BGButton onClick={saveCustomerProfile} disabled={savingCustomer}>{savingCustomer ? "Salvataggio..." : "Salva"}</BGButton></div>} />
+              <div className="form-grid">
+                <EditField label="Nome"><input value={editForm.first_name || ""} onChange={(e) => updateEditField("first_name", e.target.value)} /></EditField>
+                <EditField label="Cognome"><input value={editForm.last_name || ""} onChange={(e) => updateEditField("last_name", e.target.value)} /></EditField>
+                <EditField label="Telefono"><input value={editForm.phone || ""} onChange={(e) => updateEditField("phone", e.target.value)} /></EditField>
+                <EditField label="Email"><input type="email" value={editForm.email || ""} onChange={(e) => updateEditField("email", e.target.value)} /></EditField>
+                <EditField label="Codice fiscale"><input value={editForm.fiscal_code || ""} onChange={(e) => updateEditField("fiscal_code", e.target.value.toUpperCase())} /></EditField>
+                <EditField label="Data nascita"><input type="date" value={editForm.birth_date || ""} onChange={(e) => updateEditField("birth_date", e.target.value)} /></EditField>
+                <EditField label="Sesso"><select value={editForm.gender || ""} onChange={(e) => updateEditField("gender", e.target.value)}><option value="">Non specificato</option><option value="M">Maschile</option><option value="F">Femminile</option><option value="ALTRO">Altro</option></select></EditField>
+                <EditField label="Indirizzo"><input value={editForm.address || ""} onChange={(e) => updateEditField("address", e.target.value)} /></EditField>
+                <EditField label="Città"><input value={editForm.city || ""} onChange={(e) => updateEditField("city", e.target.value)} /></EditField>
+                <EditField label="CAP"><input value={editForm.postal_code || ""} onChange={(e) => updateEditField("postal_code", e.target.value)} /></EditField>
+                <EditField label="Contatto emergenza"><input value={editForm.emergency_contact_name || ""} onChange={(e) => updateEditField("emergency_contact_name", e.target.value)} /></EditField>
+                <EditField label="Telefono emergenza"><input value={editForm.emergency_contact_phone || ""} onChange={(e) => updateEditField("emergency_contact_phone", e.target.value)} /></EditField>
+                <EditField label="Badge principale"><input value={editForm.badge_code || ""} onChange={(e) => updateEditField("badge_code", e.target.value)} /></EditField>
+                <EditField label="Controller code"><input value={editForm.controller_code || ""} onChange={(e) => updateEditField("controller_code", e.target.value)} /></EditField>
+                <EditField label="Stato cliente"><div className="checkbox-field"><input type="checkbox" checked={!!editForm.is_active} onChange={(e) => updateEditField("is_active", e.target.checked)} /><span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span></div></EditField>
+                <EditField label="Note reception" full><textarea value={editForm.reception_notes || ""} onChange={(e) => updateEditField("reception_notes", e.target.value)} placeholder="Note interne rapide visibili alla reception..." /></EditField>
               </div>
-
-              <div className="edit-form-grid bg-form-grid bg-form-grid-3">
-                <div className="edit-field bg-form-field">
-                  <label>Nome</label>
-                  <input
-                    value={editForm.first_name || ""}
-                    onChange={(e) => updateEditField("first_name", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Cognome</label>
-                  <input
-                    value={editForm.last_name || ""}
-                    onChange={(e) => updateEditField("last_name", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Telefono</label>
-                  <input
-                    value={editForm.phone || ""}
-                    onChange={(e) => updateEditField("phone", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    value={editForm.email || ""}
-                    onChange={(e) => updateEditField("email", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Codice fiscale</label>
-                  <input
-                    value={editForm.fiscal_code || ""}
-                    onChange={(e) => updateEditField("fiscal_code", e.target.value.toUpperCase())}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Data nascita</label>
-                  <input
-                    type="date"
-                    value={editForm.birth_date || ""}
-                    onChange={(e) => updateEditField("birth_date", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Sesso</label>
-                  <select
-                    value={editForm.gender || ""}
-                    onChange={(e) => updateEditField("gender", e.target.value)}
-                  >
-                    <option value="">Non specificato</option>
-                    <option value="M">Maschile</option>
-                    <option value="F">Femminile</option>
-                    <option value="ALTRO">Altro</option>
-                  </select>
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Indirizzo</label>
-                  <input
-                    value={editForm.address || ""}
-                    onChange={(e) => updateEditField("address", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Città</label>
-                  <input
-                    value={editForm.city || ""}
-                    onChange={(e) => updateEditField("city", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>CAP</label>
-                  <input
-                    value={editForm.postal_code || ""}
-                    onChange={(e) => updateEditField("postal_code", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Contatto emergenza</label>
-                  <input
-                    value={editForm.emergency_contact_name || ""}
-                    onChange={(e) => updateEditField("emergency_contact_name", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Telefono emergenza</label>
-                  <input
-                    value={editForm.emergency_contact_phone || ""}
-                    onChange={(e) => updateEditField("emergency_contact_phone", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Badge principale</label>
-                  <input
-                    value={editForm.badge_code || ""}
-                    onChange={(e) => updateEditField("badge_code", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Controller code</label>
-                  <input
-                    value={editForm.controller_code || ""}
-                    onChange={(e) => updateEditField("controller_code", e.target.value)}
-                  />
-                </div>
-
-                <div className="edit-field bg-form-field">
-                  <label>Stato cliente</label>
-                  <div className="checkbox-field">
-                    <input
-                      type="checkbox"
-                      checked={!!editForm.is_active}
-                      onChange={(e) => updateEditField("is_active", e.target.checked)}
-                    />
-                    <span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span>
-                  </div>
-                </div>
-
-                <div className="edit-field bg-form-field edit-field-full">
-                  <label>Note reception</label>
-                  <textarea
-                    value={editForm.reception_notes || ""}
-                    onChange={(e) => updateEditField("reception_notes", e.target.value)}
-                    placeholder="Note interne rapide visibili alla reception..."
-                  />
-                </div>
-              </div>
-            </div>
+            </BGCard>
           ) : null}
+        </section>
+      ) : null}
 
-          <div className="status-grid">
-            <StatusBox
-              label="Quota associativa"
-              value={
-                activeMembership
-                  ? `Valida fino al ${activeMembership.valid_until}`
-                  : "Assente o scaduta"
-              }
-              ok={!!activeMembership}
-            />
+      {activeSection === "subscriptions" ? (
+        <section className="section-panel">
+          <div className="content-grid">
+            <BGCard variant="premium">
+              <BGSectionHeader title="Rinnovo rapido + pagamento" subtitle="Rinnovi con ricevuta automatica e metodo di pagamento selezionato." actions={<BGButton onClick={renewMembershipFee}>Rinnova quota 10€</BGButton>} />
+              <div className="payment-box">
+                <div className="small-muted" style={{ marginBottom: 8 }}>Metodo pagamento</div>
+                <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
+                  <option value="cash">Contanti</option>
+                  <option value="pos">POS</option>
+                  <option value="bank_transfer">Bonifico</option>
+                </select>
+              </div>
+              <div className="quick-plan-grid">
+                {shortPlans.length === 0 ? <BGEmptyState title="Nessun piano attivo" description="Configura i piani abbonamento per abilitare il rinnovo rapido." /> : null}
+                {shortPlans.map((plan) => {
+                  const price = Number(plan.promo_price || plan.price || 0);
+                  const duration = Number(plan.duration_days || 0);
+                  return (
+                    <BGButton key={plan.id} className="quick-plan-btn" onClick={() => renewSubscription(plan.id)}>
+                      <span className="plan-title">{plan.name}</span>
+                      <strong className="plan-price">€ {price.toFixed(2)}</strong>
+                      <BGStatusBadge tone="info">{`${duration} giorni`}</BGStatusBadge>
+                    </BGButton>
+                  );
+                })}
+              </div>
+              <div className="manual-renew-box">
+                <div className="small-muted" style={{ marginBottom: 10 }}>Rinnovo manuale / piano personalizzato</div>
+                <div className="actions">
+                  <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
+                    <option value="">Seleziona piano</option>
+                    {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni</option>)}
+                  </select>
+                  <BGButton variant="secondary" onClick={() => renewSubscription()}>Rinnova</BGButton>
+                </div>
+              </div>
+            </BGCard>
 
-            <StatusBox
-              label="Abbonamento"
-              value={
-                activeSubscription
-                  ? `${activeSubscription.subscription_plans?.name || "Attivo"} fino al ${activeSubscription.ends_at}`
-                  : "Assente o scaduto"
-              }
-              ok={!!activeSubscription}
-            />
-
-            <StatusBox
-              label="Certificato medico"
-              value={
-                certificateValid
-                  ? `Valido fino al ${medicalCertificateEnd}`
-                  : "Scaduto o mancante"
-              }
-              ok={!!certificateValid}
-            />
-
-            <StatusBox
-              label="Blocchi"
-              value={activeBlock ? activeBlock.reason : "Nessun blocco"}
-              ok={!activeBlock}
-            />
+            <HistoryCard title="Storico abbonamenti" subtitle="Tutti i rinnovi registrati per il cliente.">
+              {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <InfoRow key={sub.id} title={sub.subscription_plans?.name || "Abbonamento"} subtitle={`${sub.starts_at} → ${sub.ends_at}`} right={`€ ${sub.amount}`} />)}
+            </HistoryCard>
           </div>
-        </div>
+          <HistoryCard title="Storico quota associativa" subtitle="Quote annuali registrate.">
+            {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <InfoRow key={fee.id} title={`Quota € ${fee.amount}`} subtitle={`${fee.valid_from} → ${fee.valid_until}`} right={fee.payment_method || ""} />)}
+          </HistoryCard>
+        </section>
+      ) : null}
 
-        <div className="side-stack">
-          <CustomerPhotoUpload
-            customerId={customer.id}
-            currentPhotoUrl={customer.photo_url}
-            onUploaded={(url) => {
-              setCustomer((prev: any) => ({
-                ...prev,
-                photo_url: url,
-              }));
-            }}
-          />
+      {activeSection === "payments" ? (
+        <section className="section-panel">
+          <CustomerPaymentsHistory customerId={customer.id} />
+          <CustomerReceiptsHistory customerId={customer.id} />
+        </section>
+      ) : null}
 
-          <MedicalCertificateCard
-            customerId={customer.id}
-            currentCertificateUrl={customer.medical_certificate_url}
-            startDate={customer.medical_certificate_start_date}
-            endDate={customer.medical_certificate_end_date}
-            onUpdated={(data) => {
-              setCustomer((prev: any) => ({
-                ...prev,
-                medical_certificate_url: data.url,
-                medical_certificate_start_date: data.startDate,
-                medical_certificate_end_date: data.endDate,
-              }));
-            }}
-          />
-
-          <div className="card credentials-card bg-card-premium">
-            <h2>Credenziali accesso</h2>
-
+      {activeSection === "access" ? (
+        <section className="content-grid">
+          <BGCard variant="premium">
+            <BGSectionHeader title="Credenziali accesso" subtitle="RFID/NFC, QR DNake, Mobile Pass e WhatsApp." />
             <div className="credential-summary">
-              <div className="credential-mini">
-                <div className="credential-mini-label">RFID / NFC</div>
-                <div className="credential-mini-value">
-                  {cardCredentials.length} attive
-                </div>
-              </div>
-
-              <div className="credential-mini">
-                <div className="credential-mini-label">QR DNake</div>
-                <div
-                  className={`credential-mini-value ${
-                    activeDnakeQr ? "success-text" : "danger-text"
-                  }`}
-                >
-                  {activeDnakeQr ? "Attivo" : "Non generato"}
-                </div>
-              </div>
+              <InfoMini label="RFID / NFC" value={`${cardCredentials.length} attive`} />
+              <InfoMini label="QR DNake" value={activeDnakeQr ? "Attivo" : "Non generato"} tone={activeDnakeQr ? "success" : "danger"} />
             </div>
-
             <div className="credential-section">
               <div className="credential-section-title">Tessere / Card</div>
-
-              {cardCredentials.length === 0 ? (
-                <p className="empty">Nessuna tessera associata.</p>
-              ) : (
-                <div className="credential-pill-list">
-                  {cardCredentials.map((item) => (
-                    <span className="credential-pill" key={item.id}>
-                      {String(item.type).toUpperCase()} · {item.controller_code || item.code}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {cardCredentials.length === 0 ? <BGEmptyState title="Nessuna tessera associata" /> : <div className="credential-pill-list">{cardCredentials.map((item) => <span className="credential-pill" key={item.id}>{String(item.type).toUpperCase()} · {item.controller_code || item.code}</span>)}</div>}
             </div>
-
             <div className="credential-section">
               <div className="credential-section-title">QR Code DNake</div>
-
               {activeDnakeQr ? (
                 <>
-                  {qrDataUrl ? (
-                    <div className="qr-box">
-                      <img src={qrDataUrl} alt="QR DNake" />
-                    </div>
-                  ) : (
-                    <p className="empty">Generazione immagine QR...</p>
-                  )}
-
-                  <div className="qr-meta">
-                    <div>
-                      <strong>ID DNake:</strong> {activeDnakeQr.dnake_user_id}
-                    </div>
-                    <div>
-                      <strong>Nome DNake:</strong> {activeDnakeQr.dnake_name}
-                    </div>
-                    <div>
-                      <strong>Stato:</strong> {activeDnakeQr.qr_status}
-                    </div>
-                  </div>
-
-                  <div className="actions">
-                    <button
-                      className="secondary-btn"
-                      type="button"
-                      onClick={printQr}
-                      disabled={!qrDataUrl}
-                    >
-                      Visualizza / stampa
-                    </button>
-
-                    <button
-                      type="button"
-                      className="primary-btn"
-                      onClick={generateDnakeQr}
-                      disabled={qrGenerating}
-                    >
-                      {qrGenerating ? "Rigenero..." : "Rigenera QR"}
-                    </button>
-                  </div>
+                  {qrDataUrl ? <div className="qr-box"><img src={qrDataUrl} alt="QR DNake" /></div> : <BGEmptyState title="Generazione immagine QR" />}
+                  <div className="info-grid"><InfoMini label="ID DNake" value={activeDnakeQr.dnake_user_id || "-"} /><InfoMini label="Nome DNake" value={activeDnakeQr.dnake_name || "-"} /><InfoMini label="Stato" value={activeDnakeQr.qr_status || "-"} /></div>
+                  <div className="actions"><BGButton variant="secondary" onClick={printQr} disabled={!qrDataUrl}>Visualizza / stampa</BGButton><BGButton onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Rigenero..." : "Rigenera QR"}</BGButton></div>
                 </>
-              ) : (
-                <>
-                  <p className="empty">
-                    Nessun QR DNake generato per questo cliente.
-                  </p>
-
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={generateDnakeQr}
-                    disabled={qrGenerating}
-                  >
-                    {qrGenerating ? "Generazione..." : "Genera QR DNake"}
-                  </button>
-                </>
-              )}
-
-              {qrCredentials.length > 0 && (
-                <div className="qr-meta qr-meta-spaced">
-                  Credenziali QR salvate: {qrCredentials.length}
-                </div>
-              )}
+              ) : <><BGEmptyState title="Nessun QR DNake" description="Genera un QR DNake per abilitare il passaggio cliente." /><BGButton onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Generazione..." : "Genera QR DNake"}</BGButton></>}
+              {qrCredentials.length > 0 ? <div className="small-muted">Credenziali QR salvate: {qrCredentials.length}</div> : null}
             </div>
-
-            <div className="credential-section mobile-pass-section">
-              <div className="credential-section-title">App cliente / WhatsApp</div>
-
-              <p className="empty">
-                Crea il link personale del cliente e invialo su WhatsApp. Il cliente potrà aprire il QR dal telefono.
-              </p>
-
-              {mobilePassUrl ? (
-                <div className="mobile-pass-url">
-                  {mobilePassUrl}
-                </div>
-              ) : null}
-
-              <div className="actions">
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={createOrGetMobilePass}
-                  disabled={mobilePassLoading}
-                >
-                  {mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}
-                </button>
-
-                <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={sendMobilePassWhatsApp}
-                  disabled={mobilePassLoading}
-                >
-                  Invia su WhatsApp
-                </button>
-
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={copyMobilePassLink}
-                  disabled={mobilePassLoading}
-                >
-                  Copia link
-                </button>
-              </div>
-
-              {!customer?.phone ? (
-                <div className="qr-meta danger-text qr-meta-warning">
-                  Telefono cliente mancante: WhatsApp si aprirà senza destinatario.
-                </div>
-              ) : null}
+            <div className="credential-section">
+              <div className="credential-section-title">Mobile Pass / WhatsApp</div>
+              <BGEmptyState title="Mobile Pass cliente" description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente." />
+              {mobilePassUrl ? <div className="mobile-pass-url">{mobilePassUrl}</div> : null}
+              <div className="actions"><BGButton variant="secondary" onClick={createOrGetMobilePass} disabled={mobilePassLoading}>{mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}</BGButton><BGButton onClick={sendMobilePassWhatsApp} disabled={mobilePassLoading}>Invia su WhatsApp</BGButton><BGButton variant="secondary" onClick={copyMobilePassLink} disabled={mobilePassLoading}>Copia link</BGButton></div>
+              {!customer?.phone ? <div className="danger-text small-muted">Telefono cliente mancante: WhatsApp si aprirà senza destinatario.</div> : null}
             </div>
+          </BGCard>
+
+          <div className="section-panel">
+            <BGCard variant={activeBlock ? "danger" : "soft"}>
+              <BGSectionHeader title="Blocchi cliente" subtitle="Gestione blocchi operativi senza modificare access control." />
+              <div className="actions"><input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Motivo blocco..." /><BGButton variant="danger" onClick={addBlock}>Blocca</BGButton></div>
+              {blocks.length === 0 ? <BGEmptyState title="Nessun blocco presente" /> : blocks.map((block) => <div className="row" key={block.id}><div><div className="row-title">{block.reason}</div><div className="row-subtitle">Stato: {block.is_active ? "Attivo" : "Disattivato"}</div></div>{block.is_active ? <BGButton variant="secondary" onClick={() => disableBlock(block.id)}>Sblocca</BGButton> : null}</div>)}
+            </BGCard>
+            <HistoryCard title="Ultimi accessi" subtitle="Storico accessi leggibile e compatto.">
+              {accessLogs.length === 0 ? <BGEmptyState title="Nessun accesso registrato" /> : accessLogs.map((log) => <InfoRow key={log.id} title={log.was_allowed ? "Accesso consentito" : "Accesso negato"} subtitle={new Date(log.access_time).toLocaleString()} right={log.reason || "-"} />)}
+            </HistoryCard>
           </div>
-        </div>
-      </div>
+        </section>
+      ) : null}
 
-      <div className="grid">
-        <div className="card">
-          <h2>Rinnovo rapido + pagamento</h2>
-
-          <button type="button" className="primary-btn" onClick={renewMembershipFee}>
-            Rinnova quota associativa 10€
-          </button>
-          <div
-  style={{
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.035)",
-  }}
->
-  <div
-    style={{
-      color: "#9ca3af",
-      fontSize: 12,
-      fontWeight: 700,
-      marginBottom: 8,
-    }}
-  >
-    Metodo pagamento
-  </div>
-
-  <select
-    value={selectedPaymentMethod}
-    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-    style={{
-      width: "100%",
-      padding: "10px 12px",
-      borderRadius: 10,
-      background: "#111827",
-      color: "#fff",
-      border: "1px solid rgba(255,255,255,0.12)",
-    }}
-  >
-    <option value="cash">Contanti</option>
-    <option value="pos">POS</option>
-    <option value="bank_transfer">Bonifico</option>
-  </select>
-</div>
-
-          <div className="quick-plan-grid bg-actions-grid">
-            {plans.length === 0 && (
-              <div className="empty">Nessun piano attivo configurato.</div>
-            )}
-
-            {plans.map((plan) => {
-              const price = Number(plan.promo_price || plan.price || 0);
-              const duration = Number(plan.duration_days || 0);
-
-              return (
-                <button
-                  key={plan.id}
-                  type="button"
-                  className="quick-plan-btn"
-                  onClick={() => renewSubscription(plan.id)}
-                >
-                  <span className="quick-plan-title">{plan.name}</span>
-                  <strong className="quick-plan-price">€ {price.toFixed(2)}</strong>
-                  <small className="quick-plan-meta">{duration} giorni · da oggi</small>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="manual-renew-box">
-            <div className="small-muted">Rinnovo manuale / piano personalizzato</div>
-            <div className="actions">
-              <select
-                value={selectedPlanId}
-                onChange={(e) => setSelectedPlanId(e.target.value)}
-              >
-                <option value="">Seleziona piano</option>
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} -{" "}
-                    {plan.duration_days} giorni
-                  </option>
-                ))}
-              </select>
-
-              <button type="button" className="secondary-btn" onClick={() => renewSubscription()}>
-                Rinnova
-              </button>
+      {activeSection === "documents" ? (
+        <section className="content-grid">
+          <MedicalCertificateCard customerId={customer.id} currentCertificateUrl={customer.medical_certificate_url} startDate={customer.medical_certificate_start_date} endDate={customer.medical_certificate_end_date} onUpdated={(data) => setCustomer((prev: any) => ({ ...prev, medical_certificate_url: data.url, medical_certificate_start_date: data.startDate, medical_certificate_end_date: data.endDate }))} />
+          <BGCard variant="premium">
+            <BGSectionHeader title="Documenti cliente" subtitle="Certificato medico, date e contratto se presente." />
+            <div className="info-grid">
+              <InfoMini label="Certificato" value={customer.medical_certificate_url ? "Caricato" : "Non caricato"} tone={customer.medical_certificate_url ? "success" : "danger"} />
+              <InfoMini label="Inizio certificato" value={customer.medical_certificate_start_date || "-"} />
+              <InfoMini label="Scadenza certificato" value={medicalCertificateEnd || "-"} tone={certificateValid ? "success" : "danger"} />
+              <InfoMini label="Contratto" value={contractUrl ? "Disponibile" : "Non presente"} tone={contractUrl ? "success" : "neutral"} />
             </div>
-          </div>
-        </div>
+            {contractUrl ? <BGButton href={contractUrl} variant="secondary">Apri contratto</BGButton> : <BGEmptyState title="Nessun contratto collegato" description="Se il record cliente contiene un link contratto verrà mostrato qui." />}
+          </BGCard>
+        </section>
+      ) : null}
 
-        <div className="card">
-          <h2>Blocco rapido cliente</h2>
-
-          <div className="actions">
-            <input
-              value={blockReason}
-              onChange={(e) => setBlockReason(e.target.value)}
-              placeholder="Motivo blocco..."
-            />
-
-            <button type="button" className="primary-btn" onClick={addBlock}>Blocca</button>
-          </div>
-
-          {blocks.length === 0 && <p className="empty">Nessun blocco presente.</p>}
-
-          {blocks.map((block) => (
-            <div className="row" key={block.id}>
-              <div>
-                <div className="row-title">{block.reason}</div>
-                <div className="row-subtitle">
-                  Stato: {block.is_active ? "Attivo" : "Disattivato"}
-                </div>
-              </div>
-
-              {block.is_active && (
-                <button type="button" className="secondary-btn" onClick={() => disableBlock(block.id)}>
-                  Sblocca
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid">
-        <HistoryCard title="Storico abbonamenti">
-          {subscriptions.length === 0 && <p className="empty">Nessun abbonamento.</p>}
-
-          {subscriptions.map((sub) => (
-            <InfoRow
-              key={sub.id}
-              title={sub.subscription_plans?.name || "Abbonamento"}
-              subtitle={`${sub.starts_at} → ${sub.ends_at}`}
-              right={`€ ${sub.amount}`}
-            />
-          ))}
-        </HistoryCard>
-
-        <HistoryCard title="Storico quota associativa">
-          {membershipFees.length === 0 && (
-            <p className="empty">Nessuna quota registrata.</p>
-          )}
-
-          {membershipFees.map((fee) => (
-            <InfoRow
-              key={fee.id}
-              title={`Quota € ${fee.amount}`}
-              subtitle={`${fee.valid_from} → ${fee.valid_until}`}
-              right={fee.payment_method || ""}
-            />
-          ))}
-        </HistoryCard>
-      </div>
-
-      <div className="grid">
-        <div className="card">
-          <h2>Note interne</h2>
-
-          <div className="actions">
-            <input
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Scrivi una nota interna..."
-            />
-
-            <button type="button" className="secondary-btn" onClick={addNote}>
-              Aggiungi
-            </button>
-          </div>
-
-          {notes.length === 0 && <p className="empty">Nessuna nota interna.</p>}
-
-          {notes.map((note) => (
-            <div className="row" key={note.id}>
-              <div>
-                <div className="row-title">{note.note}</div>
-                <div className="row-subtitle">
-                  {new Date(note.created_at).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <HistoryCard title="Ultimi accessi">
-          {accessLogs.length === 0 && <p className="empty">Nessun accesso registrato.</p>}
-
-          {accessLogs.map((log) => (
-            <InfoRow
-              key={log.id}
-              title={log.was_allowed ? "Accesso consentito" : "Accesso negato"}
-              subtitle={new Date(log.access_time).toLocaleString()}
-              right={log.reason}
-            />
-          ))}
-        </HistoryCard>
-      </div>
-
-      <CustomerPaymentsHistory customerId={customer.id} />
-
-      <CustomerReceiptsHistory customerId={customer.id} />
-
-      <CustomerTimeline customerId={customer.id} />
+      {activeSection === "timeline" ? (
+        <section className="section-panel">
+          <BGCard variant="premium">
+            <BGSectionHeader title="Note interne" subtitle="Aggiunta note e storico completo in card premium." />
+            <div className="actions"><input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Scrivi una nota interna..." /><BGButton variant="secondary" onClick={addNote}>Aggiungi</BGButton></div>
+            {notes.length === 0 ? <BGEmptyState title="Nessuna nota interna" /> : notes.map((note) => <div className="row" key={note.id}><div><div className="row-title">{note.note}</div><div className="row-subtitle">{new Date(note.created_at).toLocaleString()}</div></div></div>)}
+          </BGCard>
+          <CustomerTimeline customerId={customer.id} />
+        </section>
+      ) : null}
     </div>
   );
 }
-
 function StatusBox({
   label,
   value,
@@ -2092,26 +1431,89 @@ function StatusBox({
   return (
     <div className="status-box">
       <div className="status-label">{label}</div>
-      <div className={`status-value ${ok ? "ok-text" : "ko-text"}`}>{value}</div>
-
-      <style jsx>{`
-        .ok-text {
-          color: #4ade80;
-        }
-
-        .ko-text {
-          color: #fb7185;
-        }
-      `}
-      </style>
+      <div className={`status-value ${ok ? "success-text" : "danger-text"}`}>{value}</div>
     </div>
   );
 }
 
-function HistoryCard({ title, children }: { title: string; children: ReactNode }) {
+function OverviewCard({
+  title,
+  value,
+  note,
+  ok,
+  action,
+  onAction,
+}: {
+  title: string;
+  value: string;
+  note: string;
+  ok: boolean;
+  action: string;
+  onAction: () => void;
+}) {
   return (
-    <div className="card">
-      <h2>{title}</h2>
+    <div className="mini-card">
+      <div className="mini-card-head">
+        <div className="mini-title">{title}</div>
+        <BGStatusBadge tone={ok ? "success" : "warning"}>{ok ? "OK" : "ATTENZIONE"}</BGStatusBadge>
+      </div>
+      <div>
+        <div className="mini-value">{value}</div>
+        <div className="small-muted">{note}</div>
+      </div>
+      <BGButton variant="ghost" onClick={onAction}>{action}</BGButton>
+    </div>
+  );
+}
+
+function HistoryCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <BGCard variant="soft">
+      <BGSectionHeader title={title} subtitle={subtitle} />
+      {children}
+    </BGCard>
+  );
+}
+
+function InfoMini({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "success" | "danger";
+}) {
+  return (
+    <div className="info-mini-card">
+      <div className="info-label">{label}</div>
+      <div className={`info-value ${tone === "success" ? "success-text" : tone === "danger" ? "danger-text" : ""}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function EditField({
+  label,
+  children,
+  full = false,
+}: {
+  label: string;
+  children: ReactNode;
+  full?: boolean;
+}) {
+  return (
+    <div className={`edit-field ${full ? "edit-field-full" : ""}`}>
+      <label>{label}</label>
       {children}
     </div>
   );
@@ -2133,7 +1535,7 @@ function InfoRow({
         <div className="row-subtitle">{subtitle}</div>
       </div>
 
-      {right && <div className="row-right">{right}</div>}
+      {right ? <div className="row-right">{right}</div> : null}
     </div>
   );
 }
