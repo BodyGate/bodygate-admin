@@ -1025,3 +1025,29 @@
   .bg-section-header { flex-direction: column; align-items: flex-start; }
   .bg-action-card { min-height: 112px; }
 }
+
+.bg-tabs {
+  isolation: isolate;
+}
+.bg-tab-button {
+  appearance: none;
+}
+.bg-customer-command-header {
+  position: relative;
+  overflow: hidden;
+}
+.bg-customer-command-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 34%);
+  opacity: 0.45;
+}
+.bg-customer-command-header > * {
+  position: relative;
+  z-index: 1;
+}
+.bg-customer-summary-card {
+  min-width: 0;
+}
