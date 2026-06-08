@@ -15,7 +15,7 @@ import BGCard from "../../components/ui/BGCard";
 import BGEmptyState from "../../components/ui/BGEmptyState";
 import BGSectionHeader from "../../components/ui/BGSectionHeader";
 import BGStatusBadge from "../../components/ui/BGStatusBadge";
-import BGPremiumTabs from "../../components/ui/BGPremiumTabs";
+import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
 
 type Customer = any;
 type Plan = any;
@@ -378,16 +378,6 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     return dnakeUsers.find((item) => item.qr_status === "active") || dnakeUsers[0] || null;
   }, [dnakeUsers]);
 
-
-  async function getCashPaymentMethodId() {
-    const { data } = await supabase
-      .from("payment_methods")
-      .select("id")
-      .eq("method_key", "cash")
-      .maybeSingle();
-
-    return data?.id || null;
-  }
 
   function paymentMethodLabel(method: string) {
   if (method === "cash") return "Contanti";
@@ -802,7 +792,7 @@ async function disableBlock(blockId: string) {
     );
   }
 
-  const tabs: Array<{ key: SectionKey; label: string; eyebrow: string; icon: string }> = [
+  const sectionNavItems: Array<{ key: SectionKey; label: string; eyebrow: string; icon: string }> = [
     { key: "overview", label: "Panoramica", eyebrow: "Sintesi", icon: "◆" },
     { key: "profile", label: "Profilo", eyebrow: "Anagrafica", icon: "👤" },
     { key: "subscriptions", label: "Abbonamenti", eyebrow: "Piani", icon: "🏋" },
@@ -981,6 +971,20 @@ async function disableBlock(blockId: string) {
           font-weight: 850;
           line-height: 1.45;
           overflow-wrap: anywhere;
+        }
+        .overview-list {
+          display: grid;
+          gap: 6px;
+          margin-top: 10px;
+          color: #a3a3a3;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+        .overview-list span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .info-grid {
           display: grid;
@@ -1212,7 +1216,7 @@ async function disableBlock(blockId: string) {
         </div>
       </BGCard>
 
-      <BGPremiumTabs items={tabs} activeKey={activeSection} onChange={setActiveSection} ariaLabel="Sezioni scheda cliente" />
+      <BGPremiumSectionNav items={sectionNavItems} activeKey={activeSection} onChange={setActiveSection} ariaLabel="Sezioni scheda cliente" />
 
       {activeSection === "overview" ? (
         <section className="section-panel">
@@ -1222,28 +1226,23 @@ async function disableBlock(blockId: string) {
             <OverviewCard title="Certificato medico" ok={!!certificateValid} value={certificateValid ? "Valido" : "Critico"} note={certificateValid ? `Scade ${medicalCertificateEnd}` : "Upload o rinnovo richiesto"} action="Apri" onAction={() => setActiveSection("documents")} />
             <OverviewCard title="Pagamenti" ok value={`${subscriptions.length + membershipFees.length} movimenti`} note="Storici completi in sezione cassa" action="Apri" onAction={() => setActiveSection("payments")} />
             <OverviewCard title="Ricevute" ok value="Registro ricevute" note="A4 e ristampe mantenute" action="Apri" onAction={() => setActiveSection("payments")} />
-            <OverviewCard title="Accessi" ok={accessAllowed} value={accessAllowed ? "Consentiti" : "Da verificare"} note={`${recentAccessLogs.length} ultimi accessi in sintesi`} action="Apri" onAction={() => setActiveSection("access")} />
+            <OverviewCard title="Accessi" ok={accessAllowed} value={accessAllowed ? "Consentiti" : "Da verificare"} note="Ultimi 3 eventi" action="Apri" onAction={() => setActiveSection("access")}>
+              <div className="overview-list">
+                {recentAccessLogs.length === 0 ? <span>Nessun accesso recente</span> : recentAccessLogs.map((log) => (
+                  <span key={log.id}>{log.was_allowed ? "Consentito" : "Negato"} · {new Date(log.access_time).toLocaleString()}</span>
+                ))}
+              </div>
+            </OverviewCard>
             <OverviewCard title="Note" ok={recentNotes.length === 0} value={`${notes.length} note`} note={recentNotes[0]?.note || "Nessuna nota urgente"} action="Gestisci" onAction={() => setActiveSection("timeline")} />
-            <OverviewCard title="Timeline recente" ok value={`${recentTimelineEvents.length} eventi`} note={recentTimelineEvents[0]?.title || "Nessun evento recente"} action="Apri" onAction={() => setActiveSection("timeline")} />
+            <OverviewCard title="Timeline recente" ok value={`${recentTimelineEvents.length} eventi`} note="Ultimi 3 eventi" action="Apri" onAction={() => setActiveSection("timeline")}>
+              <div className="overview-list">
+                {recentTimelineEvents.length === 0 ? <span>Nessun evento recente</span> : recentTimelineEvents.map((event) => (
+                  <span key={event.key}>{event.title} · {event.date ? new Date(event.date).toLocaleDateString() : "-"}</span>
+                ))}
+              </div>
+            </OverviewCard>
           </div>
 
-          <div className="two-col-grid">
-            <HistoryCard title="Ultimi accessi" subtitle="Massimo 3 eventi recenti.">
-              {recentAccessLogs.length === 0 ? (
-                <BGEmptyState title="Nessun accesso recente" description="Gli eventi completi sono nella sezione Accessi." />
-              ) : recentAccessLogs.map((log) => (
-                <InfoRow key={log.id} title={log.was_allowed ? "Accesso consentito" : "Accesso negato"} subtitle={new Date(log.access_time).toLocaleString()} right={log.reason || "-"} />
-              ))}
-            </HistoryCard>
-
-            <HistoryCard title="Timeline sintetica" subtitle="Massimo 3 eventi operativi.">
-              {recentTimelineEvents.length === 0 ? (
-                <BGEmptyState title="Timeline vuota" description="Nessun evento operativo recente." />
-              ) : recentTimelineEvents.map((event) => (
-                <InfoRow key={event.key} title={event.title} subtitle={event.subtitle} right={event.date ? new Date(event.date).toLocaleDateString() : ""} />
-              ))}
-            </HistoryCard>
-          </div>
         </section>
       ) : null}
 
@@ -1443,6 +1442,7 @@ function OverviewCard({
   ok,
   action,
   onAction,
+  children,
 }: {
   title: string;
   value: string;
@@ -1450,6 +1450,7 @@ function OverviewCard({
   ok: boolean;
   action: string;
   onAction: () => void;
+  children?: ReactNode;
 }) {
   return (
     <div className="mini-card">
@@ -1460,6 +1461,7 @@ function OverviewCard({
       <div>
         <div className="mini-value">{value}</div>
         <div className="small-muted">{note}</div>
+        {children}
       </div>
       <BGButton variant="ghost" onClick={onAction}>{action}</BGButton>
     </div>
