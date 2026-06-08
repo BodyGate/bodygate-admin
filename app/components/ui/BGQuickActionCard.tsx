@@ -19,11 +19,15 @@ export default function BGQuickActionCard({
   className = "",
 }: BGQuickActionCardProps) {
   return (
-    <Link className={`bg-action-card ${className}`.trim()} href={href}>
+    <Link
+      className={`bg-action-card ${className}`.trim()}
+      href={href}
+      aria-label={`${title}: ${description}`}
+    >
       <span className="bg-action-icon" aria-hidden="true">
         {icon}
       </span>
-      <span>
+      <span className="bg-action-copy">
         <span className="bg-action-title">{title}</span>
         <span className="bg-action-description">{description}</span>
       </span>

@@ -270,41 +270,18 @@ export default function DashboardPage() {
           line-height: 1.35;
         }
 
+        .quick-actions-panel {
+          border-color: rgba(239, 68, 68, 0.18);
+          background:
+            radial-gradient(circle at top right, rgba(239,68,68,.16), transparent 42%),
+            linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.022)),
+            rgba(8,8,8,.9);
+        }
+
         .quick-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-        }
-
-        .quick-link {
-          min-height: 112px;
-          border-radius: 22px;
-          padding: 17px;
-          text-decoration: none;
-          color: #fff;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          border: 1px solid rgba(255,255,255,.09);
-          background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.024)), rgba(8,8,8,.82);
-          transition: .18s ease;
-        }
-
-        .quick-link:hover {
-          transform: translateY(-2px);
-          border-color: rgba(239,68,68,.45);
-          box-shadow: 0 20px 55px rgba(0,0,0,.35);
-        }
-
-        .quick-title {
-          font-size: 16px;
-          font-weight: 950;
-        }
-
-        .quick-sub {
-          color: #8d8d8d;
-          font-size: 12px;
-          line-height: 1.45;
+          gap: 14px;
         }
 
         .error {
@@ -414,9 +391,11 @@ export default function DashboardPage() {
               </div>
             </BGCard>
 
-            <BGCard>
+            <BGCard className="quick-actions-panel">
               <div className="panel-title-row">
-                <div className="panel-title">Azioni rapide</div>
+                <div>
+                  <div className="panel-title">Azioni rapide</div>
+                </div>
                 <BGStatusBadge tone="info">Reception</BGStatusBadge>
               </div>
 
@@ -425,25 +404,25 @@ export default function DashboardPage() {
                   href="/reception"
                   icon="⌁"
                   title="Reception Desk"
-                  description="Cliente rapido, accessi, stato sistema e operatività giornaliera."
+                  description="Cliente rapido, accessi e operatività giornaliera."
                 />
                 <BGQuickActionCard
                   href="/customers/new"
                   icon="+"
                   title="Nuovo cliente"
-                  description="Crea anagrafica, contatti, quota e credenziali iniziali."
+                  description="Crea anagrafica, contatti e dati iniziali."
                 />
                 <BGQuickActionCard
                   href="/payments"
                   icon="€"
                   title="Nuovo incasso"
-                  description="Registra pagamenti, rinnovi e ricevute dal flusso operativo."
+                  description="Registra pagamenti, rinnovi e ricevute."
                 />
                 <BGQuickActionCard
                   href="/notifications"
                   icon="!"
                   title="Notification Center"
-                  description="Scadenze, blocchi e alert da lavorare con priorità."
+                  description="Scadenze, blocchi e alert da lavorare."
                 />
               </div>
             </BGCard>
