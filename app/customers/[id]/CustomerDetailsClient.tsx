@@ -821,6 +821,37 @@ async function disableBlock(blockId: string) {
   const contractUrl = customer.contract_url || customer.contract_pdf_url || customer.agreement_url || "";
   const shortPlans = plans.slice(0, 6);
 
+  function formatPlanDisplayName(planName: string) {
+    const normalizedName = String(planName || "").trim();
+    const daySets = [
+      {
+        match: "Lunedi-Mercoledi-Venerdi",
+        compact: "Lun / Mer / Ven",
+      },
+      {
+        match: "Martedi-Giovedi-Sabato",
+        compact: "Mar / Gio / Sab",
+      },
+    ];
+
+    const matchedDaySet = daySets.find((daySet) =>
+      normalizedName.toLowerCase().includes(daySet.match.toLowerCase())
+    );
+
+    if (!matchedDaySet) {
+      return { title: normalizedName || "Abbonamento", days: "" };
+    }
+
+    return {
+      title:
+        normalizedName
+          .replace(new RegExp(matchedDaySet.match, "i"), "")
+          .replace(/[\s-]+$/g, "")
+          .trim() || "Abbonamento",
+      days: matchedDaySet.compact,
+    };
+  }
+
   return (
     <div className="customer-page bg-page-shell">
       <style jsx>{`
@@ -965,6 +996,7 @@ async function disableBlock(blockId: string) {
           line-height: 1.25;
           overflow-wrap: anywhere;
         }
+        .row-copy { min-width: 0; }
         .mini-value {
           color: #f5f5f5;
           font-size: 14px;
@@ -1029,6 +1061,7 @@ async function disableBlock(blockId: string) {
           border-radius: 18px;
           padding: 14px;
           background: rgba(255,255,255,.035);
+          min-width: 0;
         }
         .row-subtitle, .row-right {
           color: #a3a3a3;
@@ -1036,6 +1069,11 @@ async function disableBlock(blockId: string) {
           margin-top: 4px;
           line-height: 1.45;
           overflow-wrap: anywhere;
+        }
+        .row-right {
+          justify-self: end;
+          text-align: right;
+          white-space: normal;
         }
         .form-grid {
           display: grid;
@@ -1094,24 +1132,130 @@ async function disableBlock(blockId: string) {
         }
         .quick-plan-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
         }
         .quick-plan-btn {
           width: 100%;
-          min-height: 130px;
-          display: grid;
-          align-content: space-between;
-          gap: 10px;
+          min-width: 0;
+          min-height: 176px;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: space-between;
+          gap: 16px;
           text-align: left;
-          border-radius: 20px;
-          padding: 16px;
+          border-radius: 22px;
+          padding: 18px;
           border: 1px solid rgba(239,68,68,0.28);
-          background: radial-gradient(circle at top left, rgba(239,68,68,.2), transparent 56%), rgba(255,255,255,.045);
+          background: radial-gradient(circle at top left, rgba(239,68,68,.22), transparent 58%), linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(8,8,8,.94);
           color: #fff;
           cursor: pointer;
+          white-space: normal;
+          line-height: 1.2;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 42px rgba(0,0,0,.26);
         }
-        .plan-price { font-size: 24px; font-weight: 950; letter-spacing: -.04em; }
+        .quick-plan-btn:hover {
+          border-color: rgba(239,68,68,.48);
+          background: radial-gradient(circle at top left, rgba(239,68,68,.3), transparent 58%), linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.03)), rgba(10,10,10,.96);
+        }
+        .plan-copy {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+        .plan-title {
+          display: block;
+          font-size: 16px;
+          line-height: 1.25;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: normal;
+          hyphens: auto;
+        }
+        .plan-days {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,.12);
+          background: rgba(255,255,255,.07);
+          color: #fca5a5;
+          padding: 7px 10px;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .plan-meta {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .plan-price {
+          display: block;
+          color: #fff;
+          font-size: clamp(24px, 4vw, 32px);
+          line-height: .95;
+          font-weight: 950;
+          letter-spacing: -.055em;
+          white-space: normal;
+        }
+        .history-list {
+          display: grid;
+          gap: 10px;
+        }
+        .history-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 14px;
+          align-items: center;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 20px;
+          padding: 15px;
+          background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.02)), rgba(7,7,7,.78);
+          min-width: 0;
+        }
+        .history-main {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+        .history-title {
+          color: #fff;
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.3;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .history-period {
+          color: #a3a3a3;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.45;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .history-side {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          flex-direction: column;
+          justify-self: end;
+          min-width: max-content;
+        }
+        .history-amount {
+          color: #fff;
+          font-size: 16px;
+          font-weight: 950;
+          letter-spacing: -.02em;
+        }
         .credential-summary {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1161,8 +1305,9 @@ async function disableBlock(blockId: string) {
         @media (max-width: 720px) {
           .customer-page { padding: 18px; }
           .hero-main, .topbar { flex-direction: column; align-items: stretch; }
-          .hero-actions, .info-grid, .credential-summary, .three-col-grid { grid-template-columns: 1fr; }
-          .row { grid-template-columns: 1fr; }
+          .hero-actions, .info-grid, .credential-summary, .three-col-grid, .quick-plan-grid { grid-template-columns: 1fr; }
+          .row, .history-row { grid-template-columns: 1fr; }
+          .row-right, .history-side { justify-self: start; text-align: left; align-items: flex-start; min-width: 0; }
         }
       `}</style>
 
@@ -1306,11 +1451,17 @@ async function disableBlock(blockId: string) {
                 {shortPlans.map((plan) => {
                   const price = Number(plan.promo_price || plan.price || 0);
                   const duration = Number(plan.duration_days || 0);
+                  const planDisplayName = formatPlanDisplayName(plan.name);
                   return (
                     <BGButton key={plan.id} className="quick-plan-btn" onClick={() => renewSubscription(plan.id)}>
-                      <span className="plan-title">{plan.name}</span>
-                      <strong className="plan-price">€ {price.toFixed(2)}</strong>
-                      <BGStatusBadge tone="info">{`${duration} giorni`}</BGStatusBadge>
+                      <span className="plan-copy">
+                        <span className="plan-title">{planDisplayName.title}</span>
+                        {planDisplayName.days ? <span className="plan-days">{planDisplayName.days}</span> : null}
+                      </span>
+                      <span className="plan-meta">
+                        <strong className="plan-price">€ {price.toFixed(2)}</strong>
+                        <BGStatusBadge tone="info">{`${duration} giorni`}</BGStatusBadge>
+                      </span>
                     </BGButton>
                   );
                 })}
@@ -1328,11 +1479,15 @@ async function disableBlock(blockId: string) {
             </BGCard>
 
             <HistoryCard title="Storico abbonamenti" subtitle="Tutti i rinnovi registrati per il cliente.">
-              {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <InfoRow key={sub.id} title={sub.subscription_plans?.name || "Abbonamento"} subtitle={`${sub.starts_at} → ${sub.ends_at}`} right={`€ ${sub.amount}`} />)}
+              <div className="history-list">
+                {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <SubscriptionHistoryRow key={sub.id} subscription={sub} today={today} />)}
+              </div>
             </HistoryCard>
           </div>
           <HistoryCard title="Storico quota associativa" subtitle="Quote annuali registrate.">
-            {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <InfoRow key={fee.id} title={`Quota € ${fee.amount}`} subtitle={`${fee.valid_from} → ${fee.valid_until}`} right={fee.payment_method || ""} />)}
+            <div className="history-list">
+              {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <MembershipFeeHistoryRow key={fee.id} fee={fee} today={today} />)}
+            </div>
           </HistoryCard>
         </section>
       ) : null}
@@ -1532,12 +1687,60 @@ function InfoRow({
 }) {
   return (
     <div className="row">
-      <div>
+      <div className="row-copy">
         <div className="row-title">{title}</div>
         <div className="row-subtitle">{subtitle}</div>
       </div>
 
       {right ? <div className="row-right">{right}</div> : null}
+    </div>
+  );
+}
+
+function SubscriptionHistoryRow({
+  subscription,
+  today,
+}: {
+  subscription: any;
+  today: string;
+}) {
+  const amount = Number(subscription.amount || 0);
+  const isActive = subscription.starts_at <= today && subscription.ends_at >= today;
+
+  return (
+    <div className="history-row">
+      <div className="history-main">
+        <div className="history-title">{subscription.subscription_plans?.name || "Abbonamento"}</div>
+        <div className="history-period">Periodo: {subscription.starts_at || "—"} → {subscription.ends_at || "—"}</div>
+      </div>
+      <div className="history-side">
+        <div className="history-amount">€ {amount.toFixed(2)}</div>
+        <BGStatusBadge tone={isActive ? "success" : "neutral"}>{isActive ? "Attivo" : "Storico"}</BGStatusBadge>
+      </div>
+    </div>
+  );
+}
+
+function MembershipFeeHistoryRow({
+  fee,
+  today,
+}: {
+  fee: any;
+  today: string;
+}) {
+  const amount = Number(fee.amount || 0);
+  const isValid = fee.valid_from <= today && fee.valid_until >= today;
+
+  return (
+    <div className="history-row">
+      <div className="history-main">
+        <div className="history-title">Quota associativa</div>
+        <div className="history-period">Validità: {fee.valid_from || "—"} → {fee.valid_until || "—"}</div>
+      </div>
+      <div className="history-side">
+        <div className="history-amount">€ {amount.toFixed(2)}</div>
+        <BGStatusBadge tone={isValid ? "success" : "neutral"}>{isValid ? "Valida" : fee.payment_method || "Storico"}</BGStatusBadge>
+      </div>
     </div>
   );
 }
