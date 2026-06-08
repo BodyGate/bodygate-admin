@@ -11,21 +11,9 @@ import MedicalCertificateCard from "../components/MedicalCertificateCard";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
-import BGTabs from "../../components/ui/BGTabs";
-import BGCustomerCommandHeader from "../../components/ui/BGCustomerCommandHeader";
-import BGCustomerSummaryCard from "../../components/ui/BGCustomerSummaryCard";
 
 type Customer = any;
 type Plan = any;
-type CustomerTab =
-  | "overview"
-  | "profile"
-  | "subscriptions"
-  | "payments"
-  | "access"
-  | "documents"
-  | "notes";
-
 
 export default function CustomerDetailsClient({ customerId }: { customerId: string }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -43,7 +31,6 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   const [mobilePassUrl, setMobilePassUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<CustomerTab>("overview");
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
@@ -377,6 +364,16 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     return dnakeUsers.find((item) => item.qr_status === "active") || dnakeUsers[0] || null;
   }, [dnakeUsers]);
 
+
+  async function getCashPaymentMethodId() {
+    const { data } = await supabase
+      .from("payment_methods")
+      .select("id")
+      .eq("method_key", "cash")
+      .maybeSingle();
+
+    return data?.id || null;
+  }
 
   function paymentMethodLabel(method: string) {
   if (method === "cash") return "Contanti";
@@ -771,289 +768,6 @@ async function disableBlock(blockId: string) {
     win.document.close();
   }
 
-  function openTab(tab: CustomerTab) {
-    setActiveTab(tab);
-  }
-
-  const tabs: { id: CustomerTab; label: string }[] = [
-    { id: "overview", label: "Panoramica" },
-    { id: "profile", label: "Profilo" },
-    { id: "subscriptions", label: "Abbonamenti" },
-    { id: "payments", label: "Pagamenti & Ricevute" },
-    { id: "access", label: "Accessi" },
-    { id: "documents", label: "Documenti" },
-    { id: "notes", label: "Note & Timeline" },
-  ];
-
-  const lastAccess = accessLogs[0];
-  const latestNotes = notes.slice(0, 3);
-  const latestTimelineEvents = [...subscriptions, ...membershipFees, ...blocks, ...notes]
-    .map((item) => ({
-      id: item.id,
-      title:
-        item.note ||
-        item.reason ||
-        item.subscription_plans?.name ||
-        (item.valid_until ? "Quota associativa" : "Evento cliente"),
-      date: item.created_at || item.starts_at || item.valid_from,
-    }))
-    .filter((item) => item.date)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
-    .slice(0, 3);
-
-  const renderEditPanel = () =>
-    isEditingCustomer ? (
-      <div className="edit-panel">
-        <div className="edit-panel-header">
-          <div>
-            <div className="edit-panel-title">Modifica anagrafica</div>
-            <div className="muted">Dati cliente, credenziali e stato attività.</div>
-          </div>
-
-          <div className="actions actions-inline">
-            <button type="button" className="secondary-btn" onClick={cancelEditCustomer} disabled={savingCustomer}>
-              Annulla
-            </button>
-            <button type="button" onClick={saveCustomerProfile} disabled={savingCustomer}>
-              {savingCustomer ? "Salvataggio..." : "Salva"}
-            </button>
-          </div>
-        </div>
-
-        <div className="edit-form-grid bg-form-grid bg-form-grid-3">
-          <EditField label="Nome" value={editForm.first_name || ""} onChange={(value) => updateEditField("first_name", value)} />
-          <EditField label="Cognome" value={editForm.last_name || ""} onChange={(value) => updateEditField("last_name", value)} />
-          <EditField label="Telefono" value={editForm.phone || ""} onChange={(value) => updateEditField("phone", value)} />
-          <EditField label="Email" type="email" value={editForm.email || ""} onChange={(value) => updateEditField("email", value)} />
-          <EditField label="Codice fiscale" value={editForm.fiscal_code || ""} onChange={(value) => updateEditField("fiscal_code", value.toUpperCase())} />
-          <EditField label="Data nascita" type="date" value={editForm.birth_date || ""} onChange={(value) => updateEditField("birth_date", value)} />
-
-          <div className="edit-field bg-form-field">
-            <label>Sesso</label>
-            <select value={editForm.gender || ""} onChange={(e) => updateEditField("gender", e.target.value)}>
-              <option value="">Non specificato</option>
-              <option value="M">Maschile</option>
-              <option value="F">Femminile</option>
-              <option value="ALTRO">Altro</option>
-            </select>
-          </div>
-
-          <EditField label="Indirizzo" value={editForm.address || ""} onChange={(value) => updateEditField("address", value)} />
-          <EditField label="Città" value={editForm.city || ""} onChange={(value) => updateEditField("city", value)} />
-          <EditField label="CAP" value={editForm.postal_code || ""} onChange={(value) => updateEditField("postal_code", value)} />
-          <EditField label="Contatto emergenza" value={editForm.emergency_contact_name || ""} onChange={(value) => updateEditField("emergency_contact_name", value)} />
-          <EditField label="Telefono emergenza" value={editForm.emergency_contact_phone || ""} onChange={(value) => updateEditField("emergency_contact_phone", value)} />
-          <EditField label="Badge principale" value={editForm.badge_code || ""} onChange={(value) => updateEditField("badge_code", value)} />
-          <EditField label="Controller code" value={editForm.controller_code || ""} onChange={(value) => updateEditField("controller_code", value)} />
-
-          <div className="edit-field bg-form-field">
-            <label>Stato cliente</label>
-            <div className="checkbox-field">
-              <input type="checkbox" checked={!!editForm.is_active} onChange={(e) => updateEditField("is_active", e.target.checked)} />
-              <span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span>
-            </div>
-          </div>
-
-          <div className="edit-field bg-form-field edit-field-full">
-            <label>Note reception</label>
-            <textarea value={editForm.reception_notes || ""} onChange={(e) => updateEditField("reception_notes", e.target.value)} placeholder="Note rapide per la reception..." />
-          </div>
-        </div>
-      </div>
-    ) : null;
-
-  const renderStatusStrip = () => (
-    <div className="status-strip">
-      <StatusPill label="Abbonamento" ok={!!activeSubscription} value={activeSubscription ? `fino al ${activeSubscription.ends_at}` : "scaduto"} />
-      <StatusPill label="Certificato" ok={!!certificateValid} value={certificateValid ? `fino al ${medicalCertificateEnd}` : "mancante"} />
-      <StatusPill label="Quota" ok={!!activeMembership} value={activeMembership ? `fino al ${activeMembership.valid_until}` : "scaduta"} />
-      <StatusPill label="Ultimo accesso" ok={!!lastAccess?.was_allowed} value={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "nessuno"} />
-    </div>
-  );
-
-  const renderCredentials = () => (
-    <div className="card credentials-card bg-card-premium">
-      <div className="section-heading">
-        <div>
-          <h2>Credenziali accesso</h2>
-          <p>RFID, QR DNake e Mobile Pass.</p>
-        </div>
-        <span className={`mini-badge ${activeDnakeQr ? "ok" : "ko"}`}>{activeDnakeQr ? "QR attivo" : "QR assente"}</span>
-      </div>
-
-      <div className="credential-summary">
-        <div className="credential-mini">
-          <div className="credential-mini-label">RFID / NFC</div>
-          <div className="credential-mini-value">{cardCredentials.length}</div>
-        </div>
-        <div className="credential-mini">
-          <div className="credential-mini-label">Credenziali QR</div>
-          <div className="credential-mini-value">{qrCredentials.length}</div>
-        </div>
-      </div>
-
-      <div className="credential-section">
-        <div className="credential-section-title">Tessere / Card</div>
-        {cardCredentials.length === 0 ? (
-          <p className="empty">Nessuna tessera associata.</p>
-        ) : (
-          <div className="credential-pill-list">
-            {cardCredentials.map((item) => (
-              <span className="credential-pill" key={item.id}>
-                {String(item.type).toUpperCase()} · {item.controller_code || item.code}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="credential-section">
-        <div className="credential-section-title">QR Code DNake</div>
-        {activeDnakeQr ? (
-          <>
-            {qrDataUrl ? (
-              <div className="qr-box"><img src={qrDataUrl} alt="QR DNake" /></div>
-            ) : (
-              <p className="empty">Generazione immagine QR...</p>
-            )}
-            <div className="qr-meta">
-              <div><strong>ID DNake:</strong> {activeDnakeQr.dnake_user_id}</div>
-              <div><strong>Nome DNake:</strong> {activeDnakeQr.dnake_name}</div>
-              <div><strong>Stato:</strong> {activeDnakeQr.qr_status}</div>
-            </div>
-            <div className="actions">
-              <button className="secondary-btn" type="button" onClick={printQr} disabled={!qrDataUrl}>Visualizza / stampa</button>
-              <button type="button" onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Rigenero..." : "Rigenera QR"}</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="empty">Nessun QR DNake generato.</p>
-            <button type="button" onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Generazione..." : "Genera QR DNake"}</button>
-          </>
-        )}
-      </div>
-
-      <div className="credential-section mobile-pass-section">
-        <div className="credential-section-title">Mobile Pass / WhatsApp</div>
-        {mobilePassUrl ? <div className="mobile-pass-url">{mobilePassUrl}</div> : null}
-        <div className="actions">
-          <button type="button" className="secondary-btn" onClick={createOrGetMobilePass} disabled={mobilePassLoading}>{mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}</button>
-          <button type="button" onClick={sendMobilePassWhatsApp} disabled={mobilePassLoading}>Invia WhatsApp</button>
-          <button type="button" className="secondary-btn" onClick={copyMobilePassLink} disabled={mobilePassLoading}>Copia link</button>
-        </div>
-        {!customer?.phone ? <div className="qr-meta danger-text qr-meta-warning">Telefono mancante: WhatsApp si aprirà senza destinatario.</div> : null}
-      </div>
-    </div>
-  );
-
-  const renderSubscriptionTools = () => (
-    <>
-      <div className="card accent-card">
-        <div className="section-heading">
-          <div>
-            <h2>Rinnovo rapido + pagamento</h2>
-            <p>Rinnova usando i flussi esistenti.</p>
-          </div>
-          <button onClick={renewMembershipFee}>Rinnova quota 10€</button>
-        </div>
-
-        <div className="payment-method-box">
-          <div className="small-muted">Metodo pagamento</div>
-          <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
-            <option value="cash">Contanti</option>
-            <option value="pos">POS</option>
-            <option value="bank_transfer">Bonifico</option>
-          </select>
-        </div>
-
-        <div className="quick-plan-grid">
-          {plans.map((plan) => {
-            const price = Number(plan.promo_price || plan.price || 0);
-            const duration = Number(plan.duration_days || 0);
-            return (
-              <button key={plan.id} type="button" className="quick-plan-btn" onClick={() => renewSubscription(plan.id)}>
-                <span className="plan-duration-badge">{duration} giorni</span>
-                <span className="quick-plan-title">{plan.name}</span>
-                <strong className="quick-plan-price">€ {price.toFixed(2)}</strong>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="manual-renew-box">
-          <div className="small-muted">Rinnovo manuale / piano personalizzato</div>
-          <div className="actions">
-            <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
-              <option value="">Seleziona piano</option>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni</option>
-              ))}
-            </select>
-            <button className="secondary-btn" onClick={() => renewSubscription()}>Rinnova</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid">
-        <HistoryCard title="Storico abbonamenti">
-          {subscriptions.length === 0 && <p className="empty">Nessun abbonamento.</p>}
-          {subscriptions.map((sub) => (
-            <InfoRow key={sub.id} title={sub.subscription_plans?.name || "Abbonamento"} subtitle={`${sub.starts_at} → ${sub.ends_at}`} right={`€ ${sub.amount}`} />
-          ))}
-        </HistoryCard>
-
-        <HistoryCard title="Storico quota associativa">
-          {membershipFees.length === 0 && <p className="empty">Nessuna quota registrata.</p>}
-          {membershipFees.map((fee) => (
-            <InfoRow key={fee.id} title={`Quota € ${fee.amount}`} subtitle={`${fee.valid_from} → ${fee.valid_until}`} right={fee.payment_method || ""} />
-          ))}
-        </HistoryCard>
-      </div>
-    </>
-  );
-
-  const renderBlocks = () => (
-    <div className="card">
-      <div className="section-heading">
-        <div>
-          <h2>Blocchi cliente</h2>
-          <p>Gestione blocco/sblocco reception.</p>
-        </div>
-        <span className={`mini-badge ${activeBlock ? "ko" : "ok"}`}>{activeBlock ? "Bloccato" : "Libero"}</span>
-      </div>
-      <div className="actions">
-        <input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Motivo blocco..." />
-        <button onClick={addBlock}>Blocca</button>
-      </div>
-      {blocks.length === 0 && <p className="empty">Nessun blocco presente.</p>}
-      {blocks.map((block) => (
-        <div className="row" key={block.id}>
-          <div>
-            <div className="row-title">{block.reason}</div>
-            <div className="row-subtitle">{block.is_active ? "Attivo" : "Disattivato"}</div>
-          </div>
-          {block.is_active && <button className="secondary-btn" onClick={() => disableBlock(block.id)}>Sblocca</button>}
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderAccessRows = (items: any[]) => (
-    <div className="compact-list">
-      {items.length === 0 && <p className="empty">Nessun accesso registrato.</p>}
-      {items.map((log) => (
-        <div className="access-row" key={log.id}>
-          <span className={`mini-badge ${log.was_allowed ? "ok" : "ko"}`}>{log.was_allowed ? "Consentito" : "Negato"}</span>
-          <div>
-            <strong>{new Date(log.access_time).toLocaleString()}</strong>
-            <p>{log.reason || "Varco palestra"}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   if (loading) {
     return (
       <div className="customer-page bg-page-shell">
@@ -1077,221 +791,1319 @@ async function disableBlock(blockId: string) {
   return (
     <div className="customer-page bg-page-shell">
       <style jsx>{`
-        .customer-page { padding: 32px; color: #fff; background: #050505; min-height: 100vh; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 16px; }
-        .back-link, .command-action { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); color: #f5f5f5; background: rgba(255,255,255,.06); text-decoration: none; font-size: 13px; font-weight: 950; transition: .18s ease; cursor: pointer; }
-        .back-link:hover, .command-action:hover, button:hover { transform: translateY(-1px); border-color: rgba(239,68,68,.36); }
-        .command-center { background: radial-gradient(circle at top left, rgba(239,68,68,.24), transparent 33%), linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.025)), rgba(9,9,11,.96); border: 1px solid rgba(255,255,255,.11); border-radius: 32px; padding: 26px; box-shadow: 0 28px 90px rgba(0,0,0,.46); margin-bottom: 18px; }
-        .command-main { display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: start; }
-        .profile-area { display: flex; gap: 18px; align-items: flex-start; min-width: 0; }
-        .avatar, .avatar-placeholder { width: 92px; height: 92px; border-radius: 25px; flex-shrink: 0; }
-        .avatar { object-fit: cover; border: 2px solid rgba(255,255,255,.14); }
-        .avatar-placeholder { background: linear-gradient(135deg, #ef4444, #7f1d1d); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 950; }
-        h1 { font-size: 34px; line-height: 1; margin: 0 0 10px; font-weight: 950; letter-spacing: -0.8px; }
-        h2 { font-size: 20px; margin: 0; font-weight: 950; letter-spacing: -0.2px; }
-        .muted, .section-heading p, .row-subtitle, .row-right, .small-muted, .access-row p { color: #a3a3a3; font-size: 13px; margin: 4px 0 0; }
-        .contact-line, .badge-line, .command-actions, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .contact-line { margin-top: 8px; color: #d4d4d8; font-weight: 800; }
-        .badge-line { margin-top: 12px; }
-        .command-actions { justify-content: flex-end; max-width: 420px; }
-        .command-action.primary, button { background: linear-gradient(135deg, #ef4444, #991b1b); border: 0; color: #fff; box-shadow: 0 16px 30px rgba(239,68,68,.18); }
-        .command-action.danger { background: rgba(239,68,68,.12); color: #fecaca; border-color: rgba(239,68,68,.38); box-shadow: none; }
-        .secondary-btn, .command-action.secondary { background: rgba(255,255,255,.07); color: #f5f5f5; border: 1px solid rgba(255,255,255,.13); box-shadow: none; }
-        .badge-status, .mini-badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-weight: 950; white-space: nowrap; }
-        .badge-status { min-height: 42px; padding: 0 18px; font-size: 13px; }
-        .mini-badge { padding: 7px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .45px; }
-        .ok { background: rgba(34,197,94,.14); color: #4ade80; border: 1px solid rgba(34,197,94,.35); }
-        .ko { background: rgba(239,68,68,.14); color: #fb7185; border: 1px solid rgba(239,68,68,.35); }
-        .status-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
-        .status-pill, .card, .error-card, .loading-card, .overview-card { background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), rgba(10,10,10,.9); border: 1px solid rgba(255,255,255,.10); border-radius: 24px; padding: 20px; box-shadow: 0 22px 60px rgba(0,0,0,.32); }
-        .status-pill { min-height: 92px; display: grid; gap: 8px; }
-        .status-label, .info-label, .credential-mini-label, .edit-field label, .overview-label { color: #737373; font-size: 11px; text-transform: uppercase; letter-spacing: .55px; font-weight: 950; }
-        .status-value, .info-value, .credential-mini-value { font-size: 15px; font-weight: 950; word-break: break-word; }
-        .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 8px; border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.035); border-radius: 20px; margin: 18px 0; }
-        .tab-button { border: 1px solid transparent; background: transparent; color: #a3a3a3; box-shadow: none; min-height: 42px; padding: 0 15px; border-radius: 14px; font-weight: 950; white-space: nowrap; }
-        .tab-button.active { color: #fff; background: linear-gradient(135deg, rgba(239,68,68,.85), rgba(127,29,29,.9)); border-color: rgba(255,255,255,.13); }
-        .overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-        .overview-card { min-height: 180px; display: flex; flex-direction: column; gap: 12px; }
-        .overview-value { font-size: 18px; font-weight: 950; line-height: 1.25; overflow-wrap: anywhere; }
-        .overview-card .command-action { margin-top: auto; width: fit-content; }
-        .grid, .tab-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-        .tab-stack, .side-stack, .compact-list { display: grid; gap: 16px; }
-        .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
-        .customer-info-grid { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 12px; }
-        .info-mini-card, .credential-mini { display: grid; gap: 7px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 18px; padding: 13px 14px; min-width: 0; }
-        .row, .access-row { display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.035); border-radius: 18px; padding: 14px; gap: 14px; margin-top: 10px; }
-        .access-row { justify-content: flex-start; margin-top: 0; }
-        .row-title { font-weight: 950; word-break: break-word; }
-        .empty { color: #9ca3af; font-size: 14px; padding: 16px; border: 1px dashed rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.025); text-align: center; }
-        input, select, textarea { border-radius: 16px; border: 1px solid rgba(255,255,255,.11); padding: 13px 15px; font-size: 14px; outline: none; background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92); color: #fff; width: 100%; font-family: inherit; font-weight: 800; min-height: 46px; }
-        textarea { min-height: 96px; resize: vertical; }
-        button { min-height: 42px; padding: 0 15px; border-radius: 14px; font-weight: 950; cursor: pointer; }
-        button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
-        button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .back-link:focus-visible, .command-action:focus-visible { outline: 2px solid rgba(239,68,68,.76); outline-offset: 3px; }
-        .edit-panel { margin-top: 22px; border: 1px solid rgba(239,68,68,.32); background: rgba(239,68,68,.055); border-radius: 22px; padding: 18px; }
-        .edit-panel-header { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-bottom: 16px; }
-        .edit-panel-title { font-size: 18px; font-weight: 950; }
-        .edit-form-grid { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 14px; align-items: start; }
-        .edit-field { display: grid; gap: 7px; min-width: 0; }
-        .edit-field-full { grid-column: 1 / -1; }
-        .checkbox-field { border: 1px solid #303030; border-radius: 14px; padding: 13px 15px; background: #050505; display: flex; align-items: center; gap: 10px; min-height: 47px; }
-        .checkbox-field input { width: auto; accent-color: #ef4444; min-height: auto; }
-        .checkbox-field span { font-weight: 950; }
-        .credentials-card { border-color: rgba(239,68,68,.35); background: linear-gradient(180deg, #141414, #090909); }
-        .credential-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-        .credential-section { border-top: 1px solid #262626; padding-top: 14px; margin-top: 14px; }
-        .credential-section-title { color: #a3a3a3; font-size: 12px; font-weight: 950; text-transform: uppercase; letter-spacing: .65px; margin-bottom: 10px; }
-        .credential-pill-list { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .credential-pill { border-radius: 999px; background: #050505; border: 1px solid #303030; padding: 8px 11px; font-size: 12px; font-weight: 850; }
-        .qr-box { background: #fff; border-radius: 18px; padding: 14px; display: inline-flex; margin: 6px 0 12px; }
-        .qr-box img { width: 210px; height: 210px; display: block; }
-        .qr-meta { color: #a3a3a3; font-size: 13px; line-height: 1.7; word-break: break-word; }
-        .danger-text { color: #fb7185; }
-        .mobile-pass-section { border-top: 1px solid rgba(255,255,255,.08); padding-top: 18px; margin-top: 18px; }
-        .mobile-pass-url { border: 1px solid rgba(59,130,246,.22); background: rgba(59,130,246,.08); color: #bfdbfe; border-radius: 14px; padding: 12px; font-size: 12px; line-height: 1.45; word-break: break-all; margin: 12px 0; }
+        .customer-page {
+          padding: 32px;
+          color: #ffffff;
+          background: #050505;
+          min-height: 100vh;
+        }
+
+        .topbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 22px;
+          gap: 16px;
+        }
+
+        .back-link {
+          display: inline-flex;
+          align-items: center;
+          min-height: 38px;
+          padding: 9px 13px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,.11);
+          color: #d4d4d8;
+          background: rgba(255,255,255,.04);
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 950;
+          transition: .18s ease;
+        }
+
+        .back-link:hover {
+          color: #ffffff;
+          border-color: rgba(239,68,68,.34);
+          background: rgba(239,68,68,.11);
+          transform: translateY(-1px);
+        }
+
+        .hero-layout {
+          display: grid;
+          grid-template-columns: 1fr 360px;
+          gap: 22px;
+          margin-bottom: 24px;
+        }
+
+        .side-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .hero {
+          background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.22), transparent 34%),
+            linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025)),
+            rgba(8, 8, 10, 0.94);
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          border-radius: 30px;
+          padding: 28px;
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+          backdrop-filter: blur(14px);
+        }
+
+        .hero-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+          align-items: center;
+        }
+
+        .profile-area {
+          display: flex;
+          gap: 22px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+
+        .avatar {
+          width: 92px;
+          height: 92px;
+          border-radius: 24px;
+          object-fit: cover;
+          border: 2px solid #262626;
+          flex-shrink: 0;
+        }
+
+        .avatar-placeholder {
+          width: 92px;
+          height: 92px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          flex-shrink: 0;
+        }
+
+        h1 {
+          font-size: 32px;
+          margin: 0;
+          font-weight: 900;
+          letter-spacing: -0.5px;
+        }
+
+        h2 {
+          font-size: 20px;
+          margin: 0 0 18px;
+          font-weight: 900;
+        }
+
+        .muted {
+          color: #a3a3a3;
+          margin-top: 8px;
+          font-size: 14px;
+        }
+
+        .customer-info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(180px, 1fr));
+          gap: 12px;
+          margin-top: 18px;
+          align-items: stretch;
+        }
+
+        .info-mini-card {
+          display: grid;
+          grid-template-rows: auto 1fr;
+          gap: 7px;
+          min-height: 78px;
+          background: rgba(255,255,255,.04);
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 18px;
+          padding: 12px 14px;
+        }
+
+        .info-label {
+          color: #737373;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .info-value {
+          font-size: 14px;
+          font-weight: 800;
+          word-break: break-word;
+        }
+
+        .badge-status {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 42px;
+          padding: 0 18px;
+          border-radius: 999px;
+          font-weight: 900;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+
+        .ok {
+          background: rgba(34, 197, 94, 0.14);
+          color: #4ade80;
+          border: 1px solid rgba(34, 197, 94, 0.35);
+        }
+
+        .ko {
+          background: rgba(239, 68, 68, 0.14);
+          color: #fb7185;
+          border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .status-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          margin-top: 28px;
+          align-items: stretch;
+        }
+
+        .status-box,
+        .card,
+        .error-card,
+        .loading-card {
+          background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.02)), rgba(10,10,10,.9);
+          border: 1px solid rgba(255,255,255,.10);
+          border-radius: 24px;
+          padding: 22px;
+          box-shadow: 0 22px 60px rgba(0,0,0,.32);
+        }
+
+
+        .card h2,
+        .credentials-card h2 {
+          line-height: 1.15;
+        }
+
+        .status-box {
+          display: grid;
+          grid-template-rows: auto 1fr;
+          gap: 8px;
+          min-height: 118px;
+        }
+        .error-details {
+          white-space: pre-wrap;
+          word-break: break-word;
+          color: #fca5a5;
+          background: #050505;
+          border: 1px solid #262626;
+          border-radius: 14px;
+          padding: 14px;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .status-label {
+          color: #a3a3a3;
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+
+        .status-value {
+          font-size: 15px;
+          font-weight: 800;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 22px;
+          margin-bottom: 22px;
+          align-items: start;
+        }
+
+        .actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 14px;
+          flex-wrap: wrap;
+        }
+
+        .actions-inline {
+          margin-top: 0;
+        }
+
+        button,
+        select,
+        input {
+          min-height: 46px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.11);
+          padding: 0 15px;
+          font-size: 14px;
+          outline: none;
+          font-family: inherit;
+        }
+
+        input,
+        select {
+          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
+          color: #fff;
+          width: 100%;
+          max-width: 100%;
+          font-weight: 800;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+          border-color: rgba(239,68,68,.62);
+          box-shadow: 0 0 0 4px rgba(239,68,68,.16);
+        }
+
+        select option { background: #111; color: #fff; }
+
+        button {
+          background: linear-gradient(135deg, #ef4444, #991b1b);
+          color: white;
+          border: 1px solid rgba(239,68,68,.38);
+          font-weight: 950;
+          cursor: pointer;
+          transition: 0.2s;
+          box-shadow: 0 16px 30px rgba(239,68,68,.18);
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        button:hover {
+          transform: translateY(-1px);
+          opacity: 0.92;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible,
+        .back-link:focus-visible {
+          outline: 2px solid rgba(239,68,68,.76);
+          outline-offset: 3px;
+        }
+
+        button:disabled {
+          cursor: not-allowed;
+          opacity: .55;
+          transform: none;
+        }
+
+        .secondary-btn {
+          background: rgba(255,255,255,.07);
+          color: #f5f5f5;
+          border: 1px solid rgba(255,255,255,.13);
+          box-shadow: none;
+        }
+
+        .row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.035);
+          border-radius: 18px;
+          padding: 14px;
+          margin-top: 10px;
+          gap: 14px;
+        }
+
+        .row > div:first-child {
+          min-width: 0;
+        }
+
+        .row-title {
+          font-weight: 900;
+          word-break: break-word;
+        }
+
+        .row-subtitle,
+        .row-right {
+          color: #a3a3a3;
+          font-size: 13px;
+          margin-top: 4px;
+        }
+
+        .empty {
+          color: #9ca3af;
+          font-size: 14px;
+          padding: 18px;
+          border: 1px dashed rgba(255,255,255,.12);
+          border-radius: 16px;
+          background: rgba(255,255,255,.025);
+          text-align: center;
+        }
+
+
+        .credentials-card {
+          border: 1px solid rgba(239, 68, 68, 0.35);
+          background: linear-gradient(180deg, #141414, #090909);
+        }
+
+        .credential-summary {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 14px;
+          align-items: stretch;
+        }
+
+        .credential-mini {
+          display: grid;
+          gap: 6px;
+          background: #050505;
+          border: 1px solid #262626;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .credential-mini-label {
+          color: #737373;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 5px;
+        }
+
+        .credential-mini-value {
+          font-weight: 900;
+          font-size: 14px;
+        }
+
+        .credential-section {
+          border-top: 1px solid #262626;
+          padding-top: 14px;
+          margin-top: 14px;
+        }
+
+        .credential-section-title {
+          font-size: 13px;
+          color: #a3a3a3;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          margin-bottom: 10px;
+        }
+
+        .credential-pill-list {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .credential-pill {
+          border-radius: 999px;
+          background: #050505;
+          border: 1px solid #303030;
+          padding: 8px 11px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .qr-box {
+          background: #ffffff;
+          border-radius: 18px;
+          padding: 14px;
+          display: inline-flex;
+          justify-self: start;
+          margin: 6px 0 12px;
+        }
+
+        .qr-box img {
+          width: 210px;
+          height: 210px;
+          display: block;
+        }
+
+        .qr-meta {
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.7;
+          word-break: break-word;
+        }
+
+        .danger-text {
+          color: #fb7185;
+        }
+
+        .success-text {
+          color: #4ade80;
+        }
+
+
+        .mobile-pass-section {
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          padding-top: 18px;
+          margin-top: 18px;
+        }
+
+        .mobile-pass-url {
+          border: 1px solid rgba(59, 130, 246, 0.22);
+          background: rgba(59, 130, 246, 0.08);
+          color: #bfdbfe;
+          border-radius: 14px;
+          padding: 12px;
+          font-size: 12px;
+          line-height: 1.45;
+          word-break: break-all;
+          margin: 12px 0;
+        }
+
+        .qr-meta-spaced { margin-top: 12px; }
         .qr-meta-warning { margin-top: 10px; }
-        .payment-method-box, .manual-renew-box { margin-top: 14px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.035); }
-        .quick-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-        .quick-plan-btn { min-height: 130px; display: grid; align-content: center; gap: 8px; text-align: left; border-radius: 18px; padding: 16px; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(239,68,68,.18), rgba(255,255,255,.055)); box-shadow: 0 16px 34px rgba(0,0,0,.2); white-space: normal; overflow-wrap: anywhere; }
-        .quick-plan-title { font-size: 16px; font-weight: 950; line-height: 1.22; }
+
+        .quick-plan-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 14px;
+        }
+
+        .quick-plan-btn {
+          min-height: 112px;
+          display: grid;
+          align-content: center;
+          gap: 7px;
+          text-align: left;
+          border-radius: 18px;
+          padding: 16px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: linear-gradient(180deg, rgba(239,68,68,0.18), rgba(255,255,255,0.055));
+          box-shadow: 0 16px 34px rgba(0,0,0,.2);
+        }
+
+        .quick-plan-title { font-size: 17px; font-weight: 950; }
         .quick-plan-price { font-size: 25px; font-weight: 950; }
-        .plan-duration-badge { width: fit-content; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 5px 8px; color: #fecaca; background: rgba(239,68,68,.13); font-size: 11px; font-weight: 950; }
-        .error-details { white-space: pre-wrap; word-break: break-word; color: #fca5a5; background: #050505; border: 1px solid #262626; border-radius: 14px; padding: 14px; font-size: 13px; line-height: 1.5; }
-        @media (max-width: 1200px) { .command-main, .status-strip, .overview-grid, .grid, .tab-grid, .edit-form-grid, .quick-plan-grid, .customer-info-grid { grid-template-columns: 1fr; } .command-actions { justify-content: flex-start; max-width: none; } .profile-area, .topbar, .edit-panel-header { flex-direction: column; align-items: stretch; } }
-      `}</style>
+        .quick-plan-meta, .small-muted { color: #9ca3af; font-size: 12px; font-weight: 700; }
+
+        .manual-renew-box {
+          margin-top: 16px;
+          padding: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.035);
+        }
+
+
+        .hero-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
+
+        .edit-panel {
+          margin-top: 22px;
+          border: 1px solid rgba(239, 68, 68, 0.32);
+          background: rgba(239, 68, 68, 0.055);
+          border-radius: 22px;
+          padding: 18px;
+        }
+
+        .edit-panel-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .edit-panel-title {
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .edit-form-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(180px, 1fr));
+          gap: 14px;
+          align-items: start;
+        }
+
+        .edit-field {
+          display: grid;
+          grid-template-rows: auto minmax(46px, auto);
+          gap: 7px;
+          min-width: 0;
+        }
+
+        .edit-field label {
+          color: #a3a3a3;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.7px;
+          font-weight: 900;
+        }
+
+        textarea {
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.11);
+          padding: 13px 15px;
+          font-size: 14px;
+          outline: none;
+          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
+          color: #fff;
+          width: 100%;
+          min-height: 92px;
+          resize: vertical;
+          font-family: inherit;
+          font-weight: 800;
+        }
+
+        .edit-field-full {
+          grid-column: 1 / -1;
+          grid-template-rows: auto auto;
+        }
+
+        .checkbox-field {
+          border: 1px solid #303030;
+          border-radius: 14px;
+          padding: 13px 15px;
+          background: #050505;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-height: 47px;
+        }
+
+        .checkbox-field input {
+          width: auto;
+          accent-color: #ef4444;
+        }
+
+        .checkbox-field span {
+          font-weight: 900;
+          color: #ffffff;
+        }
+
+        @media (max-width: 1100px) {
+          .hero-layout,
+          .status-grid,
+          .grid,
+          .customer-info-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .hero-top,
+          .actions,
+          .topbar,
+          .edit-panel-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .hero-actions {
+            justify-content: flex-start;
+          }
+
+          .edit-form-grid,
+          .quick-plan-grid,
+          .credential-summary {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}
+      </style>
 
       <div className="topbar">
-        <Link className="back-link" href="/customers">← Torna ai clienti</Link>
+        <Link className="back-link" href="/customers">
+          ← Torna ai clienti
+        </Link>
       </div>
 
-      <BGCustomerCommandHeader
-        customerName={customerName}
-        initials={initials}
-        photoUrl={customer.photo_url}
-        phone={customer.phone}
-        email={customer.email}
-        badgeCode={customer.badge_code}
-        controllerCode={customer.controller_code}
-        accessAllowed={accessAllowed}
-        actions={[
-          { label: "Rinnova", variant: "primary", onClick: () => openTab("subscriptions") },
-          { label: "Pagamenti", variant: "primary", onClick: () => openTab("payments") },
-          { label: "Ricevute", onClick: () => openTab("payments") },
-          { label: "Accessi", onClick: () => openTab("access") },
-          { label: "Modifica", onClick: () => { openTab("profile"); startEditCustomer(); } },
-          { label: "Blocca", variant: "danger", onClick: () => openTab("access") },
-        ]}
-      >
-        {renderStatusStrip()}
-      </BGCustomerCommandHeader>
+      <div className="hero-layout">
+        <div className="hero">
+          <div className="hero-top">
+            <div className="profile-area">
+              {customer?.photo_url ? (
+                <img className="avatar" src={customer.photo_url} alt={customerName} />
+              ) : (
+                <div className="avatar-placeholder">{initials}</div>
+              )}
 
-      <BGTabs tabs={tabs} activeTab={activeTab} onChange={openTab} ariaLabel="Sezioni cliente" />
+              <div>
+                <h1>{customerName}</h1>
 
-      {activeTab === "overview" && (
-        <div className="overview-grid">
-          <BGCustomerSummaryCard label="Abbonamento" value={activeSubscription ? activeSubscription.subscription_plans?.name || "Attivo" : "Non attivo"} detail={activeSubscription ? `Scade ${activeSubscription.ends_at}` : "Rinnovo richiesto"} ok={!!activeSubscription} onOpen={() => openTab("subscriptions")} />
-          <BGCustomerSummaryCard label="Quota associativa" value={activeMembership ? "Valida" : "Scaduta"} detail={activeMembership ? `Scade ${activeMembership.valid_until}` : "Da rinnovare"} ok={!!activeMembership} onOpen={() => openTab("subscriptions")} />
-          <BGCustomerSummaryCard label="Certificato medico" value={certificateValid ? "Valido" : "Mancante"} detail={certificateValid ? `Scade ${medicalCertificateEnd}` : "Carica documento"} ok={!!certificateValid} onOpen={() => openTab("documents")} />
-          <BGCustomerSummaryCard label="Pagamenti" value="Storico" detail="Incassi e annulli" ok onOpen={() => openTab("payments")} />
-          <BGCustomerSummaryCard label="Ricevute" value="Archivio" detail="Visualizza / stampa" ok onOpen={() => openTab("payments")} />
-          <BGCustomerSummaryCard label="Accessi" value={lastAccess ? (lastAccess.was_allowed ? "Ultimo consentito" : "Ultimo negato") : "Nessuno"} detail={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "Nessun log"} ok={!lastAccess || !!lastAccess.was_allowed} onOpen={() => openTab("access")} />
-          <BGCustomerSummaryCard label="Note" value={`${notes.length} note`} detail={latestNotes[0]?.note || "Nessuna nota recente"} ok onOpen={() => openTab("notes")} />
-          <div className="overview-card">
-            <div className="overview-label">Timeline recente</div>
-            <div className="compact-list">
-              {latestTimelineEvents.length === 0 && <p className="empty">Nessun evento recente.</p>}
-              {latestTimelineEvents.map((event) => <InfoRow key={event.id} title={event.title} subtitle={new Date(event.date).toLocaleString()} />)}
+                <p className="muted">
+                  Badge: {customer.badge_code || "-"} · Controller:{" "}
+                  {customer.controller_code || "-"}
+                </p>
+
+                <div className="customer-info-grid">
+                  {customerInfo.map((item) => (
+                    <div className="info-mini-card" key={item.label}>
+                      <div className="info-label">{item.label}</div>
+                      <div className="info-value">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button type="button" className="command-action secondary" onClick={() => openTab("notes")}>Apri</button>
-          </div>
-        </div>
-      )}
 
-      {activeTab === "profile" && (
-        <div className="tab-grid">
-          <div className="tab-stack">
-            <div className="card">
-              <div className="section-heading">
-                <div><h2>Profilo cliente</h2><p>Anagrafica completa.</p></div>
-                {!isEditingCustomer ? <button type="button" className="secondary-btn" onClick={startEditCustomer}>Modifica anagrafica</button> : null}
+            <div className="hero-actions">
+              <div className={`badge-status ${accessAllowed ? "ok" : "ko"}`}>
+                {accessAllowed ? "ACCESSO ATTIVO" : "ACCESSO BLOCCATO"}
               </div>
-              <div className="customer-info-grid">
-                {customerInfo.map((item) => <div className="info-mini-card" key={item.label}><div className="info-label">{item.label}</div><div className="info-value">{item.value}</div></div>)}
-              </div>
-              {renderEditPanel()}
+
+              {!isEditingCustomer ? (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={startEditCustomer}
+                >
+                  Modifica anagrafica
+                </button>
+              ) : null}
             </div>
           </div>
-          <div className="side-stack">
-            <CustomerPhotoUpload customerId={customer.id} currentPhotoUrl={customer.photo_url} onUploaded={(url) => setCustomer((prev: any) => ({ ...prev, photo_url: url }))} />
+
+          {isEditingCustomer ? (
+            <div className="edit-panel">
+              <div className="edit-panel-header">
+                <div>
+                  <div className="edit-panel-title">Modifica anagrafica professionale</div>
+                  <div className="muted">
+                    Aggiorna i dati cliente, credenziali principali e stato attività.
+                  </div>
+                </div>
+
+                <div className="actions actions-inline">
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={cancelEditCustomer}
+                    disabled={savingCustomer}
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={saveCustomerProfile}
+                    disabled={savingCustomer}
+                  >
+                    {savingCustomer ? "Salvataggio..." : "Salva"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="edit-form-grid bg-form-grid bg-form-grid-3">
+                <div className="edit-field bg-form-field">
+                  <label>Nome</label>
+                  <input
+                    value={editForm.first_name || ""}
+                    onChange={(e) => updateEditField("first_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Cognome</label>
+                  <input
+                    value={editForm.last_name || ""}
+                    onChange={(e) => updateEditField("last_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Telefono</label>
+                  <input
+                    value={editForm.phone || ""}
+                    onChange={(e) => updateEditField("phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email || ""}
+                    onChange={(e) => updateEditField("email", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Codice fiscale</label>
+                  <input
+                    value={editForm.fiscal_code || ""}
+                    onChange={(e) => updateEditField("fiscal_code", e.target.value.toUpperCase())}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Data nascita</label>
+                  <input
+                    type="date"
+                    value={editForm.birth_date || ""}
+                    onChange={(e) => updateEditField("birth_date", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Sesso</label>
+                  <select
+                    value={editForm.gender || ""}
+                    onChange={(e) => updateEditField("gender", e.target.value)}
+                  >
+                    <option value="">Non specificato</option>
+                    <option value="M">Maschile</option>
+                    <option value="F">Femminile</option>
+                    <option value="ALTRO">Altro</option>
+                  </select>
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Indirizzo</label>
+                  <input
+                    value={editForm.address || ""}
+                    onChange={(e) => updateEditField("address", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Città</label>
+                  <input
+                    value={editForm.city || ""}
+                    onChange={(e) => updateEditField("city", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>CAP</label>
+                  <input
+                    value={editForm.postal_code || ""}
+                    onChange={(e) => updateEditField("postal_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Contatto emergenza</label>
+                  <input
+                    value={editForm.emergency_contact_name || ""}
+                    onChange={(e) => updateEditField("emergency_contact_name", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Telefono emergenza</label>
+                  <input
+                    value={editForm.emergency_contact_phone || ""}
+                    onChange={(e) => updateEditField("emergency_contact_phone", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Badge principale</label>
+                  <input
+                    value={editForm.badge_code || ""}
+                    onChange={(e) => updateEditField("badge_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Controller code</label>
+                  <input
+                    value={editForm.controller_code || ""}
+                    onChange={(e) => updateEditField("controller_code", e.target.value)}
+                  />
+                </div>
+
+                <div className="edit-field bg-form-field">
+                  <label>Stato cliente</label>
+                  <div className="checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={!!editForm.is_active}
+                      onChange={(e) => updateEditField("is_active", e.target.checked)}
+                    />
+                    <span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span>
+                  </div>
+                </div>
+
+                <div className="edit-field bg-form-field edit-field-full">
+                  <label>Note reception</label>
+                  <textarea
+                    value={editForm.reception_notes || ""}
+                    onChange={(e) => updateEditField("reception_notes", e.target.value)}
+                    placeholder="Note interne rapide visibili alla reception..."
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="status-grid">
+            <StatusBox
+              label="Quota associativa"
+              value={
+                activeMembership
+                  ? `Valida fino al ${activeMembership.valid_until}`
+                  : "Assente o scaduta"
+              }
+              ok={!!activeMembership}
+            />
+
+            <StatusBox
+              label="Abbonamento"
+              value={
+                activeSubscription
+                  ? `${activeSubscription.subscription_plans?.name || "Attivo"} fino al ${activeSubscription.ends_at}`
+                  : "Assente o scaduto"
+              }
+              ok={!!activeSubscription}
+            />
+
+            <StatusBox
+              label="Certificato medico"
+              value={
+                certificateValid
+                  ? `Valido fino al ${medicalCertificateEnd}`
+                  : "Scaduto o mancante"
+              }
+              ok={!!certificateValid}
+            />
+
+            <StatusBox
+              label="Blocchi"
+              value={activeBlock ? activeBlock.reason : "Nessun blocco"}
+              ok={!activeBlock}
+            />
           </div>
         </div>
-      )}
 
-      {activeTab === "subscriptions" && <div className="tab-stack">{renderSubscriptionTools()}</div>}
+        <div className="side-stack">
+          <CustomerPhotoUpload
+            customerId={customer.id}
+            currentPhotoUrl={customer.photo_url}
+            onUploaded={(url) => {
+              setCustomer((prev: any) => ({
+                ...prev,
+                photo_url: url,
+              }));
+            }}
+          />
 
-      {activeTab === "payments" && (
-        <div className="tab-stack">
-          <CustomerPaymentsHistory customerId={customer.id} />
-          <CustomerReceiptsHistory customerId={customer.id} />
-        </div>
-      )}
+          <MedicalCertificateCard
+            customerId={customer.id}
+            currentCertificateUrl={customer.medical_certificate_url}
+            startDate={customer.medical_certificate_start_date}
+            endDate={customer.medical_certificate_end_date}
+            onUpdated={(data) => {
+              setCustomer((prev: any) => ({
+                ...prev,
+                medical_certificate_url: data.url,
+                medical_certificate_start_date: data.startDate,
+                medical_certificate_end_date: data.endDate,
+              }));
+            }}
+          />
 
-      {activeTab === "access" && (
-        <div className="tab-grid">
-          <div className="tab-stack">
-            {renderCredentials()}
-            {renderBlocks()}
+          <div className="card credentials-card bg-card-premium">
+            <h2>Credenziali accesso</h2>
+
+            <div className="credential-summary">
+              <div className="credential-mini">
+                <div className="credential-mini-label">RFID / NFC</div>
+                <div className="credential-mini-value">
+                  {cardCredentials.length} attive
+                </div>
+              </div>
+
+              <div className="credential-mini">
+                <div className="credential-mini-label">QR DNake</div>
+                <div
+                  className={`credential-mini-value ${
+                    activeDnakeQr ? "success-text" : "danger-text"
+                  }`}
+                >
+                  {activeDnakeQr ? "Attivo" : "Non generato"}
+                </div>
+              </div>
+            </div>
+
+            <div className="credential-section">
+              <div className="credential-section-title">Tessere / Card</div>
+
+              {cardCredentials.length === 0 ? (
+                <p className="empty">Nessuna tessera associata.</p>
+              ) : (
+                <div className="credential-pill-list">
+                  {cardCredentials.map((item) => (
+                    <span className="credential-pill" key={item.id}>
+                      {String(item.type).toUpperCase()} · {item.controller_code || item.code}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="credential-section">
+              <div className="credential-section-title">QR Code DNake</div>
+
+              {activeDnakeQr ? (
+                <>
+                  {qrDataUrl ? (
+                    <div className="qr-box">
+                      <img src={qrDataUrl} alt="QR DNake" />
+                    </div>
+                  ) : (
+                    <p className="empty">Generazione immagine QR...</p>
+                  )}
+
+                  <div className="qr-meta">
+                    <div>
+                      <strong>ID DNake:</strong> {activeDnakeQr.dnake_user_id}
+                    </div>
+                    <div>
+                      <strong>Nome DNake:</strong> {activeDnakeQr.dnake_name}
+                    </div>
+                    <div>
+                      <strong>Stato:</strong> {activeDnakeQr.qr_status}
+                    </div>
+                  </div>
+
+                  <div className="actions">
+                    <button
+                      className="secondary-btn"
+                      type="button"
+                      onClick={printQr}
+                      disabled={!qrDataUrl}
+                    >
+                      Visualizza / stampa
+                    </button>
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={generateDnakeQr}
+                      disabled={qrGenerating}
+                    >
+                      {qrGenerating ? "Rigenero..." : "Rigenera QR"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="empty">
+                    Nessun QR DNake generato per questo cliente.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={generateDnakeQr}
+                    disabled={qrGenerating}
+                  >
+                    {qrGenerating ? "Generazione..." : "Genera QR DNake"}
+                  </button>
+                </>
+              )}
+
+              {qrCredentials.length > 0 && (
+                <div className="qr-meta qr-meta-spaced">
+                  Credenziali QR salvate: {qrCredentials.length}
+                </div>
+              )}
+            </div>
+
+            <div className="credential-section mobile-pass-section">
+              <div className="credential-section-title">App cliente / WhatsApp</div>
+
+              <p className="empty">
+                Crea il link personale del cliente e invialo su WhatsApp. Il cliente potrà aprire il QR dal telefono.
+              </p>
+
+              {mobilePassUrl ? (
+                <div className="mobile-pass-url">
+                  {mobilePassUrl}
+                </div>
+              ) : null}
+
+              <div className="actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={createOrGetMobilePass}
+                  disabled={mobilePassLoading}
+                >
+                  {mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}
+                </button>
+
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={sendMobilePassWhatsApp}
+                  disabled={mobilePassLoading}
+                >
+                  Invia su WhatsApp
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={copyMobilePassLink}
+                  disabled={mobilePassLoading}
+                >
+                  Copia link
+                </button>
+              </div>
+
+              {!customer?.phone ? (
+                <div className="qr-meta danger-text qr-meta-warning">
+                  Telefono cliente mancante: WhatsApp si aprirà senza destinatario.
+                </div>
+              ) : null}
+            </div>
           </div>
-          <HistoryCard title="Storico accessi">
-            {renderAccessRows(accessLogs)}
-          </HistoryCard>
         </div>
-      )}
+      </div>
 
-      {activeTab === "documents" && (
-        <div className="tab-grid">
-          <MedicalCertificateCard customerId={customer.id} currentCertificateUrl={customer.medical_certificate_url} startDate={customer.medical_certificate_start_date} endDate={customer.medical_certificate_end_date} onUpdated={(data) => setCustomer((prev: any) => ({ ...prev, medical_certificate_url: data.url, medical_certificate_start_date: data.startDate, medical_certificate_end_date: data.endDate }))} />
-          <div className="card">
-            <div className="section-heading"><div><h2>Documenti cliente</h2><p>Contratto e file collegati se presenti.</p></div></div>
-            <InfoRow title="Certificato medico" subtitle={certificateValid ? `Valido fino al ${medicalCertificateEnd}` : "Mancante o scaduto"} right={certificateValid ? "OK" : "Da aggiornare"} />
-            <InfoRow title="Contratto" subtitle={customer.contract_url ? "Link contratto disponibile" : "Nessun link contratto salvato"} right={customer.contract_url ? "Disponibile" : "-"} />
-            {customer.contract_url ? <a className="command-action secondary" href={customer.contract_url} target="_blank" rel="noreferrer">Apri contratto</a> : null}
+      <div className="grid">
+        <div className="card">
+          <h2>Rinnovo rapido + pagamento</h2>
+
+          <button type="button" className="primary-btn" onClick={renewMembershipFee}>
+            Rinnova quota associativa 10€
+          </button>
+          <div
+  style={{
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.035)",
+  }}
+>
+  <div
+    style={{
+      color: "#9ca3af",
+      fontSize: 12,
+      fontWeight: 700,
+      marginBottom: 8,
+    }}
+  >
+    Metodo pagamento
+  </div>
+
+  <select
+    value={selectedPaymentMethod}
+    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 10,
+      background: "#111827",
+      color: "#fff",
+      border: "1px solid rgba(255,255,255,0.12)",
+    }}
+  >
+    <option value="cash">Contanti</option>
+    <option value="pos">POS</option>
+    <option value="bank_transfer">Bonifico</option>
+  </select>
+</div>
+
+          <div className="quick-plan-grid bg-actions-grid">
+            {plans.length === 0 && (
+              <div className="empty">Nessun piano attivo configurato.</div>
+            )}
+
+            {plans.map((plan) => {
+              const price = Number(plan.promo_price || plan.price || 0);
+              const duration = Number(plan.duration_days || 0);
+
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  className="quick-plan-btn"
+                  onClick={() => renewSubscription(plan.id)}
+                >
+                  <span className="quick-plan-title">{plan.name}</span>
+                  <strong className="quick-plan-price">€ {price.toFixed(2)}</strong>
+                  <small className="quick-plan-meta">{duration} giorni · da oggi</small>
+                </button>
+              );
+            })}
           </div>
-        </div>
-      )}
 
-      {activeTab === "notes" && (
-        <div className="tab-grid">
-          <div className="card">
-            <div className="section-heading"><div><h2>Note interne</h2><p>Annotazioni operative per lo staff.</p></div></div>
+          <div className="manual-renew-box">
+            <div className="small-muted">Rinnovo manuale / piano personalizzato</div>
             <div className="actions">
-              <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Scrivi una nota interna..." />
-              <button className="secondary-btn" onClick={addNote}>Aggiungi</button>
+              <select
+                value={selectedPlanId}
+                onChange={(e) => setSelectedPlanId(e.target.value)}
+              >
+                <option value="">Seleziona piano</option>
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} -{" "}
+                    {plan.duration_days} giorni
+                  </option>
+                ))}
+              </select>
+
+              <button type="button" className="secondary-btn" onClick={() => renewSubscription()}>
+                Rinnova
+              </button>
             </div>
-            {notes.length === 0 && <p className="empty">Nessuna nota interna.</p>}
-            {notes.map((note) => <div className="row" key={note.id}><div><div className="row-title">{note.note}</div><div className="row-subtitle">{new Date(note.created_at).toLocaleString()}</div></div></div>)}
           </div>
-          <CustomerTimeline customerId={customer.id} />
         </div>
-      )}
+
+        <div className="card">
+          <h2>Blocco rapido cliente</h2>
+
+          <div className="actions">
+            <input
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="Motivo blocco..."
+            />
+
+            <button type="button" className="primary-btn" onClick={addBlock}>Blocca</button>
+          </div>
+
+          {blocks.length === 0 && <p className="empty">Nessun blocco presente.</p>}
+
+          {blocks.map((block) => (
+            <div className="row" key={block.id}>
+              <div>
+                <div className="row-title">{block.reason}</div>
+                <div className="row-subtitle">
+                  Stato: {block.is_active ? "Attivo" : "Disattivato"}
+                </div>
+              </div>
+
+              {block.is_active && (
+                <button type="button" className="secondary-btn" onClick={() => disableBlock(block.id)}>
+                  Sblocca
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid">
+        <HistoryCard title="Storico abbonamenti">
+          {subscriptions.length === 0 && <p className="empty">Nessun abbonamento.</p>}
+
+          {subscriptions.map((sub) => (
+            <InfoRow
+              key={sub.id}
+              title={sub.subscription_plans?.name || "Abbonamento"}
+              subtitle={`${sub.starts_at} → ${sub.ends_at}`}
+              right={`€ ${sub.amount}`}
+            />
+          ))}
+        </HistoryCard>
+
+        <HistoryCard title="Storico quota associativa">
+          {membershipFees.length === 0 && (
+            <p className="empty">Nessuna quota registrata.</p>
+          )}
+
+          {membershipFees.map((fee) => (
+            <InfoRow
+              key={fee.id}
+              title={`Quota € ${fee.amount}`}
+              subtitle={`${fee.valid_from} → ${fee.valid_until}`}
+              right={fee.payment_method || ""}
+            />
+          ))}
+        </HistoryCard>
+      </div>
+
+      <div className="grid">
+        <div className="card">
+          <h2>Note interne</h2>
+
+          <div className="actions">
+            <input
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="Scrivi una nota interna..."
+            />
+
+            <button type="button" className="secondary-btn" onClick={addNote}>
+              Aggiungi
+            </button>
+          </div>
+
+          {notes.length === 0 && <p className="empty">Nessuna nota interna.</p>}
+
+          {notes.map((note) => (
+            <div className="row" key={note.id}>
+              <div>
+                <div className="row-title">{note.note}</div>
+                <div className="row-subtitle">
+                  {new Date(note.created_at).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <HistoryCard title="Ultimi accessi">
+          {accessLogs.length === 0 && <p className="empty">Nessun accesso registrato.</p>}
+
+          {accessLogs.map((log) => (
+            <InfoRow
+              key={log.id}
+              title={log.was_allowed ? "Accesso consentito" : "Accesso negato"}
+              subtitle={new Date(log.access_time).toLocaleString()}
+              right={log.reason}
+            />
+          ))}
+        </HistoryCard>
+      </div>
+
+      <CustomerPaymentsHistory customerId={customer.id} />
+
+      <CustomerReceiptsHistory customerId={customer.id} />
+
+      <CustomerTimeline customerId={customer.id} />
     </div>
   );
 }
 
-function StatusPill({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+function StatusBox({
+  label,
+  value,
+  ok,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+}) {
   return (
-    <div className="status-pill">
+    <div className="status-box">
       <div className="status-label">{label}</div>
-      <div className={`status-value ${ok ? "success-text" : "danger-text"}`}>{value}</div>
-    </div>
-  );
-}
+      <div className={`status-value ${ok ? "ok-text" : "ko-text"}`}>{value}</div>
 
-function EditField({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
-  return (
-    <div className="edit-field bg-form-field">
-      <label>{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+      <style jsx>{`
+        .ok-text {
+          color: #4ade80;
+        }
+
+        .ko-text {
+          color: #fb7185;
+        }
+      `}
+      </style>
     </div>
   );
 }
@@ -1299,20 +2111,29 @@ function EditField({ label, value, onChange, type = "text" }: { label: string; v
 function HistoryCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="card">
-      <div className="section-heading"><div><h2>{title}</h2></div></div>
+      <h2>{title}</h2>
       {children}
     </div>
   );
 }
 
-function InfoRow({ title, subtitle, right }: { title: string; subtitle: string; right?: string }) {
+function InfoRow({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle: string;
+  right?: string;
+}) {
   return (
     <div className="row">
       <div>
         <div className="row-title">{title}</div>
         <div className="row-subtitle">{subtitle}</div>
       </div>
-      {right ? <div className="row-right">{right}</div> : null}
+
+      {right && <div className="row-right">{right}</div>}
     </div>
   );
 }
