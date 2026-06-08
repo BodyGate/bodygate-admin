@@ -10,6 +10,7 @@ import CustomerPhotoUpload from "../components/CustomerPhotoUpload";
 import MedicalCertificateCard from "../components/MedicalCertificateCard";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
+import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
 
 type Customer = any;
 type Plan = any;
@@ -2067,6 +2068,8 @@ async function disableBlock(blockId: string) {
       </div>
 
       <CustomerPaymentsHistory customerId={customer.id} />
+
+      <CustomerReceiptsHistory customerId={customer.id} />
 
       <CustomerTimeline customerId={customer.id} />
     </div>
