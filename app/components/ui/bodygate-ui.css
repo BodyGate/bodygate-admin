@@ -1026,6 +1026,92 @@
   .bg-action-card { min-height: 112px; }
 }
 
+.bg-premium-section-nav {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(132px, 1fr));
+  gap: 10px;
+  margin: 18px 0 22px;
+}
+.bg-premium-section-nav-item {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.022)),
+    rgba(8, 8, 10, 0.88);
+  color: #f5f5f5;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.bg-premium-section-nav-item:hover,
+.bg-premium-section-nav-item-active {
+  transform: translateY(-1px);
+  border-color: rgba(239, 68, 68, 0.38);
+  background:
+    radial-gradient(circle at top left, rgba(239, 68, 68, 0.2), transparent 58%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.028)),
+    rgba(10, 10, 12, 0.96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+.bg-premium-section-nav-item-active {
+  box-shadow:
+    inset 0 0 0 1px rgba(239, 68, 68, 0.24),
+    0 20px 48px rgba(239, 68, 68, 0.12);
+}
+.bg-premium-section-nav-item:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.78);
+  outline-offset: 4px;
+}
+.bg-premium-section-nav-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.bg-premium-section-nav-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.bg-premium-section-nav-eyebrow {
+  color: #8f8f8f;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.bg-premium-section-nav-label {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1.15;
+}
+@media (max-width: 1280px) {
+  .bg-premium-section-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .bg-premium-section-nav {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bg-premium-tabs {
   display: grid;
   grid-template-columns: repeat(7, minmax(132px, 1fr));
