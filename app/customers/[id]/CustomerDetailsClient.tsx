@@ -1132,27 +1132,32 @@ async function disableBlock(blockId: string) {
         }
         .quick-plan-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+          gap: 16px;
+          align-items: stretch;
+          min-width: 0;
         }
         .quick-plan-btn {
           width: 100%;
           min-width: 0;
-          min-height: 176px;
-          display: flex;
-          flex-direction: column;
+          min-height: 218px;
+          height: 100%;
+          display: grid;
+          grid-template-rows: minmax(0, 1fr) auto;
           align-items: stretch;
-          justify-content: space-between;
-          gap: 16px;
+          justify-content: stretch;
+          gap: 18px;
           text-align: left;
-          border-radius: 22px;
-          padding: 18px;
+          border-radius: 24px;
+          padding: 20px;
           border: 1px solid rgba(239,68,68,0.28);
           background: radial-gradient(circle at top left, rgba(239,68,68,.22), transparent 58%), linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(8,8,8,.94);
           color: #fff;
           cursor: pointer;
           white-space: normal;
           line-height: 1.2;
+          overflow: hidden;
+          box-sizing: border-box;
           box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 42px rgba(0,0,0,.26);
         }
         .quick-plan-btn:hover {
@@ -1161,13 +1166,15 @@ async function disableBlock(blockId: string) {
         }
         .plan-copy {
           display: grid;
-          gap: 8px;
+          align-content: start;
+          gap: 10px;
           min-width: 0;
+          max-width: 100%;
         }
         .plan-title {
           display: block;
-          font-size: 16px;
-          line-height: 1.25;
+          font-size: clamp(16px, 2vw, 18px);
+          line-height: 1.22;
           white-space: normal;
           overflow-wrap: anywhere;
           word-break: normal;
@@ -1177,6 +1184,7 @@ async function disableBlock(blockId: string) {
           display: inline-flex;
           width: fit-content;
           max-width: 100%;
+          min-width: 0;
           border-radius: 999px;
           border: 1px solid rgba(255,255,255,.12);
           background: rgba(255,255,255,.07);
@@ -1193,15 +1201,16 @@ async function disableBlock(blockId: string) {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
-          gap: 12px;
+          gap: 14px;
           flex-wrap: wrap;
           min-width: 0;
+          max-width: 100%;
         }
         .plan-price {
           display: block;
           color: #fff;
-          font-size: clamp(24px, 4vw, 32px);
-          line-height: .95;
+          font-size: clamp(28px, 4vw, 36px);
+          line-height: .92;
           font-weight: 950;
           letter-spacing: -.055em;
           white-space: normal;
@@ -1212,9 +1221,9 @@ async function disableBlock(blockId: string) {
         }
         .history-row {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 14px;
-          align-items: center;
+          grid-template-columns: minmax(0, 1fr) minmax(118px, max-content);
+          gap: 16px;
+          align-items: start;
           border: 1px solid rgba(255,255,255,.09);
           border-radius: 20px;
           padding: 15px;
@@ -1248,13 +1257,23 @@ async function disableBlock(blockId: string) {
           gap: 8px;
           flex-direction: column;
           justify-self: end;
-          min-width: max-content;
+          min-width: 0;
+          max-width: 100%;
         }
         .history-amount {
           color: #fff;
           font-size: 16px;
           font-weight: 950;
           letter-spacing: -.02em;
+          white-space: nowrap;
+        }
+        .history-method {
+          color: #a3a3a3;
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+          text-align: right;
         }
         .credential-summary {
           display: grid;
@@ -1299,7 +1318,7 @@ async function disableBlock(blockId: string) {
         .danger-text { color: #fb7185; }
         .success-text { color: #4ade80; }
         @media (max-width: 1180px) {
-          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .hero-statuses, .form-grid, .quick-plan-grid { grid-template-columns: 1fr; }
+          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .hero-statuses, .form-grid { grid-template-columns: 1fr; }
           .hero-actions { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 720px) {
@@ -1308,6 +1327,7 @@ async function disableBlock(blockId: string) {
           .hero-actions, .info-grid, .credential-summary, .three-col-grid, .quick-plan-grid { grid-template-columns: 1fr; }
           .row, .history-row { grid-template-columns: 1fr; }
           .row-right, .history-side { justify-self: start; text-align: left; align-items: flex-start; min-width: 0; }
+          .history-method { text-align: left; }
         }
       `}</style>
 
@@ -1453,7 +1473,7 @@ async function disableBlock(blockId: string) {
                   const duration = Number(plan.duration_days || 0);
                   const planDisplayName = formatPlanDisplayName(plan.name);
                   return (
-                    <BGButton key={plan.id} className="quick-plan-btn" onClick={() => renewSubscription(plan.id)}>
+                    <BGButton key={plan.id} className="quick-plan-btn bg-plan-card" onClick={() => renewSubscription(plan.id)}>
                       <span className="plan-copy">
                         <span className="plan-title">{planDisplayName.title}</span>
                         {planDisplayName.days ? <span className="plan-days">{planDisplayName.days}</span> : null}
@@ -1739,7 +1759,8 @@ function MembershipFeeHistoryRow({
       </div>
       <div className="history-side">
         <div className="history-amount">€ {amount.toFixed(2)}</div>
-        <BGStatusBadge tone={isValid ? "success" : "neutral"}>{isValid ? "Valida" : fee.payment_method || "Storico"}</BGStatusBadge>
+        {fee.payment_method ? <div className="history-method">Metodo: {fee.payment_method}</div> : null}
+        <BGStatusBadge tone={isValid ? "success" : "neutral"}>{isValid ? "Valida" : "Storico"}</BGStatusBadge>
       </div>
     </div>
   );

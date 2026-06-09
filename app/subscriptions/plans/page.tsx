@@ -749,6 +749,10 @@ export default function SubscriptionPlansPage() {
           font-size: 15px;
           font-weight: 950;
           letter-spacing: -0.02em;
+          max-width: 280px;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          line-height: 1.3;
         }
 
         .promo-price {
@@ -786,6 +790,9 @@ export default function SubscriptionPlansPage() {
           padding: 13px;
           background: rgba(239, 68, 68, 0.075);
           color: #fff;
+          min-width: 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .preset-button strong,
@@ -796,6 +803,8 @@ export default function SubscriptionPlansPage() {
         .preset-button strong {
           font-size: 13px;
           font-weight: 950;
+          line-height: 1.25;
+          overflow-wrap: anywhere;
         }
 
         .preset-button span {

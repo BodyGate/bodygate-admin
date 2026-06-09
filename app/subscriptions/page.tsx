@@ -817,6 +817,10 @@ export default function SubscriptionsPage() {
         .amount-cell {
           color: #fff;
           font-weight: 950;
+          max-width: 280px;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          line-height: 1.3;
         }
 
         .customer-id,
@@ -832,6 +836,9 @@ export default function SubscriptionsPage() {
           display: flex;
           flex-direction: column;
           gap: 4px;
+          min-width: 0;
+          max-width: 260px;
+          overflow-wrap: anywhere;
         }
 
         .days-pill {
@@ -864,6 +871,12 @@ export default function SubscriptionsPage() {
           align-items: center;
           gap: 8px;
           flex-wrap: wrap;
+          min-width: 0;
+        }
+
+        .subscription-action-stack :global(.bg-button) {
+          min-height: 38px;
+          padding: 0 12px;
         }
 
         @media (max-width: 1180px) {
