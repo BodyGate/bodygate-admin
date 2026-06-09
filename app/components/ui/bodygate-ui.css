@@ -1192,3 +1192,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* BodyGate layout hardening: reusable overflow-safe primitives for premium cards, grids and tables. */
+.bg-card,
+.bg-card *,
+.bg-page-header,
+.bg-page-header *,
+.bg-table-wrap,
+.bg-table-wrap * {
+  box-sizing: border-box;
+}
+
+.bg-overflow-safe,
+.bg-safe-grid,
+.bg-text-wrap,
+.bg-action-row,
+.bg-compact-list,
+.bg-history-list,
+.bg-history-item,
+.bg-plan-grid,
+.bg-plan-card,
+.bg-plan-card * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bg-text-wrap,
+.bg-plan-title,
+.bg-plan-meta,
+.bg-history-item,
+.bg-table td,
+.bg-table-muted,
+.bg-table-reason {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.bg-safe-grid,
+.bg-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.bg-plan-card {
+  min-height: 210px;
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.bg-plan-title {
+  display: block;
+  color: #fff;
+  font-weight: 950;
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+}
+
+.bg-plan-badge,
+.bg-plan-meta {
+  max-width: 100%;
+}
+
+.bg-plan-price {
+  color: #fff;
+  font-weight: 950;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.bg-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.bg-action-row > * {
+  min-width: 0;
+}
+
+.bg-compact-list,
+.bg-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.bg-history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.bg-table-wrap {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+}
+
+.bg-table {
+  table-layout: auto;
+}
+
+.bg-table th,
+.bg-table td {
+  max-width: 380px;
+}
+
+.bg-table-nowrap,
+.bg-table-code,
+.bg-table-align-right {
+  white-space: nowrap;
+}
+
+.bg-status {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .bg-history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .bg-action-row,
+  .bg-action-row .bg-button,
+  .bg-action-row .bg-action-link,
+  .bg-action-row .bg-action-button {
+    width: 100%;
+  }
+}

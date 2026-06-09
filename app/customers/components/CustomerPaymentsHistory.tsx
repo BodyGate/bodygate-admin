@@ -96,10 +96,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
       }
 
       setPayments((result.payments || []) as Payment[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Errore pagamenti:", error);
       setPayments([]);
-      setLoadError(error?.message || "Errore imprevisto durante il caricamento.");
+      setLoadError(error instanceof Error ? error.message : "Errore imprevisto durante il caricamento.");
     } finally {
       setLoading(false);
     }
@@ -193,9 +193,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
       closeEdit();
       await loadPayments();
       alert("Pagamento aggiornato correttamente.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("saveEdit failed", error);
-      alert(error?.message || "Errore imprevisto.");
+      alert(error instanceof Error ? error.message : "Errore imprevisto.");
     } finally {
       setSaving(false);
     }
@@ -241,9 +241,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
       setCancelReason("");
       await loadPayments();
       alert("Pagamento annullato correttamente.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("confirmCancel failed", error);
-      alert(error?.message || "Errore imprevisto.");
+      alert(error instanceof Error ? error.message : "Errore imprevisto.");
     } finally {
       setSaving(false);
     }
@@ -429,9 +429,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           padding: 17px;
           margin-top: 12px;
           display: grid;
-          grid-template-columns: 1fr auto;
+          grid-template-columns: minmax(0, 1fr) minmax(130px, auto);
           gap: 16px;
           align-items: start;
+          min-width: 0;
         }
 
         .payment-row.cancelled {
@@ -450,6 +451,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         .payment-title {
           font-weight: 950;
           font-size: 16px;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          line-height: 1.25;
         }
 
         .payment-description {
@@ -457,6 +461,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           margin-top: 6px;
           font-size: 13px;
           line-height: 1.5;
+          overflow-wrap: anywhere;
         }
 
         .payment-meta {
@@ -474,6 +479,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           font-size: 12px;
           color: #d4d4d4;
           font-weight: 850;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          line-height: 1.25;
         }
 
         .pill.good {
@@ -499,6 +507,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           display: grid;
           gap: 11px;
           justify-items: end;
+          min-width: 0;
         }
 
         .amount {

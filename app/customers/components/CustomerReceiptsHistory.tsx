@@ -102,10 +102,10 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
       }
 
       setReceipts((result.receipts || []) as Receipt[]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Errore ricevute:", error);
       setReceipts([]);
-      setLoadError(error?.message || "Errore imprevisto durante il caricamento.");
+      setLoadError(error instanceof Error ? error.message : "Errore imprevisto durante il caricamento.");
     } finally {
       setLoading(false);
     }
@@ -260,6 +260,9 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           font-weight: 800;
           line-height: 1.35;
           max-width: 340px;
+          min-width: 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .receipt-amount {
@@ -273,6 +276,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           gap: 8px;
           flex-wrap: wrap;
           justify-content: flex-end;
+          min-width: 0;
         }
 
         .receipt-actions :global(.bg-button) {

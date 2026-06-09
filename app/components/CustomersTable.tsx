@@ -364,6 +364,9 @@ export default function CustomersTable() {
           font-size: 14px;
           font-weight: 950;
           line-height: 1.15;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .crm3-list-sub {
@@ -371,10 +374,10 @@ export default function CustomersTable() {
           color: #8b8b8b;
           font-size: 12px;
           font-weight: 700;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 210px;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          white-space: normal;
         }
 
         .crm3-mini-dot {
@@ -439,6 +442,8 @@ export default function CustomersTable() {
           line-height: 0.95;
           letter-spacing: -0.055em;
           font-weight: 950;
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .crm3-detail-contact {
@@ -446,6 +451,7 @@ export default function CustomersTable() {
           color: #a1a1aa;
           font-size: 14px;
           font-weight: 700;
+          overflow-wrap: anywhere;
         }
 
         .crm3-detail-grid {
@@ -479,7 +485,8 @@ export default function CustomersTable() {
           color: #fff;
           font-size: 16px;
           font-weight: 950;
-          word-break: break-word;
+          overflow-wrap: anywhere;
+          word-break: normal;
         }
 
         .crm3-action-grid {
@@ -489,7 +496,8 @@ export default function CustomersTable() {
         }
 
         .crm3-action {
-          min-height: 76px;
+          min-height: 86px;
+          min-width: 0;
           border-radius: 20px;
           padding: 16px;
           text-decoration: none;
@@ -505,12 +513,15 @@ export default function CustomersTable() {
         .crm3-action strong {
           font-size: 15px;
           font-weight: 950;
+          overflow-wrap: anywhere;
         }
 
         .crm3-action span {
           color: #9ca3af;
           font-size: 12px;
           font-weight: 700;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
         }
 
         .crm3-action-primary {
