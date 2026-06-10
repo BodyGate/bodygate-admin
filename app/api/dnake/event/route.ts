@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const bridgeBaseUrl =
+  process.env.BODYGATE_BRIDGE_URL ||
+  process.env.NEXT_PUBLIC_BODYGATE_BRIDGE_URL ||
+  "http://127.0.0.1:5050";
+
 const CODE_KEYS = [
   "code",
   "card",
@@ -42,6 +47,7 @@ type OpenResult = {
   status?: number;
   message?: string;
   error?: string;
+  bridge_url?: string;
 };
 
 type AccessLogResult = "allowed" | "denied" | "error";
@@ -242,23 +248,29 @@ async function checkAccess(req: Request, code: string): Promise<AccessResult> {
 }
 
 async function openTurnstile(): Promise<OpenResult> {
+  const normalizedBaseUrl = bridgeBaseUrl.replace(/\/+$/g, "");
+  const bridgeUrl = `${normalizedBaseUrl}/open0`;
+
   try {
-    const response = await fetch("http://localhost:5050/open0", {
+    const response = await fetch(bridgeUrl, {
       method: "GET",
       cache: "no-store",
     });
+
     const text = await response.text();
 
     return {
       attempted: true,
       ok: response.ok,
       status: response.status,
+      bridge_url: bridgeUrl,
       message: text || "Comando open0 inviato al bridge",
     };
   } catch (error) {
     return {
       attempted: true,
       ok: false,
+      bridge_url: bridgeUrl,
       error:
         error instanceof Error
           ? error.message
@@ -266,7 +278,6 @@ async function openTurnstile(): Promise<OpenResult> {
     };
   }
 }
-
 async function saveTechnicalLog(params: {
   code: string;
   accessResult: AccessResult;
