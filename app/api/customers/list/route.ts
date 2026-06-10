@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 1000;
+
+type CustomerRow = Record<string, any>;
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,32 +18,67 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-function isActiveCustomer(customer: any) {
-  return customer?.is_active === true || customer?.active === true || customer?.status === "active";
+function isActiveCustomer(customer: CustomerRow) {
+  return (
+    customer?.is_active === true &&
+    customer?.active !== false &&
+    String(customer?.status || "").toLowerCase() !== "inactive"
+  );
 }
 
-function hasBadge(customer: any) {
+function hasBadge(customer: CustomerRow) {
   return Boolean(
     String(customer?.badge_code || "").trim() ||
       String(customer?.controller_code || "").trim()
   );
 }
 
-function needsVerification(customer: any) {
+function needsVerification(customer: CustomerRow) {
+  const accessStatus = String(customer?.access_activation_status || "").toLowerCase();
+  const medicalStatus = String(customer?.medical_certificate_status || "").toLowerCase();
+
   const hasNoAccess =
-    customer?.access_activation_status &&
-    !["active", "enabled", "ok"].includes(String(customer.access_activation_status).toLowerCase());
+    accessStatus && !["active", "enabled", "ok"].includes(accessStatus);
 
   const hasNoMedical =
-    customer?.medical_certificate_status &&
-    !["valid", "ok", "active"].includes(String(customer.medical_certificate_status).toLowerCase());
+    medicalStatus && !["valid", "ok", "active"].includes(medicalStatus);
 
   return Boolean(hasNoAccess || hasNoMedical);
 }
 
-export async function GET() {
+function applyListFilter(customers: CustomerRow[], filter: string) {
+  switch (filter) {
+    case "all":
+      return customers;
+
+    case "inactive":
+      return customers.filter((customer) => !isActiveCustomer(customer));
+
+    case "to_check":
+      return customers.filter(
+        (customer) => isActiveCustomer(customer) && needsVerification(customer)
+      );
+
+    case "with_badge":
+      return customers.filter(
+        (customer) => isActiveCustomer(customer) && hasBadge(customer)
+      );
+
+    case "without_badge":
+      return customers.filter(
+        (customer) => isActiveCustomer(customer) && !hasBadge(customer)
+      );
+
+    case "active":
+    default:
+      return customers.filter(isActiveCustomer);
+  }
+}
+
+export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
+    const filter = request.nextUrl.searchParams.get("status") || "active";
 
     const customerFields = [
       "id",
@@ -76,24 +113,17 @@ export async function GET() {
       );
     }
 
-    const total = countQuery.count ?? 0;
-    const allCustomers: any[] = [];
+    const totalRecords = countQuery.count ?? 0;
+    const allRows: CustomerRow[] = [];
 
-    for (let from = 0; from < total; from += PAGE_SIZE) {
-      const to = Math.min(from + PAGE_SIZE - 1, total - 1);
+    for (let from = 0; from < totalRecords; from += PAGE_SIZE) {
+      const to = Math.min(from + PAGE_SIZE - 1, totalRecords - 1);
 
-      let pageQuery = await supabase
+      const pageQuery = await supabase
         .from("customers")
         .select(customerFields)
         .order("created_at", { ascending: false })
         .range(from, to);
-
-      if (pageQuery.error) {
-        pageQuery = await supabase
-          .from("customers")
-          .select(customerFields)
-          .range(from, to);
-      }
 
       if (pageQuery.error) {
         return NextResponse.json(
@@ -102,28 +132,28 @@ export async function GET() {
         );
       }
 
-      allCustomers.push(...(pageQuery.data ?? []));
+      allRows.push(...(pageQuery.data ?? []));
     }
 
-    const customers = allCustomers.map((customer) => ({
-      ...customer,
-      full_name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
-      active: customer.active ?? customer.is_active,
-    }));
+    const normalizedCustomers: CustomerRow[] = allRows.map((customer): CustomerRow => ({
+  ...customer,
+  full_name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+  active: isActiveCustomer(customer),
+}));
 
-    const activeCustomers = customers.filter(isActiveCustomer);
-    const accessActive = customers.filter(
-      (customer) =>
-        isActiveCustomer(customer) &&
-        String(customer.access_activation_status || "").toLowerCase() === "active"
-    );
+    const activeCustomers = normalizedCustomers.filter(isActiveCustomer);
+    const filteredCustomers = applyListFilter(normalizedCustomers, filter);
 
     const stats = {
       total_customers: activeCustomers.length,
-      total_records: customers.length,
-      access_active: accessActive.length,
-      to_check: customers.filter((customer) => isActiveCustomer(customer) && needsVerification(customer)).length,
-      expiring_soon: customers.filter((customer) => {
+      total_records: normalizedCustomers.length,
+      inactive_customers: normalizedCustomers.length - activeCustomers.length,
+      access_active: activeCustomers.filter(
+        (customer) =>
+          String(customer.access_activation_status || "").toLowerCase() === "active"
+      ).length,
+      to_check: activeCustomers.filter(needsVerification).length,
+      expiring_soon: activeCustomers.filter((customer) => {
         if (!customer.medical_certificate_end_date) return false;
 
         const end = new Date(customer.medical_certificate_end_date);
@@ -135,19 +165,21 @@ export async function GET() {
 
         return end >= today && end <= in30Days;
       }).length,
-      with_badge: customers.filter((customer) => isActiveCustomer(customer) && hasBadge(customer)).length,
+      with_badge: activeCustomers.filter(hasBadge).length,
+      without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,
     };
 
     return NextResponse.json({
       ok: true,
-      customers,
-      count: customers.length,
-      total,
+      customers: filteredCustomers,
+      count: filteredCustomers.length,
+      total: filteredCustomers.length,
+      total_records: normalizedCustomers.length,
+      filter,
       stats,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Errore interno";
-
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -16,6 +16,10 @@ type Customer = {
   email: string | null;
   phone: string | null;
   badge_code: string | null;
+  controller_code?: string | null;
+  access_activation_status?: string | null;
+  medical_certificate_status?: string | null;
+  medical_certificate_end_date?: string | null;
   subscription_status: string | null;
   subscription_expiry: string | null;
   active: boolean;
@@ -23,6 +27,34 @@ type Customer = {
 };
 
 type Tone = "green" | "red" | "yellow" | "blue" | "neutral";
+
+type ListFilter =
+  | "active"
+  | "all"
+  | "inactive"
+  | "to_check"
+  | "with_badge"
+  | "without_badge";
+
+type CustomerListStats = {
+  total_customers: number;
+  total_records: number;
+  inactive_customers: number;
+  access_active: number;
+  to_check: number;
+  expiring_soon: number;
+  with_badge: number;
+  without_badge: number;
+};
+
+const LIST_FILTERS: Array<{ value: ListFilter; label: string }> = [
+  { value: "active", label: "Attivi" },
+  { value: "all", label: "Tutti" },
+  { value: "inactive", label: "Inattivi" },
+  { value: "to_check", label: "Da verificare" },
+  { value: "with_badge", label: "Con badge" },
+  { value: "without_badge", label: "Senza badge" },
+];
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -58,6 +90,10 @@ function getName(customer: Customer) {
   const composed =
     `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
   return full || composed || "Cliente senza nome";
+}
+
+function getBadgeCode(customer: Customer) {
+  return String(customer.badge_code || customer.controller_code || "").trim();
 }
 
 function initials(name: string) {
@@ -103,31 +139,40 @@ export default function CustomersTable() {
   const [loading, setLoading] = useState(true);
   const [loadedOnce, setLoadedOnce] = useState(false);
   const [queryError, setQueryError] = useState<string | null>(null);
+  const [listFilter, setListFilter] = useState<ListFilter>("active");
+  const [serverStats, setServerStats] = useState<CustomerListStats | null>(null);
 
   async function loadCustomers() {
     setLoading(true);
     setQueryError(null);
 
     try {
-      const response = await fetch("/api/customers/list", {
+      const response = await fetch(`/api/customers/list?status=${listFilter}`, {
         cache: "no-store",
       });
       const payload = await response.json();
 
       if (!response.ok || !payload?.ok) {
         setCustomers([]);
+        setServerStats(null);
         setQueryError(payload?.error || "Impossibile caricare i clienti.");
         return;
       }
 
       const list = (payload.customers || []) as Customer[];
       setCustomers(list);
+      setServerStats(payload.stats || null);
 
-      if (!selectedId && list.length > 0) {
-        setSelectedId(list[0].id);
-      }
+      setSelectedId((current) => {
+        if (current && list.some((customer) => customer.id === current)) {
+          return current;
+        }
+
+        return list[0]?.id || null;
+      });
     } catch (error) {
       setCustomers([]);
+      setServerStats(null);
       setQueryError(
         error instanceof Error ? error.message : "Errore imprevisto.",
       );
@@ -140,7 +185,7 @@ export default function CustomersTable() {
   useEffect(() => {
     void Promise.resolve().then(loadCustomers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [listFilter]);
 
   const filteredCustomers = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -158,9 +203,7 @@ export default function CustomersTable() {
         String(customer.email || "")
           .toLowerCase()
           .includes(q) ||
-        String(customer.badge_code || "")
-          .toLowerCase()
-          .includes(q)
+        getBadgeCode(customer).toLowerCase().includes(q)
       );
     });
   }, [customers, search]);
@@ -175,6 +218,16 @@ export default function CustomersTable() {
   }, [customers, filteredCustomers, selectedId]);
 
   const metrics = useMemo(() => {
+    if (serverStats) {
+      return {
+        total: serverStats.total_customers,
+        active: serverStats.access_active,
+        attention: serverStats.to_check,
+        expiring: serverStats.expiring_soon,
+        withBadge: serverStats.with_badge,
+      };
+    }
+
     let active = 0;
     let attention = 0;
     let expiring = 0;
@@ -186,7 +239,7 @@ export default function CustomersTable() {
       if (state.tone === "green") active += 1;
       if (state.tone === "red") attention += 1;
       if (state.tone === "yellow") expiring += 1;
-      if (customer.badge_code) withBadge += 1;
+      if (getBadgeCode(customer)) withBadge += 1;
     });
 
     return {
@@ -196,7 +249,8 @@ export default function CustomersTable() {
       expiring,
       withBadge,
     };
-  }, [customers]);
+  }, [customers, serverStats]);
+
 
   return (
     <section className="crm3-page">
@@ -274,6 +328,35 @@ export default function CustomersTable() {
         .crm3-actions :global(.bg-action-link),
         .crm3-actions :global(.bg-action-button) {
           min-height: 42px;
+        }
+
+        .crm3-filters {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 18px;
+        }
+
+        .crm3-filter-btn {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.045);
+          color: #a1a1aa;
+          padding: 9px 13px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .crm3-filter-btn:hover {
+          background: rgba(255, 255, 255, 0.075);
+          color: #fff;
+        }
+
+        .crm3-filter-btn-active {
+          background: rgba(239, 68, 68, 0.18);
+          border-color: rgba(239, 68, 68, 0.42);
+          color: #fff;
         }
 
         .crm3-metrics {
@@ -617,12 +700,30 @@ export default function CustomersTable() {
               </BGActionButton>
             </div>
           </div>
+
+          <div className="crm3-filters">
+            {LIST_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                className={`crm3-filter-btn ${
+                  listFilter === filter.value ? "crm3-filter-btn-active" : ""
+                }`}
+                onClick={() => {
+                  setSelectedId(null);
+                  setListFilter(filter.value);
+                }}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </header>
 
         <section className="crm3-metrics">
           <BGStatCard
             value={metrics.total}
-            label="Clienti totali"
+            label="Clienti attivi"
             tone="blue"
           />
           <BGStatCard
@@ -672,6 +773,7 @@ export default function CustomersTable() {
                 />
                 <div className="crm3-count">
                   {filteredCustomers.length} risultati su {customers.length}
+                  {serverStats ? ` · ${serverStats.total_records} record totali` : ""}
                 </div>
               </div>
 
@@ -682,7 +784,7 @@ export default function CustomersTable() {
                   const contact =
                     customer.phone ||
                     customer.email ||
-                    customer.badge_code ||
+                    getBadgeCode(customer) ||
                     "Dati da completare";
                   const active = selectedCustomer?.id === customer.id;
 
@@ -767,7 +869,7 @@ export default function CustomersTable() {
                           <div className="crm3-info">
                             <span>Badge</span>
                             <strong>
-                              {selectedCustomer.badge_code || "Da associare"}
+                              {getBadgeCode(selectedCustomer) || "Da associare"}
                             </strong>
                           </div>
 
