@@ -696,10 +696,42 @@ namespace BodyGateAccessBridge
                 try
                 {
                     HttpListener listener = new HttpListener();
-                    listener.Prefixes.Add("http://localhost:5050/");
-                    listener.Start();
 
-                    Log("HTTP server avviato su http://localhost:5050/");
+string[] prefixes =
+{
+    "http://127.0.0.1:5050/",
+    "http://localhost:5050/"
+};
+
+Exception? lastError = null;
+string activePrefix = "";
+
+foreach (string prefix in prefixes)
+{
+    try
+    {
+        listener.Prefixes.Clear();
+        listener.Prefixes.Add(prefix);
+        listener.Start();
+
+        activePrefix = prefix;
+        Log("HTTP server avviato su " + activePrefix);
+        break;
+    }
+    catch (Exception ex)
+    {
+        lastError = ex;
+        Log("Tentativo HTTP server fallito su " + prefix + ": " + ex.Message);
+    }
+}
+
+if (!listener.IsListening)
+{
+    throw new Exception(
+        "Impossibile avviare HTTP server su 127.0.0.1:5050 o localhost:5050. Ultimo errore: " +
+        (lastError?.Message ?? "errore sconosciuto")
+    );
+}
 
                     while (true)
                     {

@@ -48,6 +48,21 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
+  const [showSubscriptionHistory, setShowSubscriptionHistory] = useState(false);
+  const [showMembershipHistory, setShowMembershipHistory] = useState(false);
+
+  const [editingSubscriptionId, setEditingSubscriptionId] = useState("");
+  const [subscriptionEditForm, setSubscriptionEditForm] = useState<any>({});
+  const [savingSubscriptionEdit, setSavingSubscriptionEdit] = useState(false);
+
+  const [renewalOpen, setRenewalOpen] = useState(false);
+  const [renewalPlanId, setRenewalPlanId] = useState("");
+  const [renewalStartDate, setRenewalStartDate] = useState("");
+  const [renewalEndDate, setRenewalEndDate] = useState("");
+  const [renewalAmount, setRenewalAmount] = useState("");
+  const [renewalNotes, setRenewalNotes] = useState("");
+  const [renewalSaving, setRenewalSaving] = useState(false);
+
   const [newNote, setNewNote] = useState("");
   const [blockReason, setBlockReason] = useState("");
 
@@ -325,7 +340,18 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
 
   const activeSubscription = useMemo(() => {
     return subscriptions.find(
-      (s) => s.is_active && s.starts_at <= today && s.ends_at >= today
+      (s) =>
+        s.is_active !== false &&
+        String(s.starts_at || "").slice(0, 10) <= today &&
+        String(s.ends_at || "").slice(0, 10) >= today
+    );
+  }, [subscriptions, today]);
+
+  const plannedSubscription = useMemo(() => {
+    return subscriptions.find(
+      (s) =>
+        s.is_active !== false &&
+        String(s.starts_at || "").slice(0, 10) > today
     );
   }, [subscriptions, today]);
 
@@ -380,11 +406,125 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
 
 
   function paymentMethodLabel(method: string) {
-  if (method === "cash") return "Contanti";
-  if (method === "pos") return "POS";
-  if (method === "bank_transfer") return "Bonifico";
-  return "Contanti";
-}
+    if (method === "cash") return "Contanti";
+    if (method === "pos") return "POS";
+    if (method === "bank_transfer") return "Bonifico";
+    return "Contanti";
+  }
+
+  function addDaysLocal(dateValue: string, days: number) {
+    const base = new Date(`${dateValue}T00:00:00`);
+    base.setDate(base.getDate() + days);
+
+    const year = base.getFullYear();
+    const month = String(base.getMonth() + 1).padStart(2, "0");
+    const day = String(base.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function formatDateIT(dateValue?: string | null) {
+    if (!dateValue) return "-";
+
+    const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleDateString("it-IT");
+  }
+
+  function getSuggestedRenewalStartDate() {
+    const active = subscriptions
+      .filter((sub) => sub?.is_active !== false && sub?.ends_at)
+      .sort((a, b) => String(b.ends_at).localeCompare(String(a.ends_at)))[0];
+
+    if (active?.ends_at && String(active.ends_at).slice(0, 10) >= today) {
+      return addDaysLocal(String(active.ends_at).slice(0, 10), 1);
+    }
+
+    return today;
+  }
+
+  function calculateRenewalEndDate(startDate: string, planId: string) {
+    const plan = plans.find((item) => item.id === planId);
+    const durationDays = Number(plan?.duration_days || 0);
+
+    if (!startDate || !durationDays) return "";
+
+    return addDaysLocal(startDate, durationDays);
+  }
+
+  function getRenewalPlan(planId = renewalPlanId) {
+    return plans.find((item) => item.id === planId) || null;
+  }
+
+  function getRenewalWarnings() {
+    const warnings: string[] = [];
+    const selectedStart = renewalStartDate;
+    const active = subscriptions
+      .filter((sub) => sub?.is_active !== false && sub?.ends_at)
+      .sort((a, b) => String(b.ends_at).localeCompare(String(a.ends_at)))[0];
+
+    if (!selectedStart) return warnings;
+
+    if (selectedStart < today) {
+      warnings.push("La data di inizio scelta è precedente a oggi.");
+    }
+
+    if (selectedStart > today) {
+      warnings.push("Il rinnovo partirà in futuro. Il cliente potrà accedere da quella data.");
+    }
+
+    if (active?.ends_at && selectedStart <= String(active.ends_at).slice(0, 10)) {
+      warnings.push(
+        `Il cliente ha già un abbonamento attivo fino al ${formatDateIT(active.ends_at)}. Il nuovo rinnovo si sovrappone.`
+      );
+    }
+
+    return warnings;
+  }
+
+  function openRenewalPanel(planIdOverride?: string) {
+    const targetPlanId = planIdOverride || selectedPlanId;
+
+    if (!targetPlanId) {
+      alert("Seleziona un abbonamento.");
+      return;
+    }
+
+    const plan = plans.find((item) => item.id === targetPlanId);
+
+    if (!plan) {
+      alert("Piano non trovato.");
+      return;
+    }
+
+    const suggestedStartDate = getSuggestedRenewalStartDate();
+    const amount = Number(plan.promo_price || plan.price || 0);
+
+    setRenewalPlanId(targetPlanId);
+    setSelectedPlanId(targetPlanId);
+    setRenewalStartDate(suggestedStartDate);
+    setRenewalEndDate(calculateRenewalEndDate(suggestedStartDate, targetPlanId));
+    setRenewalAmount(amount.toFixed(2));
+    setRenewalNotes("");
+    setRenewalOpen(true);
+  }
+
+  function updateRenewalStartDate(value: string) {
+    setRenewalStartDate(value);
+    setRenewalEndDate(calculateRenewalEndDate(value, renewalPlanId));
+  }
+
+  function updateRenewalPlan(planId: string) {
+    const plan = plans.find((item) => item.id === planId);
+    const amount = Number(plan?.promo_price || plan?.price || 0);
+
+    setRenewalPlanId(planId);
+    setSelectedPlanId(planId);
+    setRenewalAmount(amount ? amount.toFixed(2) : "");
+    setRenewalEndDate(calculateRenewalEndDate(renewalStartDate || today, planId));
+  }
 
   async function renewMembershipFee() {
   if (!customer?.id) {
@@ -428,27 +568,29 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   }
 }
 
-  async function renewSubscription(planIdOverride?: string) {
+  async function renewSubscription() {
     if (!customer?.id) return alert("Cliente non caricato.");
 
-    const targetPlanId = planIdOverride || selectedPlanId;
-    if (!targetPlanId) return alert("Seleziona un abbonamento.");
+    const plan = getRenewalPlan();
 
-    const plan = plans.find((p) => p.id === targetPlanId);
-    if (!plan) return alert("Piano non trovato.");
+    if (!plan) {
+      alert("Seleziona un abbonamento.");
+      return;
+    }
 
-    const confirmed = window.confirm(
-  `Confermi rinnovo ${plan.name}?\n\n` +
-    `Importo: € ${Number(plan.promo_price || plan.price || 0).toFixed(2)}\n` +
-    `Durata: ${Number(plan.duration_days || 0)} giorni\n` +
-    `Pagamento: ${paymentMethodLabel(selectedPaymentMethod)}\n\n` +
-    `Verranno creati automaticamente:\n` +
-    `- Abbonamento\n` +
-    `- Pagamento\n` +
-    `- Ricevuta in duplice copia`
-);
+    if (!renewalStartDate) {
+      alert("Seleziona la data di inizio abbonamento.");
+      return;
+    }
 
-    if (!confirmed) return;
+    const amount = Number(String(renewalAmount).replace(",", "."));
+
+    if (!amount || amount <= 0) {
+      alert("Inserisci un importo valido.");
+      return;
+    }
+
+    setRenewalSaving(true);
 
     try {
       const res = await fetch("/api/customers/renew-subscription", {
@@ -458,8 +600,11 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         },
         body: JSON.stringify({
           customer_id: customer.id,
-          plan_id: targetPlanId,
+          plan_id: renewalPlanId,
           payment_method: selectedPaymentMethod,
+          start_date: renewalStartDate,
+          amount,
+          notes: renewalNotes,
         }),
       });
 
@@ -471,38 +616,187 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         return;
       }
 
+      setRenewalOpen(false);
+
+      const successMessage =
+        `Rinnovo completato.\n\n` +
+        `Cliente: ${json.customer_name || ""}\n` +
+        `Piano: ${json.plan?.name || plan.name}\n` +
+        `Periodo: ${formatDateIT(json.subscription?.starts_at)} - ${formatDateIT(json.subscription?.ends_at)}\n` +
+        `Ricevuta: ${json.receipt?.receipt_number || "creata"}`;
+
       if (json.print_url) {
         const receiptWindow = window.open(json.print_url, "_blank");
 
         if (receiptWindow === null) {
           alert(
-            "Rinnovo completato, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico pagamenti."
+            "Rinnovo completato, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico ricevute."
           );
         } else {
-          alert(
-            `Rinnovo completato.\n\n` +
-              `Cliente: ${json.customer_name || ""}\n` +
-              `Piano: ${json.plan?.name || plan.name}\n` +
-              `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
-          );
+          alert(successMessage);
         }
       } else {
-        alert(
-          `Rinnovo completato.\n\n` +
-            `Cliente: ${json.customer_name || ""}\n` +
-            `Piano: ${json.plan?.name || plan.name}\n` +
-            `Ricevuta: ${json.receipt?.receipt_number || "creata"}`
-        );
+        alert(successMessage);
       }
 
       await loadAll();
     } catch (error) {
       console.error("renewSubscription failed", error);
       alert("Errore imprevisto durante il rinnovo abbonamento.");
+    } finally {
+      setRenewalSaving(false);
     }
   }
 
-  
+
+  function openEditSubscription(subscription: any) {
+    setEditingSubscriptionId(subscription.id);
+    setSubscriptionEditForm({
+      plan_id: subscription.plan_id || "",
+      starts_at: String(subscription.starts_at || "").slice(0, 10),
+      ends_at: String(subscription.ends_at || "").slice(0, 10),
+      amount: Number(subscription.amount || 0).toFixed(2),
+      payment_method: subscription.payment_method || "cash",
+      notes: "",
+    });
+    setShowSubscriptionHistory(true);
+  }
+
+  function cancelEditSubscription() {
+    setEditingSubscriptionId("");
+    setSubscriptionEditForm({});
+  }
+
+  function updateSubscriptionEditField(field: string, value: any) {
+    setSubscriptionEditForm((prev: any) => ({
+      ...prev,
+      [field]: value,
+    }));
+  }
+
+  async function saveSubscriptionEdit() {
+    if (!customer?.id) return alert("Cliente non caricato.");
+
+    if (!editingSubscriptionId) {
+      alert("Nessun abbonamento selezionato.");
+      return;
+    }
+
+    const amount = Number(String(subscriptionEditForm.amount || "").replace(",", "."));
+
+    if (!subscriptionEditForm.plan_id) {
+      alert("Seleziona un piano.");
+      return;
+    }
+
+    if (!subscriptionEditForm.starts_at) {
+      alert("Inserisci la data inizio.");
+      return;
+    }
+
+    if (!subscriptionEditForm.ends_at) {
+      alert("Inserisci la data fine.");
+      return;
+    }
+
+    if (subscriptionEditForm.ends_at < subscriptionEditForm.starts_at) {
+      alert("La data fine non può essere precedente alla data inizio.");
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      alert("Inserisci un importo valido.");
+      return;
+    }
+
+    setSavingSubscriptionEdit(true);
+
+    try {
+      const response = await fetch("/api/customers/update-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "update",
+          customer_id: customer.id,
+          subscription_id: editingSubscriptionId,
+          plan_id: subscriptionEditForm.plan_id,
+          starts_at: subscriptionEditForm.starts_at,
+          ends_at: subscriptionEditForm.ends_at,
+          amount,
+          payment_method: subscriptionEditForm.payment_method || "cash",
+          notes: subscriptionEditForm.notes || "",
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error("saveSubscriptionEdit error", result);
+        alert(result?.error || "Errore modifica abbonamento.");
+        return;
+      }
+
+      setEditingSubscriptionId("");
+      setSubscriptionEditForm({});
+      await loadAll();
+
+      alert("Abbonamento modificato correttamente.");
+    } catch (error) {
+      console.error("saveSubscriptionEdit failed", error);
+      alert("Errore imprevisto durante la modifica abbonamento.");
+    } finally {
+      setSavingSubscriptionEdit(false);
+    }
+  }
+
+  async function cancelSubscriptionRecord(subscription: any) {
+    if (!customer?.id) return alert("Cliente non caricato.");
+
+    const confirmed = window.confirm(
+      "Confermi l'annullamento di questo abbonamento?\n\nIl record resterà nello storico come ANNULLATO."
+    );
+
+    if (!confirmed) return;
+
+    const reason = window.prompt("Motivo annullamento, opzionale:", "Errore inserimento reception");
+
+    try {
+      const response = await fetch("/api/customers/update-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "cancel",
+          customer_id: customer.id,
+          subscription_id: subscription.id,
+          reason: reason || "",
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error("cancelSubscriptionRecord error", result);
+        alert(result?.error || "Errore annullamento abbonamento.");
+        return;
+      }
+
+      if (editingSubscriptionId === subscription.id) {
+        setEditingSubscriptionId("");
+        setSubscriptionEditForm({});
+      }
+
+      await loadAll();
+
+      alert("Abbonamento annullato correttamente.");
+    } catch (error) {
+      console.error("cancelSubscriptionRecord failed", error);
+      alert("Errore imprevisto durante l'annullamento abbonamento.");
+    }
+  }
 
   async function addNote() {
   if (!customer?.id) {
@@ -1386,7 +1680,26 @@ async function disableBlock(blockId: string) {
       {activeSection === "overview" ? (
         <section className="section-panel">
           <div className="overview-grid">
-            <OverviewCard title="Abbonamento" ok={!!activeSubscription} value={activeSubscription ? `${activeSubscription.subscription_plans?.name || "Attivo"}` : "Da rinnovare"} note={activeSubscription ? `Scade ${activeSubscription.ends_at}` : "Nessun piano attivo"} action="Gestisci" onAction={() => setActiveSection("subscriptions")} />
+            <OverviewCard
+              title="Abbonamento"
+              ok={!!activeSubscription}
+              value={
+                activeSubscription
+                  ? `${activeSubscription.subscription_plans?.name || "Attivo"}`
+                  : plannedSubscription
+                    ? "Pianificato"
+                    : "Da rinnovare"
+              }
+              note={
+                activeSubscription
+                  ? `Scade ${activeSubscription.ends_at}`
+                  : plannedSubscription
+                    ? `Parte ${plannedSubscription.starts_at}`
+                    : "Nessun piano attivo"
+              }
+              action="Gestisci"
+              onAction={() => setActiveSection("subscriptions")}
+            />
             <OverviewCard title="Quota associativa" ok={!!activeMembership} value={activeMembership ? "Regolare" : "Da rinnovare"} note={activeMembership ? `Scade ${activeMembership.valid_until}` : "Quota mancante"} action="Gestisci" onAction={() => setActiveSection("subscriptions")} />
             <OverviewCard title="Certificato medico" ok={!!certificateValid} value={certificateValid ? "Valido" : "Critico"} note={certificateValid ? `Scade ${medicalCertificateEnd}` : "Upload o rinnovo richiesto"} action="Apri" onAction={() => setActiveSection("documents")} />
             <OverviewCard title="Pagamenti" ok value={`${subscriptions.length + membershipFees.length} movimenti`} note="Storici completi in sezione cassa" action="Apri" onAction={() => setActiveSection("payments")} />
@@ -1457,7 +1770,12 @@ async function disableBlock(blockId: string) {
         <section className="section-panel">
           <div className="content-grid">
             <BGCard variant="premium">
-              <BGSectionHeader title="Rinnovo rapido + pagamento" subtitle="Rinnovi con ricevuta automatica e metodo di pagamento selezionato." actions={<BGButton onClick={renewMembershipFee}>Rinnova quota 10€</BGButton>} />
+              <BGSectionHeader
+                title="Rinnovo rapido + pagamento"
+                subtitle="Prepara il rinnovo guidato: data inizio modificabile, importo, metodo e ricevuta automatica."
+                actions={<BGButton onClick={renewMembershipFee}>Rinnova quota 10€</BGButton>}
+              />
+
               <div className="payment-box">
                 <div className="small-muted" style={{ marginBottom: 8 }}>Metodo pagamento</div>
                 <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
@@ -1466,14 +1784,19 @@ async function disableBlock(blockId: string) {
                   <option value="bank_transfer">Bonifico</option>
                 </select>
               </div>
+
               <div className="quick-plan-grid">
-                {shortPlans.length === 0 ? <BGEmptyState title="Nessun piano attivo" description="Configura i piani abbonamento per abilitare il rinnovo rapido." /> : null}
+                {shortPlans.length === 0 ? (
+                  <BGEmptyState title="Nessun piano attivo" description="Configura i piani abbonamento per abilitare il rinnovo rapido." />
+                ) : null}
+
                 {shortPlans.map((plan) => {
                   const price = Number(plan.promo_price || plan.price || 0);
                   const duration = Number(plan.duration_days || 0);
                   const planDisplayName = formatPlanDisplayName(plan.name);
+
                   return (
-                    <BGButton key={plan.id} className="quick-plan-btn bg-plan-card" onClick={() => renewSubscription(plan.id)}>
+                    <BGButton key={plan.id} className="quick-plan-btn bg-plan-card" onClick={() => openRenewalPanel(plan.id)}>
                       <span className="plan-copy">
                         <span className="plan-title">{planDisplayName.title}</span>
                         {planDisplayName.days ? <span className="plan-days">{planDisplayName.days}</span> : null}
@@ -1486,29 +1809,307 @@ async function disableBlock(blockId: string) {
                   );
                 })}
               </div>
+
               <div className="manual-renew-box">
                 <div className="small-muted" style={{ marginBottom: 10 }}>Rinnovo manuale / piano personalizzato</div>
                 <div className="actions">
                   <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
                     <option value="">Seleziona piano</option>
-                    {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni</option>)}
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
+                      </option>
+                    ))}
                   </select>
-                  <BGButton variant="secondary" onClick={() => renewSubscription()}>Rinnova</BGButton>
+                  <BGButton variant="secondary" onClick={() => openRenewalPanel()}>Prepara rinnovo</BGButton>
+                </div>
+              </div>
+
+              {renewalOpen ? (
+                <div className="manual-renew-box" style={{ marginTop: 16 }}>
+                  <BGSectionHeader
+                    title="Conferma rinnovo guidato"
+                    subtitle="Controlla periodo, importo e pagamento prima di generare abbonamento e ricevuta."
+                  />
+
+                  <div className="info-grid">
+                    <InfoMini label="Cliente" value={customerName} />
+                    <InfoMini
+                      label="Stato attuale"
+                      value={
+                        activeSubscription?.ends_at
+                          ? `Attivo fino al ${formatDateIT(activeSubscription.ends_at)}`
+                          : "Da rinnovare"
+                      }
+                      tone={activeSubscription ? "success" : "danger"}
+                    />
+                  </div>
+
+                  <div className="form-grid" style={{ marginTop: 14 }}>
+                    <EditField label="Piano">
+                      <select value={renewalPlanId} onChange={(e) => updateRenewalPlan(e.target.value)}>
+                        <option value="">Seleziona piano</option>
+                        {plans.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
+                          </option>
+                        ))}
+                      </select>
+                    </EditField>
+
+                    <EditField label="Data inizio">
+                      <input
+                        type="date"
+                        value={renewalStartDate}
+                        onChange={(e) => updateRenewalStartDate(e.target.value)}
+                      />
+                    </EditField>
+
+                    <EditField label="Data fine">
+                      <input type="date" value={renewalEndDate} readOnly />
+                    </EditField>
+
+                    <EditField label="Importo pagato">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={renewalAmount}
+                        onChange={(e) => setRenewalAmount(e.target.value)}
+                      />
+                    </EditField>
+
+                    <EditField label="Metodo pagamento">
+                      <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
+                        <option value="cash">Contanti</option>
+                        <option value="pos">POS</option>
+                        <option value="bank_transfer">Bonifico</option>
+                      </select>
+                    </EditField>
+
+                    <EditField label="Note rinnovo" full>
+                      <textarea
+                        value={renewalNotes}
+                        onChange={(e) => setRenewalNotes(e.target.value)}
+                        placeholder="Esempio: partenza posticipata, sconto applicato, recupero giorni..."
+                      />
+                    </EditField>
+                  </div>
+
+                  {getRenewalWarnings().length > 0 ? (
+                    <div className="payment-box" style={{ marginTop: 14 }}>
+                      <div className="small-muted" style={{ marginBottom: 8 }}>Avvisi rinnovo</div>
+                      <div className="history-list">
+                        {getRenewalWarnings().map((warning) => (
+                          <div key={warning} className="history-row">
+                            <div className="history-main">
+                              <div className="history-title">Attenzione</div>
+                              <div className="history-period">{warning}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="payment-box" style={{ marginTop: 14 }}>
+                    <div className="small-muted" style={{ marginBottom: 8 }}>Riepilogo finale</div>
+                    <div className="info-grid">
+                      <InfoMini label="Piano" value={getRenewalPlan()?.name || "-"} />
+                      <InfoMini label="Periodo" value={`${formatDateIT(renewalStartDate)} → ${formatDateIT(renewalEndDate)}`} />
+                      <InfoMini label="Importo" value={`€ ${Number(String(renewalAmount).replace(",", ".") || 0).toFixed(2)}`} />
+                      <InfoMini label="Pagamento" value={paymentMethodLabel(selectedPaymentMethod)} />
+                    </div>
+                    <div className="small-muted" style={{ marginTop: 10 }}>
+                      Alla conferma BodyGate creerà abbonamento, pagamento, ricevuta e timeline cliente.
+                    </div>
+                  </div>
+
+                  <div className="actions" style={{ marginTop: 16 }}>
+                    <BGButton variant="secondary" onClick={() => setRenewalOpen(false)} disabled={renewalSaving}>
+                      Annulla
+                    </BGButton>
+                    <BGButton onClick={() => renewSubscription()} disabled={renewalSaving}>
+                      {renewalSaving ? "Rinnovo in corso..." : "Conferma rinnovo"}
+                    </BGButton>
+                  </div>
+                </div>
+              ) : null}
+            </BGCard>
+
+            <BGCard variant="soft">
+              <BGSectionHeader
+                title="Stato abbonamento"
+                subtitle="Situazione operativa del cliente e storico consultabile su richiesta."
+              />
+
+              <div className="info-grid">
+                <InfoMini
+                  label="Abbonamento attuale"
+                  value={
+                    activeSubscription
+                      ? `${activeSubscription.subscription_plans?.name || "Attivo"} · fino al ${activeSubscription.ends_at}`
+                      : "Nessun abbonamento attivo"
+                  }
+                  tone={activeSubscription ? "success" : "danger"}
+                />
+
+                <InfoMini
+                  label="Prossimo rinnovo"
+                  value={
+                    plannedSubscription
+                      ? `${plannedSubscription.subscription_plans?.name || "Pianificato"} · dal ${plannedSubscription.starts_at}`
+                      : "Nessun rinnovo pianificato"
+                  }
+                  tone={plannedSubscription ? "success" : "neutral"}
+                />
+
+                <InfoMini
+                  label="Quota associativa"
+                  value={
+                    activeMembership
+                      ? `Valida fino al ${activeMembership.valid_until}`
+                      : "Da rinnovare"
+                  }
+                  tone={activeMembership ? "success" : "danger"}
+                />
+
+                <InfoMini
+                  label="Accesso"
+                  value={accessAllowed ? "Operativo" : "Da verificare"}
+                  tone={accessAllowed ? "success" : "danger"}
+                />
+              </div>
+
+              <div className="payment-box" style={{ marginTop: 14 }}>
+                <div className="small-muted" style={{ marginBottom: 8 }}>
+                  Consultazione storici
+                </div>
+
+                <div className="actions">
+                  <BGButton
+                    variant="secondary"
+                    onClick={() => setShowSubscriptionHistory((prev) => !prev)}
+                  >
+                    {showSubscriptionHistory ? "Nascondi storico abbonamenti" : "Mostra storico abbonamenti"}
+                  </BGButton>
+
+                  <BGButton
+                    variant="secondary"
+                    onClick={() => setShowMembershipHistory((prev) => !prev)}
+                  >
+                    {showMembershipHistory ? "Nascondi storico quota" : "Mostra storico quota"}
+                  </BGButton>
                 </div>
               </div>
             </BGCard>
+          </div>
 
+            {editingSubscriptionId ? (
+              <BGCard variant="warning">
+                <BGSectionHeader
+                  title="Modifica abbonamento selezionato"
+                  subtitle="Correggi piano, periodo, importo, metodo pagamento e note operative."
+                  actions={
+                    <div className="actions-inline">
+                      <BGButton variant="ghost" onClick={cancelEditSubscription} disabled={savingSubscriptionEdit}>
+                        Annulla
+                      </BGButton>
+                      <BGButton onClick={saveSubscriptionEdit} disabled={savingSubscriptionEdit}>
+                        {savingSubscriptionEdit ? "Salvataggio..." : "Salva modifiche"}
+                      </BGButton>
+                    </div>
+                  }
+                />
+
+                <div className="form-grid">
+                  <EditField label="Piano">
+                    <select
+                      value={subscriptionEditForm.plan_id || ""}
+                      onChange={(e) => updateSubscriptionEditField("plan_id", e.target.value)}
+                    >
+                      <option value="">Seleziona piano</option>
+                      {plans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
+                        </option>
+                      ))}
+                    </select>
+                  </EditField>
+
+                  <EditField label="Data inizio">
+                    <input
+                      type="date"
+                      value={subscriptionEditForm.starts_at || ""}
+                      onChange={(e) => updateSubscriptionEditField("starts_at", e.target.value)}
+                    />
+                  </EditField>
+
+                  <EditField label="Data fine">
+                    <input
+                      type="date"
+                      value={subscriptionEditForm.ends_at || ""}
+                      onChange={(e) => updateSubscriptionEditField("ends_at", e.target.value)}
+                    />
+                  </EditField>
+
+                  <EditField label="Importo">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={subscriptionEditForm.amount || ""}
+                      onChange={(e) => updateSubscriptionEditField("amount", e.target.value)}
+                    />
+                  </EditField>
+
+                  <EditField label="Metodo pagamento">
+                    <select
+                      value={subscriptionEditForm.payment_method || "cash"}
+                      onChange={(e) => updateSubscriptionEditField("payment_method", e.target.value)}
+                    >
+                      <option value="cash">Contanti</option>
+                      <option value="pos">POS</option>
+                      <option value="bank_transfer">Bonifico</option>
+                    </select>
+                  </EditField>
+
+                  <EditField label="Note modifica" full>
+                    <textarea
+                      value={subscriptionEditForm.notes || ""}
+                      onChange={(e) => updateSubscriptionEditField("notes", e.target.value)}
+                      placeholder="Esempio: correzione data, piano errato, importo corretto..."
+                    />
+                  </EditField>
+                </div>
+
+                <div className="small-muted" style={{ marginTop: 12 }}>
+                  Nota: questa modifica aggiorna l'abbonamento e la timeline. Non modifica la ricevuta A4 già emessa.
+                </div>
+              </BGCard>
+            ) : null}
+
+          {showSubscriptionHistory ? (
             <HistoryCard title="Storico abbonamenti" subtitle="Tutti i rinnovi registrati per il cliente.">
               <div className="history-list">
-                {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <SubscriptionHistoryRow key={sub.id} subscription={sub} today={today} />)}
+                {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <SubscriptionHistoryRow
+                    key={sub.id}
+                    subscription={sub}
+                    today={today}
+                    onEdit={() => openEditSubscription(sub)}
+                    onCancel={() => cancelSubscriptionRecord(sub)}
+                  />)}
               </div>
             </HistoryCard>
-          </div>
-          <HistoryCard title="Storico quota associativa" subtitle="Quote annuali registrate.">
-            <div className="history-list">
-              {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <MembershipFeeHistoryRow key={fee.id} fee={fee} today={today} />)}
-            </div>
-          </HistoryCard>
+          ) : null}
+
+          {showMembershipHistory ? (
+            <HistoryCard title="Storico quota associativa" subtitle="Quote annuali registrate.">
+              <div className="history-list">
+                {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <MembershipFeeHistoryRow key={fee.id} fee={fee} today={today} />)}
+              </div>
+            </HistoryCard>
+          ) : null}
         </section>
       ) : null}
 
@@ -1720,22 +2321,63 @@ function InfoRow({
 function SubscriptionHistoryRow({
   subscription,
   today,
+  onEdit,
+  onCancel,
 }: {
   subscription: any;
   today: string;
+  onEdit: () => void;
+  onCancel: () => void;
 }) {
   const amount = Number(subscription.amount || 0);
-  const isActive = subscription.starts_at <= today && subscription.ends_at >= today;
+  const startsAt = String(subscription.starts_at || "").slice(0, 10);
+  const endsAt = String(subscription.ends_at || "").slice(0, 10);
+
+  const isCancelled = subscription.is_active === false;
+  const isFuture = !isCancelled && startsAt > today;
+  const isActive = !isCancelled && startsAt <= today && endsAt >= today;
+
+  const statusLabel = isCancelled
+    ? "Annullato"
+    : isActive
+      ? "Attivo"
+      : isFuture
+        ? "Pianificato"
+        : "Storico";
+
+  const statusTone = isActive ? "success" : isFuture ? "info" : "neutral";
 
   return (
     <div className="history-row">
       <div className="history-main">
-        <div className="history-title">{subscription.subscription_plans?.name || "Abbonamento"}</div>
-        <div className="history-period">Periodo: {subscription.starts_at || "—"} → {subscription.ends_at || "—"}</div>
+        <div className="history-title">
+          {subscription.subscription_plans?.name || "Abbonamento"}
+        </div>
+        <div className="history-period">
+          Periodo: {startsAt || "—"} → {endsAt || "—"}
+        </div>
+        {subscription.payment_method ? (
+          <div className="history-period">Metodo: {subscription.payment_method}</div>
+        ) : null}
+        {subscription.notes ? (
+          <div className="history-period">Note: {String(subscription.notes).slice(0, 180)}</div>
+        ) : null}
       </div>
+
       <div className="history-side">
         <div className="history-amount">€ {amount.toFixed(2)}</div>
-        <BGStatusBadge tone={isActive ? "success" : "neutral"}>{isActive ? "Attivo" : "Storico"}</BGStatusBadge>
+        <BGStatusBadge tone={statusTone}>{statusLabel}</BGStatusBadge>
+
+        <div className="actions" style={{ justifyContent: "flex-end" }}>
+          <BGButton variant="secondary" onClick={onEdit}>
+            Modifica
+          </BGButton>
+          {!isCancelled ? (
+            <BGButton variant="danger" onClick={onCancel}>
+              Annulla
+            </BGButton>
+          ) : null}
+        </div>
       </div>
     </div>
   );

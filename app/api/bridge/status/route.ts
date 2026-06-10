@@ -3,8 +3,14 @@ import { promisify } from "node:util";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const execAsync = promisify(exec);
+
+const bridgeBaseUrl =
+  process.env.BODYGATE_BRIDGE_URL ||
+  process.env.NEXT_PUBLIC_BODYGATE_BRIDGE_URL ||
+  "http://127.0.0.1:5050";
 
 type BridgeStatusPayload = {
   ok?: boolean;
@@ -29,23 +35,73 @@ async function isBridgeProcessActive() {
     };
   }
 
+  const processNames = [
+    "BodyGateAccessBridge.exe",
+    "BodyGateBridge.exe",
+    "bridge.exe",
+  ];
+
+  for (const processName of processNames) {
+    try {
+      const { stdout } = await execAsync(
+        `tasklist /FI "IMAGENAME eq ${processName}" /FO CSV /NH`
+      );
+
+      if (stdout.toLowerCase().includes(processName.toLowerCase())) {
+        return {
+          active: true,
+          method: "tasklist",
+          process_name: processName,
+          note: null,
+        };
+      }
+    } catch {
+      // Continua con il prossimo nome processo.
+    }
+  }
+
+  return {
+    active: false,
+    method: "tasklist",
+    process_name: null,
+    note: "Processo bridge non trovato in tasklist.",
+  };
+}
+
+async function fetchJsonSafe(url: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1600);
+
   try {
-    const { stdout } = await execAsync(
-      'tasklist /FI "IMAGENAME eq BodyGateAccessBridge.exe" /FO CSV /NH'
-    );
-    const active = stdout.toLowerCase().includes("bodygateaccessbridge.exe");
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    let json: any = null;
+
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = { raw: text };
+    }
 
     return {
-      active,
-      method: "tasklist",
-      note: active ? null : "Processo bridge non trovato in tasklist.",
+      ok: response.ok,
+      status: response.status,
+      json,
+      error: null as string | null,
     };
   } catch (error: unknown) {
     return {
-      active: null as boolean | null,
-      method: "tasklist",
-      note: error instanceof Error ? error.message : "Errore tasklist",
+      ok: false,
+      status: 0,
+      json: null,
+      error: error instanceof Error ? error.message : "fetch failed",
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -53,88 +109,69 @@ export async function GET() {
   const checkedAt = new Date().toISOString();
   const processInfo = await isBridgeProcessActive();
 
-  try {
-    const [statusRes, healthRes] = await Promise.all([
-      fetch("http://localhost:5050/status", { cache: "no-store" }),
-      fetch("http://localhost:5050/health", { cache: "no-store" }),
-    ]);
+  const normalizedBaseUrl = bridgeBaseUrl.replace(/\/+$/g, "");
+  const statusUrl = `${normalizedBaseUrl}/status`;
+  const healthUrl = `${normalizedBaseUrl}/health`;
 
-    const bridgeStatus = (await statusRes.json()) as BridgeStatusPayload;
-    const bridgeHealth = healthRes.ok ? await healthRes.json() : null;
+  const statusResult = await fetchJsonSafe(statusUrl);
+  const healthResult = await fetchJsonSafe(healthUrl);
 
-    const connected =
-      typeof bridgeStatus?.connected === "boolean"
-        ? bridgeStatus.connected
-        : typeof bridgeStatus?.isConnected === "boolean"
-          ? bridgeStatus.isConnected
-          : true;
+  const bridgeStatus = (statusResult.json || {}) as BridgeStatusPayload;
+  const bridgeHealth = healthResult.ok ? healthResult.json : null;
 
-    const processing =
-      typeof bridgeStatus?.processing === "boolean"
-        ? bridgeStatus.processing
-        : typeof bridgeStatus?.isProcessing === "boolean"
-          ? bridgeStatus.isProcessing
-          : false;
+  const connected =
+    typeof bridgeStatus?.connected === "boolean"
+      ? bridgeStatus.connected
+      : typeof bridgeStatus?.isConnected === "boolean"
+        ? bridgeStatus.isConnected
+        : statusResult.ok;
 
-    const watchdogState = !statusRes.ok
-      ? "offline"
+  const processing =
+    typeof bridgeStatus?.processing === "boolean"
+      ? bridgeStatus.processing
+      : typeof bridgeStatus?.isProcessing === "boolean"
+        ? bridgeStatus.isProcessing
+        : false;
+
+  const online = statusResult.ok || healthResult.ok || processInfo.active === true;
+
+  const watchdogState = !online
+    ? "offline"
+    : !statusResult.ok && processInfo.active === true
+      ? "degraded"
       : !connected
         ? "degraded"
         : "online";
 
-    const watchdogError = !statusRes.ok
-      ? `Bridge /status HTTP ${statusRes.status}`
-      : !connected
-        ? "Bridge raggiungibile ma centralina non connessa (connected=false)."
-        : processInfo.active === false
-          ? "Bridge HTTP risponde ma processo BodyGateAccessBridge.exe non rilevato."
-          : null;
+  const lastError =
+    statusResult.error ||
+    (!statusResult.ok ? `Bridge /status HTTP ${statusResult.status}` : null) ||
+    healthResult.error ||
+    null;
 
-    return NextResponse.json({
-      ok: true,
-      online: statusRes.ok,
-      connected,
-      lastBadge: bridgeStatus?.lastBadge ?? bridgeStatus?.last_badge ?? null,
-      lastBadgeTime:
-        bridgeStatus?.lastBadgeTime ?? bridgeStatus?.last_badge_time ?? null,
-      processing,
-      bridge: bridgeStatus,
-      health: bridgeHealth,
-      checked_at: checkedAt,
-      watchdog: {
-        state: watchdogState,
-        process_active: processInfo.active,
-        process_check: processInfo.method,
-        process_note: processInfo.note,
-        last_error: watchdogError,
-        restart_suggested: watchdogState !== "online",
-        auto_restart_enabled: false,
-      },
-    });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Bridge non raggiungibile";
-
-    return NextResponse.json({
-      ok: true,
-      online: false,
-      connected: false,
-      lastBadge: null,
-      lastBadgeTime: null,
-      processing: false,
-      bridge: null,
-      health: null,
-      error: message,
-      checked_at: checkedAt,
-      watchdog: {
-        state: "offline",
-        process_active: processInfo.active,
-        process_check: processInfo.method,
-        process_note: processInfo.note,
-        last_error: message,
-        restart_suggested: true,
-        auto_restart_enabled: false,
-      },
-    });
-  }
+  return NextResponse.json({
+    ok: true,
+    online,
+    connected,
+    lastBadge: bridgeStatus?.lastBadge ?? bridgeStatus?.last_badge ?? null,
+    lastBadgeTime:
+      bridgeStatus?.lastBadgeTime ?? bridgeStatus?.last_badge_time ?? null,
+    processing,
+    bridge: bridgeStatus,
+    health: bridgeHealth,
+    checked_at: checkedAt,
+    bridge_base_url: normalizedBaseUrl,
+    status_url: statusUrl,
+    health_url: healthUrl,
+    watchdog: {
+      state: watchdogState,
+      process_active: processInfo.active,
+      process_name: processInfo.process_name ?? null,
+      process_check: processInfo.method,
+      process_note: processInfo.note,
+      last_error: watchdogState === "online" ? null : lastError,
+      restart_suggested: watchdogState === "offline",
+      auto_restart_enabled: false,
+    },
+  });
 }

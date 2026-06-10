@@ -15,7 +15,53 @@ function addDays(date: Date, days: number) {
 }
 
 function dateOnly(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateOnly(value: string) {
+  if (!value) return new Date();
+
+  const normalized = value.slice(0, 10);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+
+  const date = new Date(`${normalized}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function parseAmount(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const amount = Number(String(value).replace(",", "."));
+
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  return amount;
+}
+
+function normalizePaymentMethod(value: string) {
+  const method = String(value || "cash").trim();
+
+  if (method === "cash") return "cash";
+  if (method === "pos") return "pos";
+  if (method === "bank_transfer") return "bank_transfer";
+
+  return "cash";
 }
 
 function fallbackReceiptNumber() {
@@ -60,8 +106,14 @@ export async function POST(req: Request) {
 
     const customerId = String(body.customer_id || body.customerId || "").trim();
     const planId = String(body.plan_id || body.planId || "").trim();
-    const paymentMethod = String(body.payment_method || body.paymentMethod || "cash").trim();
+    const paymentMethod = normalizePaymentMethod(
+      String(body.payment_method || body.paymentMethod || "cash")
+    );
     const notes = String(body.notes || "").trim();
+    const requestedStartDate = String(
+      body.start_date || body.startDate || ""
+    ).trim();
+    const requestedAmount = parseAmount(body.amount);
 
     if (!customerId) {
       return NextResponse.json(
@@ -121,14 +173,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const amount = Number(plan.promo_price || plan.price || 0);
+    const standardAmount = Number(plan.promo_price || plan.price || 0);
+    const amount =
+      requestedAmount !== null && requestedAmount > 0
+        ? requestedAmount
+        : standardAmount;
+
     const durationDays = Number(plan.duration_days || 0);
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Prezzo piano non valido",
+          error: "Importo rinnovo non valido",
         },
         { status: 400 }
       );
@@ -144,35 +201,60 @@ export async function POST(req: Request) {
       );
     }
 
+    const startDateObj = parseDateOnly(requestedStartDate);
+
+    if (!startDateObj) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Data inizio abbonamento non valida",
+        },
+        { status: 400 }
+      );
+    }
+
     const now = new Date().toISOString();
-    const today = new Date();
-    const startsAt = dateOnly(today);
-    const endsAt = dateOnly(addDays(today, durationDays));
+    const startsAt = dateOnly(startDateObj);
+    const endsAt = dateOnly(addDays(startDateObj, durationDays));
     const branchId = customer.branch_id || plan.branch_id || null;
-    const customerName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+    const customerName =
+      `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+
     const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})`;
 
-    await supabaseAdmin
-      .from("customer_subscriptions")
-      .update({ is_active: false })
-      .eq("customer_id", customerId)
-      .eq("is_active", true);
+    const todayOnly = dateOnly(new Date());
 
-    const { data: subscription, error: subscriptionError } = await supabaseAdmin
-      .from("customer_subscriptions")
-      .insert({
-        customer_id: customerId,
-        branch_id: branchId,
-        plan_id: plan.id,
-        amount,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        is_active: true,
-        payment_method: paymentMethod,
-        notes: notes || `Rinnovo automatico ${plan.name}`,
-      })
-      .select("*")
-      .single();
+if (startsAt <= todayOnly) {
+  await supabaseAdmin
+    .from("customer_subscriptions")
+    .update({ is_active: false })
+    .eq("customer_id", customerId)
+    .eq("is_active", true);
+} else {
+  await supabaseAdmin
+    .from("customer_subscriptions")
+    .update({ is_active: false })
+    .eq("customer_id", customerId)
+    .eq("is_active", true)
+    .gte("starts_at", startsAt);
+}
+
+    const { data: subscription, error: subscriptionError } =
+      await supabaseAdmin
+        .from("customer_subscriptions")
+        .insert({
+          customer_id: customerId,
+          branch_id: branchId,
+          plan_id: plan.id,
+          amount,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          is_active: true,
+          payment_method: paymentMethod,
+          notes: notes || `Rinnovo guidato ${plan.name}`,
+        })
+        .select("*")
+        .single();
 
     if (subscriptionError || !subscription) {
       return NextResponse.json(
@@ -211,26 +293,28 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: accountingPayment, error: accountingPaymentError } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        customer_id: customerId,
-        payment_method_id: null,
-        amount,
-        payment_type: "subscription",
-        description: paymentDescription,
-        status: "paid",
-        paid_at: now,
-        created_by: "admin@bodygate.it",
-      })
-      .select("*")
-      .single();
+    const { data: accountingPayment, error: accountingPaymentError } =
+      await supabaseAdmin
+        .from("payments")
+        .insert({
+          customer_id: customerId,
+          payment_method_id: null,
+          amount,
+          payment_type: "subscription",
+          description: paymentDescription,
+          status: "paid",
+          paid_at: now,
+          created_by: "admin@bodygate.it",
+        })
+        .select("*")
+        .single();
 
     if (accountingPaymentError || !accountingPayment) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Abbonamento creato, ma errore registrazione incasso contabile",
+          error:
+            "Abbonamento creato, ma errore registrazione incasso contabile",
           detail: accountingPaymentError,
           subscription_id: subscription.id,
           customer_payment_id: payment.id,
@@ -243,7 +327,9 @@ export async function POST(req: Request) {
       customer_id: customerId,
       type: "subscription",
       title: "Abbonamento rinnovato",
-      description: `${plan.name} €${amount.toFixed(2)} valido fino al ${endsAt}`,
+      description: `${plan.name} €${amount.toFixed(
+        2
+      )} valido dal ${startsAt} al ${endsAt}`,
       created_at: now,
     });
 
@@ -258,7 +344,9 @@ export async function POST(req: Request) {
         receipt_number: receiptNumber,
         receipt_type: "subscription",
         amount,
-        description: `${paymentDescription}${customerName ? ` - ${customerName}` : ""}`,
+        description: `${paymentDescription}${
+          customerName ? ` - ${customerName}` : ""
+        }`,
         customer_copy_label: "COPIA CLIENTE",
         gym_copy_label: "COPIA PALESTRA",
         issued_at: now,
@@ -270,7 +358,8 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Abbonamento e pagamento creati, ma errore creazione ricevuta",
+          error:
+            "Abbonamento e pagamento creati, ma errore creazione ricevuta",
           detail: receiptError,
           subscription_id: subscription.id,
           payment_id: payment.id,
@@ -297,6 +386,8 @@ export async function POST(req: Request) {
       print_url: `/customers/${customerId}/receipt/${receipt.id}?print=1`,
     });
   } catch (error: unknown) {
+    console.error("renew-subscription fatal error", error);
+
     return NextResponse.json(
       {
         ok: false,
