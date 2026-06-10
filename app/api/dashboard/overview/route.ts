@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+const bridgeBaseUrl =
+  process.env.BODYGATE_BRIDGE_URL ||
+  process.env.NEXT_PUBLIC_BODYGATE_BRIDGE_URL ||
+  "http://127.0.0.1:5050";
 
 function startOfToday() {
   const d = new Date();
@@ -78,6 +85,50 @@ function normalizeAccessLog(row: any) {
   };
 }
 
+async function fetchBridgeLiveStatus() {
+  const normalizedBaseUrl = bridgeBaseUrl.replace(/\/+$/g, "");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1200);
+
+  try {
+    const response = await fetch(`${normalizedBaseUrl}/status`, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    let json: any = null;
+
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = { raw: text };
+    }
+
+    return {
+      ok: response.ok,
+      status: response.ok ? "online" : "degraded",
+      last_seen_at: new Date().toISOString(),
+      raw: json,
+      source: "bridge-live",
+      bridge_base_url: normalizedBaseUrl,
+      error: response.ok ? null : `HTTP ${response.status}`,
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      status: "unknown",
+      last_seen_at: null,
+      raw: null,
+      source: "bridge-live",
+      bridge_base_url: normalizedBaseUrl,
+      error: error?.message || "fetch failed",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function GET() {
   try {
     const todayIso = startOfToday();
@@ -100,6 +151,7 @@ export async function GET() {
       expiringSubscriptionsResult,
       activeBlocksResult,
       bridgeResult,
+      bridgeLiveResult,
     ] = await Promise.all([
       supabase
         .from("customers")
@@ -213,6 +265,8 @@ export async function GET() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1),
+
+      fetchBridgeLiveStatus(),
     ]);
 
     const paymentsToday = paymentsTodayResult.data || [];
@@ -228,7 +282,17 @@ export async function GET() {
       0
     );
 
-    const bridge = bridgeResult.data?.[0] || null;
+    const bridgeStored = bridgeResult.data?.[0] || null;
+
+    const bridgeStatus =
+      bridgeLiveResult.status === "online"
+        ? "online"
+        : bridgeLiveResult.status === "degraded"
+          ? "degraded"
+          : bridgeStored?.status || "unknown";
+
+    const bridgeLastSeen =
+      bridgeLiveResult.last_seen_at || bridgeStored?.created_at || null;
 
     return NextResponse.json({
       ok: true,
@@ -242,9 +306,12 @@ export async function GET() {
         active_blocks: activeBlocksResult.count || 0,
       },
       bridge: {
-        status: bridge?.status || "unknown",
-        last_seen_at: bridge?.created_at || null,
-        raw: bridge,
+        status: bridgeStatus,
+        last_seen_at: bridgeLastSeen,
+        raw: bridgeLiveResult.raw || bridgeStored,
+        source: bridgeLiveResult.ok ? "bridge-live" : "bridge-status-table",
+        live: bridgeLiveResult,
+        stored: bridgeStored,
       },
       alerts: {
         expired_medical: expiredMedicalResult.data || [],
