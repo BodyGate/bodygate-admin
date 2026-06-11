@@ -1399,8 +1399,9 @@ export default function CustomerDetailsClient({
         }
         .overview-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
           gap: 16px;
+          align-items: stretch;
         }
         .operations-grid {
           display: grid;
@@ -1623,20 +1624,79 @@ export default function CustomerDetailsClient({
           overflow-wrap: anywhere;
         }
         .mini-card {
-          min-height: 154px;
+          position: relative;
+          isolation: isolate;
+          min-height: 176px;
           display: grid;
-          align-content: space-between;
-          gap: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 22px;
+          grid-template-rows: auto minmax(0, 1fr) auto;
+          gap: 16px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.105);
+          border-radius: 24px;
           padding: 18px;
-          background: rgba(255, 255, 255, 0.035);
+          background:
+            radial-gradient(circle at 92% 0%, rgba(239, 68, 68, 0.14), transparent 38%),
+            linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+            rgba(8, 8, 10, 0.94);
+          box-shadow:
+            0 18px 42px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          transition:
+            transform 0.18s ease,
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            background 0.18s ease;
+        }
+        .mini-card::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          z-index: -1;
+          border-radius: inherit;
+          background:
+            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 32%);
+          opacity: 0.76;
+          transition: opacity 0.18s ease;
+        }
+        .mini-card::after {
+          content: "";
+          position: absolute;
+          top: 18px;
+          bottom: 18px;
+          left: 0;
+          width: 3px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
+          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+        }
+        .mini-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(239, 68, 68, 0.38);
+          box-shadow:
+            0 24px 58px rgba(0, 0, 0, 0.4),
+            0 0 34px rgba(239, 68, 68, 0.08);
+        }
+        .mini-card:hover::before {
+          opacity: 1;
+        }
+        .mini-card-success::after {
+          background: linear-gradient(180deg, #22c55e, rgba(21, 128, 61, 0.22));
+          box-shadow: 0 0 18px rgba(34, 197, 94, 0.2);
+        }
+        .mini-card-warning::after {
+          background: linear-gradient(180deg, #f59e0b, rgba(180, 83, 9, 0.22));
+          box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+        }
+        .mini-card-danger::after {
+          background: linear-gradient(180deg, #fb7185, rgba(190, 18, 60, 0.24));
         }
         .mini-card-head {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
           gap: 12px;
+          min-width: 0;
         }
         .mini-title,
         .row-title,
@@ -1650,17 +1710,34 @@ export default function CustomerDetailsClient({
         .row-copy {
           min-width: 0;
         }
+        .mini-card-copy {
+          display: grid;
+          align-content: start;
+          gap: 7px;
+          min-width: 0;
+        }
         .mini-value {
-          color: #f5f5f5;
-          font-size: 14px;
-          font-weight: 850;
-          line-height: 1.45;
+          color: #fff;
+          font-size: 18px;
+          font-weight: 950;
+          line-height: 1.22;
+          letter-spacing: -0.025em;
           overflow-wrap: anywhere;
+        }
+        .mini-card-action {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          padding-top: 2px;
+        }
+        .mini-card-action .bg-button {
+          min-height: 38px;
+          padding-inline: 14px;
         }
         .overview-list {
           display: grid;
           gap: 6px;
-          margin-top: 10px;
+          margin-top: 4px;
           color: #a3a3a3;
           font-size: 12px;
           font-weight: 800;
@@ -2440,7 +2517,8 @@ export default function CustomerDetailsClient({
           <div className="overview-grid">
             <OverviewCard
               title="Abbonamento"
-              ok={!!activeSubscription}
+              status={subscriptionStatus}
+              tone={subscriptionTone}
               value={
                 activeSubscription
                   ? `${activeSubscription.subscription_plans?.name || "Attivo"}`
@@ -2460,7 +2538,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Quota associativa"
-              ok={!!activeMembership}
+              status={activeMembership ? "Regolare" : "Da verificare"}
+              tone={activeMembership ? "success" : "warning"}
               value={activeMembership ? "Regolare" : "Da rinnovare"}
               note={
                 activeMembership
@@ -2472,7 +2551,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Certificato medico"
-              ok={!!certificateValid}
+              status={certificateValid ? "Valido" : "Critico"}
+              tone={certificateValid ? "success" : "danger"}
               value={certificateValid ? "Valido" : "Critico"}
               note={
                 certificateValid
@@ -2484,7 +2564,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Pagamenti"
-              ok
+              status="Storico"
+              tone="info"
               value={`${subscriptions.length + membershipFees.length} movimenti`}
               note="Storici completi in sezione cassa"
               action="Apri"
@@ -2492,7 +2573,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Ricevute"
-              ok
+              status="Registro"
+              tone="info"
               value="Registro ricevute"
               note="A4 e ristampe mantenute"
               action="Apri"
@@ -2500,7 +2582,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Accessi"
-              ok={accessAllowed}
+              status={accessAllowed ? "Consentiti" : "Verifica"}
+              tone={accessAllowed ? "success" : "warning"}
               value={accessAllowed ? "Consentiti" : "Da verificare"}
               note="Ultimi 3 eventi"
               action="Apri"
@@ -2521,7 +2604,8 @@ export default function CustomerDetailsClient({
             </OverviewCard>
             <OverviewCard
               title="Note"
-              ok={recentNotes.length === 0}
+              status={recentNotes.length === 0 ? "Pulito" : "Da leggere"}
+              tone={recentNotes.length === 0 ? "success" : "warning"}
               value={`${notes.length} note`}
               note={recentNotes[0]?.note || "Nessuna nota urgente"}
               action="Gestisci"
@@ -2529,7 +2613,8 @@ export default function CustomerDetailsClient({
             />
             <OverviewCard
               title="Timeline recente"
-              ok
+              status="Aggiornata"
+              tone="info"
               value={`${recentTimelineEvents.length} eventi`}
               note="Ultimi 3 eventi"
               action="Apri"
@@ -3559,7 +3644,8 @@ function OverviewCard({
   title,
   value,
   note,
-  ok,
+  status,
+  tone,
   action,
   onAction,
   children,
@@ -3567,28 +3653,29 @@ function OverviewCard({
   title: string;
   value: string;
   note: string;
-  ok: boolean;
+  status: string;
+  tone: StatusTone;
   action: string;
   onAction: () => void;
   children?: ReactNode;
 }) {
   return (
-    <div className="mini-card">
+    <article className={`mini-card mini-card-${tone}`}>
       <div className="mini-card-head">
         <div className="mini-title">{title}</div>
-        <BGStatusBadge tone={ok ? "success" : "warning"}>
-          {ok ? "OK" : "ATTENZIONE"}
-        </BGStatusBadge>
+        <BGStatusBadge tone={tone}>{status}</BGStatusBadge>
       </div>
-      <div>
+      <div className="mini-card-copy">
         <div className="mini-value">{value}</div>
         <div className="small-muted">{note}</div>
         {children}
       </div>
-      <BGButton variant="ghost" onClick={onAction}>
-        {action}
-      </BGButton>
-    </div>
+      <div className="mini-card-action">
+        <BGButton variant="ghost" onClick={onAction}>
+          {action}
+        </BGButton>
+      </div>
+    </article>
   );
 }
 
