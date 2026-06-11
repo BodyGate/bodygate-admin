@@ -2260,6 +2260,189 @@ export default function CustomerDetailsClient({
           }
         }
       `}</style>
+      <style jsx global>{`
+        .operations-center-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          align-items: stretch;
+        }
+        .mini-card {
+          position: relative;
+          isolation: isolate;
+          min-height: 218px;
+          display: grid;
+          grid-template-rows: auto minmax(0, 1fr) auto;
+          gap: 16px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.105);
+          border-radius: 24px;
+          padding: 18px;
+          background:
+            radial-gradient(
+              circle at 92% 0%,
+              rgba(239, 68, 68, 0.14),
+              transparent 38%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.075),
+              rgba(255, 255, 255, 0.022)
+            ),
+            rgba(8, 8, 10, 0.94);
+          box-shadow:
+            0 18px 42px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          transition:
+            transform 0.18s ease,
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            background 0.18s ease;
+        }
+        .mini-card::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          z-index: -1;
+          border-radius: inherit;
+          background:
+            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
+            radial-gradient(
+              circle at top left,
+              rgba(255, 255, 255, 0.08),
+              transparent 32%
+            );
+          opacity: 0.76;
+          transition: opacity 0.18s ease;
+        }
+        .mini-card::after {
+          content: "";
+          position: absolute;
+          top: 18px;
+          bottom: 18px;
+          left: 0;
+          width: 3px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
+          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+        }
+        .mini-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(239, 68, 68, 0.38);
+          box-shadow:
+            0 24px 58px rgba(0, 0, 0, 0.4),
+            0 0 34px rgba(239, 68, 68, 0.08);
+        }
+        .mini-card:hover::before {
+          opacity: 1;
+        }
+        .mini-card-success::after {
+          background: linear-gradient(180deg, #22c55e, rgba(21, 128, 61, 0.22));
+          box-shadow: 0 0 18px rgba(34, 197, 94, 0.2);
+        }
+        .mini-card-warning::after {
+          background: linear-gradient(180deg, #f59e0b, rgba(180, 83, 9, 0.22));
+          box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+        }
+        .mini-card-danger::after {
+          background: linear-gradient(180deg, #fb7185, rgba(190, 18, 60, 0.24));
+          box-shadow: 0 0 18px rgba(251, 113, 133, 0.2);
+        }
+        .mini-card-info::after {
+          background: linear-gradient(180deg, #60a5fa, rgba(37, 99, 235, 0.24));
+          box-shadow: 0 0 18px rgba(96, 165, 250, 0.2);
+        }
+        .mini-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          min-width: 0;
+        }
+        .mini-card-title-stack {
+          display: grid;
+          gap: 6px;
+          min-width: 0;
+        }
+        .mini-card-eyebrow {
+          color: #fca5a5;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+        .mini-title {
+          color: #fff;
+          font-size: 15px;
+          font-weight: 950;
+          line-height: 1.25;
+          overflow-wrap: anywhere;
+        }
+        .mini-card-copy {
+          display: grid;
+          align-content: start;
+          gap: 8px;
+          min-width: 0;
+        }
+        .mini-value {
+          color: #fff;
+          font-size: 18px;
+          font-weight: 950;
+          line-height: 1.22;
+          letter-spacing: -0.025em;
+          overflow-wrap: anywhere;
+        }
+        .mini-card-action {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          padding-top: 2px;
+        }
+        .mini-card-action .bg-button {
+          width: 100%;
+          min-height: 40px;
+          justify-content: center;
+          padding-inline: 14px;
+        }
+        .overview-list {
+          display: grid;
+          gap: 6px;
+          margin-top: 4px;
+          color: #a3a3a3;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+        .overview-list span {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .operation-detail-pill {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          padding: 6px 9px;
+          background: rgba(255, 255, 255, 0.045);
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+        @media (max-width: 1180px) {
+          .operations-center-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 720px) {
+          .operations-center-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
 
       <div className="topbar">
         <BGButton href="/customers" variant="ghost">
