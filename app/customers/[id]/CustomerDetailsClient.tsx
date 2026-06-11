@@ -29,7 +29,11 @@ type SectionKey =
   | "documents"
   | "timeline";
 
-export default function CustomerDetailsClient({ customerId }: { customerId: string }) {
+export default function CustomerDetailsClient({
+  customerId,
+}: {
+  customerId: string;
+}) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -106,7 +110,8 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     "BG";
 
   const bodyGatePublicUrl =
-    process.env.NEXT_PUBLIC_BODYGATE_PUBLIC_URL || "https://bodygate-admin.vercel.app";
+    process.env.NEXT_PUBLIC_BODYGATE_PUBLIC_URL ||
+    "https://bodygate-admin.vercel.app";
 
   const normalizedPhone = String(customer?.phone || "")
     .replace(/\D/g, "")
@@ -179,8 +184,10 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       address: String(editForm.address || "").trim() || null,
       city: String(editForm.city || "").trim() || null,
       postal_code: String(editForm.postal_code || "").trim() || null,
-      emergency_contact_name: String(editForm.emergency_contact_name || "").trim() || null,
-      emergency_contact_phone: String(editForm.emergency_contact_phone || "").trim() || null,
+      emergency_contact_name:
+        String(editForm.emergency_contact_name || "").trim() || null,
+      emergency_contact_phone:
+        String(editForm.emergency_contact_phone || "").trim() || null,
       reception_notes: String(editForm.reception_notes || "").trim() || null,
       badge_code: String(editForm.badge_code || "").trim() || null,
       controller_code: String(editForm.controller_code || "").trim() || null,
@@ -205,7 +212,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
         console.error("saveCustomerProfile API error", result);
         alert(
           "Errore salvataggio anagrafica: " +
-            (result?.error || result?.detail?.message || "Errore sconosciuto")
+            (result?.error || result?.detail?.message || "Errore sconosciuto"),
         );
         return;
       }
@@ -252,8 +259,8 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
           `Cliente non trovato o bloccato dalla lettura Supabase. Dettaglio: ${JSON.stringify(
             diagnostic,
             null,
-            2
-          )}`
+            2,
+          )}`,
         );
 
         setCustomer(null);
@@ -344,34 +351,34 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       (s) =>
         s.is_active !== false &&
         String(s.starts_at || "").slice(0, 10) <= today &&
-        String(s.ends_at || "").slice(0, 10) >= today
+        String(s.ends_at || "").slice(0, 10) >= today,
     );
   }, [subscriptions, today]);
 
   const plannedSubscription = useMemo(() => {
     return subscriptions.find(
       (s) =>
-        s.is_active !== false &&
-        String(s.starts_at || "").slice(0, 10) > today
+        s.is_active !== false && String(s.starts_at || "").slice(0, 10) > today,
     );
   }, [subscriptions, today]);
 
   const activeMembership = useMemo(() => {
     return membershipFees.find(
-      (f) => f.valid_from <= today && f.valid_until >= today
+      (f) => f.valid_from <= today && f.valid_until >= today,
     );
   }, [membershipFees, today]);
 
   const activeBlock = useMemo(() => {
     return blocks.find(
-      (b) => b.is_active && (!b.ends_at || new Date(b.ends_at) >= new Date())
+      (b) => b.is_active && (!b.ends_at || new Date(b.ends_at) >= new Date()),
     );
   }, [blocks]);
 
   const medicalCertificateEnd =
     customer?.medical_certificate_end_date || customer?.medical_certificate_end;
 
-  const certificateValid = medicalCertificateEnd && medicalCertificateEnd >= today;
+  const certificateValid =
+    medicalCertificateEnd && medicalCertificateEnd >= today;
 
   const accessAllowed =
     !!activeSubscription &&
@@ -390,11 +397,16 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     { label: "Città", value: customer?.city || "-" },
     { label: "CAP", value: customer?.postal_code || customer?.zip || "-" },
     { label: "Emergenza", value: customer?.emergency_contact_name || "-" },
-    { label: "Tel. emergenza", value: customer?.emergency_contact_phone || "-" },
+    {
+      label: "Tel. emergenza",
+      value: customer?.emergency_contact_phone || "-",
+    },
   ];
 
   const cardCredentials = useMemo(() => {
-    return accessCredentials.filter((item) => item.type === "card" || item.type === "nfc");
+    return accessCredentials.filter(
+      (item) => item.type === "card" || item.type === "nfc",
+    );
   }, [accessCredentials]);
 
   const qrCredentials = useMemo(() => {
@@ -402,9 +414,12 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   }, [accessCredentials]);
 
   const activeDnakeQr = useMemo(() => {
-    return dnakeUsers.find((item) => item.qr_status === "active") || dnakeUsers[0] || null;
+    return (
+      dnakeUsers.find((item) => item.qr_status === "active") ||
+      dnakeUsers[0] ||
+      null
+    );
   }, [dnakeUsers]);
-
 
   function paymentMethodLabel(method: string) {
     if (method === "cash") return "Contanti";
@@ -473,12 +488,17 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     }
 
     if (selectedStart > today) {
-      warnings.push("Il rinnovo partirà in futuro. Il cliente potrà accedere da quella data.");
+      warnings.push(
+        "Il rinnovo partirà in futuro. Il cliente potrà accedere da quella data.",
+      );
     }
 
-    if (active?.ends_at && selectedStart <= String(active.ends_at).slice(0, 10)) {
+    if (
+      active?.ends_at &&
+      selectedStart <= String(active.ends_at).slice(0, 10)
+    ) {
       warnings.push(
-        `Il cliente ha già un abbonamento attivo fino al ${formatDateIT(active.ends_at)}. Il nuovo rinnovo si sovrappone.`
+        `Il cliente ha già un abbonamento attivo fino al ${formatDateIT(active.ends_at)}. Il nuovo rinnovo si sovrappone.`,
       );
     }
 
@@ -506,7 +526,9 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     setRenewalPlanId(targetPlanId);
     setSelectedPlanId(targetPlanId);
     setRenewalStartDate(suggestedStartDate);
-    setRenewalEndDate(calculateRenewalEndDate(suggestedStartDate, targetPlanId));
+    setRenewalEndDate(
+      calculateRenewalEndDate(suggestedStartDate, targetPlanId),
+    );
     setRenewalAmount(amount.toFixed(2));
     setRenewalNotes("");
     setRenewalOpen(true);
@@ -524,50 +546,52 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     setRenewalPlanId(planId);
     setSelectedPlanId(planId);
     setRenewalAmount(amount ? amount.toFixed(2) : "");
-    setRenewalEndDate(calculateRenewalEndDate(renewalStartDate || today, planId));
+    setRenewalEndDate(
+      calculateRenewalEndDate(renewalStartDate || today, planId),
+    );
   }
 
   async function renewMembershipFee() {
-  if (!customer?.id) {
-    alert("Cliente non caricato.");
-    return;
-  }
-
-  const confirmed = window.confirm(
-    "Confermi il rinnovo della quota associativa annuale (€10)?"
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const response = await fetch("/api/payments/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customerId: customer.id,
-        paymentType: "membership_fee",
-        amount: 10,
-        description: "Quota associativa annuale",
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.ok) {
-      alert(result.error || "Errore rinnovo quota associativa.");
+    if (!customer?.id) {
+      alert("Cliente non caricato.");
       return;
     }
 
-    await loadAll();
+    const confirmed = window.confirm(
+      "Confermi il rinnovo della quota associativa annuale (€10)?",
+    );
 
-    alert("Quota associativa rinnovata correttamente.");
-  } catch (error) {
-    console.error(error);
-    alert("Errore imprevisto.");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerId: customer.id,
+          paymentType: "membership_fee",
+          amount: 10,
+          description: "Quota associativa annuale",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        alert(result.error || "Errore rinnovo quota associativa.");
+        return;
+      }
+
+      await loadAll();
+
+      alert("Quota associativa rinnovata correttamente.");
+    } catch (error) {
+      console.error(error);
+      alert("Errore imprevisto.");
+    }
   }
-}
 
   async function renewSubscription() {
     if (!customer?.id) return alert("Cliente non caricato.");
@@ -631,7 +655,7 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
 
         if (receiptWindow === null) {
           alert(
-            "Rinnovo completato, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico ricevute."
+            "Rinnovo completato, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico ricevute.",
           );
         } else {
           alert(successMessage);
@@ -648,7 +672,6 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       setRenewalSaving(false);
     }
   }
-
 
   function openEditSubscription(subscription: any) {
     setEditingSubscriptionId(subscription.id);
@@ -683,7 +706,9 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
       return;
     }
 
-    const amount = Number(String(subscriptionEditForm.amount || "").replace(",", "."));
+    const amount = Number(
+      String(subscriptionEditForm.amount || "").replace(",", "."),
+    );
 
     if (!subscriptionEditForm.plan_id) {
       alert("Seleziona un piano.");
@@ -756,12 +781,15 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
     if (!customer?.id) return alert("Cliente non caricato.");
 
     const confirmed = window.confirm(
-      "Confermi l'annullamento di questo abbonamento?\n\nIl record resterà nello storico come ANNULLATO."
+      "Confermi l'annullamento di questo abbonamento?\n\nIl record resterà nello storico come ANNULLATO.",
     );
 
     if (!confirmed) return;
 
-    const reason = window.prompt("Motivo annullamento, opzionale:", "Errore inserimento reception");
+    const reason = window.prompt(
+      "Motivo annullamento, opzionale:",
+      "Errore inserimento reception",
+    );
 
     try {
       const response = await fetch("/api/customers/update-subscription", {
@@ -800,99 +828,97 @@ export default function CustomerDetailsClient({ customerId }: { customerId: stri
   }
 
   async function addNote() {
-  if (!customer?.id) {
-    alert("Cliente non caricato.");
-    return;
+    if (!customer?.id) {
+      alert("Cliente non caricato.");
+      return;
+    }
+
+    if (!newNote.trim()) {
+      alert("Scrivi una nota.");
+      return;
+    }
+
+    const response = await fetch("/api/customers/add-note", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customer.id,
+        note: newNote,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || "Errore aggiunta nota.");
+      return;
+    }
+
+    setNewNote("");
+    await loadAll();
   }
 
-  if (!newNote.trim()) {
-    alert("Scrivi una nota.");
-    return;
+  async function addBlock() {
+    if (!customer?.id) {
+      alert("Cliente non caricato.");
+      return;
+    }
+
+    if (!blockReason.trim()) {
+      alert("Inserisci il motivo del blocco.");
+      return;
+    }
+
+    const response = await fetch("/api/customers/add-block", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customer.id,
+        reason: blockReason,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || "Errore aggiunta blocco.");
+      return;
+    }
+
+    setBlockReason("");
+    await loadAll();
   }
 
-  const response = await fetch("/api/customers/add-note", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customerId: customer.id,
-      note: newNote,
-    }),
-  });
+  async function disableBlock(blockId: string) {
+    if (!customer?.id) {
+      alert("Cliente non caricato.");
+      return;
+    }
 
-  const result = await response.json();
+    const response = await fetch("/api/customers/disable-block", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customer.id,
+        blockId,
+      }),
+    });
 
-  if (!response.ok || !result.ok) {
-    alert(result.error || "Errore aggiunta nota.");
-    return;
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || "Errore disattivazione blocco.");
+      return;
+    }
+
+    await loadAll();
   }
-
-  setNewNote("");
-  await loadAll();
-}
-
-async function addBlock() {
-  if (!customer?.id) {
-    alert("Cliente non caricato.");
-    return;
-  }
-
-  if (!blockReason.trim()) {
-    alert("Inserisci il motivo del blocco.");
-    return;
-  }
-
-  const response = await fetch("/api/customers/add-block", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customerId: customer.id,
-      reason: blockReason,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || !result.ok) {
-    alert(result.error || "Errore aggiunta blocco.");
-    return;
-  }
-
-  setBlockReason("");
-  await loadAll();
-}
-
-async function disableBlock(blockId: string) {
-  if (!customer?.id) {
-    alert("Cliente non caricato.");
-    return;
-  }
-
-  const response = await fetch("/api/customers/disable-block", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      customerId: customer.id,
-      blockId,
-    }),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok || !result.ok) {
-    alert(result.error || "Errore disattivazione blocco.");
-    return;
-  }
-
-  await loadAll();
-}
-
-
 
   async function generateDnakeQr() {
     if (!customerId) return;
@@ -900,7 +926,7 @@ async function disableBlock(blockId: string) {
     const confirmed =
       activeDnakeQr ||
       window.confirm(
-        "Vuoi generare un nuovo utente/QR DNake per questo cliente?"
+        "Vuoi generare un nuovo utente/QR DNake per questo cliente?",
       );
 
     if (!confirmed) return;
@@ -923,7 +949,7 @@ async function disableBlock(blockId: string) {
       if (!response.ok || !result?.ok) {
         alert(
           "Errore generazione QR DNake: " +
-            (result?.error || result?.response || "Errore sconosciuto")
+            (result?.error || result?.response || "Errore sconosciuto"),
         );
         return;
       }
@@ -931,12 +957,14 @@ async function disableBlock(blockId: string) {
       await loadAll();
       alert("QR DNake generato correttamente.");
     } catch (error: any) {
-      alert("Errore generazione QR DNake: " + (error?.message || "Errore sconosciuto"));
+      alert(
+        "Errore generazione QR DNake: " +
+          (error?.message || "Errore sconosciuto"),
+      );
     } finally {
       setQrGenerating(false);
     }
   }
-
 
   async function createOrGetMobilePass() {
     if (!customer?.id) {
@@ -970,7 +998,10 @@ async function disableBlock(blockId: string) {
       return url;
     } catch (error: any) {
       console.error("createOrGetMobilePass failed", error);
-      alert(error?.message || "Errore imprevisto durante la creazione del Mobile Pass.");
+      alert(
+        error?.message ||
+          "Errore imprevisto durante la creazione del Mobile Pass.",
+      );
       return "";
     } finally {
       setMobilePassLoading(false);
@@ -1079,7 +1110,10 @@ async function disableBlock(blockId: string) {
     return (
       <div className="customer-page bg-page-shell">
         <BGCard variant="danger">
-          <BGSectionHeader title="Cliente non caricato" subtitle="Verifica permessi e disponibilità dei dati Supabase." />
+          <BGSectionHeader
+            title="Cliente non caricato"
+            subtitle="Verifica permessi e disponibilità dei dati Supabase."
+          />
           <pre className="error-details">{errorMessage}</pre>
           <small>ID: {customerId}</small>
         </BGCard>
@@ -1087,11 +1121,26 @@ async function disableBlock(blockId: string) {
     );
   }
 
-  const sectionNavItems: Array<{ key: SectionKey; label: string; eyebrow: string; icon: string }> = [
+  const sectionNavItems: Array<{
+    key: SectionKey;
+    label: string;
+    eyebrow: string;
+    icon: string;
+  }> = [
     { key: "overview", label: "Panoramica", eyebrow: "Sintesi", icon: "◆" },
     { key: "profile", label: "Profilo", eyebrow: "Anagrafica", icon: "👤" },
-    { key: "subscriptions", label: "Abbonamenti", eyebrow: "Piani", icon: "🏋" },
-    { key: "payments", label: "Pagamenti & Ricevute", eyebrow: "Cassa", icon: "€" },
+    {
+      key: "subscriptions",
+      label: "Abbonamenti",
+      eyebrow: "Piani",
+      icon: "🏋",
+    },
+    {
+      key: "payments",
+      label: "Pagamenti & Ricevute",
+      eyebrow: "Cassa",
+      icon: "€",
+    },
     { key: "access", label: "Accessi", eyebrow: "Gate", icon: "⌁" },
     { key: "documents", label: "Documenti", eyebrow: "Medico", icon: "▣" },
     { key: "timeline", label: "Note & Timeline", eyebrow: "CRM", icon: "●" },
@@ -1113,22 +1162,39 @@ async function disableBlock(blockId: string) {
       date: item.created_at || item.valid_from,
     })),
   ].slice(0, 3);
-  const contractUrl = customer.contract_url || customer.contract_pdf_url || customer.agreement_url || "";
+  const contractUrl =
+    customer.contract_url ||
+    customer.contract_pdf_url ||
+    customer.agreement_url ||
+    "";
   const shortPlans = plans.slice(0, 6);
 
-  const activeSubscriptionStart = String(activeSubscription?.starts_at || "").slice(0, 10);
-  const activeSubscriptionEnd = String(activeSubscription?.ends_at || "").slice(0, 10);
-  const plannedSubscriptionStart = String(plannedSubscription?.starts_at || "").slice(0, 10);
-  const currentPlanName = activeSubscription?.subscription_plans?.name || plannedSubscription?.subscription_plans?.name || "Nessun piano attivo";
+  const activeSubscriptionStart = String(
+    activeSubscription?.starts_at || "",
+  ).slice(0, 10);
+  const activeSubscriptionEnd = String(activeSubscription?.ends_at || "").slice(
+    0,
+    10,
+  );
+  const plannedSubscriptionStart = String(
+    plannedSubscription?.starts_at || "",
+  ).slice(0, 10);
+  const currentPlanName =
+    activeSubscription?.subscription_plans?.name ||
+    plannedSubscription?.subscription_plans?.name ||
+    "Nessun piano attivo";
   const lastRenewal = subscriptions[0] || null;
-  const lastRenewalAmount = lastRenewal?.amount != null ? `€ ${Number(lastRenewal.amount || 0).toFixed(2)}` : "-";
+  const lastRenewalAmount =
+    lastRenewal?.amount != null
+      ? `€ ${Number(lastRenewal.amount || 0).toFixed(2)}`
+      : "-";
   const lastAccess = accessLogs[0] || null;
 
   const daysRemaining = activeSubscriptionEnd
     ? Math.ceil(
         (new Date(`${activeSubscriptionEnd}T00:00:00`).getTime() -
           new Date(`${today}T00:00:00`).getTime()) /
-          86400000
+          86400000,
       )
     : null;
 
@@ -1150,9 +1216,35 @@ async function disableBlock(blockId: string) {
       ? "info"
       : "danger";
 
+  const certificateStatusLabel = certificateValid
+    ? `Valido fino al ${formatDateIT(medicalCertificateEnd)}`
+    : medicalCertificateEnd
+      ? `Scaduto il ${formatDateIT(medicalCertificateEnd)}`
+      : "Mancante";
+
+  const membershipStatusLabel = activeMembership
+    ? `Valida fino al ${formatDateIT(activeMembership.valid_until)}`
+    : membershipFees.length > 0
+      ? "Non valida oggi"
+      : "Non registrata";
+
+  const badgeDisplay =
+    customer.badge_code || customer.controller_code || "Non assegnato";
+  const mobilePassStatus = mobilePassUrl ? "Link creato" : "Pronto da generare";
+
+  const accessDecisionChecks = [
+    { label: "Cliente attivo", ok: customer?.is_active !== false },
+    { label: "Abbonamento", ok: !!activeSubscription },
+    { label: "Quota", ok: !!activeMembership },
+    { label: "Certificato", ok: !!certificateValid },
+    { label: "Blocchi", ok: !activeBlock },
+  ];
+
   const customerAlerts = [
     !activeSubscription ? "Abbonamento non attivo" : null,
-    activeSubscription && daysRemaining !== null && daysRemaining <= 7 ? `Abbonamento in scadenza tra ${Math.max(daysRemaining, 0)} giorni` : null,
+    activeSubscription && daysRemaining !== null && daysRemaining <= 7
+      ? `Abbonamento in scadenza tra ${Math.max(daysRemaining, 0)} giorni`
+      : null,
     !certificateValid ? "Certificato medico scaduto o mancante" : null,
     !activeMembership ? "Quota associativa da verificare" : null,
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
@@ -1164,7 +1256,17 @@ async function disableBlock(blockId: string) {
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
     { label: "Data nascita", value: customer?.birth_date || "-" },
-    { label: "Indirizzo", value: [customer?.address, customer?.city, customer?.postal_code || customer?.zip].filter(Boolean).join(", ") || "-" },
+    {
+      label: "Indirizzo",
+      value:
+        [
+          customer?.address,
+          customer?.city,
+          customer?.postal_code || customer?.zip,
+        ]
+          .filter(Boolean)
+          .join(", ") || "-",
+    },
     { label: "Note", value: customer?.reception_notes || "-" },
   ];
 
@@ -1182,7 +1284,7 @@ async function disableBlock(blockId: string) {
     ];
 
     const matchedDaySet = daySets.find((daySet) =>
-      normalizedName.toLowerCase().includes(daySet.match.toLowerCase())
+      normalizedName.toLowerCase().includes(daySet.match.toLowerCase()),
     );
 
     if (!matchedDaySet) {
@@ -1206,7 +1308,11 @@ async function disableBlock(blockId: string) {
           padding: 30px;
           color: #ffffff;
           background:
-            radial-gradient(circle at 10% 0%, rgba(239, 68, 68, 0.12), transparent 28%),
+            radial-gradient(
+              circle at 10% 0%,
+              rgba(239, 68, 68, 0.12),
+              transparent 28%
+            ),
             #050505;
           min-height: 100vh;
         }
@@ -1230,15 +1336,18 @@ async function disableBlock(blockId: string) {
           align-items: flex-start;
           min-width: 0;
         }
-        .avatar, .avatar-placeholder {
+        .avatar,
+        .avatar-placeholder {
           width: 86px;
           height: 86px;
           border-radius: 25px;
           flex: 0 0 auto;
-          border: 2px solid rgba(255,255,255,.12);
-          box-shadow: 0 18px 38px rgba(0,0,0,.36);
+          border: 2px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
         }
-        .avatar { object-fit: cover; }
+        .avatar {
+          object-fit: cover;
+        }
         .avatar-placeholder {
           display: flex;
           align-items: center;
@@ -1248,15 +1357,19 @@ async function disableBlock(blockId: string) {
           font-size: 27px;
           font-weight: 950;
         }
-        .hero-copy { min-width: 0; }
+        .hero-copy {
+          min-width: 0;
+        }
         .hero-copy h1 {
           margin: 0;
           font-size: clamp(30px, 4vw, 48px);
-          line-height: .95;
-          letter-spacing: -.06em;
+          line-height: 0.95;
+          letter-spacing: -0.06em;
           font-weight: 950;
         }
-        .hero-meta, .muted, .small-muted {
+        .hero-meta,
+        .muted,
+        .small-muted {
           color: #9ca3af;
           font-size: 13px;
           line-height: 1.5;
@@ -1280,7 +1393,10 @@ async function disableBlock(blockId: string) {
           gap: 10px;
           align-content: start;
         }
-        .section-panel { display: grid; gap: 18px; }
+        .section-panel {
+          display: grid;
+          gap: 18px;
+        }
         .overview-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1288,18 +1404,23 @@ async function disableBlock(blockId: string) {
         }
         .operations-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+          grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
           gap: 18px;
           align-items: stretch;
         }
         .situation-card {
-          border: 1px solid rgba(239, 68, 68, .22);
+          border: 1px solid rgba(239, 68, 68, 0.22);
           border-radius: 28px;
           padding: 22px;
           background:
-            linear-gradient(135deg, rgba(239, 68, 68, .13), rgba(255,255,255,.035) 34%, rgba(5,5,5,.88)),
-            rgba(10,10,10,.9);
-          box-shadow: 0 22px 54px rgba(0,0,0,.35);
+            linear-gradient(
+              135deg,
+              rgba(239, 68, 68, 0.13),
+              rgba(255, 255, 255, 0.035) 34%,
+              rgba(5, 5, 5, 0.88)
+            ),
+            rgba(10, 10, 10, 0.9);
+          box-shadow: 0 22px 54px rgba(0, 0, 0, 0.35);
           display: grid;
           gap: 18px;
         }
@@ -1314,8 +1435,8 @@ async function disableBlock(blockId: string) {
           margin: 0;
           color: #fff;
           font-size: clamp(24px, 3vw, 38px);
-          line-height: .95;
-          letter-spacing: -.055em;
+          line-height: 0.95;
+          letter-spacing: -0.055em;
           font-weight: 950;
         }
         .situation-subtitle {
@@ -1324,6 +1445,72 @@ async function disableBlock(blockId: string) {
           font-weight: 800;
           margin-top: 8px;
         }
+        .access-decision-strip {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 22px;
+          padding: 14px;
+          background: rgba(0, 0, 0, 0.3);
+          display: grid;
+          grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+          gap: 14px;
+          align-items: center;
+        }
+        .access-decision-strip.allowed {
+          border-color: rgba(74, 222, 128, 0.25);
+          background: linear-gradient(
+            135deg,
+            rgba(22, 101, 52, 0.28),
+            rgba(0, 0, 0, 0.28)
+          );
+        }
+        .access-decision-strip.denied {
+          border-color: rgba(251, 113, 133, 0.28);
+          background: linear-gradient(
+            135deg,
+            rgba(127, 29, 29, 0.34),
+            rgba(0, 0, 0, 0.28)
+          );
+        }
+        .access-decision-label {
+          color: rgba(255, 255, 255, 0.62);
+          font-size: 10px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+        .access-decision-value {
+          color: #fff;
+          font-size: clamp(22px, 3vw, 34px);
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: -0.05em;
+          margin-top: 5px;
+        }
+        .access-check-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+        .access-check-pill {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          padding: 8px 10px;
+          color: rgba(255, 255, 255, 0.76);
+          font-size: 11px;
+          font-weight: 900;
+          background: rgba(255, 255, 255, 0.04);
+        }
+        .access-check-pill.ok {
+          border-color: rgba(74, 222, 128, 0.22);
+          color: #bbf7d0;
+          background: rgba(22, 101, 52, 0.18);
+        }
+        .access-check-pill.ko {
+          border-color: rgba(251, 113, 133, 0.24);
+          color: #fecdd3;
+          background: rgba(127, 29, 29, 0.2);
+        }
         .situation-kpis {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1331,10 +1518,10 @@ async function disableBlock(blockId: string) {
         }
         .situation-kpi {
           min-width: 0;
-          border: 1px solid rgba(255,255,255,.09);
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 18px;
           padding: 14px;
-          background: rgba(0,0,0,.32);
+          background: rgba(0, 0, 0, 0.32);
         }
         .situation-kpi strong {
           display: block;
@@ -1349,7 +1536,7 @@ async function disableBlock(blockId: string) {
           color: #8b8b8b;
           font-size: 10px;
           font-weight: 950;
-          letter-spacing: .08em;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
           margin-bottom: 8px;
         }
@@ -1358,8 +1545,8 @@ async function disableBlock(blockId: string) {
           gap: 8px;
         }
         .alert-chip {
-          border: 1px solid rgba(251, 113, 133, .25);
-          background: rgba(127, 29, 29, .28);
+          border: 1px solid rgba(251, 113, 133, 0.25);
+          background: rgba(127, 29, 29, 0.28);
           color: #fecdd3;
           border-radius: 16px;
           padding: 10px 12px;
@@ -1379,15 +1566,18 @@ async function disableBlock(blockId: string) {
           display: grid;
           grid-template-columns: 112px minmax(0, 1fr);
           gap: 12px;
-          border-bottom: 1px solid rgba(255,255,255,.07);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
           padding-bottom: 9px;
         }
-        .compact-info-row:last-child { border-bottom: 0; padding-bottom: 0; }
+        .compact-info-row:last-child {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
         .compact-info-row span {
           color: #8b8b8b;
           font-size: 11px;
           font-weight: 950;
-          letter-spacing: .07em;
+          letter-spacing: 0.07em;
           text-transform: uppercase;
         }
         .compact-info-row strong {
@@ -1397,7 +1587,8 @@ async function disableBlock(blockId: string) {
           font-weight: 850;
           overflow-wrap: anywhere;
         }
-        .content-grid, .two-col-grid {
+        .content-grid,
+        .two-col-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 18px;
@@ -1412,17 +1603,17 @@ async function disableBlock(blockId: string) {
           display: grid;
           gap: 8px;
           min-height: 104px;
-          border: 1px solid rgba(255,255,255,.09);
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 20px;
           padding: 15px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
         }
         .status-label {
           color: #8b8b8b;
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: .08em;
+          letter-spacing: 0.08em;
         }
         .status-value {
           color: #fff;
@@ -1436,10 +1627,10 @@ async function disableBlock(blockId: string) {
           display: grid;
           align-content: space-between;
           gap: 14px;
-          border: 1px solid rgba(255,255,255,.09);
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 22px;
           padding: 18px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
         }
         .mini-card-head {
           display: flex;
@@ -1447,14 +1638,18 @@ async function disableBlock(blockId: string) {
           justify-content: space-between;
           gap: 12px;
         }
-        .mini-title, .row-title, .plan-title {
+        .mini-title,
+        .row-title,
+        .plan-title {
           color: #fff;
           font-size: 15px;
           font-weight: 950;
           line-height: 1.25;
           overflow-wrap: anywhere;
         }
-        .row-copy { min-width: 0; }
+        .row-copy {
+          min-width: 0;
+        }
         .mini-value {
           color: #f5f5f5;
           font-size: 14px;
@@ -1481,47 +1676,55 @@ async function disableBlock(blockId: string) {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        .info-mini-card, .credential-mini {
+        .info-mini-card,
+        .credential-mini {
           display: grid;
           gap: 7px;
-          border: 1px solid rgba(255,255,255,.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 18px;
           padding: 13px 14px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
           min-width: 0;
         }
-        .info-label, .credential-section-title, .credential-mini-label {
+        .info-label,
+        .credential-section-title,
+        .credential-mini-label {
           color: #8b8b8b;
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: .08em;
+          letter-spacing: 0.08em;
         }
-        .info-value, .credential-mini-value {
+        .info-value,
+        .credential-mini-value {
           color: #fff;
           font-size: 14px;
           font-weight: 900;
           overflow-wrap: anywhere;
         }
-        .actions, .actions-inline {
+        .actions,
+        .actions-inline {
           display: flex;
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
         }
-        .actions-spread { justify-content: space-between; }
+        .actions-spread {
+          justify-content: space-between;
+        }
         .row {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 14px;
           align-items: center;
-          border: 1px solid rgba(255,255,255,.08);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 18px;
           padding: 14px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
           min-width: 0;
         }
-        .row-subtitle, .row-right {
+        .row-subtitle,
+        .row-right {
           color: #a3a3a3;
           font-size: 13px;
           margin-top: 4px;
@@ -1551,46 +1754,78 @@ async function disableBlock(blockId: string) {
           letter-spacing: 0.7px;
           font-weight: 900;
         }
-        .edit-field-full { grid-column: 1 / -1; }
-        input, select, textarea {
+        .edit-field-full {
+          grid-column: 1 / -1;
+        }
+        input,
+        select,
+        textarea {
           width: 100%;
           max-width: 100%;
           border-radius: 16px;
-          border: 1px solid rgba(255,255,255,.11);
-          background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(5,5,5,.92);
+          border: 1px solid rgba(255, 255, 255, 0.11);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.07),
+              rgba(255, 255, 255, 0.025)
+            ),
+            rgba(5, 5, 5, 0.92);
           color: #fff;
           outline: none;
           font-size: 14px;
           font-weight: 800;
           font-family: inherit;
         }
-        input, select { min-height: 48px; padding: 0 14px; }
-        textarea { min-height: 112px; padding: 14px; resize: vertical; line-height: 1.45; }
-        input:focus, select:focus, textarea:focus {
-          border-color: rgba(239,68,68,.62);
-          box-shadow: 0 0 0 4px rgba(239,68,68,.16);
+        input,
+        select {
+          min-height: 48px;
+          padding: 0 14px;
         }
-        select option { background: #111; color: #fff; }
+        textarea {
+          min-height: 112px;
+          padding: 14px;
+          resize: vertical;
+          line-height: 1.45;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+          border-color: rgba(239, 68, 68, 0.62);
+          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+        }
+        select option {
+          background: #111;
+          color: #fff;
+        }
         .checkbox-field {
           display: flex;
           align-items: center;
           gap: 10px;
           min-height: 48px;
           border-radius: 16px;
-          border: 1px solid rgba(255,255,255,.11);
+          border: 1px solid rgba(255, 255, 255, 0.11);
           padding: 0 14px;
-          background: rgba(255,255,255,.035);
+          background: rgba(255, 255, 255, 0.035);
         }
-        .checkbox-field input { width: 18px; min-height: 18px; accent-color: #ef4444; }
-        .payment-box, .manual-renew-box {
+        .checkbox-field input {
+          width: 18px;
+          min-height: 18px;
+          accent-color: #ef4444;
+        }
+        .payment-box,
+        .manual-renew-box {
           padding: 15px;
           border-radius: 20px;
-          border: 1px solid rgba(255,255,255,.08);
-          background: rgba(255,255,255,.035);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.035);
         }
         .quick-plan-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 280px), 1fr)
+          );
           gap: 16px;
           align-items: stretch;
           min-width: 0;
@@ -1608,19 +1843,43 @@ async function disableBlock(blockId: string) {
           text-align: left;
           border-radius: 24px;
           padding: 20px;
-          border: 1px solid rgba(239,68,68,0.28);
-          background: radial-gradient(circle at top left, rgba(239,68,68,.22), transparent 58%), linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)), rgba(8,8,8,.94);
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          background:
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.22),
+              transparent 58%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.07),
+              rgba(255, 255, 255, 0.025)
+            ),
+            rgba(8, 8, 8, 0.94);
           color: #fff;
           cursor: pointer;
           white-space: normal;
           line-height: 1.2;
           overflow: hidden;
           box-sizing: border-box;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 42px rgba(0,0,0,.26);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 18px 42px rgba(0, 0, 0, 0.26);
         }
         .quick-plan-btn:hover {
-          border-color: rgba(239,68,68,.48);
-          background: radial-gradient(circle at top left, rgba(239,68,68,.3), transparent 58%), linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.03)), rgba(10,10,10,.96);
+          border-color: rgba(239, 68, 68, 0.48);
+          background:
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.3),
+              transparent 58%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.09),
+              rgba(255, 255, 255, 0.03)
+            ),
+            rgba(10, 10, 10, 0.96);
         }
         .plan-copy {
           display: grid;
@@ -1644,13 +1903,13 @@ async function disableBlock(blockId: string) {
           max-width: 100%;
           min-width: 0;
           border-radius: 999px;
-          border: 1px solid rgba(255,255,255,.12);
-          background: rgba(255,255,255,.07);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.07);
           color: #fca5a5;
           padding: 7px 10px;
           font-size: 11px;
           font-weight: 950;
-          letter-spacing: .04em;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
           white-space: normal;
           overflow-wrap: anywhere;
@@ -1668,9 +1927,9 @@ async function disableBlock(blockId: string) {
           display: block;
           color: #fff;
           font-size: clamp(28px, 4vw, 36px);
-          line-height: .92;
+          line-height: 0.92;
           font-weight: 950;
-          letter-spacing: -.055em;
+          letter-spacing: -0.055em;
           white-space: normal;
         }
         .history-list {
@@ -1682,10 +1941,16 @@ async function disableBlock(blockId: string) {
           grid-template-columns: minmax(0, 1fr) minmax(118px, max-content);
           gap: 16px;
           align-items: start;
-          border: 1px solid rgba(255,255,255,.09);
+          border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 20px;
           padding: 15px;
-          background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.02)), rgba(7,7,7,.78);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.055),
+              rgba(255, 255, 255, 0.02)
+            ),
+            rgba(7, 7, 7, 0.78);
           min-width: 0;
         }
         .history-main {
@@ -1722,7 +1987,7 @@ async function disableBlock(blockId: string) {
           color: #fff;
           font-size: 16px;
           font-weight: 950;
-          letter-spacing: -.02em;
+          letter-spacing: -0.02em;
           white-space: nowrap;
         }
         .history-method {
@@ -1739,13 +2004,17 @@ async function disableBlock(blockId: string) {
           gap: 10px;
         }
         .credential-section {
-          border-top: 1px solid rgba(255,255,255,.08);
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
           padding-top: 16px;
           margin-top: 16px;
           display: grid;
           gap: 12px;
         }
-        .credential-pill-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .credential-pill-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
         .credential-pill {
           border-radius: 999px;
           background: #050505;
@@ -1761,8 +2030,13 @@ async function disableBlock(blockId: string) {
           display: inline-flex;
           width: fit-content;
         }
-        .qr-box img { width: 210px; height: 210px; display: block; }
-        .mobile-pass-url, .error-details {
+        .qr-box img {
+          width: 210px;
+          height: 210px;
+          display: block;
+        }
+        .mobile-pass-url,
+        .error-details {
           border: 1px solid rgba(59, 130, 246, 0.22);
           background: rgba(59, 130, 246, 0.08);
           color: #bfdbfe;
@@ -1773,32 +2047,86 @@ async function disableBlock(blockId: string) {
           overflow-wrap: anywhere;
           white-space: pre-wrap;
         }
-        .danger-text { color: #fb7185; }
-        .success-text { color: #4ade80; }
+        .danger-text {
+          color: #fb7185;
+        }
+        .success-text {
+          color: #4ade80;
+        }
         @media (max-width: 1180px) {
-          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .operations-grid, .hero-statuses, .form-grid, .situation-kpis { grid-template-columns: 1fr; }
-          .hero-actions { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .customer-hero,
+          .content-grid,
+          .two-col-grid,
+          .overview-grid,
+          .operations-grid,
+          .hero-statuses,
+          .form-grid,
+          .situation-kpis {
+            grid-template-columns: 1fr;
+          }
+          .hero-actions {
+            width: 100%;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
         @media (max-width: 720px) {
-          .customer-page { padding: 18px; }
-          .hero-main, .topbar { flex-direction: column; align-items: stretch; }
-          .hero-actions, .info-grid, .credential-summary, .three-col-grid, .quick-plan-grid { grid-template-columns: 1fr; }
-          .compact-info-row { grid-template-columns: 1fr; gap: 4px; }
-          .row, .history-row { grid-template-columns: 1fr; }
-          .row-right, .history-side { justify-self: start; text-align: left; align-items: flex-start; min-width: 0; }
-          .history-method { text-align: left; }
+          .customer-page {
+            padding: 18px;
+          }
+          .access-decision-strip {
+            grid-template-columns: 1fr;
+          }
+          .access-check-grid {
+            justify-content: flex-start;
+          }
+          .hero-main,
+          .topbar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .hero-actions,
+          .info-grid,
+          .credential-summary,
+          .three-col-grid,
+          .quick-plan-grid {
+            grid-template-columns: 1fr;
+          }
+          .compact-info-row {
+            grid-template-columns: 1fr;
+            gap: 4px;
+          }
+          .row,
+          .history-row {
+            grid-template-columns: 1fr;
+          }
+          .row-right,
+          .history-side {
+            justify-self: start;
+            text-align: left;
+            align-items: flex-start;
+            min-width: 0;
+          }
+          .history-method {
+            text-align: left;
+          }
         }
       `}</style>
 
       <div className="topbar">
-        <BGButton href="/customers" variant="ghost">← Torna ai clienti</BGButton>
+        <BGButton href="/customers" variant="ghost">
+          ← Torna ai clienti
+        </BGButton>
       </div>
 
       <BGCard variant="premium" className="customer-hero">
         <div>
           <div className="hero-main">
             {customer?.photo_url ? (
-              <img className="avatar" src={customer.photo_url} alt={customerName} />
+              <img
+                className="avatar"
+                src={customer.photo_url}
+                alt={customerName}
+              />
             ) : (
               <div className="avatar-placeholder">{initials}</div>
             )}
@@ -1806,7 +2134,7 @@ async function disableBlock(blockId: string) {
               <div className="bg-eyebrow">Scheda cliente BodyGate</div>
               <h1>{customerName}</h1>
               <div className="hero-meta">
-                <span>{customer.badge_code || customer.controller_code ? `Badge ${customer.badge_code || customer.controller_code}` : "Badge non presente"}</span>
+                <span>{`Badge ${badgeDisplay}`}</span>
                 <span>•</span>
                 <span>{customer.phone || "Telefono non presente"}</span>
                 <span>•</span>
@@ -1814,35 +2142,111 @@ async function disableBlock(blockId: string) {
               </div>
               <div className="actions" style={{ marginTop: 12 }}>
                 <BGStatusBadge tone={accessAllowed ? "success" : "danger"}>
-                  {accessAllowed ? "Accesso attivo" : "Accesso bloccato"}
+                  {accessAllowed ? "Può entrare" : "Non può entrare"}
                 </BGStatusBadge>
-                <BGStatusBadge tone={customer?.is_active === false ? "danger" : "info"}>
-                  {customer?.is_active === false ? "Cliente disattivo" : "Cliente attivo"}
+                <BGStatusBadge tone={subscriptionTone}>
+                  {subscriptionStatus}
                 </BGStatusBadge>
-                <BGStatusBadge tone={customer.badge_code || customer.controller_code ? "success" : "warning"}>
-                  {customer.badge_code || customer.controller_code ? "Badge collegato" : "Badge mancante"}
+                <BGStatusBadge
+                  tone={customer?.is_active === false ? "danger" : "info"}
+                >
+                  {customer?.is_active === false
+                    ? "Cliente disattivo"
+                    : "Cliente attivo"}
+                </BGStatusBadge>
+                <BGStatusBadge
+                  tone={
+                    customer.badge_code || customer.controller_code
+                      ? "success"
+                      : "warning"
+                  }
+                >
+                  {customer.badge_code || customer.controller_code
+                    ? "Badge collegato"
+                    : "Badge mancante"}
                 </BGStatusBadge>
               </div>
             </div>
           </div>
           <div className="hero-statuses">
-            <StatusBox label="Abbonamento" value={activeSubscription ? `${activeSubscription.subscription_plans?.name || "Attivo"} · ${activeSubscription.ends_at}` : "Assente o scaduto"} ok={!!activeSubscription} />
-            <StatusBox label="Certificato medico" value={certificateValid ? `Valido fino al ${medicalCertificateEnd}` : "Scaduto o mancante"} ok={!!certificateValid} />
-            <StatusBox label="Quota associativa" value={activeMembership ? `Valida fino al ${activeMembership.valid_until}` : "Assente o scaduta"} ok={!!activeMembership} />
-            <StatusBox label="Blocchi" value={activeBlock ? activeBlock.reason : "Nessun blocco"} ok={!activeBlock} />
+            <StatusBox
+              label="Abbonamento"
+              value={
+                activeSubscription
+                  ? `${activeSubscription.subscription_plans?.name || "Attivo"} · ${formatDateIT(activeSubscription.ends_at)}`
+                  : "Assente o scaduto"
+              }
+              ok={!!activeSubscription}
+            />
+            <StatusBox
+              label="Certificato medico"
+              value={certificateStatusLabel}
+              ok={!!certificateValid}
+            />
+            <StatusBox
+              label="Quota associativa"
+              value={membershipStatusLabel}
+              ok={!!activeMembership}
+            />
+            <StatusBox
+              label="Blocchi"
+              value={activeBlock ? activeBlock.reason : "Nessun blocco"}
+              ok={!activeBlock}
+            />
           </div>
         </div>
         <div className="hero-actions">
-          <BGButton onClick={() => setActiveSection("subscriptions")}>Rinnova</BGButton>
-          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Registra pagamento</BGButton>
-          <BGButton variant="secondary" onClick={() => { startEditCustomer(); setActiveSection("profile"); }}>Modifica cliente</BGButton>
-          <BGButton variant="secondary" onClick={() => { void sendMobilePassWhatsApp(); }} disabled={mobilePassLoading}>Mobile Pass / WhatsApp</BGButton>
-          {customer?.phone ? <BGButton href={`tel:${customer.phone}`} variant="ghost">Chiama</BGButton> : <BGButton variant="ghost" onClick={() => setActiveSection("profile")}>Telefono</BGButton>}
-          <BGButton href="/customers" variant="ghost">Lista clienti</BGButton>
+          <BGButton onClick={() => setActiveSection("subscriptions")}>
+            Rinnova
+          </BGButton>
+          <BGButton
+            variant="secondary"
+            onClick={() => setActiveSection("payments")}
+          >
+            Registra pagamento
+          </BGButton>
+          <BGButton
+            variant="secondary"
+            onClick={() => {
+              startEditCustomer();
+              setActiveSection("profile");
+            }}
+          >
+            Modifica cliente
+          </BGButton>
+          <BGButton
+            variant="secondary"
+            onClick={() => {
+              void sendMobilePassWhatsApp();
+            }}
+            disabled={mobilePassLoading}
+          >
+            Mobile Pass / WhatsApp
+          </BGButton>
+          {customer?.phone ? (
+            <BGButton href={`tel:${customer.phone}`} variant="ghost">
+              Chiama
+            </BGButton>
+          ) : (
+            <BGButton
+              variant="ghost"
+              onClick={() => setActiveSection("profile")}
+            >
+              Telefono
+            </BGButton>
+          )}
+          <BGButton href="/customers" variant="ghost">
+            Lista clienti
+          </BGButton>
         </div>
       </BGCard>
 
-      <BGPremiumSectionNav items={sectionNavItems} activeKey={activeSection} onChange={setActiveSection} ariaLabel="Sezioni scheda cliente" />
+      <BGPremiumSectionNav
+        items={sectionNavItems}
+        activeKey={activeSection}
+        onChange={setActiveSection}
+        ariaLabel="Sezioni scheda cliente"
+      />
 
       {activeSection === "overview" ? (
         <section className="section-panel">
@@ -1853,44 +2257,181 @@ async function disableBlock(blockId: string) {
                   <div className="bg-eyebrow">Situazione cliente</div>
                   <h2 className="situation-title">{currentPlanName}</h2>
                   <div className="situation-subtitle">
-                    Stato immediato per reception: {subscriptionStatus.toLowerCase()} · accesso {accessAllowed ? "consentito" : "da verificare"}
+                    Stato immediato per reception:{" "}
+                    {subscriptionStatus.toLowerCase()} · accesso{" "}
+                    {accessAllowed ? "consentito" : "da verificare"}
                   </div>
                 </div>
-                <BGStatusBadge tone={subscriptionTone}>{subscriptionStatus}</BGStatusBadge>
+                <BGStatusBadge tone={subscriptionTone}>
+                  {subscriptionStatus}
+                </BGStatusBadge>
+              </div>
+
+              <div
+                className={`access-decision-strip ${accessAllowed ? "allowed" : "denied"}`}
+              >
+                <div>
+                  <div className="access-decision-label">
+                    Decisione accesso reception
+                  </div>
+                  <div className="access-decision-value">
+                    {accessAllowed ? "Può entrare" : "Non può entrare"}
+                  </div>
+                </div>
+                <div className="access-check-grid">
+                  {accessDecisionChecks.map((check) => (
+                    <span
+                      className={`access-check-pill ${check.ok ? "ok" : "ko"}`}
+                      key={check.label}
+                    >
+                      {check.ok ? "✓" : "!"} {check.label}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div className="situation-kpis">
-                <div className="situation-kpi"><span>Inizio</span><strong>{activeSubscriptionStart || plannedSubscriptionStart || "-"}</strong></div>
-                <div className="situation-kpi"><span>Fine</span><strong>{activeSubscriptionEnd || String(plannedSubscription?.ends_at || "-").slice(0, 10)}</strong></div>
-                <div className="situation-kpi"><span>Giorni residui</span><strong>{daysRemaining !== null ? `${Math.max(daysRemaining, 0)} giorni` : "-"}</strong></div>
-                <div className="situation-kpi"><span>Ultimo rinnovo</span><strong>{lastRenewalAmount}</strong></div>
+                <div className="situation-kpi">
+                  <span>Piano attivo</span>
+                  <strong>{currentPlanName}</strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Inizio</span>
+                  <strong>
+                    {formatDateIT(
+                      activeSubscriptionStart || plannedSubscriptionStart,
+                    )}
+                  </strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Fine</span>
+                  <strong>
+                    {formatDateIT(
+                      activeSubscriptionEnd ||
+                        String(plannedSubscription?.ends_at || "").slice(0, 10),
+                    )}
+                  </strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Giorni residui</span>
+                  <strong>
+                    {daysRemaining !== null
+                      ? `${Math.max(daysRemaining, 0)} giorni`
+                      : "-"}
+                  </strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Stato abbonamento</span>
+                  <strong>{subscriptionStatus}</strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Certificato medico</span>
+                  <strong>{certificateStatusLabel}</strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Quota associativa</span>
+                  <strong>{membershipStatusLabel}</strong>
+                </div>
+                <div className="situation-kpi">
+                  <span>Ultimo rinnovo</span>
+                  <strong>{lastRenewalAmount}</strong>
+                </div>
               </div>
 
               {customerAlerts.length > 0 ? (
                 <div className="alert-stack">
-                  {customerAlerts.map((alert) => <div className="alert-chip" key={alert}>{alert}</div>)}
+                  {customerAlerts.map((alert) => (
+                    <div className="alert-chip" key={alert}>
+                      {alert}
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="alert-chip" style={{ borderColor: "rgba(74, 222, 128, .25)", background: "rgba(22, 101, 52, .22)", color: "#bbf7d0" }}>
-                  Nessun alert operativo: cliente regolare per abbonamento, quota, certificato e blocchi.
+                <div
+                  className="alert-chip"
+                  style={{
+                    borderColor: "rgba(74, 222, 128, .25)",
+                    background: "rgba(22, 101, 52, .22)",
+                    color: "#bbf7d0",
+                  }}
+                >
+                  Nessun alert operativo: cliente regolare per abbonamento,
+                  quota, certificato e blocchi.
                 </div>
               )}
             </div>
 
             <div className="compact-side-stack">
               <BGCard variant="soft">
-                <BGSectionHeader title="Anagrafica compatta" subtitle="Dati essenziali senza aprire la modifica." actions={<BGButton variant="ghost" onClick={() => setActiveSection("profile")}>Dettaglio</BGButton>} />
+                <BGSectionHeader
+                  title="Anagrafica compatta"
+                  subtitle="Dati essenziali senza aprire la modifica."
+                  actions={
+                    <BGButton
+                      variant="ghost"
+                      onClick={() => setActiveSection("profile")}
+                    >
+                      Dettaglio
+                    </BGButton>
+                  }
+                />
                 <div className="compact-info-list">
-                  {compactProfileInfo.map((item) => <div className="compact-info-row" key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}
+                  {compactProfileInfo.map((item) => (
+                    <div className="compact-info-row" key={item.label}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
                 </div>
               </BGCard>
               <BGCard variant={accessAllowed ? "success" : "warning"}>
-                <BGSectionHeader title="Accesso" subtitle="Sintesi badge, QR/Mobile Pass e ultimo varco." actions={<BGButton variant="ghost" onClick={() => setActiveSection("access")}>Gestisci</BGButton>} />
+                <BGSectionHeader
+                  title="Accesso"
+                  subtitle="Sintesi badge, QR/Mobile Pass e ultimo varco."
+                  actions={
+                    <BGButton
+                      variant="ghost"
+                      onClick={() => setActiveSection("access")}
+                    >
+                      Gestisci
+                    </BGButton>
+                  }
+                />
                 <div className="info-grid">
-                  <InfoMini label="Badge" value={customer.badge_code || customer.controller_code || "-"} tone={customer.badge_code || customer.controller_code ? "success" : "danger"} />
-                  <InfoMini label="QR DNake" value={activeDnakeQr ? "Attivo" : "Non generato"} tone={activeDnakeQr ? "success" : "danger"} />
-                  <InfoMini label="Mobile Pass" value={mobilePassUrl ? "Link creato" : "Disponibile"} tone="neutral" />
-                  <InfoMini label="Ultimo accesso" value={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "-"} tone={lastAccess?.was_allowed ? "success" : lastAccess ? "danger" : "neutral"} />
+                  <InfoMini
+                    label="Badge"
+                    value={badgeDisplay}
+                    tone={
+                      customer.badge_code || customer.controller_code
+                        ? "success"
+                        : "danger"
+                    }
+                  />
+                  <InfoMini
+                    label="QR DNake"
+                    value={activeDnakeQr ? "Attivo" : "Non generato"}
+                    tone={activeDnakeQr ? "success" : "danger"}
+                  />
+                  <InfoMini
+                    label="Mobile Pass"
+                    value={mobilePassStatus}
+                    tone="neutral"
+                  />
+                  <InfoMini
+                    label="Ultimo accesso"
+                    value={
+                      lastAccess
+                        ? new Date(lastAccess.access_time).toLocaleString()
+                        : "-"
+                    }
+                    tone={
+                      lastAccess?.was_allowed
+                        ? "success"
+                        : lastAccess
+                          ? "danger"
+                          : "neutral"
+                    }
+                  />
                 </div>
               </BGCard>
             </div>
@@ -1917,66 +2458,307 @@ async function disableBlock(blockId: string) {
               action="Gestisci"
               onAction={() => setActiveSection("subscriptions")}
             />
-            <OverviewCard title="Quota associativa" ok={!!activeMembership} value={activeMembership ? "Regolare" : "Da rinnovare"} note={activeMembership ? `Scade ${activeMembership.valid_until}` : "Quota mancante"} action="Gestisci" onAction={() => setActiveSection("subscriptions")} />
-            <OverviewCard title="Certificato medico" ok={!!certificateValid} value={certificateValid ? "Valido" : "Critico"} note={certificateValid ? `Scade ${medicalCertificateEnd}` : "Upload o rinnovo richiesto"} action="Apri" onAction={() => setActiveSection("documents")} />
-            <OverviewCard title="Pagamenti" ok value={`${subscriptions.length + membershipFees.length} movimenti`} note="Storici completi in sezione cassa" action="Apri" onAction={() => setActiveSection("payments")} />
-            <OverviewCard title="Ricevute" ok value="Registro ricevute" note="A4 e ristampe mantenute" action="Apri" onAction={() => setActiveSection("payments")} />
-            <OverviewCard title="Accessi" ok={accessAllowed} value={accessAllowed ? "Consentiti" : "Da verificare"} note="Ultimi 3 eventi" action="Apri" onAction={() => setActiveSection("access")}>
+            <OverviewCard
+              title="Quota associativa"
+              ok={!!activeMembership}
+              value={activeMembership ? "Regolare" : "Da rinnovare"}
+              note={
+                activeMembership
+                  ? `Scade ${activeMembership.valid_until}`
+                  : "Quota mancante"
+              }
+              action="Gestisci"
+              onAction={() => setActiveSection("subscriptions")}
+            />
+            <OverviewCard
+              title="Certificato medico"
+              ok={!!certificateValid}
+              value={certificateValid ? "Valido" : "Critico"}
+              note={
+                certificateValid
+                  ? `Scade ${medicalCertificateEnd}`
+                  : "Upload o rinnovo richiesto"
+              }
+              action="Apri"
+              onAction={() => setActiveSection("documents")}
+            />
+            <OverviewCard
+              title="Pagamenti"
+              ok
+              value={`${subscriptions.length + membershipFees.length} movimenti`}
+              note="Storici completi in sezione cassa"
+              action="Apri"
+              onAction={() => setActiveSection("payments")}
+            />
+            <OverviewCard
+              title="Ricevute"
+              ok
+              value="Registro ricevute"
+              note="A4 e ristampe mantenute"
+              action="Apri"
+              onAction={() => setActiveSection("payments")}
+            />
+            <OverviewCard
+              title="Accessi"
+              ok={accessAllowed}
+              value={accessAllowed ? "Consentiti" : "Da verificare"}
+              note="Ultimi 3 eventi"
+              action="Apri"
+              onAction={() => setActiveSection("access")}
+            >
               <div className="overview-list">
-                {recentAccessLogs.length === 0 ? <span>Nessun accesso recente</span> : recentAccessLogs.map((log) => (
-                  <span key={log.id}>{log.was_allowed ? "Consentito" : "Negato"} · {new Date(log.access_time).toLocaleString()}</span>
-                ))}
+                {recentAccessLogs.length === 0 ? (
+                  <span>Nessun accesso recente</span>
+                ) : (
+                  recentAccessLogs.map((log) => (
+                    <span key={log.id}>
+                      {log.was_allowed ? "Consentito" : "Negato"} ·{" "}
+                      {new Date(log.access_time).toLocaleString()}
+                    </span>
+                  ))
+                )}
               </div>
             </OverviewCard>
-            <OverviewCard title="Note" ok={recentNotes.length === 0} value={`${notes.length} note`} note={recentNotes[0]?.note || "Nessuna nota urgente"} action="Gestisci" onAction={() => setActiveSection("timeline")} />
-            <OverviewCard title="Timeline recente" ok value={`${recentTimelineEvents.length} eventi`} note="Ultimi 3 eventi" action="Apri" onAction={() => setActiveSection("timeline")}>
+            <OverviewCard
+              title="Note"
+              ok={recentNotes.length === 0}
+              value={`${notes.length} note`}
+              note={recentNotes[0]?.note || "Nessuna nota urgente"}
+              action="Gestisci"
+              onAction={() => setActiveSection("timeline")}
+            />
+            <OverviewCard
+              title="Timeline recente"
+              ok
+              value={`${recentTimelineEvents.length} eventi`}
+              note="Ultimi 3 eventi"
+              action="Apri"
+              onAction={() => setActiveSection("timeline")}
+            >
               <div className="overview-list">
-                {recentTimelineEvents.length === 0 ? <span>Nessun evento recente</span> : recentTimelineEvents.map((event) => (
-                  <span key={event.key}>{event.title} · {event.date ? new Date(event.date).toLocaleDateString() : "-"}</span>
-                ))}
+                {recentTimelineEvents.length === 0 ? (
+                  <span>Nessun evento recente</span>
+                ) : (
+                  recentTimelineEvents.map((event) => (
+                    <span key={event.key}>
+                      {event.title} ·{" "}
+                      {event.date
+                        ? new Date(event.date).toLocaleDateString()
+                        : "-"}
+                    </span>
+                  ))
+                )}
               </div>
             </OverviewCard>
           </div>
-
         </section>
       ) : null}
 
       {activeSection === "profile" ? (
         <section className="content-grid">
           <BGCard variant="premium">
-            <BGSectionHeader title="Profilo cliente" subtitle="Dati anagrafici completi e modifica professionale." actions={!isEditingCustomer ? <BGButton variant="secondary" onClick={startEditCustomer}>Modifica anagrafica</BGButton> : null} />
+            <BGSectionHeader
+              title="Profilo cliente"
+              subtitle="Dati anagrafici completi e modifica professionale."
+              actions={
+                !isEditingCustomer ? (
+                  <BGButton variant="secondary" onClick={startEditCustomer}>
+                    Modifica anagrafica
+                  </BGButton>
+                ) : null
+              }
+            />
             <div className="info-grid">
-              {customerInfo.map((item) => <InfoMini key={item.label} label={item.label} value={item.value} />)}
+              {customerInfo.map((item) => (
+                <InfoMini
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                />
+              ))}
               <InfoMini label="Badge" value={customer.badge_code || "-"} />
-              <InfoMini label="Controller" value={customer.controller_code || "-"} />
-              <InfoMini label="Note reception" value={customer.reception_notes || "-"} />
+              <InfoMini
+                label="Controller"
+                value={customer.controller_code || "-"}
+              />
+              <InfoMini
+                label="Note reception"
+                value={customer.reception_notes || "-"}
+              />
             </div>
           </BGCard>
 
           <div className="section-panel">
-            <CustomerPhotoUpload customerId={customer.id} currentPhotoUrl={customer.photo_url} onUploaded={(url) => setCustomer((prev: any) => ({ ...prev, photo_url: url }))} />
+            <CustomerPhotoUpload
+              customerId={customer.id}
+              currentPhotoUrl={customer.photo_url}
+              onUploaded={(url) =>
+                setCustomer((prev: any) => ({ ...prev, photo_url: url }))
+              }
+            />
           </div>
 
           {isEditingCustomer ? (
-            <BGCard variant="warning" className="edit-panel" >
-              <BGSectionHeader title="Modifica anagrafica professionale" subtitle="Aggiorna dati cliente, credenziali principali e stato attività." actions={<div className="actions-inline"><BGButton variant="ghost" onClick={cancelEditCustomer} disabled={savingCustomer}>Annulla</BGButton><BGButton onClick={saveCustomerProfile} disabled={savingCustomer}>{savingCustomer ? "Salvataggio..." : "Salva"}</BGButton></div>} />
+            <BGCard variant="warning" className="edit-panel">
+              <BGSectionHeader
+                title="Modifica anagrafica professionale"
+                subtitle="Aggiorna dati cliente, credenziali principali e stato attività."
+                actions={
+                  <div className="actions-inline">
+                    <BGButton
+                      variant="ghost"
+                      onClick={cancelEditCustomer}
+                      disabled={savingCustomer}
+                    >
+                      Annulla
+                    </BGButton>
+                    <BGButton
+                      onClick={saveCustomerProfile}
+                      disabled={savingCustomer}
+                    >
+                      {savingCustomer ? "Salvataggio..." : "Salva"}
+                    </BGButton>
+                  </div>
+                }
+              />
               <div className="form-grid">
-                <EditField label="Nome"><input value={editForm.first_name || ""} onChange={(e) => updateEditField("first_name", e.target.value)} /></EditField>
-                <EditField label="Cognome"><input value={editForm.last_name || ""} onChange={(e) => updateEditField("last_name", e.target.value)} /></EditField>
-                <EditField label="Telefono"><input value={editForm.phone || ""} onChange={(e) => updateEditField("phone", e.target.value)} /></EditField>
-                <EditField label="Email"><input type="email" value={editForm.email || ""} onChange={(e) => updateEditField("email", e.target.value)} /></EditField>
-                <EditField label="Codice fiscale"><input value={editForm.fiscal_code || ""} onChange={(e) => updateEditField("fiscal_code", e.target.value.toUpperCase())} /></EditField>
-                <EditField label="Data nascita"><input type="date" value={editForm.birth_date || ""} onChange={(e) => updateEditField("birth_date", e.target.value)} /></EditField>
-                <EditField label="Sesso"><select value={editForm.gender || ""} onChange={(e) => updateEditField("gender", e.target.value)}><option value="">Non specificato</option><option value="M">Maschile</option><option value="F">Femminile</option><option value="ALTRO">Altro</option></select></EditField>
-                <EditField label="Indirizzo"><input value={editForm.address || ""} onChange={(e) => updateEditField("address", e.target.value)} /></EditField>
-                <EditField label="Città"><input value={editForm.city || ""} onChange={(e) => updateEditField("city", e.target.value)} /></EditField>
-                <EditField label="CAP"><input value={editForm.postal_code || ""} onChange={(e) => updateEditField("postal_code", e.target.value)} /></EditField>
-                <EditField label="Contatto emergenza"><input value={editForm.emergency_contact_name || ""} onChange={(e) => updateEditField("emergency_contact_name", e.target.value)} /></EditField>
-                <EditField label="Telefono emergenza"><input value={editForm.emergency_contact_phone || ""} onChange={(e) => updateEditField("emergency_contact_phone", e.target.value)} /></EditField>
-                <EditField label="Badge principale"><input value={editForm.badge_code || ""} onChange={(e) => updateEditField("badge_code", e.target.value)} /></EditField>
-                <EditField label="Controller code"><input value={editForm.controller_code || ""} onChange={(e) => updateEditField("controller_code", e.target.value)} /></EditField>
-                <EditField label="Stato cliente"><div className="checkbox-field"><input type="checkbox" checked={!!editForm.is_active} onChange={(e) => updateEditField("is_active", e.target.checked)} /><span>{editForm.is_active ? "Cliente attivo" : "Cliente disattivato"}</span></div></EditField>
-                <EditField label="Note reception" full><textarea value={editForm.reception_notes || ""} onChange={(e) => updateEditField("reception_notes", e.target.value)} placeholder="Note interne rapide visibili alla reception..." /></EditField>
+                <EditField label="Nome">
+                  <input
+                    value={editForm.first_name || ""}
+                    onChange={(e) =>
+                      updateEditField("first_name", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Cognome">
+                  <input
+                    value={editForm.last_name || ""}
+                    onChange={(e) =>
+                      updateEditField("last_name", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Telefono">
+                  <input
+                    value={editForm.phone || ""}
+                    onChange={(e) => updateEditField("phone", e.target.value)}
+                  />
+                </EditField>
+                <EditField label="Email">
+                  <input
+                    type="email"
+                    value={editForm.email || ""}
+                    onChange={(e) => updateEditField("email", e.target.value)}
+                  />
+                </EditField>
+                <EditField label="Codice fiscale">
+                  <input
+                    value={editForm.fiscal_code || ""}
+                    onChange={(e) =>
+                      updateEditField(
+                        "fiscal_code",
+                        e.target.value.toUpperCase(),
+                      )
+                    }
+                  />
+                </EditField>
+                <EditField label="Data nascita">
+                  <input
+                    type="date"
+                    value={editForm.birth_date || ""}
+                    onChange={(e) =>
+                      updateEditField("birth_date", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Sesso">
+                  <select
+                    value={editForm.gender || ""}
+                    onChange={(e) => updateEditField("gender", e.target.value)}
+                  >
+                    <option value="">Non specificato</option>
+                    <option value="M">Maschile</option>
+                    <option value="F">Femminile</option>
+                    <option value="ALTRO">Altro</option>
+                  </select>
+                </EditField>
+                <EditField label="Indirizzo">
+                  <input
+                    value={editForm.address || ""}
+                    onChange={(e) => updateEditField("address", e.target.value)}
+                  />
+                </EditField>
+                <EditField label="Città">
+                  <input
+                    value={editForm.city || ""}
+                    onChange={(e) => updateEditField("city", e.target.value)}
+                  />
+                </EditField>
+                <EditField label="CAP">
+                  <input
+                    value={editForm.postal_code || ""}
+                    onChange={(e) =>
+                      updateEditField("postal_code", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Contatto emergenza">
+                  <input
+                    value={editForm.emergency_contact_name || ""}
+                    onChange={(e) =>
+                      updateEditField("emergency_contact_name", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Telefono emergenza">
+                  <input
+                    value={editForm.emergency_contact_phone || ""}
+                    onChange={(e) =>
+                      updateEditField("emergency_contact_phone", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Badge principale">
+                  <input
+                    value={editForm.badge_code || ""}
+                    onChange={(e) =>
+                      updateEditField("badge_code", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Controller code">
+                  <input
+                    value={editForm.controller_code || ""}
+                    onChange={(e) =>
+                      updateEditField("controller_code", e.target.value)
+                    }
+                  />
+                </EditField>
+                <EditField label="Stato cliente">
+                  <div className="checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={!!editForm.is_active}
+                      onChange={(e) =>
+                        updateEditField("is_active", e.target.checked)
+                      }
+                    />
+                    <span>
+                      {editForm.is_active
+                        ? "Cliente attivo"
+                        : "Cliente disattivato"}
+                    </span>
+                  </div>
+                </EditField>
+                <EditField label="Note reception" full>
+                  <textarea
+                    value={editForm.reception_notes || ""}
+                    onChange={(e) =>
+                      updateEditField("reception_notes", e.target.value)
+                    }
+                    placeholder="Note interne rapide visibili alla reception..."
+                  />
+                </EditField>
               </div>
             </BGCard>
           ) : null}
@@ -1990,12 +2772,21 @@ async function disableBlock(blockId: string) {
               <BGSectionHeader
                 title="Rinnovo rapido + pagamento"
                 subtitle="Prepara il rinnovo guidato: data inizio modificabile, importo, metodo e ricevuta automatica."
-                actions={<BGButton onClick={renewMembershipFee}>Rinnova quota 10€</BGButton>}
+                actions={
+                  <BGButton onClick={renewMembershipFee}>
+                    Rinnova quota 10€
+                  </BGButton>
+                }
               />
 
               <div className="payment-box">
-                <div className="small-muted" style={{ marginBottom: 8 }}>Metodo pagamento</div>
-                <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
+                <div className="small-muted" style={{ marginBottom: 8 }}>
+                  Metodo pagamento
+                </div>
+                <select
+                  value={selectedPaymentMethod}
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                >
                   <option value="cash">Contanti</option>
                   <option value="pos">POS</option>
                   <option value="bank_transfer">Bonifico</option>
@@ -2004,7 +2795,10 @@ async function disableBlock(blockId: string) {
 
               <div className="quick-plan-grid">
                 {shortPlans.length === 0 ? (
-                  <BGEmptyState title="Nessun piano attivo" description="Configura i piani abbonamento per abilitare il rinnovo rapido." />
+                  <BGEmptyState
+                    title="Nessun piano attivo"
+                    description="Configura i piani abbonamento per abilitare il rinnovo rapido."
+                  />
                 ) : null}
 
                 {shortPlans.map((plan) => {
@@ -2013,13 +2807,25 @@ async function disableBlock(blockId: string) {
                   const planDisplayName = formatPlanDisplayName(plan.name);
 
                   return (
-                    <BGButton key={plan.id} className="quick-plan-btn bg-plan-card" onClick={() => openRenewalPanel(plan.id)}>
+                    <BGButton
+                      key={plan.id}
+                      className="quick-plan-btn bg-plan-card"
+                      onClick={() => openRenewalPanel(plan.id)}
+                    >
                       <span className="plan-copy">
-                        <span className="plan-title">{planDisplayName.title}</span>
-                        {planDisplayName.days ? <span className="plan-days">{planDisplayName.days}</span> : null}
+                        <span className="plan-title">
+                          {planDisplayName.title}
+                        </span>
+                        {planDisplayName.days ? (
+                          <span className="plan-days">
+                            {planDisplayName.days}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="plan-meta">
-                        <strong className="plan-price">€ {price.toFixed(2)}</strong>
+                        <strong className="plan-price">
+                          € {price.toFixed(2)}
+                        </strong>
                         <BGStatusBadge tone="info">{`${duration} giorni`}</BGStatusBadge>
                       </span>
                     </BGButton>
@@ -2028,17 +2834,29 @@ async function disableBlock(blockId: string) {
               </div>
 
               <div className="manual-renew-box">
-                <div className="small-muted" style={{ marginBottom: 10 }}>Rinnovo manuale / piano personalizzato</div>
+                <div className="small-muted" style={{ marginBottom: 10 }}>
+                  Rinnovo manuale / piano personalizzato
+                </div>
                 <div className="actions">
-                  <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
+                  <select
+                    value={selectedPlanId}
+                    onChange={(e) => setSelectedPlanId(e.target.value)}
+                  >
                     <option value="">Seleziona piano</option>
                     {plans.map((plan) => (
                       <option key={plan.id} value={plan.id}>
-                        {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
+                        {plan.name} - €
+                        {Number(plan.promo_price || plan.price || 0).toFixed(2)}{" "}
+                        - {plan.duration_days} giorni
                       </option>
                     ))}
                   </select>
-                  <BGButton variant="secondary" onClick={() => openRenewalPanel()}>Prepara rinnovo</BGButton>
+                  <BGButton
+                    variant="secondary"
+                    onClick={() => openRenewalPanel()}
+                  >
+                    Prepara rinnovo
+                  </BGButton>
                 </div>
               </div>
 
@@ -2064,11 +2882,18 @@ async function disableBlock(blockId: string) {
 
                   <div className="form-grid" style={{ marginTop: 14 }}>
                     <EditField label="Piano">
-                      <select value={renewalPlanId} onChange={(e) => updateRenewalPlan(e.target.value)}>
+                      <select
+                        value={renewalPlanId}
+                        onChange={(e) => updateRenewalPlan(e.target.value)}
+                      >
                         <option value="">Seleziona piano</option>
                         {plans.map((plan) => (
                           <option key={plan.id} value={plan.id}>
-                            {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
+                            {plan.name} - €
+                            {Number(
+                              plan.promo_price || plan.price || 0,
+                            ).toFixed(2)}{" "}
+                            - {plan.duration_days} giorni
                           </option>
                         ))}
                       </select>
@@ -2097,7 +2922,12 @@ async function disableBlock(blockId: string) {
                     </EditField>
 
                     <EditField label="Metodo pagamento">
-                      <select value={selectedPaymentMethod} onChange={(e) => setSelectedPaymentMethod(e.target.value)}>
+                      <select
+                        value={selectedPaymentMethod}
+                        onChange={(e) =>
+                          setSelectedPaymentMethod(e.target.value)
+                        }
+                      >
                         <option value="cash">Contanti</option>
                         <option value="pos">POS</option>
                         <option value="bank_transfer">Bonifico</option>
@@ -2115,7 +2945,9 @@ async function disableBlock(blockId: string) {
 
                   {getRenewalWarnings().length > 0 ? (
                     <div className="payment-box" style={{ marginTop: 14 }}>
-                      <div className="small-muted" style={{ marginBottom: 8 }}>Avvisi rinnovo</div>
+                      <div className="small-muted" style={{ marginBottom: 8 }}>
+                        Avvisi rinnovo
+                      </div>
                       <div className="history-list">
                         {getRenewalWarnings().map((warning) => (
                           <div key={warning} className="history-row">
@@ -2130,24 +2962,48 @@ async function disableBlock(blockId: string) {
                   ) : null}
 
                   <div className="payment-box" style={{ marginTop: 14 }}>
-                    <div className="small-muted" style={{ marginBottom: 8 }}>Riepilogo finale</div>
+                    <div className="small-muted" style={{ marginBottom: 8 }}>
+                      Riepilogo finale
+                    </div>
                     <div className="info-grid">
-                      <InfoMini label="Piano" value={getRenewalPlan()?.name || "-"} />
-                      <InfoMini label="Periodo" value={`${formatDateIT(renewalStartDate)} → ${formatDateIT(renewalEndDate)}`} />
-                      <InfoMini label="Importo" value={`€ ${Number(String(renewalAmount).replace(",", ".") || 0).toFixed(2)}`} />
-                      <InfoMini label="Pagamento" value={paymentMethodLabel(selectedPaymentMethod)} />
+                      <InfoMini
+                        label="Piano"
+                        value={getRenewalPlan()?.name || "-"}
+                      />
+                      <InfoMini
+                        label="Periodo"
+                        value={`${formatDateIT(renewalStartDate)} → ${formatDateIT(renewalEndDate)}`}
+                      />
+                      <InfoMini
+                        label="Importo"
+                        value={`€ ${Number(String(renewalAmount).replace(",", ".") || 0).toFixed(2)}`}
+                      />
+                      <InfoMini
+                        label="Pagamento"
+                        value={paymentMethodLabel(selectedPaymentMethod)}
+                      />
                     </div>
                     <div className="small-muted" style={{ marginTop: 10 }}>
-                      Alla conferma BodyGate creerà abbonamento, pagamento, ricevuta e timeline cliente.
+                      Alla conferma BodyGate creerà abbonamento, pagamento,
+                      ricevuta e timeline cliente.
                     </div>
                   </div>
 
                   <div className="actions" style={{ marginTop: 16 }}>
-                    <BGButton variant="secondary" onClick={() => setRenewalOpen(false)} disabled={renewalSaving}>
+                    <BGButton
+                      variant="secondary"
+                      onClick={() => setRenewalOpen(false)}
+                      disabled={renewalSaving}
+                    >
                       Annulla
                     </BGButton>
-                    <BGButton onClick={() => renewSubscription()} disabled={renewalSaving}>
-                      {renewalSaving ? "Rinnovo in corso..." : "Conferma rinnovo"}
+                    <BGButton
+                      onClick={() => renewSubscription()}
+                      disabled={renewalSaving}
+                    >
+                      {renewalSaving
+                        ? "Rinnovo in corso..."
+                        : "Conferma rinnovo"}
                     </BGButton>
                   </div>
                 </div>
@@ -2208,122 +3064,175 @@ async function disableBlock(blockId: string) {
                     variant="secondary"
                     onClick={() => setShowSubscriptionHistory((prev) => !prev)}
                   >
-                    {showSubscriptionHistory ? "Nascondi storico abbonamenti" : "Mostra storico abbonamenti"}
+                    {showSubscriptionHistory
+                      ? "Nascondi storico abbonamenti"
+                      : "Mostra storico abbonamenti"}
                   </BGButton>
 
                   <BGButton
                     variant="secondary"
                     onClick={() => setShowMembershipHistory((prev) => !prev)}
                   >
-                    {showMembershipHistory ? "Nascondi storico quota" : "Mostra storico quota"}
+                    {showMembershipHistory
+                      ? "Nascondi storico quota"
+                      : "Mostra storico quota"}
                   </BGButton>
                 </div>
               </div>
             </BGCard>
           </div>
 
-            {editingSubscriptionId ? (
-              <BGCard variant="warning">
-                <BGSectionHeader
-                  title="Modifica abbonamento selezionato"
-                  subtitle="Correggi piano, periodo, importo, metodo pagamento e note operative."
-                  actions={
-                    <div className="actions-inline">
-                      <BGButton variant="ghost" onClick={cancelEditSubscription} disabled={savingSubscriptionEdit}>
-                        Annulla
-                      </BGButton>
-                      <BGButton onClick={saveSubscriptionEdit} disabled={savingSubscriptionEdit}>
-                        {savingSubscriptionEdit ? "Salvataggio..." : "Salva modifiche"}
-                      </BGButton>
-                    </div>
-                  }
-                />
-
-                <div className="form-grid">
-                  <EditField label="Piano">
-                    <select
-                      value={subscriptionEditForm.plan_id || ""}
-                      onChange={(e) => updateSubscriptionEditField("plan_id", e.target.value)}
+          {editingSubscriptionId ? (
+            <BGCard variant="warning">
+              <BGSectionHeader
+                title="Modifica abbonamento selezionato"
+                subtitle="Correggi piano, periodo, importo, metodo pagamento e note operative."
+                actions={
+                  <div className="actions-inline">
+                    <BGButton
+                      variant="ghost"
+                      onClick={cancelEditSubscription}
+                      disabled={savingSubscriptionEdit}
                     >
-                      <option value="">Seleziona piano</option>
-                      {plans.map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name} - €{Number(plan.promo_price || plan.price || 0).toFixed(2)} - {plan.duration_days} giorni
-                        </option>
-                      ))}
-                    </select>
-                  </EditField>
-
-                  <EditField label="Data inizio">
-                    <input
-                      type="date"
-                      value={subscriptionEditForm.starts_at || ""}
-                      onChange={(e) => updateSubscriptionEditField("starts_at", e.target.value)}
-                    />
-                  </EditField>
-
-                  <EditField label="Data fine">
-                    <input
-                      type="date"
-                      value={subscriptionEditForm.ends_at || ""}
-                      onChange={(e) => updateSubscriptionEditField("ends_at", e.target.value)}
-                    />
-                  </EditField>
-
-                  <EditField label="Importo">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={subscriptionEditForm.amount || ""}
-                      onChange={(e) => updateSubscriptionEditField("amount", e.target.value)}
-                    />
-                  </EditField>
-
-                  <EditField label="Metodo pagamento">
-                    <select
-                      value={subscriptionEditForm.payment_method || "cash"}
-                      onChange={(e) => updateSubscriptionEditField("payment_method", e.target.value)}
+                      Annulla
+                    </BGButton>
+                    <BGButton
+                      onClick={saveSubscriptionEdit}
+                      disabled={savingSubscriptionEdit}
                     >
-                      <option value="cash">Contanti</option>
-                      <option value="pos">POS</option>
-                      <option value="bank_transfer">Bonifico</option>
-                    </select>
-                  </EditField>
+                      {savingSubscriptionEdit
+                        ? "Salvataggio..."
+                        : "Salva modifiche"}
+                    </BGButton>
+                  </div>
+                }
+              />
 
-                  <EditField label="Note modifica" full>
-                    <textarea
-                      value={subscriptionEditForm.notes || ""}
-                      onChange={(e) => updateSubscriptionEditField("notes", e.target.value)}
-                      placeholder="Esempio: correzione data, piano errato, importo corretto..."
-                    />
-                  </EditField>
-                </div>
+              <div className="form-grid">
+                <EditField label="Piano">
+                  <select
+                    value={subscriptionEditForm.plan_id || ""}
+                    onChange={(e) =>
+                      updateSubscriptionEditField("plan_id", e.target.value)
+                    }
+                  >
+                    <option value="">Seleziona piano</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} - €
+                        {Number(plan.promo_price || plan.price || 0).toFixed(2)}{" "}
+                        - {plan.duration_days} giorni
+                      </option>
+                    ))}
+                  </select>
+                </EditField>
 
-                <div className="small-muted" style={{ marginTop: 12 }}>
-                  Nota: questa modifica aggiorna l'abbonamento e la timeline. Non modifica la ricevuta A4 già emessa.
-                </div>
-              </BGCard>
-            ) : null}
+                <EditField label="Data inizio">
+                  <input
+                    type="date"
+                    value={subscriptionEditForm.starts_at || ""}
+                    onChange={(e) =>
+                      updateSubscriptionEditField("starts_at", e.target.value)
+                    }
+                  />
+                </EditField>
+
+                <EditField label="Data fine">
+                  <input
+                    type="date"
+                    value={subscriptionEditForm.ends_at || ""}
+                    onChange={(e) =>
+                      updateSubscriptionEditField("ends_at", e.target.value)
+                    }
+                  />
+                </EditField>
+
+                <EditField label="Importo">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={subscriptionEditForm.amount || ""}
+                    onChange={(e) =>
+                      updateSubscriptionEditField("amount", e.target.value)
+                    }
+                  />
+                </EditField>
+
+                <EditField label="Metodo pagamento">
+                  <select
+                    value={subscriptionEditForm.payment_method || "cash"}
+                    onChange={(e) =>
+                      updateSubscriptionEditField(
+                        "payment_method",
+                        e.target.value,
+                      )
+                    }
+                  >
+                    <option value="cash">Contanti</option>
+                    <option value="pos">POS</option>
+                    <option value="bank_transfer">Bonifico</option>
+                  </select>
+                </EditField>
+
+                <EditField label="Note modifica" full>
+                  <textarea
+                    value={subscriptionEditForm.notes || ""}
+                    onChange={(e) =>
+                      updateSubscriptionEditField("notes", e.target.value)
+                    }
+                    placeholder="Esempio: correzione data, piano errato, importo corretto..."
+                  />
+                </EditField>
+              </div>
+
+              <div className="small-muted" style={{ marginTop: 12 }}>
+                Nota: questa modifica aggiorna l'abbonamento e la timeline. Non
+                modifica la ricevuta A4 già emessa.
+              </div>
+            </BGCard>
+          ) : null}
 
           {showSubscriptionHistory ? (
-            <HistoryCard title="Storico abbonamenti" subtitle="Tutti i rinnovi registrati per il cliente.">
+            <HistoryCard
+              title="Storico abbonamenti"
+              subtitle="Tutti i rinnovi registrati per il cliente."
+            >
               <div className="history-list">
-                {subscriptions.length === 0 ? <BGEmptyState title="Nessun abbonamento" /> : subscriptions.map((sub) => <SubscriptionHistoryRow
-                    key={sub.id}
-                    subscription={sub}
-                    today={today}
-                    onEdit={() => openEditSubscription(sub)}
-                    onCancel={() => cancelSubscriptionRecord(sub)}
-                  />)}
+                {subscriptions.length === 0 ? (
+                  <BGEmptyState title="Nessun abbonamento" />
+                ) : (
+                  subscriptions.map((sub) => (
+                    <SubscriptionHistoryRow
+                      key={sub.id}
+                      subscription={sub}
+                      today={today}
+                      onEdit={() => openEditSubscription(sub)}
+                      onCancel={() => cancelSubscriptionRecord(sub)}
+                    />
+                  ))
+                )}
               </div>
             </HistoryCard>
           ) : null}
 
           {showMembershipHistory ? (
-            <HistoryCard title="Storico quota associativa" subtitle="Quote annuali registrate.">
+            <HistoryCard
+              title="Storico quota associativa"
+              subtitle="Quote annuali registrate."
+            >
               <div className="history-list">
-                {membershipFees.length === 0 ? <BGEmptyState title="Nessuna quota registrata" /> : membershipFees.map((fee) => <MembershipFeeHistoryRow key={fee.id} fee={fee} today={today} />)}
+                {membershipFees.length === 0 ? (
+                  <BGEmptyState title="Nessuna quota registrata" />
+                ) : (
+                  membershipFees.map((fee) => (
+                    <MembershipFeeHistoryRow
+                      key={fee.id}
+                      fee={fee}
+                      today={today}
+                    />
+                  ))
+                )}
               </div>
             </HistoryCard>
           ) : null}
@@ -2340,43 +3249,192 @@ async function disableBlock(blockId: string) {
       {activeSection === "access" ? (
         <section className="content-grid">
           <BGCard variant="premium">
-            <BGSectionHeader title="Credenziali accesso" subtitle="RFID/NFC, QR DNake, Mobile Pass e WhatsApp." />
+            <BGSectionHeader
+              title="Credenziali accesso"
+              subtitle="RFID/NFC, QR DNake, Mobile Pass e WhatsApp."
+            />
             <div className="credential-summary">
-              <InfoMini label="RFID / NFC" value={`${cardCredentials.length} attive`} />
-              <InfoMini label="QR DNake" value={activeDnakeQr ? "Attivo" : "Non generato"} tone={activeDnakeQr ? "success" : "danger"} />
+              <InfoMini
+                label="RFID / NFC"
+                value={`${cardCredentials.length} attive`}
+              />
+              <InfoMini
+                label="QR DNake"
+                value={activeDnakeQr ? "Attivo" : "Non generato"}
+                tone={activeDnakeQr ? "success" : "danger"}
+              />
             </div>
             <div className="credential-section">
               <div className="credential-section-title">Tessere / Card</div>
-              {cardCredentials.length === 0 ? <BGEmptyState title="Nessuna tessera associata" /> : <div className="credential-pill-list">{cardCredentials.map((item) => <span className="credential-pill" key={item.id}>{String(item.type).toUpperCase()} · {item.controller_code || item.code}</span>)}</div>}
+              {cardCredentials.length === 0 ? (
+                <BGEmptyState title="Nessuna tessera associata" />
+              ) : (
+                <div className="credential-pill-list">
+                  {cardCredentials.map((item) => (
+                    <span className="credential-pill" key={item.id}>
+                      {String(item.type).toUpperCase()} ·{" "}
+                      {item.controller_code || item.code}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="credential-section">
               <div className="credential-section-title">QR Code DNake</div>
               {activeDnakeQr ? (
                 <>
-                  {qrDataUrl ? <div className="qr-box"><img src={qrDataUrl} alt="QR DNake" /></div> : <BGEmptyState title="Generazione immagine QR" />}
-                  <div className="info-grid"><InfoMini label="ID DNake" value={activeDnakeQr.dnake_user_id || "-"} /><InfoMini label="Nome DNake" value={activeDnakeQr.dnake_name || "-"} /><InfoMini label="Stato" value={activeDnakeQr.qr_status || "-"} /></div>
-                  <div className="actions"><BGButton variant="secondary" onClick={printQr} disabled={!qrDataUrl}>Visualizza / stampa</BGButton><BGButton onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Rigenero..." : "Rigenera QR"}</BGButton></div>
+                  {qrDataUrl ? (
+                    <div className="qr-box">
+                      <img src={qrDataUrl} alt="QR DNake" />
+                    </div>
+                  ) : (
+                    <BGEmptyState title="Generazione immagine QR" />
+                  )}
+                  <div className="info-grid">
+                    <InfoMini
+                      label="ID DNake"
+                      value={activeDnakeQr.dnake_user_id || "-"}
+                    />
+                    <InfoMini
+                      label="Nome DNake"
+                      value={activeDnakeQr.dnake_name || "-"}
+                    />
+                    <InfoMini
+                      label="Stato"
+                      value={activeDnakeQr.qr_status || "-"}
+                    />
+                  </div>
+                  <div className="actions">
+                    <BGButton
+                      variant="secondary"
+                      onClick={printQr}
+                      disabled={!qrDataUrl}
+                    >
+                      Visualizza / stampa
+                    </BGButton>
+                    <BGButton onClick={generateDnakeQr} disabled={qrGenerating}>
+                      {qrGenerating ? "Rigenero..." : "Rigenera QR"}
+                    </BGButton>
+                  </div>
                 </>
-              ) : <><BGEmptyState title="Nessun QR DNake" description="Genera un QR DNake per abilitare il passaggio cliente." /><BGButton onClick={generateDnakeQr} disabled={qrGenerating}>{qrGenerating ? "Generazione..." : "Genera QR DNake"}</BGButton></>}
-              {qrCredentials.length > 0 ? <div className="small-muted">Credenziali QR salvate: {qrCredentials.length}</div> : null}
+              ) : (
+                <>
+                  <BGEmptyState
+                    title="Nessun QR DNake"
+                    description="Genera un QR DNake per abilitare il passaggio cliente."
+                  />
+                  <BGButton onClick={generateDnakeQr} disabled={qrGenerating}>
+                    {qrGenerating ? "Generazione..." : "Genera QR DNake"}
+                  </BGButton>
+                </>
+              )}
+              {qrCredentials.length > 0 ? (
+                <div className="small-muted">
+                  Credenziali QR salvate: {qrCredentials.length}
+                </div>
+              ) : null}
             </div>
             <div className="credential-section">
-              <div className="credential-section-title">Mobile Pass / WhatsApp</div>
-              <BGEmptyState title="Mobile Pass cliente" description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente." />
-              {mobilePassUrl ? <div className="mobile-pass-url">{mobilePassUrl}</div> : null}
-              <div className="actions"><BGButton variant="secondary" onClick={createOrGetMobilePass} disabled={mobilePassLoading}>{mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}</BGButton><BGButton onClick={() => { void sendMobilePassWhatsApp(); }} disabled={mobilePassLoading}>Invia su WhatsApp</BGButton><BGButton variant="secondary" onClick={copyMobilePassLink} disabled={mobilePassLoading}>Copia link</BGButton></div>
-              {!customer?.phone ? <div className="danger-text small-muted">Telefono cliente mancante: WhatsApp si aprirà senza destinatario.</div> : null}
+              <div className="credential-section-title">
+                Mobile Pass / WhatsApp
+              </div>
+              <BGEmptyState
+                title="Mobile Pass cliente"
+                description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente."
+              />
+              {mobilePassUrl ? (
+                <div className="mobile-pass-url">{mobilePassUrl}</div>
+              ) : null}
+              <div className="actions">
+                <BGButton
+                  variant="secondary"
+                  onClick={createOrGetMobilePass}
+                  disabled={mobilePassLoading}
+                >
+                  {mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}
+                </BGButton>
+                <BGButton
+                  onClick={() => {
+                    void sendMobilePassWhatsApp();
+                  }}
+                  disabled={mobilePassLoading}
+                >
+                  Invia su WhatsApp
+                </BGButton>
+                <BGButton
+                  variant="secondary"
+                  onClick={copyMobilePassLink}
+                  disabled={mobilePassLoading}
+                >
+                  Copia link
+                </BGButton>
+              </div>
+              {!customer?.phone ? (
+                <div className="danger-text small-muted">
+                  Telefono cliente mancante: WhatsApp si aprirà senza
+                  destinatario.
+                </div>
+              ) : null}
             </div>
           </BGCard>
 
           <div className="section-panel">
             <BGCard variant={activeBlock ? "danger" : "soft"}>
-              <BGSectionHeader title="Blocchi cliente" subtitle="Gestione blocchi operativi senza modificare access control." />
-              <div className="actions"><input value={blockReason} onChange={(e) => setBlockReason(e.target.value)} placeholder="Motivo blocco..." /><BGButton variant="danger" onClick={addBlock}>Blocca</BGButton></div>
-              {blocks.length === 0 ? <BGEmptyState title="Nessun blocco presente" /> : blocks.map((block) => <div className="row" key={block.id}><div><div className="row-title">{block.reason}</div><div className="row-subtitle">Stato: {block.is_active ? "Attivo" : "Disattivato"}</div></div>{block.is_active ? <BGButton variant="secondary" onClick={() => disableBlock(block.id)}>Sblocca</BGButton> : null}</div>)}
+              <BGSectionHeader
+                title="Blocchi cliente"
+                subtitle="Gestione blocchi operativi senza modificare access control."
+              />
+              <div className="actions">
+                <input
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  placeholder="Motivo blocco..."
+                />
+                <BGButton variant="danger" onClick={addBlock}>
+                  Blocca
+                </BGButton>
+              </div>
+              {blocks.length === 0 ? (
+                <BGEmptyState title="Nessun blocco presente" />
+              ) : (
+                blocks.map((block) => (
+                  <div className="row" key={block.id}>
+                    <div>
+                      <div className="row-title">{block.reason}</div>
+                      <div className="row-subtitle">
+                        Stato: {block.is_active ? "Attivo" : "Disattivato"}
+                      </div>
+                    </div>
+                    {block.is_active ? (
+                      <BGButton
+                        variant="secondary"
+                        onClick={() => disableBlock(block.id)}
+                      >
+                        Sblocca
+                      </BGButton>
+                    ) : null}
+                  </div>
+                ))
+              )}
             </BGCard>
-            <HistoryCard title="Ultimi accessi" subtitle="Storico accessi leggibile e compatto.">
-              {accessLogs.length === 0 ? <BGEmptyState title="Nessun accesso registrato" /> : accessLogs.map((log) => <InfoRow key={log.id} title={log.was_allowed ? "Accesso consentito" : "Accesso negato"} subtitle={new Date(log.access_time).toLocaleString()} right={log.reason || "-"} />)}
+            <HistoryCard
+              title="Ultimi accessi"
+              subtitle="Storico accessi leggibile e compatto."
+            >
+              {accessLogs.length === 0 ? (
+                <BGEmptyState title="Nessun accesso registrato" />
+              ) : (
+                accessLogs.map((log) => (
+                  <InfoRow
+                    key={log.id}
+                    title={
+                      log.was_allowed ? "Accesso consentito" : "Accesso negato"
+                    }
+                    subtitle={new Date(log.access_time).toLocaleString()}
+                    right={log.reason || "-"}
+                  />
+                ))
+              )}
             </HistoryCard>
           </div>
         </section>
@@ -2384,16 +3442,58 @@ async function disableBlock(blockId: string) {
 
       {activeSection === "documents" ? (
         <section className="content-grid">
-          <MedicalCertificateCard customerId={customer.id} currentCertificateUrl={customer.medical_certificate_url} startDate={customer.medical_certificate_start_date} endDate={customer.medical_certificate_end_date} onUpdated={(data) => setCustomer((prev: any) => ({ ...prev, medical_certificate_url: data.url, medical_certificate_start_date: data.startDate, medical_certificate_end_date: data.endDate }))} />
+          <MedicalCertificateCard
+            customerId={customer.id}
+            currentCertificateUrl={customer.medical_certificate_url}
+            startDate={customer.medical_certificate_start_date}
+            endDate={customer.medical_certificate_end_date}
+            onUpdated={(data) =>
+              setCustomer((prev: any) => ({
+                ...prev,
+                medical_certificate_url: data.url,
+                medical_certificate_start_date: data.startDate,
+                medical_certificate_end_date: data.endDate,
+              }))
+            }
+          />
           <BGCard variant="premium">
-            <BGSectionHeader title="Documenti cliente" subtitle="Certificato medico, date e contratto se presente." />
+            <BGSectionHeader
+              title="Documenti cliente"
+              subtitle="Certificato medico, date e contratto se presente."
+            />
             <div className="info-grid">
-              <InfoMini label="Certificato" value={customer.medical_certificate_url ? "Caricato" : "Non caricato"} tone={customer.medical_certificate_url ? "success" : "danger"} />
-              <InfoMini label="Inizio certificato" value={customer.medical_certificate_start_date || "-"} />
-              <InfoMini label="Scadenza certificato" value={medicalCertificateEnd || "-"} tone={certificateValid ? "success" : "danger"} />
-              <InfoMini label="Contratto" value={contractUrl ? "Disponibile" : "Non presente"} tone={contractUrl ? "success" : "neutral"} />
+              <InfoMini
+                label="Certificato"
+                value={
+                  customer.medical_certificate_url ? "Caricato" : "Non caricato"
+                }
+                tone={customer.medical_certificate_url ? "success" : "danger"}
+              />
+              <InfoMini
+                label="Inizio certificato"
+                value={customer.medical_certificate_start_date || "-"}
+              />
+              <InfoMini
+                label="Scadenza certificato"
+                value={medicalCertificateEnd || "-"}
+                tone={certificateValid ? "success" : "danger"}
+              />
+              <InfoMini
+                label="Contratto"
+                value={contractUrl ? "Disponibile" : "Non presente"}
+                tone={contractUrl ? "success" : "neutral"}
+              />
             </div>
-            {contractUrl ? <BGButton href={contractUrl} variant="secondary">Apri contratto</BGButton> : <BGEmptyState title="Nessun contratto collegato" description="Se il record cliente contiene un link contratto verrà mostrato qui." />}
+            {contractUrl ? (
+              <BGButton href={contractUrl} variant="secondary">
+                Apri contratto
+              </BGButton>
+            ) : (
+              <BGEmptyState
+                title="Nessun contratto collegato"
+                description="Se il record cliente contiene un link contratto verrà mostrato qui."
+              />
+            )}
           </BGCard>
         </section>
       ) : null}
@@ -2401,9 +3501,34 @@ async function disableBlock(blockId: string) {
       {activeSection === "timeline" ? (
         <section className="section-panel">
           <BGCard variant="premium">
-            <BGSectionHeader title="Note interne" subtitle="Aggiunta note e storico completo in card premium." />
-            <div className="actions"><input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Scrivi una nota interna..." /><BGButton variant="secondary" onClick={addNote}>Aggiungi</BGButton></div>
-            {notes.length === 0 ? <BGEmptyState title="Nessuna nota interna" /> : notes.map((note) => <div className="row" key={note.id}><div><div className="row-title">{note.note}</div><div className="row-subtitle">{new Date(note.created_at).toLocaleString()}</div></div></div>)}
+            <BGSectionHeader
+              title="Note interne"
+              subtitle="Aggiunta note e storico completo in card premium."
+            />
+            <div className="actions">
+              <input
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Scrivi una nota interna..."
+              />
+              <BGButton variant="secondary" onClick={addNote}>
+                Aggiungi
+              </BGButton>
+            </div>
+            {notes.length === 0 ? (
+              <BGEmptyState title="Nessuna nota interna" />
+            ) : (
+              notes.map((note) => (
+                <div className="row" key={note.id}>
+                  <div>
+                    <div className="row-title">{note.note}</div>
+                    <div className="row-subtitle">
+                      {new Date(note.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </BGCard>
           <CustomerTimeline customerId={customer.id} />
         </section>
@@ -2423,7 +3548,9 @@ function StatusBox({
   return (
     <div className="status-box">
       <div className="status-label">{label}</div>
-      <div className={`status-value ${ok ? "success-text" : "danger-text"}`}>{value}</div>
+      <div className={`status-value ${ok ? "success-text" : "danger-text"}`}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -2449,14 +3576,18 @@ function OverviewCard({
     <div className="mini-card">
       <div className="mini-card-head">
         <div className="mini-title">{title}</div>
-        <BGStatusBadge tone={ok ? "success" : "warning"}>{ok ? "OK" : "ATTENZIONE"}</BGStatusBadge>
+        <BGStatusBadge tone={ok ? "success" : "warning"}>
+          {ok ? "OK" : "ATTENZIONE"}
+        </BGStatusBadge>
       </div>
       <div>
         <div className="mini-value">{value}</div>
         <div className="small-muted">{note}</div>
         {children}
       </div>
-      <BGButton variant="ghost" onClick={onAction}>{action}</BGButton>
+      <BGButton variant="ghost" onClick={onAction}>
+        {action}
+      </BGButton>
     </div>
   );
 }
@@ -2490,7 +3621,9 @@ function InfoMini({
   return (
     <div className="info-mini-card">
       <div className="info-label">{label}</div>
-      <div className={`info-value ${tone === "success" ? "success-text" : tone === "danger" ? "danger-text" : ""}`}>
+      <div
+        className={`info-value ${tone === "success" ? "success-text" : tone === "danger" ? "danger-text" : ""}`}
+      >
         {value}
       </div>
     </div>
@@ -2574,10 +3707,14 @@ function SubscriptionHistoryRow({
           Periodo: {startsAt || "—"} → {endsAt || "—"}
         </div>
         {subscription.payment_method ? (
-          <div className="history-period">Metodo: {subscription.payment_method}</div>
+          <div className="history-period">
+            Metodo: {subscription.payment_method}
+          </div>
         ) : null}
         {subscription.notes ? (
-          <div className="history-period">Note: {String(subscription.notes).slice(0, 180)}</div>
+          <div className="history-period">
+            Note: {String(subscription.notes).slice(0, 180)}
+          </div>
         ) : null}
       </div>
 
@@ -2600,13 +3737,7 @@ function SubscriptionHistoryRow({
   );
 }
 
-function MembershipFeeHistoryRow({
-  fee,
-  today,
-}: {
-  fee: any;
-  today: string;
-}) {
+function MembershipFeeHistoryRow({ fee, today }: { fee: any; today: string }) {
   const amount = Number(fee.amount || 0);
   const isValid = fee.valid_from <= today && fee.valid_until >= today;
 
@@ -2614,12 +3745,18 @@ function MembershipFeeHistoryRow({
     <div className="history-row">
       <div className="history-main">
         <div className="history-title">Quota associativa</div>
-        <div className="history-period">Validità: {fee.valid_from || "—"} → {fee.valid_until || "—"}</div>
+        <div className="history-period">
+          Validità: {fee.valid_from || "—"} → {fee.valid_until || "—"}
+        </div>
       </div>
       <div className="history-side">
         <div className="history-amount">€ {amount.toFixed(2)}</div>
-        {fee.payment_method ? <div className="history-method">Metodo: {fee.payment_method}</div> : null}
-        <BGStatusBadge tone={isValid ? "success" : "neutral"}>{isValid ? "Valida" : "Storico"}</BGStatusBadge>
+        {fee.payment_method ? (
+          <div className="history-method">Metodo: {fee.payment_method}</div>
+        ) : null}
+        <BGStatusBadge tone={isValid ? "success" : "neutral"}>
+          {isValid ? "Valida" : "Storico"}
+        </BGStatusBadge>
       </div>
     </div>
   );
