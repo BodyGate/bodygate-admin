@@ -74,6 +74,13 @@ export default function CustomerDetailsClient({
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
+  const [badgePanelOpen, setBadgePanelOpen] = useState(false);
+  const [badgeDraft, setBadgeDraft] = useState("");
+  const [badgeSaving, setBadgeSaving] = useState(false);
+  const [badgeFeedback, setBadgeFeedback] = useState<{
+    tone: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -160,39 +167,41 @@ export default function CustomerDetailsClient({
     }));
   }
 
+  function buildCustomerProfilePayload(source: any) {
+    return {
+      first_name: String(source.first_name || "").trim(),
+      last_name: String(source.last_name || "").trim(),
+      phone: String(source.phone || "").trim() || null,
+      email: String(source.email || "").trim() || null,
+      fiscal_code: String(source.fiscal_code || "").trim() || null,
+      birth_date: source.birth_date || null,
+      gender: source.gender || null,
+      address: String(source.address || "").trim() || null,
+      city: String(source.city || "").trim() || null,
+      postal_code:
+        String(source.postal_code || source.zip || "").trim() || null,
+      emergency_contact_name:
+        String(source.emergency_contact_name || "").trim() || null,
+      emergency_contact_phone:
+        String(source.emergency_contact_phone || "").trim() || null,
+      reception_notes: String(source.reception_notes || "").trim() || null,
+      badge_code: String(source.badge_code || "").trim() || null,
+      controller_code: String(source.controller_code || "").trim() || null,
+      is_active: source.is_active !== false,
+    };
+  }
+
   async function saveCustomerProfile() {
     if (!customer?.id) return;
 
-    const firstName = String(editForm.first_name || "").trim();
-    const lastName = String(editForm.last_name || "").trim();
+    const payload = buildCustomerProfilePayload(editForm);
 
-    if (!firstName || !lastName) {
+    if (!payload.first_name || !payload.last_name) {
       alert("Nome e cognome sono obbligatori.");
       return;
     }
 
     setSavingCustomer(true);
-
-    const payload = {
-      first_name: firstName,
-      last_name: lastName,
-      phone: String(editForm.phone || "").trim() || null,
-      email: String(editForm.email || "").trim() || null,
-      fiscal_code: String(editForm.fiscal_code || "").trim() || null,
-      birth_date: editForm.birth_date || null,
-      gender: editForm.gender || null,
-      address: String(editForm.address || "").trim() || null,
-      city: String(editForm.city || "").trim() || null,
-      postal_code: String(editForm.postal_code || "").trim() || null,
-      emergency_contact_name:
-        String(editForm.emergency_contact_name || "").trim() || null,
-      emergency_contact_phone:
-        String(editForm.emergency_contact_phone || "").trim() || null,
-      reception_notes: String(editForm.reception_notes || "").trim() || null,
-      badge_code: String(editForm.badge_code || "").trim() || null,
-      controller_code: String(editForm.controller_code || "").trim() || null,
-      is_active: !!editForm.is_active,
-    };
 
     try {
       const response = await fetch("/api/customers/update-profile", {
@@ -225,6 +234,98 @@ export default function CustomerDetailsClient({
       alert(error?.message || "Errore imprevisto durante il salvataggio.");
     } finally {
       setSavingCustomer(false);
+    }
+  }
+
+  function openBadgePanel() {
+    if (!customer) return;
+
+    setBadgeDraft(
+      String(customer.badge_code || customer.controller_code || ""),
+    );
+    setBadgeFeedback(null);
+    setBadgePanelOpen(true);
+  }
+
+  function cancelBadgePanel() {
+    setBadgeDraft("");
+    setBadgeFeedback(null);
+    setBadgePanelOpen(false);
+  }
+
+  async function saveBadgeCode() {
+    if (!customer?.id) return;
+
+    const normalizedBadge = badgeDraft.trim();
+
+    if (!normalizedBadge) {
+      setBadgeFeedback({
+        tone: "danger",
+        message: "Inserisci un codice badge prima di salvare.",
+      });
+      return;
+    }
+
+    const payload = buildCustomerProfilePayload({
+      ...customer,
+      badge_code: normalizedBadge,
+    });
+
+    if (!payload.first_name || !payload.last_name) {
+      setBadgeFeedback({
+        tone: "danger",
+        message: "Impossibile salvare: anagrafica cliente incompleta.",
+      });
+      return;
+    }
+
+    setBadgeSaving(true);
+    setBadgeFeedback(null);
+
+    try {
+      const response = await fetch("/api/customers/update-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_id: customer.id,
+          profile: payload,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error("saveBadgeCode API error", result);
+        setBadgeFeedback({
+          tone: "danger",
+          message:
+            result?.error ||
+            result?.detail?.message ||
+            "Errore sconosciuto durante il salvataggio badge.",
+        });
+        return;
+      }
+
+      setCustomer((prev: any) =>
+        prev ? { ...prev, badge_code: normalizedBadge } : prev,
+      );
+      setEditForm((prev: any) => ({ ...prev, badge_code: normalizedBadge }));
+      setBadgePanelOpen(false);
+      setBadgeFeedback({
+        tone: "success",
+        message: "Badge assegnato correttamente.",
+      });
+    } catch (error: any) {
+      console.error("saveBadgeCode failed", error);
+      setBadgeFeedback({
+        tone: "danger",
+        message:
+          error?.message || "Errore imprevisto durante il salvataggio badge.",
+      });
+    } finally {
+      setBadgeSaving(false);
     }
   }
 
@@ -2163,6 +2264,57 @@ export default function CustomerDetailsClient({
           font-size: 12px;
           font-weight: 800;
         }
+
+        .badge-card-panel,
+        .badge-edit-panel {
+          display: grid;
+          gap: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 16px;
+          background:
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.16),
+              transparent 34%
+            ),
+            rgba(255, 255, 255, 0.035);
+        }
+        .badge-card-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .badge-card-code {
+          color: #fff;
+          font-size: 22px;
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          overflow-wrap: anywhere;
+        }
+        .badge-edit-panel {
+          background:
+            linear-gradient(145deg, rgba(239, 68, 68, 0.12), transparent),
+            rgba(5, 5, 5, 0.82);
+        }
+        .badge-feedback {
+          border-radius: 14px;
+          padding: 11px 12px;
+          font-size: 13px;
+          font-weight: 800;
+        }
+        .badge-feedback-success {
+          border: 1px solid rgba(34, 197, 94, 0.24);
+          background: rgba(34, 197, 94, 0.1);
+          color: #bbf7d0;
+        }
+        .badge-feedback-danger {
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          background: rgba(239, 68, 68, 0.1);
+          color: #fecaca;
+        }
         .qr-box {
           background: #fff;
           border-radius: 18px;
@@ -3647,18 +3799,86 @@ export default function CustomerDetailsClient({
             </div>
             <div className="credential-section">
               <div className="credential-section-title">Tessere / Card</div>
-              {cardCredentials.length === 0 ? (
-                <BGEmptyState title="Nessuna tessera associata" />
-              ) : (
-                <div className="credential-pill-list">
-                  {cardCredentials.map((item) => (
-                    <span className="credential-pill" key={item.id}>
-                      {String(item.type).toUpperCase()} ·{" "}
-                      {item.controller_code || item.code}
-                    </span>
-                  ))}
+              {customer.badge_code || customer.controller_code ? (
+                <div className="badge-card-panel">
+                  <div className="badge-card-main">
+                    <div>
+                      <div className="small-muted">Codice badge attuale</div>
+                      <div className="badge-card-code">
+                        {customer.badge_code || customer.controller_code}
+                      </div>
+                    </div>
+                    <BGStatusBadge tone="success">
+                      Badge collegato
+                    </BGStatusBadge>
+                  </div>
+                  {cardCredentials.length > 0 ? (
+                    <div className="credential-pill-list">
+                      {cardCredentials.map((item) => (
+                        <span className="credential-pill" key={item.id}>
+                          {String(item.type).toUpperCase()} ·{" "}
+                          {item.controller_code || item.code}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="actions">
+                    <BGButton variant="secondary" onClick={openBadgePanel}>
+                      Modifica badge
+                    </BGButton>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <BGEmptyState
+                    title="Nessuna tessera associata"
+                    description="Associa un badge fisico al cliente salvandolo in anagrafica."
+                  />
+                  {cardCredentials.length > 0 ? (
+                    <div className="credential-pill-list">
+                      {cardCredentials.map((item) => (
+                        <span className="credential-pill" key={item.id}>
+                          {String(item.type).toUpperCase()} ·{" "}
+                          {item.controller_code || item.code}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <BGButton onClick={openBadgePanel}>Assegna badge</BGButton>
+                </>
               )}
+              {badgePanelOpen ? (
+                <div className="badge-edit-panel">
+                  <div className="edit-field">
+                    <label>Codice badge</label>
+                    <input
+                      autoFocus
+                      value={badgeDraft}
+                      onChange={(event) => setBadgeDraft(event.target.value)}
+                      placeholder="Es. RFID-001234"
+                    />
+                  </div>
+                  <div className="actions">
+                    <BGButton onClick={saveBadgeCode} disabled={badgeSaving}>
+                      {badgeSaving ? "Salvataggio..." : "Salva badge"}
+                    </BGButton>
+                    <BGButton
+                      variant="ghost"
+                      onClick={cancelBadgePanel}
+                      disabled={badgeSaving}
+                    >
+                      Annulla
+                    </BGButton>
+                  </div>
+                </div>
+              ) : null}
+              {badgeFeedback ? (
+                <div
+                  className={`badge-feedback badge-feedback-${badgeFeedback.tone}`}
+                >
+                  {badgeFeedback.message}
+                </div>
+              ) : null}
             </div>
             <div className="credential-section">
               <div className="credential-section-title">QR Code DNake</div>
