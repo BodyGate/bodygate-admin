@@ -19,6 +19,7 @@ import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
 
 type Customer = any;
 type Plan = any;
+type StatusTone = "neutral" | "success" | "danger" | "warning" | "info";
 type SectionKey =
   | "overview"
   | "profile"
@@ -1115,6 +1116,58 @@ async function disableBlock(blockId: string) {
   const contractUrl = customer.contract_url || customer.contract_pdf_url || customer.agreement_url || "";
   const shortPlans = plans.slice(0, 6);
 
+  const activeSubscriptionStart = String(activeSubscription?.starts_at || "").slice(0, 10);
+  const activeSubscriptionEnd = String(activeSubscription?.ends_at || "").slice(0, 10);
+  const plannedSubscriptionStart = String(plannedSubscription?.starts_at || "").slice(0, 10);
+  const currentPlanName = activeSubscription?.subscription_plans?.name || plannedSubscription?.subscription_plans?.name || "Nessun piano attivo";
+  const lastRenewal = subscriptions[0] || null;
+  const lastRenewalAmount = lastRenewal?.amount != null ? `€ ${Number(lastRenewal.amount || 0).toFixed(2)}` : "-";
+  const lastAccess = accessLogs[0] || null;
+
+  const daysRemaining = activeSubscriptionEnd
+    ? Math.ceil(
+        (new Date(`${activeSubscriptionEnd}T00:00:00`).getTime() -
+          new Date(`${today}T00:00:00`).getTime()) /
+          86400000
+      )
+    : null;
+
+  const subscriptionStatus = activeSubscription
+    ? daysRemaining !== null && daysRemaining <= 7
+      ? "In scadenza"
+      : "Attivo"
+    : plannedSubscription
+      ? "Pianificato"
+      : subscriptions.length > 0
+        ? "Scaduto"
+        : "Nessuno";
+
+  const subscriptionTone: StatusTone = activeSubscription
+    ? daysRemaining !== null && daysRemaining <= 7
+      ? "warning"
+      : "success"
+    : plannedSubscription
+      ? "info"
+      : "danger";
+
+  const customerAlerts = [
+    !activeSubscription ? "Abbonamento non attivo" : null,
+    activeSubscription && daysRemaining !== null && daysRemaining <= 7 ? `Abbonamento in scadenza tra ${Math.max(daysRemaining, 0)} giorni` : null,
+    !certificateValid ? "Certificato medico scaduto o mancante" : null,
+    !activeMembership ? "Quota associativa da verificare" : null,
+    activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
+    customer?.is_active === false ? "Cliente disattivato" : null,
+  ].filter(Boolean) as string[];
+
+  const compactProfileInfo = [
+    { label: "Telefono", value: customer?.phone || "-" },
+    { label: "Email", value: customer?.email || "-" },
+    { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
+    { label: "Data nascita", value: customer?.birth_date || "-" },
+    { label: "Indirizzo", value: [customer?.address, customer?.city, customer?.postal_code || customer?.zip].filter(Boolean).join(", ") || "-" },
+    { label: "Note", value: customer?.reception_notes || "-" },
+  ];
+
   function formatPlanDisplayName(planName: string) {
     const normalizedName = String(planName || "").trim();
     const daySets = [
@@ -1232,6 +1285,117 @@ async function disableBlock(blockId: string) {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 16px;
+        }
+        .operations-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+          gap: 18px;
+          align-items: stretch;
+        }
+        .situation-card {
+          border: 1px solid rgba(239, 68, 68, .22);
+          border-radius: 28px;
+          padding: 22px;
+          background:
+            linear-gradient(135deg, rgba(239, 68, 68, .13), rgba(255,255,255,.035) 34%, rgba(5,5,5,.88)),
+            rgba(10,10,10,.9);
+          box-shadow: 0 22px 54px rgba(0,0,0,.35);
+          display: grid;
+          gap: 18px;
+        }
+        .situation-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .situation-title {
+          margin: 0;
+          color: #fff;
+          font-size: clamp(24px, 3vw, 38px);
+          line-height: .95;
+          letter-spacing: -.055em;
+          font-weight: 950;
+        }
+        .situation-subtitle {
+          color: #a3a3a3;
+          font-size: 13px;
+          font-weight: 800;
+          margin-top: 8px;
+        }
+        .situation-kpis {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .situation-kpi {
+          min-width: 0;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(0,0,0,.32);
+        }
+        .situation-kpi strong {
+          display: block;
+          color: #fff;
+          font-size: 17px;
+          line-height: 1.15;
+          font-weight: 950;
+          overflow-wrap: anywhere;
+        }
+        .situation-kpi span {
+          display: block;
+          color: #8b8b8b;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+        .alert-stack {
+          display: grid;
+          gap: 8px;
+        }
+        .alert-chip {
+          border: 1px solid rgba(251, 113, 133, .25);
+          background: rgba(127, 29, 29, .28);
+          color: #fecdd3;
+          border-radius: 16px;
+          padding: 10px 12px;
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+        .compact-side-stack {
+          display: grid;
+          gap: 18px;
+        }
+        .compact-info-list {
+          display: grid;
+          gap: 9px;
+        }
+        .compact-info-row {
+          display: grid;
+          grid-template-columns: 112px minmax(0, 1fr);
+          gap: 12px;
+          border-bottom: 1px solid rgba(255,255,255,.07);
+          padding-bottom: 9px;
+        }
+        .compact-info-row:last-child { border-bottom: 0; padding-bottom: 0; }
+        .compact-info-row span {
+          color: #8b8b8b;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: .07em;
+          text-transform: uppercase;
+        }
+        .compact-info-row strong {
+          color: #fff;
+          font-size: 13px;
+          line-height: 1.35;
+          font-weight: 850;
+          overflow-wrap: anywhere;
         }
         .content-grid, .two-col-grid {
           display: grid;
@@ -1612,13 +1776,14 @@ async function disableBlock(blockId: string) {
         .danger-text { color: #fb7185; }
         .success-text { color: #4ade80; }
         @media (max-width: 1180px) {
-          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .hero-statuses, .form-grid { grid-template-columns: 1fr; }
+          .customer-hero, .content-grid, .two-col-grid, .overview-grid, .operations-grid, .hero-statuses, .form-grid, .situation-kpis { grid-template-columns: 1fr; }
           .hero-actions { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 720px) {
           .customer-page { padding: 18px; }
           .hero-main, .topbar { flex-direction: column; align-items: stretch; }
           .hero-actions, .info-grid, .credential-summary, .three-col-grid, .quick-plan-grid { grid-template-columns: 1fr; }
+          .compact-info-row { grid-template-columns: 1fr; gap: 4px; }
           .row, .history-row { grid-template-columns: 1fr; }
           .row-right, .history-side { justify-self: start; text-align: left; align-items: flex-start; min-width: 0; }
           .history-method { text-align: left; }
@@ -1641,6 +1806,8 @@ async function disableBlock(blockId: string) {
               <div className="bg-eyebrow">Scheda cliente BodyGate</div>
               <h1>{customerName}</h1>
               <div className="hero-meta">
+                <span>{customer.badge_code || customer.controller_code ? `Badge ${customer.badge_code || customer.controller_code}` : "Badge non presente"}</span>
+                <span>•</span>
                 <span>{customer.phone || "Telefono non presente"}</span>
                 <span>•</span>
                 <span>{customer.email || "Email non presente"}</span>
@@ -1667,11 +1834,11 @@ async function disableBlock(blockId: string) {
         </div>
         <div className="hero-actions">
           <BGButton onClick={() => setActiveSection("subscriptions")}>Rinnova</BGButton>
-          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Pagamenti</BGButton>
-          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Ricevute</BGButton>
-          <BGButton variant="secondary" onClick={() => setActiveSection("access")}>Accessi</BGButton>
-          <BGButton variant="ghost" onClick={() => { startEditCustomer(); setActiveSection("profile"); }}>Modifica</BGButton>
-          <BGButton variant="danger" onClick={() => setActiveSection("access")}>Blocca</BGButton>
+          <BGButton variant="secondary" onClick={() => setActiveSection("payments")}>Registra pagamento</BGButton>
+          <BGButton variant="secondary" onClick={() => { startEditCustomer(); setActiveSection("profile"); }}>Modifica cliente</BGButton>
+          <BGButton variant="secondary" onClick={() => { void sendMobilePassWhatsApp(); }} disabled={mobilePassLoading}>Mobile Pass / WhatsApp</BGButton>
+          {customer?.phone ? <BGButton href={`tel:${customer.phone}`} variant="ghost">Chiama</BGButton> : <BGButton variant="ghost" onClick={() => setActiveSection("profile")}>Telefono</BGButton>}
+          <BGButton href="/customers" variant="ghost">Lista clienti</BGButton>
         </div>
       </BGCard>
 
@@ -1679,6 +1846,56 @@ async function disableBlock(blockId: string) {
 
       {activeSection === "overview" ? (
         <section className="section-panel">
+          <div className="operations-grid">
+            <div className="situation-card">
+              <div className="situation-top">
+                <div>
+                  <div className="bg-eyebrow">Situazione cliente</div>
+                  <h2 className="situation-title">{currentPlanName}</h2>
+                  <div className="situation-subtitle">
+                    Stato immediato per reception: {subscriptionStatus.toLowerCase()} · accesso {accessAllowed ? "consentito" : "da verificare"}
+                  </div>
+                </div>
+                <BGStatusBadge tone={subscriptionTone}>{subscriptionStatus}</BGStatusBadge>
+              </div>
+
+              <div className="situation-kpis">
+                <div className="situation-kpi"><span>Inizio</span><strong>{activeSubscriptionStart || plannedSubscriptionStart || "-"}</strong></div>
+                <div className="situation-kpi"><span>Fine</span><strong>{activeSubscriptionEnd || String(plannedSubscription?.ends_at || "-").slice(0, 10)}</strong></div>
+                <div className="situation-kpi"><span>Giorni residui</span><strong>{daysRemaining !== null ? `${Math.max(daysRemaining, 0)} giorni` : "-"}</strong></div>
+                <div className="situation-kpi"><span>Ultimo rinnovo</span><strong>{lastRenewalAmount}</strong></div>
+              </div>
+
+              {customerAlerts.length > 0 ? (
+                <div className="alert-stack">
+                  {customerAlerts.map((alert) => <div className="alert-chip" key={alert}>{alert}</div>)}
+                </div>
+              ) : (
+                <div className="alert-chip" style={{ borderColor: "rgba(74, 222, 128, .25)", background: "rgba(22, 101, 52, .22)", color: "#bbf7d0" }}>
+                  Nessun alert operativo: cliente regolare per abbonamento, quota, certificato e blocchi.
+                </div>
+              )}
+            </div>
+
+            <div className="compact-side-stack">
+              <BGCard variant="soft">
+                <BGSectionHeader title="Anagrafica compatta" subtitle="Dati essenziali senza aprire la modifica." actions={<BGButton variant="ghost" onClick={() => setActiveSection("profile")}>Dettaglio</BGButton>} />
+                <div className="compact-info-list">
+                  {compactProfileInfo.map((item) => <div className="compact-info-row" key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}
+                </div>
+              </BGCard>
+              <BGCard variant={accessAllowed ? "success" : "warning"}>
+                <BGSectionHeader title="Accesso" subtitle="Sintesi badge, QR/Mobile Pass e ultimo varco." actions={<BGButton variant="ghost" onClick={() => setActiveSection("access")}>Gestisci</BGButton>} />
+                <div className="info-grid">
+                  <InfoMini label="Badge" value={customer.badge_code || customer.controller_code || "-"} tone={customer.badge_code || customer.controller_code ? "success" : "danger"} />
+                  <InfoMini label="QR DNake" value={activeDnakeQr ? "Attivo" : "Non generato"} tone={activeDnakeQr ? "success" : "danger"} />
+                  <InfoMini label="Mobile Pass" value={mobilePassUrl ? "Link creato" : "Disponibile"} tone="neutral" />
+                  <InfoMini label="Ultimo accesso" value={lastAccess ? new Date(lastAccess.access_time).toLocaleString() : "-"} tone={lastAccess?.was_allowed ? "success" : lastAccess ? "danger" : "neutral"} />
+                </div>
+              </BGCard>
+            </div>
+          </div>
+
           <div className="overview-grid">
             <OverviewCard
               title="Abbonamento"
@@ -2147,7 +2364,7 @@ async function disableBlock(blockId: string) {
               <div className="credential-section-title">Mobile Pass / WhatsApp</div>
               <BGEmptyState title="Mobile Pass cliente" description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente." />
               {mobilePassUrl ? <div className="mobile-pass-url">{mobilePassUrl}</div> : null}
-              <div className="actions"><BGButton variant="secondary" onClick={createOrGetMobilePass} disabled={mobilePassLoading}>{mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}</BGButton><BGButton onClick={sendMobilePassWhatsApp} disabled={mobilePassLoading}>Invia su WhatsApp</BGButton><BGButton variant="secondary" onClick={copyMobilePassLink} disabled={mobilePassLoading}>Copia link</BGButton></div>
+              <div className="actions"><BGButton variant="secondary" onClick={createOrGetMobilePass} disabled={mobilePassLoading}>{mobilePassLoading ? "Creo link..." : "Genera Pass Mobile"}</BGButton><BGButton onClick={() => { void sendMobilePassWhatsApp(); }} disabled={mobilePassLoading}>Invia su WhatsApp</BGButton><BGButton variant="secondary" onClick={copyMobilePassLink} disabled={mobilePassLoading}>Copia link</BGButton></div>
               {!customer?.phone ? <div className="danger-text small-muted">Telefono cliente mancante: WhatsApp si aprirà senza destinatario.</div> : null}
             </div>
           </BGCard>
