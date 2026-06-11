@@ -1397,9 +1397,32 @@ export default function CustomerDetailsClient({
           display: grid;
           gap: 18px;
         }
+        .operations-center {
+          display: grid;
+          gap: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          border-radius: 30px;
+          padding: 18px;
+          background:
+            radial-gradient(
+              circle at 4% 0%,
+              rgba(239, 68, 68, 0.16),
+              transparent 28%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.055),
+              rgba(255, 255, 255, 0.018)
+            ),
+            rgba(6, 6, 8, 0.9);
+          box-shadow:
+            0 22px 58px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.055);
+        }
+        .operations-center-grid,
         .overview-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 16px;
           align-items: stretch;
         }
@@ -1626,7 +1649,7 @@ export default function CustomerDetailsClient({
         .mini-card {
           position: relative;
           isolation: isolate;
-          min-height: 176px;
+          min-height: 218px;
           display: grid;
           grid-template-rows: auto minmax(0, 1fr) auto;
           gap: 16px;
@@ -1635,8 +1658,16 @@ export default function CustomerDetailsClient({
           border-radius: 24px;
           padding: 18px;
           background:
-            radial-gradient(circle at 92% 0%, rgba(239, 68, 68, 0.14), transparent 38%),
-            linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+            radial-gradient(
+              circle at 92% 0%,
+              rgba(239, 68, 68, 0.14),
+              transparent 38%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.075),
+              rgba(255, 255, 255, 0.022)
+            ),
             rgba(8, 8, 10, 0.94);
           box-shadow:
             0 18px 42px rgba(0, 0, 0, 0.28),
@@ -1655,7 +1686,11 @@ export default function CustomerDetailsClient({
           border-radius: inherit;
           background:
             linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
-            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 32%);
+            radial-gradient(
+              circle at top left,
+              rgba(255, 255, 255, 0.08),
+              transparent 32%
+            );
           opacity: 0.76;
           transition: opacity 0.18s ease;
         }
@@ -1698,6 +1733,19 @@ export default function CustomerDetailsClient({
           gap: 12px;
           min-width: 0;
         }
+        .mini-card-title-stack {
+          display: grid;
+          gap: 6px;
+          min-width: 0;
+        }
+        .mini-card-eyebrow {
+          color: #fca5a5;
+          font-size: 10px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
         .mini-title,
         .row-title,
         .plan-title {
@@ -1713,7 +1761,7 @@ export default function CustomerDetailsClient({
         .mini-card-copy {
           display: grid;
           align-content: start;
-          gap: 7px;
+          gap: 8px;
           min-width: 0;
         }
         .mini-value {
@@ -1731,7 +1779,9 @@ export default function CustomerDetailsClient({
           padding-top: 2px;
         }
         .mini-card-action .bg-button {
-          min-height: 38px;
+          width: 100%;
+          min-height: 40px;
+          justify-content: center;
           padding-inline: 14px;
         }
         .overview-list {
@@ -1744,9 +1794,22 @@ export default function CustomerDetailsClient({
           line-height: 1.35;
         }
         .overview-list span {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .operation-detail-pill {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          padding: 6px 9px;
+          background: rgba(255, 255, 255, 0.045);
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
         }
         .info-grid {
           display: grid;
@@ -2134,12 +2197,15 @@ export default function CustomerDetailsClient({
           .customer-hero,
           .content-grid,
           .two-col-grid,
-          .overview-grid,
           .operations-grid,
           .hero-statuses,
           .form-grid,
           .situation-kpis {
             grid-template-columns: 1fr;
+          }
+          .operations-center-grid,
+          .overview-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
           .hero-actions {
             width: 100%;
@@ -2162,11 +2228,17 @@ export default function CustomerDetailsClient({
             align-items: stretch;
           }
           .hero-actions,
+          .operations-center-grid,
+          .overview-grid,
           .info-grid,
           .credential-summary,
           .three-col-grid,
           .quick-plan-grid {
             grid-template-columns: 1fr;
+          }
+          .operations-center {
+            padding: 14px;
+            border-radius: 24px;
           }
           .compact-info-row {
             grid-template-columns: 1fr;
@@ -2514,128 +2586,169 @@ export default function CustomerDetailsClient({
             </div>
           </div>
 
-          <div className="overview-grid">
-            <OverviewCard
-              title="Abbonamento"
-              status={subscriptionStatus}
-              tone={subscriptionTone}
-              value={
-                activeSubscription
-                  ? `${activeSubscription.subscription_plans?.name || "Attivo"}`
-                  : plannedSubscription
-                    ? "Pianificato"
-                    : "Da rinnovare"
-              }
-              note={
-                activeSubscription
-                  ? `Scade ${activeSubscription.ends_at}`
-                  : plannedSubscription
-                    ? `Parte ${plannedSubscription.starts_at}`
-                    : "Nessun piano attivo"
-              }
-              action="Gestisci"
-              onAction={() => setActiveSection("subscriptions")}
+          <section
+            className="operations-center"
+            aria-label="Centro operativo cliente"
+          >
+            <BGSectionHeader
+              title="Centro operativo cliente"
+              subtitle="Mini-dashboard premium per reception, amministrazione, documenti e storico cliente."
             />
-            <OverviewCard
-              title="Quota associativa"
-              status={activeMembership ? "Regolare" : "Da verificare"}
-              tone={activeMembership ? "success" : "warning"}
-              value={activeMembership ? "Regolare" : "Da rinnovare"}
-              note={
-                activeMembership
-                  ? `Scade ${activeMembership.valid_until}`
-                  : "Quota mancante"
-              }
-              action="Gestisci"
-              onAction={() => setActiveSection("subscriptions")}
-            />
-            <OverviewCard
-              title="Certificato medico"
-              status={certificateValid ? "Valido" : "Critico"}
-              tone={certificateValid ? "success" : "danger"}
-              value={certificateValid ? "Valido" : "Critico"}
-              note={
-                certificateValid
-                  ? `Scade ${medicalCertificateEnd}`
-                  : "Upload o rinnovo richiesto"
-              }
-              action="Apri"
-              onAction={() => setActiveSection("documents")}
-            />
-            <OverviewCard
-              title="Pagamenti"
-              status="Storico"
-              tone="info"
-              value={`${subscriptions.length + membershipFees.length} movimenti`}
-              note="Storici completi in sezione cassa"
-              action="Apri"
-              onAction={() => setActiveSection("payments")}
-            />
-            <OverviewCard
-              title="Ricevute"
-              status="Registro"
-              tone="info"
-              value="Registro ricevute"
-              note="A4 e ristampe mantenute"
-              action="Apri"
-              onAction={() => setActiveSection("payments")}
-            />
-            <OverviewCard
-              title="Accessi"
-              status={accessAllowed ? "Consentiti" : "Verifica"}
-              tone={accessAllowed ? "success" : "warning"}
-              value={accessAllowed ? "Consentiti" : "Da verificare"}
-              note="Ultimi 3 eventi"
-              action="Apri"
-              onAction={() => setActiveSection("access")}
-            >
-              <div className="overview-list">
-                {recentAccessLogs.length === 0 ? (
-                  <span>Nessun accesso recente</span>
-                ) : (
-                  recentAccessLogs.map((log) => (
-                    <span key={log.id}>
-                      {log.was_allowed ? "Consentito" : "Negato"} ·{" "}
-                      {new Date(log.access_time).toLocaleString()}
-                    </span>
-                  ))
-                )}
-              </div>
-            </OverviewCard>
-            <OverviewCard
-              title="Note"
-              status={recentNotes.length === 0 ? "Pulito" : "Da leggere"}
-              tone={recentNotes.length === 0 ? "success" : "warning"}
-              value={`${notes.length} note`}
-              note={recentNotes[0]?.note || "Nessuna nota urgente"}
-              action="Gestisci"
-              onAction={() => setActiveSection("timeline")}
-            />
-            <OverviewCard
-              title="Timeline recente"
-              status="Aggiornata"
-              tone="info"
-              value={`${recentTimelineEvents.length} eventi`}
-              note="Ultimi 3 eventi"
-              action="Apri"
-              onAction={() => setActiveSection("timeline")}
-            >
-              <div className="overview-list">
-                {recentTimelineEvents.length === 0 ? (
-                  <span>Nessun evento recente</span>
-                ) : (
-                  recentTimelineEvents.map((event) => (
-                    <span key={event.key}>
-                      {event.title} ·{" "}
-                      {event.date
-                        ? new Date(event.date).toLocaleDateString()
-                        : "-"}
-                    </span>
-                  ))
-                )}
-              </div>
-            </OverviewCard>
-          </div>
+
+            <div className="operations-center-grid">
+              <OverviewCard
+                eyebrow="Piano"
+                title="Abbonamento"
+                status={subscriptionStatus}
+                tone={subscriptionTone}
+                value={
+                  activeSubscription
+                    ? `${activeSubscription.subscription_plans?.name || "Attivo"}`
+                    : plannedSubscription
+                      ? "Pianificato"
+                      : "Da rinnovare"
+                }
+                note={
+                  activeSubscription
+                    ? `Scade il ${formatDateIT(activeSubscription.ends_at)}`
+                    : plannedSubscription
+                      ? `Parte il ${formatDateIT(plannedSubscription.starts_at)}`
+                      : "Nessun piano attivo registrato per oggi"
+                }
+                action="Gestisci piano"
+                onAction={() => setActiveSection("subscriptions")}
+              >
+                <span className="operation-detail-pill">
+                  {daysRemaining !== null
+                    ? `${Math.max(daysRemaining, 0)} giorni residui`
+                    : "Verifica piano"}
+                </span>
+              </OverviewCard>
+              <OverviewCard
+                eyebrow="Associazione"
+                title="Quota associativa"
+                status={activeMembership ? "Regolare" : "Da verificare"}
+                tone={activeMembership ? "success" : "warning"}
+                value={activeMembership ? "Regolare" : "Da rinnovare"}
+                note={
+                  activeMembership
+                    ? `Valida fino al ${formatDateIT(activeMembership.valid_until)}`
+                    : membershipFees.length > 0
+                      ? "Quota presente ma non valida oggi"
+                      : "Nessuna quota associativa registrata"
+                }
+                action="Gestisci quota"
+                onAction={() => setActiveSection("subscriptions")}
+              />
+              <OverviewCard
+                eyebrow="Medico"
+                title="Certificato medico"
+                status={certificateValid ? "Valido" : "Critico"}
+                tone={certificateValid ? "success" : "danger"}
+                value={
+                  certificateValid ? "Certificato valido" : "Da verificare"
+                }
+                note={
+                  certificateValid
+                    ? `Scade il ${formatDateIT(medicalCertificateEnd)}`
+                    : medicalCertificateEnd
+                      ? `Scaduto il ${formatDateIT(medicalCertificateEnd)}`
+                      : "Upload o rinnovo richiesto"
+                }
+                action="Apri documenti"
+                onAction={() => setActiveSection("documents")}
+              />
+              <OverviewCard
+                eyebrow="Cassa"
+                title="Pagamenti"
+                status="Storico"
+                tone="info"
+                value="Storico pagamenti"
+                note="Apri la sezione cassa per importi reali, rettifiche e annullamenti tracciati."
+                action="Apri cassa"
+                onAction={() => setActiveSection("payments")}
+              >
+                <span className="operation-detail-pill">
+                  Dati reali nello storico dedicato
+                </span>
+              </OverviewCard>
+              <OverviewCard
+                eyebrow="Fiscale"
+                title="Ricevute"
+                status="Registro"
+                tone="info"
+                value="Ricevute cliente"
+                note="Registro ricevute e ristampe A4 mantenuti nella sezione pagamenti."
+                action="Vedi ricevute"
+                onAction={() => setActiveSection("payments")}
+              />
+              <OverviewCard
+                eyebrow="Gate"
+                title="Accessi"
+                status={accessAllowed ? "Consentiti" : "Verifica"}
+                tone={accessAllowed ? "success" : "warning"}
+                value={accessAllowed ? "Può entrare" : "Da verificare"}
+                note={
+                  lastAccess
+                    ? `Ultimo evento: ${new Date(lastAccess.access_time).toLocaleString()}`
+                    : "Nessun accesso recente registrato"
+                }
+                action="Verifica accessi"
+                onAction={() => setActiveSection("access")}
+              >
+                <div className="overview-list">
+                  {recentAccessLogs.length === 0 ? (
+                    <span>Nessun evento varco da mostrare</span>
+                  ) : (
+                    recentAccessLogs.map((log) => (
+                      <span key={log.id}>
+                        {log.was_allowed ? "Consentito" : "Negato"} ·{" "}
+                        {new Date(log.access_time).toLocaleString()}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </OverviewCard>
+              <OverviewCard
+                eyebrow="Reception"
+                title="Note"
+                status={recentNotes.length === 0 ? "Pulito" : "Da leggere"}
+                tone={recentNotes.length === 0 ? "success" : "warning"}
+                value={`${notes.length} ${notes.length === 1 ? "nota" : "note"}`}
+                note={
+                  recentNotes[0]?.note ||
+                  "Nessuna nota urgente per la reception"
+                }
+                action="Gestisci note"
+                onAction={() => setActiveSection("timeline")}
+              />
+              <OverviewCard
+                eyebrow="CRM"
+                title="Timeline recente"
+                status="Aggiornata"
+                tone="info"
+                value="Attività cliente"
+                note="Preview rapida: apri la timeline per lo storico completo multi-fonte."
+                action="Apri timeline"
+                onAction={() => setActiveSection("timeline")}
+              >
+                <div className="overview-list">
+                  {recentTimelineEvents.length === 0 ? (
+                    <span>Nessun evento recente da mostrare</span>
+                  ) : (
+                    recentTimelineEvents.map((event) => (
+                      <span key={event.key}>
+                        {event.title} ·{" "}
+                        {event.date
+                          ? new Date(event.date).toLocaleDateString()
+                          : "-"}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </OverviewCard>
+            </div>
+          </section>
         </section>
       ) : null}
 
@@ -3641,6 +3754,7 @@ function StatusBox({
 }
 
 function OverviewCard({
+  eyebrow,
   title,
   value,
   note,
@@ -3650,6 +3764,7 @@ function OverviewCard({
   onAction,
   children,
 }: {
+  eyebrow?: string;
   title: string;
   value: string;
   note: string;
@@ -3662,7 +3777,10 @@ function OverviewCard({
   return (
     <article className={`mini-card mini-card-${tone}`}>
       <div className="mini-card-head">
-        <div className="mini-title">{title}</div>
+        <div className="mini-card-title-stack">
+          {eyebrow ? <div className="mini-card-eyebrow">{eyebrow}</div> : null}
+          <div className="mini-title">{title}</div>
+        </div>
         <BGStatusBadge tone={tone}>{status}</BGStatusBadge>
       </div>
       <div className="mini-card-copy">
