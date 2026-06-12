@@ -19,32 +19,18 @@ type Props = {
   onUpdated?: (data: UpdatedMedicalCertificate) => void;
 };
 
-const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidDateOnly(value: string) {
-  if (!DATE_ONLY_PATTERN.test(value)) return false;
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  );
-}
-
 function addOneYearDateOnly(value: string) {
-  if (!isValidDateOnly(value)) return "";
+  if (!value) return "";
 
-  const [year, month, day] = value.split("-").map(Number);
-  const nextYearDate = new Date(year + 1, month - 1, day);
+  const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
 
-  return [
-    String(nextYearDate.getFullYear()).padStart(4, "0"),
-    String(nextYearDate.getMonth() + 1).padStart(2, "0"),
-    String(nextYearDate.getDate()).padStart(2, "0"),
-  ].join("-");
+  if (!year || !month || !day) return "";
+
+  const nextYear = year + 1;
+  return `${nextYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export default function MedicalCertificateCard({
@@ -55,7 +41,6 @@ export default function MedicalCertificateCard({
   onUpdated,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const previousStartDateRef = useRef(startDate || "");
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,7 +61,6 @@ export default function MedicalCertificateCard({
 
   useEffect(() => {
     setCertificateStartDate(startDate || "");
-    previousStartDateRef.current = startDate || "";
   }, [startDate]);
 
   useEffect(() => {
@@ -84,24 +68,12 @@ export default function MedicalCertificateCard({
   }, [endDate]);
 
   function handleStartDateChange(value: string) {
+    const nextEndDate = addOneYearDateOnly(value);
+
     setCertificateStartDate(value);
+    setCertificateEndDate(nextEndDate);
     setSuccessMessage("");
     setErrorMessage("");
-
-    const previousStartDate = previousStartDateRef.current;
-    const previousAutomaticEndDate = previousStartDate
-      ? addOneYearDateOnly(previousStartDate)
-      : "";
-    const nextAutomaticEndDate = addOneYearDateOnly(value);
-
-    if (
-      nextAutomaticEndDate &&
-      (!certificateEndDate || certificateEndDate === previousAutomaticEndDate)
-    ) {
-      setCertificateEndDate(nextAutomaticEndDate);
-    }
-
-    previousStartDateRef.current = value;
   }
 
   function handleEndDateChange(value: string) {
@@ -191,7 +163,6 @@ export default function MedicalCertificateCard({
       setCertificateUrl(updatedUrl);
       setCertificateStartDate(updatedStartDate);
       setCertificateEndDate(updatedEndDate);
-      previousStartDateRef.current = updatedStartDate;
       setSuccessMessage("Certificato medico aggiornato correttamente");
 
       if (onUpdated) {
