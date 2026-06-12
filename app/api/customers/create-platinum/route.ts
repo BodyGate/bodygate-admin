@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 const UUID_RE =
@@ -21,15 +21,62 @@ function dateOnly(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function fallbackReceiptNumber() {
-  const now = new Date();
-  return `${now.getFullYear()}/${Date.now()}`;
+type ReceiptNumberPayload = {
+  receipt_year: number;
+  receipt_sequence: number;
+  receipt_number: string;
+};
+
+function parseReceiptNumberPayload(data: unknown): ReceiptNumberPayload | null {
+  const payload =
+    typeof data === "string" ? (JSON.parse(data) as unknown) : data;
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const receiptData = payload as Partial<ReceiptNumberPayload>;
+
+  if (
+    typeof receiptData.receipt_year !== "number" ||
+    typeof receiptData.receipt_sequence !== "number" ||
+    typeof receiptData.receipt_number !== "string" ||
+    !receiptData.receipt_number
+  ) {
+    return null;
+  }
+
+  return {
+    receipt_year: receiptData.receipt_year,
+    receipt_sequence: receiptData.receipt_sequence,
+    receipt_number: receiptData.receipt_number,
+  };
 }
 
-async function getNextReceiptNumber() {
-  const { data, error } = await supabase.rpc("next_bodygate_receipt_number");
-  if (error || !data) return fallbackReceiptNumber();
-  return String(data);
+async function getNextReceiptNumber(): Promise<ReceiptNumberPayload> {
+  const { data, error } = await supabase.rpc("next_bodygate_receipt_number_v2");
+
+  if (error || !data) {
+    console.error("next_bodygate_receipt_number_v2 error", error);
+    throw new Error(
+      "Impossibile generare numero ricevuta progressivo annuale.",
+    );
+  }
+
+  try {
+    const receiptNumber = parseReceiptNumberPayload(data);
+
+    if (!receiptNumber) {
+      throw new Error("Payload RPC non valido.");
+    }
+
+    return receiptNumber;
+  } catch (error) {
+    console.error("next_bodygate_receipt_number_v2 payload error", error);
+    throw new Error(
+      "Impossibile generare numero ricevuta progressivo annuale.",
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -40,14 +87,20 @@ export async function POST(req: Request) {
     const lastName = String(body.last_name || "").trim();
     const phone = String(body.phone || "").trim();
     const email = String(body.email || "").trim();
-    const fiscalCode = String(body.fiscal_code || "").trim().toUpperCase();
+    const fiscalCode = String(body.fiscal_code || "")
+      .trim()
+      .toUpperCase();
 
     const rawPlanId = String(body.subscription_plan_id || "").trim();
     const subscriptionPlanId = UUID_RE.test(rawPlanId) ? rawPlanId : null;
 
     const subscriptionAmount = Number(body.subscription_amount || 0);
-    const subscriptionDurationDays = Number(body.subscription_duration_days || 0);
-    const subscriptionName = String(body.subscription_name || "Abbonamento").trim();
+    const subscriptionDurationDays = Number(
+      body.subscription_duration_days || 0,
+    );
+    const subscriptionName = String(
+      body.subscription_name || "Abbonamento",
+    ).trim();
 
     const membershipAmount = Number(body.membership_amount || 10);
     const paymentMethod = String(body.payment_method || "cash").trim();
@@ -56,19 +109,31 @@ export async function POST(req: Request) {
     const controllerCode = String(body.controller_code || "").trim();
 
     if (!firstName || !lastName) {
-      return NextResponse.json({ ok: false, error: "Nome e cognome obbligatori." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Nome e cognome obbligatori." },
+        { status: 400 },
+      );
     }
 
     if (!phone) {
-      return NextResponse.json({ ok: false, error: "Telefono obbligatorio." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Telefono obbligatorio." },
+        { status: 400 },
+      );
     }
 
     if (!fiscalCode) {
-      return NextResponse.json({ ok: false, error: "Codice fiscale obbligatorio." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Codice fiscale obbligatorio." },
+        { status: 400 },
+      );
     }
 
     if (!membershipAmount || membershipAmount <= 0) {
-      return NextResponse.json({ ok: false, error: "Quota associativa obbligatoria non valida." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Quota associativa obbligatoria non valida." },
+        { status: 400 },
+      );
     }
 
     const now = new Date().toISOString();
@@ -78,8 +143,13 @@ export async function POST(req: Request) {
     const totalAmount = membershipAmount + Math.max(subscriptionAmount, 0);
 
     if (totalAmount <= 0) {
-      return NextResponse.json({ ok: false, error: "Incasso obbligatorio mancante." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Incasso obbligatorio mancante." },
+        { status: 400 },
+      );
     }
+
+    const receiptNumber = await getNextReceiptNumber();
 
     const { data: customer, error: customerError } = await supabase
       .from("customers")
@@ -114,15 +184,20 @@ export async function POST(req: Request) {
         profession: body.profession || null,
         fitness_goal: body.fitness_goal || null,
         marketing_source: body.marketing_source || null,
-        customer_tags: Array.isArray(body.customer_tags) ? body.customer_tags : [],
+        customer_tags: Array.isArray(body.customer_tags)
+          ? body.customer_tags
+          : [],
 
         badge_code: badgeCode || null,
         controller_code: controllerCode || null,
 
-        medical_certificate_start_date: body.medical_certificate_start_date || null,
+        medical_certificate_start_date:
+          body.medical_certificate_start_date || null,
         medical_certificate_end_date: body.medical_certificate_end_date || null,
         medical_certificate_url: body.medical_certificate_url || null,
-        medical_certificate_status: body.medical_certificate_end_date ? "valid" : "missing",
+        medical_certificate_status: body.medical_certificate_end_date
+          ? "valid"
+          : "missing",
 
         active: false,
         is_active: false,
@@ -145,24 +220,29 @@ export async function POST(req: Request) {
 
     if (customerError || !customer) {
       return NextResponse.json(
-        { ok: false, error: customerError?.message || "Errore creazione cliente." },
-        { status: 500 }
+        {
+          ok: false,
+          error: customerError?.message || "Errore creazione cliente.",
+        },
+        { status: 500 },
       );
     }
 
     const customerId = customer.id;
     const branchId = customer.branch_id || null;
 
-    const { error: membershipError } = await supabase.from("customer_membership_fees").insert({
-      customer_id: customerId,
-      branch_id: branchId,
-      amount: membershipAmount,
-      paid_at: now,
-      valid_from: todayDate,
-      valid_until: membershipUntil,
-      payment_method: paymentMethod,
-      notes: "Quota associativa creata da onboarding Platinum",
-    });
+    const { error: membershipError } = await supabase
+      .from("customer_membership_fees")
+      .insert({
+        customer_id: customerId,
+        branch_id: branchId,
+        amount: membershipAmount,
+        paid_at: now,
+        valid_from: todayDate,
+        valid_until: membershipUntil,
+        payment_method: paymentMethod,
+        notes: "Quota associativa creata da onboarding Platinum",
+      });
 
     if (membershipError) {
       return NextResponse.json(
@@ -171,7 +251,7 @@ export async function POST(req: Request) {
           error: `Cliente creato ma quota associativa non registrata: ${membershipError.message}`,
           customer_id: customerId,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -204,7 +284,7 @@ export async function POST(req: Request) {
             error: `Cliente creato ma abbonamento non registrato: ${subscriptionError.message}`,
             customer_id: customerId,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -251,10 +331,12 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: paymentError?.message || "Cliente creato ma pagamento non registrato.",
+          error:
+            paymentError?.message ||
+            "Cliente creato ma pagamento non registrato.",
           customer_id: customerId,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -283,20 +365,34 @@ export async function POST(req: Request) {
       operator_name: "BodyGate",
     });
 
-    const receiptNumber = await getNextReceiptNumber();
+    const { error: receiptError } = await supabase
+      .from("customer_receipts")
+      .insert({
+        customer_id: customerId,
+        payment_id: payment.id,
+        subscription_id: subscriptionId,
+        receipt_year: receiptNumber.receipt_year,
+        receipt_sequence: receiptNumber.receipt_sequence,
+        receipt_number: receiptNumber.receipt_number,
+        receipt_type: "onboarding",
+        amount: totalAmount,
+        description,
+        customer_copy_label: "COPIA CLIENTE",
+        gym_copy_label: "COPIA PALESTRA",
+        issued_at: now,
+      });
 
-    await supabase.from("customer_receipts").insert({
-      customer_id: customerId,
-      payment_id: payment.id,
-      subscription_id: subscriptionId,
-      receipt_number: receiptNumber,
-      receipt_type: "onboarding",
-      amount: totalAmount,
-      description,
-      customer_copy_label: "COPIA CLIENTE",
-      gym_copy_label: "COPIA PALESTRA",
-      issued_at: now,
-    });
+    if (receiptError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Cliente e pagamento creati, ma ricevuta non registrata: ${receiptError.message}`,
+          customer_id: customerId,
+          payment_id: payment.id,
+        },
+        { status: 500 },
+      );
+    }
 
     if (badgeCode || controllerCode) {
       const { error: credentialError } = await supabase
@@ -309,7 +405,7 @@ export async function POST(req: Request) {
             controller_code: controllerCode || null,
             status: "active",
           },
-          { onConflict: "code" }
+          { onConflict: "code" },
         );
 
       if (credentialError) {
@@ -319,7 +415,7 @@ export async function POST(req: Request) {
             error: `Cliente creato ma credenziale non registrata: ${credentialError.message}`,
             customer_id: customerId,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -331,7 +427,11 @@ export async function POST(req: Request) {
         .eq("id", customerId);
     }
 
-    if (body.medical_certificate_start_date || body.medical_certificate_end_date || body.medical_certificate_url) {
+    if (
+      body.medical_certificate_start_date ||
+      body.medical_certificate_end_date ||
+      body.medical_certificate_url
+    ) {
       await supabase.from("medical_certificates").insert({
         customer_id: customerId,
         valid_from: body.medical_certificate_start_date || null,
@@ -371,13 +471,13 @@ export async function POST(req: Request) {
       customer_id: customerId,
       payment_id: payment.id,
       subscription_id: subscriptionId,
-      receipt_number: receiptNumber,
+      receipt_number: receiptNumber.receipt_number,
       next_url: `/customers/${customerId}/contract`,
     });
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error?.message || "Errore onboarding Platinum." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
