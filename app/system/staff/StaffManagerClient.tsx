@@ -8,6 +8,11 @@ type StaffRole = {
   role_name: string;
 };
 
+type StaffPassFallback = {
+  passUrl: string;
+  whatsappWebUrl: string | null;
+};
+
 type StaffUser = {
   id: string;
   full_name: string;
@@ -26,6 +31,8 @@ export default function StaffManagerClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingPassId, setSendingPassId] = useState<string | null>(null);
+  const [staffPassFallback, setStaffPassFallback] =
+    useState<StaffPassFallback | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -122,8 +129,14 @@ export default function StaffManagerClient() {
     await loadData();
   }
 
+  function copyPassUrl(passUrl: string) {
+    if (!navigator.clipboard?.writeText) return;
+    navigator.clipboard.writeText(passUrl).catch(() => undefined);
+  }
+
   async function sendStaffPass(staffUserId: string) {
     setSendingPassId(staffUserId);
+    setStaffPassFallback(null);
 
     const res = await fetch("/api/staff-mobile/send", {
       method: "POST",
@@ -144,28 +157,24 @@ export default function StaffManagerClient() {
       return;
     }
 
-    if (json.pass_url && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(json.pass_url).catch(() => undefined);
+    const passUrl = json.pass_url || "";
+    const whatsappDesktopUrl = json.whatsapp_desktop_url;
+    const whatsappWebUrl = json.whatsapp_web_url || json.whatsapp_url || null;
+
+    if (passUrl) {
+      copyPassUrl(passUrl);
     }
 
-    const passUrl = json.pass_url || "link non disponibile";
-    const whatsappUrl = json.whatsapp_web_url || json.whatsapp_url;
-    let openedWindow: Window | null = null;
-
-    if (whatsappUrl) {
-      openedWindow = window.open(whatsappUrl, "_blank");
+    if (whatsappDesktopUrl) {
+      window.open(whatsappDesktopUrl, "_blank");
     }
 
-    alert(
-      `Staff Mobile Pass generato. Se WhatsApp non si apre, copia il link: ${passUrl}`
-    );
-
-    if (!openedWindow && json.pass_url) {
-      console.warn(
-        "Apertura WhatsApp non riuscita o URL mancante. Link Staff Mobile Pass:",
-        json.pass_url
-      );
-    }
+    window.setTimeout(() => {
+      setStaffPassFallback({
+        passUrl,
+        whatsappWebUrl,
+      });
+    }, 1000);
   }
 
   return (
@@ -243,6 +252,45 @@ export default function StaffManagerClient() {
 
         <section style={styles.cardWide}>
           <h2 style={styles.cardTitle}>Elenco staff</h2>
+
+          {staffPassFallback ? (
+            <div style={styles.fallbackBox}>
+              <strong style={styles.fallbackTitle}>
+                Staff Mobile Pass pronto
+              </strong>
+              <p style={styles.fallbackText}>
+                Se WhatsApp Desktop non si è aperto, usa il link web oppure
+                copia il pass e invialo manualmente.
+              </p>
+              <div style={styles.fallbackActions}>
+                {staffPassFallback.whatsappWebUrl ? (
+                  <a
+                    href={staffPassFallback.whatsappWebUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.fallbackLink}
+                  >
+                    Apri WhatsApp Web
+                  </a>
+                ) : null}
+
+                {staffPassFallback.passUrl ? (
+                  <>
+                    <button
+                      type="button"
+                      style={styles.secondaryButton}
+                      onClick={() => copyPassUrl(staffPassFallback.passUrl)}
+                    >
+                      Copia pass_url
+                    </button>
+                    <code style={styles.passUrlCode}>
+                      {staffPassFallback.passUrl}
+                    </code>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {loading ? (
             <p style={styles.muted}>Caricamento staff...</p>
@@ -463,6 +511,45 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: 8,
     flexWrap: "wrap",
+  },
+
+  fallbackBox: {
+    border: "1px solid rgba(34,197,94,.28)",
+    borderRadius: 18,
+    background: "rgba(34,197,94,.10)",
+    padding: 16,
+    marginBottom: 18,
+  },
+  fallbackTitle: {
+    display: "block",
+    color: "#86efac",
+    marginBottom: 8,
+  },
+  fallbackText: {
+    color: "#cbd5e1",
+    margin: "0 0 12px",
+  },
+  fallbackActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  fallbackLink: {
+    borderRadius: 12,
+    background: "rgba(34,197,94,.18)",
+    color: "#86efac",
+    padding: "8px 12px",
+    fontWeight: 800,
+    textDecoration: "none",
+  },
+  passUrlCode: {
+    color: "#e2e8f0",
+    background: "rgba(2,6,23,.62)",
+    border: "1px solid rgba(255,255,255,.08)",
+    borderRadius: 10,
+    padding: "7px 10px",
+    wordBreak: "break-all",
   },
   muted: {
     color: "#94a3b8",

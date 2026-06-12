@@ -238,6 +238,7 @@ export async function POST(req: Request) {
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNormalized}?text=${encodedMessage}`;
     const whatsappWebUrl = `https://web.whatsapp.com/send?phone=${phoneNormalized}&text=${encodedMessage}`;
+    const whatsappDesktopUrl = `whatsapp://send?phone=${phoneNormalized}&text=${encodedMessage}`;
 
     return NextResponse.json({
       ok: true,
@@ -249,6 +250,7 @@ export async function POST(req: Request) {
       qr_code: qrCredential.code,
       whatsapp_url: whatsappUrl,
       whatsapp_web_url: whatsappWebUrl,
+      whatsapp_desktop_url: whatsappDesktopUrl,
     });
   } catch (error: any) {
     return NextResponse.json(
