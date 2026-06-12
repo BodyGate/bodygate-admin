@@ -64,29 +64,64 @@ function normalizePaymentMethod(value: string) {
   return "cash";
 }
 
-function fallbackReceiptNumber() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const stamp = `${String(now.getMonth() + 1).padStart(2, "0")}${String(
-    now.getDate()
-  ).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(
-    now.getMinutes()
-  ).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+type ReceiptNumberPayload = {
+  receipt_year: number;
+  receipt_sequence: number;
+  receipt_number: string;
+};
 
-  return `${year}/${stamp}`;
+function parseReceiptNumberPayload(data: unknown): ReceiptNumberPayload | null {
+  const payload =
+    typeof data === "string" ? (JSON.parse(data) as unknown) : data;
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const receiptData = payload as Partial<ReceiptNumberPayload>;
+
+  if (
+    typeof receiptData.receipt_year !== "number" ||
+    typeof receiptData.receipt_sequence !== "number" ||
+    typeof receiptData.receipt_number !== "string" ||
+    !receiptData.receipt_number
+  ) {
+    return null;
+  }
+
+  return {
+    receipt_year: receiptData.receipt_year,
+    receipt_sequence: receiptData.receipt_sequence,
+    receipt_number: receiptData.receipt_number,
+  };
 }
 
-async function getNextReceiptNumber() {
+async function getNextReceiptNumber(): Promise<ReceiptNumberPayload> {
   const { data, error } = await supabaseAdmin.rpc(
-    "next_bodygate_receipt_number"
+    "next_bodygate_receipt_number_v2",
   );
 
   if (error || !data) {
-    console.error("next_bodygate_receipt_number error", error);
-    return fallbackReceiptNumber();
+    console.error("next_bodygate_receipt_number_v2 error", error);
+    throw new Error(
+      "Impossibile generare numero ricevuta progressivo annuale.",
+    );
   }
 
-  return String(data);
+  try {
+    const receiptNumber = parseReceiptNumberPayload(data);
+
+    if (!receiptNumber) {
+      throw new Error("Payload RPC non valido.");
+    }
+
+    return receiptNumber;
+  } catch (error) {
+    console.error("next_bodygate_receipt_number_v2 payload error", error);
+    throw new Error(
+      "Impossibile generare numero ricevuta progressivo annuale.",
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -98,7 +133,7 @@ export async function POST(req: Request) {
           error:
             "Variabili Supabase mancanti. Controlla NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -107,25 +142,25 @@ export async function POST(req: Request) {
     const customerId = String(body.customer_id || body.customerId || "").trim();
     const planId = String(body.plan_id || body.planId || "").trim();
     const paymentMethod = normalizePaymentMethod(
-      String(body.payment_method || body.paymentMethod || "cash")
+      String(body.payment_method || body.paymentMethod || "cash"),
     );
     const notes = String(body.notes || "").trim();
     const requestedStartDate = String(
-      body.start_date || body.startDate || ""
+      body.start_date || body.startDate || "",
     ).trim();
     const requestedAmount = parseAmount(body.amount);
 
     if (!customerId) {
       return NextResponse.json(
         { ok: false, error: "customer_id mancante" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!planId) {
       return NextResponse.json(
         { ok: false, error: "plan_id mancante" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -142,13 +177,15 @@ export async function POST(req: Request) {
           error: "Cliente non trovato",
           detail: customerError,
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const { data: plan, error: planError } = await supabaseAdmin
       .from("subscription_plans")
-      .select("id, name, price, promo_price, duration_days, branch_id, is_active")
+      .select(
+        "id, name, price, promo_price, duration_days, branch_id, is_active",
+      )
       .eq("id", planId)
       .maybeSingle();
 
@@ -159,7 +196,7 @@ export async function POST(req: Request) {
           error: "Piano abbonamento non trovato",
           detail: planError,
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -169,7 +206,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Piano abbonamento non attivo",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -187,7 +224,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Importo rinnovo non valido",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -197,7 +234,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Durata piano non valida",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -209,7 +246,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Data inizio abbonamento non valida",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -222,39 +259,40 @@ export async function POST(req: Request) {
 
     const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})`;
 
+    const receiptNumber = await getNextReceiptNumber();
+
     const todayOnly = dateOnly(new Date());
 
-if (startsAt <= todayOnly) {
-  await supabaseAdmin
-    .from("customer_subscriptions")
-    .update({ is_active: false })
-    .eq("customer_id", customerId)
-    .eq("is_active", true);
-} else {
-  await supabaseAdmin
-    .from("customer_subscriptions")
-    .update({ is_active: false })
-    .eq("customer_id", customerId)
-    .eq("is_active", true)
-    .gte("starts_at", startsAt);
-}
-
-    const { data: subscription, error: subscriptionError } =
+    if (startsAt <= todayOnly) {
       await supabaseAdmin
         .from("customer_subscriptions")
-        .insert({
-          customer_id: customerId,
-          branch_id: branchId,
-          plan_id: plan.id,
-          amount,
-          starts_at: startsAt,
-          ends_at: endsAt,
-          is_active: true,
-          payment_method: paymentMethod,
-          notes: notes || `Rinnovo guidato ${plan.name}`,
-        })
-        .select("*")
-        .single();
+        .update({ is_active: false })
+        .eq("customer_id", customerId)
+        .eq("is_active", true);
+    } else {
+      await supabaseAdmin
+        .from("customer_subscriptions")
+        .update({ is_active: false })
+        .eq("customer_id", customerId)
+        .eq("is_active", true)
+        .gte("starts_at", startsAt);
+    }
+
+    const { data: subscription, error: subscriptionError } = await supabaseAdmin
+      .from("customer_subscriptions")
+      .insert({
+        customer_id: customerId,
+        branch_id: branchId,
+        plan_id: plan.id,
+        amount,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        is_active: true,
+        payment_method: paymentMethod,
+        notes: notes || `Rinnovo guidato ${plan.name}`,
+      })
+      .select("*")
+      .single();
 
     if (subscriptionError || !subscription) {
       return NextResponse.json(
@@ -263,7 +301,7 @@ if (startsAt <= todayOnly) {
           error: "Errore creazione abbonamento",
           detail: subscriptionError,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -289,7 +327,7 @@ if (startsAt <= todayOnly) {
           detail: paymentError,
           subscription_id: subscription.id,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -319,7 +357,7 @@ if (startsAt <= todayOnly) {
           subscription_id: subscription.id,
           customer_payment_id: payment.id,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -328,12 +366,10 @@ if (startsAt <= todayOnly) {
       type: "subscription",
       title: "Abbonamento rinnovato",
       description: `${plan.name} €${amount.toFixed(
-        2
+        2,
       )} valido dal ${startsAt} al ${endsAt}`,
       created_at: now,
     });
-
-    const receiptNumber = await getNextReceiptNumber();
 
     const { data: receipt, error: receiptError } = await supabaseAdmin
       .from("customer_receipts")
@@ -341,7 +377,9 @@ if (startsAt <= todayOnly) {
         customer_id: customerId,
         payment_id: payment.id,
         subscription_id: subscription.id,
-        receipt_number: receiptNumber,
+        receipt_year: receiptNumber.receipt_year,
+        receipt_sequence: receiptNumber.receipt_sequence,
+        receipt_number: receiptNumber.receipt_number,
         receipt_type: "subscription",
         amount,
         description: `${paymentDescription}${
@@ -358,14 +396,13 @@ if (startsAt <= todayOnly) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Abbonamento e pagamento creati, ma errore creazione ricevuta",
+          error: "Abbonamento e pagamento creati, ma errore creazione ricevuta",
           detail: receiptError,
           subscription_id: subscription.id,
           payment_id: payment.id,
           accounting_payment_id: accountingPayment.id,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -393,7 +430,7 @@ if (startsAt <= todayOnly) {
         ok: false,
         error: error instanceof Error ? error.message : "Errore sconosciuto",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
