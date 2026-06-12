@@ -261,7 +261,7 @@ export default function CustomerDetailsClient({
     if (!normalizedBadge) {
       setBadgeFeedback({
         tone: "danger",
-        message: "Inserisci un codice badge prima di salvare.",
+        message: "Inserisci un codice badge valido",
       });
       return;
     }
