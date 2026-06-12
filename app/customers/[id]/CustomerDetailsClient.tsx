@@ -20,6 +20,22 @@ import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
 type Customer = any;
 type Plan = any;
 
+const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
+  "Mensile",
+  "Trimestrale",
+  "Semestrale",
+  "Annuale",
+  "Annuale ridotto Lun Mer Ven",
+  "Annuale ridotto Mar Gio Sab",
+  "Mensile Ridotto Lunedi-Mercoledi-Venerdi",
+  "Mensile Ridotto Martedi-Giovedi-Sabato",
+  "Pilates",
+]);
+
+function isOfficialSubscriptionPlanName(name: unknown) {
+  return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(String(name || "").trim());
+}
+
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -408,7 +424,11 @@ export default function CustomerDetailsClient({
       }
 
       const { data: plansData } = await plansQuery;
-      setPlans(plansData || []);
+      setPlans(
+        (plansData || []).filter((plan) =>
+          isOfficialSubscriptionPlanName(plan.name),
+        ),
+      );
 
       const { data: subs } = await supabase
         .from("customer_subscriptions")
@@ -3044,7 +3064,10 @@ export default function CustomerDetailsClient({
                       : "Nessun piano attivo registrato per oggi"
                 }
                 action="Gestisci piano"
-                onAction={() => setActiveSection("subscriptions")}
+                onAction={() => {
+                  setActiveSection("subscriptions");
+                  setShowSubscriptionHistory(true);
+                }}
               >
                 <span className="operation-detail-pill">
                   {daysRemaining !== null
@@ -3066,7 +3089,10 @@ export default function CustomerDetailsClient({
                       : "Nessuna quota associativa registrata"
                 }
                 action="Gestisci quota"
-                onAction={() => setActiveSection("subscriptions")}
+                onAction={() => {
+                  setActiveSection("subscriptions");
+                  setShowMembershipHistory(true);
+                }}
               />
               <OverviewCard
                 eyebrow="Medico"
@@ -4521,7 +4547,13 @@ function SubscriptionHistoryRow({
         ? "Pianificato"
         : "Storico";
 
-  const statusTone = isActive ? "success" : isFuture ? "info" : "neutral";
+  const statusTone = isCancelled
+    ? "danger"
+    : isActive
+      ? "success"
+      : isFuture
+        ? "info"
+        : "neutral";
 
   return (
     <div className="history-row">
