@@ -4046,14 +4046,24 @@ export default function CustomerDetailsClient({
           <MedicalCertificateCard
             customerId={customer.id}
             currentCertificateUrl={customer.medical_certificate_url}
-            startDate={customer.medical_certificate_start_date}
-            endDate={customer.medical_certificate_end_date}
+            startDate={
+              customer.medical_certificate_start_date ||
+              customer.medical_certificate_start
+            }
+            endDate={
+              customer.medical_certificate_end_date ||
+              customer.medical_certificate_end
+            }
             onUpdated={(data) =>
               setCustomer((prev: any) => ({
                 ...prev,
+                ...(data.customer || {}),
                 medical_certificate_url: data.url,
                 medical_certificate_start_date: data.startDate,
                 medical_certificate_end_date: data.endDate,
+                medical_certificate_status: data.status,
+                medical_certificate_start: data.startDate,
+                medical_certificate_end: data.endDate,
               }))
             }
           />
@@ -4072,7 +4082,11 @@ export default function CustomerDetailsClient({
               />
               <InfoMini
                 label="Inizio certificato"
-                value={customer.medical_certificate_start_date || "-"}
+                value={
+                  customer.medical_certificate_start_date ||
+                  customer.medical_certificate_start ||
+                  "-"
+                }
               />
               <InfoMini
                 label="Scadenza certificato"
