@@ -490,10 +490,21 @@ export async function POST(req: Request) {
       });
     }
 
+    const medicalCertificateStart =
+      customer.medical_certificate_start_date || customer.medical_certificate_start;
     const medicalCertificateEnd =
       customer.medical_certificate_end_date || customer.medical_certificate_end;
+    const medicalCertificateStatus = String(
+      customer.medical_certificate_status || ""
+    ).toLowerCase();
 
-    if (!medicalCertificateEnd || medicalCertificateEnd < today) {
+    if (
+      !medicalCertificateStart ||
+      !medicalCertificateEnd ||
+      medicalCertificateStart > today ||
+      medicalCertificateEnd < today ||
+      medicalCertificateStatus === "expired"
+    ) {
       await logAccess(false, "Certificato medico scaduto o mancante");
 
       return NextResponse.json({
