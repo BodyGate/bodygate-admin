@@ -3,46 +3,42 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
+import BGActionLink from "./ui/BGActionLink";
+import BGButton from "./ui/BGButton";
+import BGCard from "./ui/BGCard";
+import BGEmptyState from "./ui/BGEmptyState";
+import BGPageHeader from "./ui/BGPageHeader";
+import BGStatCard from "./ui/BGStatCard";
+import BGStatusBadge from "./ui/BGStatusBadge";
 
 type Customer = {
   id: string;
-  full_name?: string | null;
   first_name?: string | null;
   last_name?: string | null;
-  active: boolean | null;
-  subscription_status: string | null;
-  subscription_expiry: string | null;
+  is_active?: boolean | null;
+  medical_certificate_start_date?: string | null;
+  medical_certificate_end_date?: string | null;
+  medical_certificate_status?: string | null;
+  medical_certificate_start?: string | null;
+  medical_certificate_end?: string | null;
+};
+
+type CustomerName = {
+  first_name?: string | null;
+  last_name?: string | null;
 };
 
 type AccessLog = {
   id: string;
   created_at: string;
+  access_time?: string | null;
   customer_id: string | null;
   badge_code: string | null;
   controller_code: string | null;
-  allowed: boolean;
+  was_allowed?: boolean | null;
+  allowed?: boolean | null;
   reason: string | null;
-  customers?: {
-    full_name?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-  } | null;
-};
-
-
-
-type CustomerAccessLog = {
-  id: string;
-  created_at: string;
-  customer_id: string | null;
-  badge_code: string | null;
-  allowed: boolean;
-  denial_reason: string | null;
-  customers?: {
-    full_name?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-  } | null;
+  customers?: CustomerName | CustomerName[] | null;
 };
 
 type GymPresence = {
@@ -70,31 +66,13 @@ type BridgeWatchdog = {
   checked_at?: string;
 };
 
-type QuickCreateForm = {
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email: string;
-  tax_code: string;
-  badge_code: string;
-  controller_code: string;
-  medical_valid_from: string;
-  medical_valid_until: string;
-  membership_valid_until: string;
-  subscription_starts_at: string;
-  subscription_ends_at: string;
-};
-
-type Certificate = {
+type SubscriptionAlert = {
   id: string;
-  customer_id: string;
-  valid_from: string;
-  valid_until: string;
-  customers?: {
-    full_name?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-  } | null;
+  customer_id: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean | null;
+  customers?: CustomerName | CustomerName[] | null;
 };
 
 type BridgeStatus = {
@@ -110,8 +88,8 @@ type BridgeStatus = {
 export default function ReceptionDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [customerAccessLogs, setCustomerAccessLogs] = useState<CustomerAccessLog[]>([]);
+  const [certificates, setCertificates] = useState<Customer[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionAlert[]>([]);
   const [gymPresence, setGymPresence] = useState<GymPresence[]>([]);
 
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>({
@@ -133,35 +111,22 @@ export default function ReceptionDashboard() {
   const [bridgeLoading, setBridgeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [showQuickModal, setShowQuickModal] = useState(false);
-  const [savingQuick, setSavingQuick] = useState(false);
-  const [quickError, setQuickError] = useState("");
-  const [quickSuccess, setQuickSuccess] = useState("");
-  const [quickWarnings, setQuickWarnings] = useState<string[]>([]);
+  function normalizeCustomerName(item?: CustomerName | CustomerName[] | null) {
+    const customer = Array.isArray(item) ? item[0] : item;
+    if (!customer) return "Cliente";
 
-  const [quickForm, setQuickForm] = useState<QuickCreateForm>({
-    first_name: "",
-    last_name: "",
-    phone: "",
-    email: "",
-    tax_code: "",
-    badge_code: "",
-    controller_code: "",
-    medical_valid_from: "",
-    medical_valid_until: "",
-    membership_valid_until: "",
-    subscription_starts_at: "",
-    subscription_ends_at: "",
-  });
+    return (
+      `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
+      "Cliente"
+    );
+  }
 
-  function getName(item: {
-    full_name?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-  }) {
-    const full = item.full_name?.trim();
-    const firstLast = `${item.first_name || ""} ${item.last_name || ""}`.trim();
-    return full || firstLast || "Cliente";
+  function getName(item?: CustomerName | CustomerName[] | null) {
+    return normalizeCustomerName(item);
+  }
+
+  function isAllowed(log: AccessLog) {
+    return Boolean(log.was_allowed ?? log.allowed);
   }
 
   function todayString() {
@@ -184,71 +149,67 @@ export default function ReceptionDashboard() {
       { data: customersData },
       { data: logsData },
       { data: certificatesData },
-      { data: customerAccessData },
+      { data: subscriptionsData },
       { data: gymPresenceData },
     ] = await Promise.all([
       supabase
         .from("customers")
         .select(
-          "id, full_name, first_name, last_name, active, subscription_status, subscription_expiry"
+          "id, first_name, last_name, is_active, medical_certificate_start_date, medical_certificate_end_date, medical_certificate_status, medical_certificate_start, medical_certificate_end",
         )
         .order("created_at", { ascending: false }),
 
       supabase
-        .from("access_logs")
-        .select(`
+        .from("customer_access_logs")
+        .select(
+          `
           id,
           created_at,
+          access_time,
           customer_id,
           badge_code,
           controller_code,
-          allowed,
+          was_allowed,
           reason,
           customers (
-            full_name,
             first_name,
             last_name
           )
-        `)
+        `,
+        )
         .gte("created_at", `${today}T00:00:00`)
         .order("created_at", { ascending: false })
-        .limit(30),
+        .limit(120),
 
       supabase
-        .from("medical_certificates")
-        .select(`
-          id,
-          customer_id,
-          valid_from,
-          valid_until,
-          customers (
-            full_name,
-            first_name,
-            last_name
-          )
-        `)
-        .gte("valid_until", today)
-        .lte("valid_until", in30Days)
-        .order("valid_until", { ascending: true })
+        .from("customers")
+        .select(
+          "id, first_name, last_name, is_active, medical_certificate_start_date, medical_certificate_end_date, medical_certificate_status, medical_certificate_start, medical_certificate_end",
+        )
+        .eq("is_active", true)
+        .gte("medical_certificate_end_date", today)
+        .lte("medical_certificate_end_date", in30Days)
+        .order("medical_certificate_end_date", { ascending: true })
         .limit(20),
 
       supabase
-        .from("customer_access_logs")
-        .select(`
+        .from("customer_subscriptions")
+        .select(
+          `
           id,
-          created_at,
           customer_id,
-          badge_code,
-          allowed,
-          denial_reason,
+          starts_at,
+          ends_at,
+          is_active,
           customers (
-            full_name,
             first_name,
             last_name
           )
-        `)
-        .gte("created_at", `${today}T00:00:00`)
-        .order("created_at", { ascending: false })
+        `,
+        )
+        .eq("is_active", true)
+        .lte("ends_at", in30Days)
+        .order("ends_at", { ascending: true })
         .limit(120),
 
       supabase
@@ -260,8 +221,8 @@ export default function ReceptionDashboard() {
 
     setCustomers((customersData || []) as Customer[]);
     setLogs((logsData || []) as AccessLog[]);
-    setCertificates((certificatesData || []) as Certificate[]);
-    setCustomerAccessLogs((customerAccessData || []) as CustomerAccessLog[]);
+    setCertificates((certificatesData || []) as Customer[]);
+    setSubscriptions((subscriptionsData || []) as SubscriptionAlert[]);
     setGymPresence((gymPresenceData || []) as GymPresence[]);
     setLoading(false);
   }, []);
@@ -340,27 +301,27 @@ export default function ReceptionDashboard() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "access_logs" },
-        () => loadData()
+        () => loadData(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "customers" },
-        () => loadData()
+        () => loadData(),
       )
-       .on(
+      .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "medical_certificates" },
-        () => loadData()
+        { event: "*", schema: "public", table: "customer_subscriptions" },
+        () => loadData(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "customer_access_logs" },
-        () => loadData()
+        () => loadData(),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "gym_presence" },
-        () => loadData()
+        () => loadData(),
       )
       .subscribe();
 
@@ -370,155 +331,26 @@ export default function ReceptionDashboard() {
     };
   }, [loadData]);
 
-  function setQuickField<K extends keyof QuickCreateForm>(
-    key: K,
-    value: QuickCreateForm[K]
-  ) {
-    setQuickForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function resetQuickForm() {
-    setQuickForm({
-      first_name: "",
-      last_name: "",
-      phone: "",
-      email: "",
-      tax_code: "",
-      badge_code: "",
-      controller_code: "",
-      medical_valid_from: "",
-      medical_valid_until: "",
-      membership_valid_until: "",
-      subscription_starts_at: "",
-      subscription_ends_at: "",
-    });
-    setQuickWarnings([]);
-    setQuickError("");
-  }
-
-  function isMissingTableError(message: string) {
-    const lower = message.toLowerCase();
-    return (
-      lower.includes("does not exist") ||
-      lower.includes("42p01") ||
-      lower.includes("relation")
-    );
-  }
-
-  async function submitQuickCustomer(e: React.FormEvent) {
-  e.preventDefault();
-  setQuickError("");
-  setQuickSuccess("");
-  setQuickWarnings([]);
-
-  const firstName = quickForm.first_name.trim();
-  const lastName = quickForm.last_name.trim();
-
-  if (!firstName || !lastName) {
-    setQuickError("Nome e cognome sono obbligatori.");
-    return;
-  }
-
-  const badgeCode = quickForm.badge_code.trim();
-  const controllerCode = quickForm.controller_code.trim();
-
-  if (!badgeCode && !controllerCode) {
-    setQuickError(
-      "Inserisci almeno badge code o controller code per creare la credenziale di accesso."
-    );
-    return;
-  }
-
-  if (
-    quickForm.medical_valid_from &&
-    quickForm.medical_valid_until &&
-    quickForm.medical_valid_until < quickForm.medical_valid_from
-  ) {
-    setQuickError(
-      "La data fine certificato non può essere precedente alla data inizio."
-    );
-    return;
-  }
-
-  if (
-    quickForm.subscription_starts_at &&
-    quickForm.subscription_ends_at &&
-    quickForm.subscription_ends_at < quickForm.subscription_starts_at
-  ) {
-    setQuickError(
-      "La data fine abbonamento non può essere precedente alla data inizio."
-    );
-    return;
-  }
-
-  setSavingQuick(true);
-
-  try {
-    const response = await fetch("/api/customers/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        first_name: quickForm.first_name,
-        last_name: quickForm.last_name,
-        phone: quickForm.phone,
-        email: quickForm.email,
-        tax_code: quickForm.tax_code,
-        badge_code: quickForm.badge_code,
-        controller_code: quickForm.controller_code,
-        medical_valid_from: quickForm.medical_valid_from,
-        medical_valid_until: quickForm.medical_valid_until,
-        membership_valid_until: quickForm.membership_valid_until,
-        subscription_starts_at: quickForm.subscription_starts_at,
-        subscription_ends_at: quickForm.subscription_ends_at,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.ok) {
-      setQuickError(result.error || "Errore creazione cliente rapido.");
-      setSavingQuick(false);
-      return;
-    }
-
-    setQuickWarnings(Array.isArray(result.warnings) ? result.warnings : []);
-    setQuickSuccess("Nuovo cliente rapido creato correttamente.");
-
-    await loadData();
-    resetQuickForm();
-    setShowQuickModal(false);
-  } catch (error) {
-    console.error(error);
-    setQuickError("Errore imprevisto durante la creazione cliente.");
-  } finally {
-    setSavingQuick(false);
-  }
-}
-
   const stats = useMemo(() => {
     const today = todayString();
 
-    const accessToday = logs.filter((log) => log.allowed).length;
-    const deniedToday = logs.filter((log) => !log.allowed).length;
+    const accessToday = logs.filter(isAllowed).length;
+    const deniedToday = logs.filter((log) => !isAllowed(log)).length;
 
-    const expiredSubscriptions = customers.filter((customer) => {
-      const expiry = customer.subscription_expiry
-        ? String(customer.subscription_expiry).slice(0, 10)
+    const expiredSubscriptions = subscriptions.filter((subscription) => {
+      const expiry = subscription.ends_at
+        ? String(subscription.ends_at).slice(0, 10)
         : null;
-
       return (
-        !customer.active ||
-        customer.subscription_status !== "active" ||
-        !expiry ||
-        expiry < today
+        Boolean(subscription.is_active) && Boolean(expiry) && expiry! < today
       );
     }).length;
 
-    const blockedCustomers = customers.filter((customer) => !customer.active).length;
+    const blockedCustomers = customers.filter(
+      (customer) => customer.is_active === false,
+    ).length;
 
-    const latestDenied = logs.find((log) => !log.allowed);
+    const latestDenied = logs.find((log) => !isAllowed(log));
 
     return {
       accessToday,
@@ -528,13 +360,13 @@ export default function ReceptionDashboard() {
       blockedCustomers,
       latestDenied,
     };
-  }, [customers, logs, certificates]);
+  }, [customers, logs, certificates, subscriptions]);
 
   const receptionAlerts = useMemo<ReceptionAlert[]>(() => {
     const items: ReceptionAlert[] = [];
     const now = new Date().toISOString();
 
-    const latestDenied = customerAccessLogs.find((log) => !log.allowed) || logs.find((log) => !log.allowed);
+    const latestDenied = logs.find((log) => !isAllowed(log));
     const insideNow = gymPresence.filter((p) => p.is_inside).length;
 
     if (!bridgeStatus.online || bridgeWatchdog.state === "offline") {
@@ -542,43 +374,63 @@ export default function ReceptionDashboard() {
         id: "bridge-offline",
         type: "Bridge offline",
         severity: "critical",
-        message: "Bridge non raggiungibile: il tornello non può autorizzare accessi in modo affidabile.",
-        suggestedAction: "Verifica servizio bridge su Windows e connettività rete verso controller.",
+        message:
+          "Bridge non raggiungibile: il tornello non può autorizzare accessi in modo affidabile.",
+        suggestedAction:
+          "Verifica servizio bridge su Windows e connettività rete verso controller.",
         time: bridgeWatchdog.checked_at || bridgeStatus.checkedAt || now,
         badgeOrCustomer: bridgeStatus.lastBadge || "N/A",
       });
     }
 
-    if (bridgeWatchdog.state === "degraded" || (bridgeStatus.online && !bridgeStatus.connected)) {
+    if (
+      bridgeWatchdog.state === "degraded" ||
+      (bridgeStatus.online && !bridgeStatus.connected)
+    ) {
       items.push({
         id: "bridge-degraded",
         type: "Bridge degraded",
         severity: "warning",
         message: "Bridge online ma centralina non connessa stabilmente.",
-        suggestedAction: "Controlla cablaggio/IP controller e rilancia health check.",
+        suggestedAction:
+          "Controlla cablaggio/IP controller e rilancia health check.",
         time: bridgeWatchdog.checked_at || bridgeStatus.checkedAt || now,
         badgeOrCustomer: bridgeStatus.lastBadge || "N/A",
       });
     }
 
-    const unknownBadge = customerAccessLogs.find((log) => !log.allowed && (log.denial_reason || "").toLowerCase().includes("badge")) || logs.find((log) => !log.allowed && (log.reason || "").toLowerCase().includes("badge"));
+    const unknownBadge = logs.find(
+      (log) =>
+        !isAllowed(log) && (log.reason || "").toLowerCase().includes("badge"),
+    );
     if (unknownBadge) {
       items.push({
         id: "unknown-badge",
         type: "Badge sconosciuto",
         severity: "critical",
         message: "Rilevato badge non associato a nessun cliente.",
-        suggestedAction: "Identifica la persona e registra/assegna badge corretto.",
+        suggestedAction:
+          "Identifica la persona e registra/assegna badge corretto.",
         time: unknownBadge.created_at,
         badgeOrCustomer: unknownBadge.badge_code || "Badge non disponibile",
       });
     }
 
-    const pushByReason = (id:string, type:string, lookups:string[], action:string) => {
-      const target = customerAccessLogs.find((log) => !log.allowed && lookups.some((lk) => (log.denial_reason || "").toLowerCase().includes(lk))) ||
-        logs.find((log) => !log.allowed && lookups.some((lk) => (log.reason || "").toLowerCase().includes(lk)));
+    const pushByReason = (
+      id: string,
+      type: string,
+      lookups: string[],
+      action: string,
+    ) => {
+      const target = logs.find(
+        (log) =>
+          !isAllowed(log) &&
+          lookups.some((lk) => (log.reason || "").toLowerCase().includes(lk)),
+      );
       if (!target) return;
-      const customerName = target.customers ? getName(target.customers) : "Cliente non associato";
+      const customerName = target.customers
+        ? getName(target.customers)
+        : "Cliente non associato";
       items.push({
         id,
         type,
@@ -590,40 +442,68 @@ export default function ReceptionDashboard() {
       });
     };
 
-    pushByReason("expired-sub", "Accesso negato: abbonamento", ["abbon", "subscription"], "Invita il cliente al rinnovo o attiva nuovo abbonamento.");
-    pushByReason("expired-cert", "Accesso negato: certificato medico", ["certificat", "medical"], "Richiedi certificato valido e aggiorna anagrafica.");
-    pushByReason("missing-fee", "Accesso negato: quota associativa", ["quota", "membership"], "Regolarizza quota associativa prima del nuovo accesso.");
+    pushByReason(
+      "expired-sub",
+      "Accesso negato: abbonamento",
+      ["abbon", "subscription"],
+      "Invita il cliente al rinnovo o attiva nuovo abbonamento.",
+    );
+    pushByReason(
+      "expired-cert",
+      "Accesso negato: certificato medico",
+      ["certificat", "medical"],
+      "Richiedi certificato valido e aggiorna anagrafica.",
+    );
+    pushByReason(
+      "missing-fee",
+      "Accesso negato: quota associativa",
+      ["quota", "membership"],
+      "Regolarizza quota associativa prima del nuovo accesso.",
+    );
 
-    const blocked = customerAccessLogs.find((log) => !log.allowed && (log.denial_reason || "").toLowerCase().includes("blocc")) || logs.find((log) => !log.allowed && (log.reason || "").toLowerCase().includes("blocc"));
+    const blocked = logs.find(
+      (log) =>
+        !isAllowed(log) && (log.reason || "").toLowerCase().includes("blocc"),
+    );
     if (blocked) {
-      const customerName = blocked.customers ? getName(blocked.customers) : "Cliente bloccato";
+      const customerName = blocked.customers
+        ? getName(blocked.customers)
+        : "Cliente bloccato";
       items.push({
         id: "blocked-customer",
         type: "Cliente bloccato",
         severity: "critical",
         message: "Accesso negato a cliente marcato come bloccato/non attivo.",
-        suggestedAction: "Controlla motivazione blocco e autorizzazioni amministrative.",
+        suggestedAction:
+          "Controlla motivazione blocco e autorizzazioni amministrative.",
         time: blocked.created_at,
         badgeOrCustomer: `${customerName} • ${blocked.badge_code || "Badge -"}`,
       });
     }
 
-    const deniedMap = new Map<string, { count:number; latest:string }>();
-    customerAccessLogs.filter((log) => !log.allowed).forEach((log) => {
-      const key = log.customer_id || log.badge_code || "unknown";
-      const current = deniedMap.get(key) || { count: 0, latest: log.created_at };
-      current.count += 1;
-      if (new Date(log.created_at) > new Date(current.latest)) current.latest = log.created_at;
-      deniedMap.set(key, current);
-    });
-    const repeat = [...deniedMap.entries()].find(([,v]) => v.count >= 3);
+    const deniedMap = new Map<string, { count: number; latest: string }>();
+    logs
+      .filter((log) => !isAllowed(log))
+      .forEach((log) => {
+        const key = log.customer_id || log.badge_code || "unknown";
+        const current = deniedMap.get(key) || {
+          count: 0,
+          latest: log.created_at,
+        };
+        current.count += 1;
+        if (new Date(log.created_at) > new Date(current.latest))
+          current.latest = log.created_at;
+        deniedMap.set(key, current);
+      });
+    const repeat = [...deniedMap.entries()].find(([, v]) => v.count >= 3);
     if (repeat) {
       items.push({
         id: "repeat-denied",
         type: "Accessi negati ripetuti",
         severity: "critical",
         message: `Rilevati ${repeat[1].count} accessi negati ripetuti sullo stesso badge/cliente oggi.`,
-        suggestedAction: "Contatta subito la reception desk per verifica identità e posizione amministrativa.",
+        suggestedAction:
+          "Contatta subito la reception desk per verifica identità e posizione amministrativa.",
         time: repeat[1].latest,
         badgeOrCustomer: repeat[0],
       });
@@ -634,8 +514,10 @@ export default function ReceptionDashboard() {
         id: "generic-denied",
         type: "Accesso negato",
         severity: "info",
-        message: "È presente almeno un accesso negato, senza pattern critici configurati.",
-        suggestedAction: "Apri il registro accessi e verifica il motivo denial.",
+        message:
+          "È presente almeno un accesso negato, senza pattern critici configurati.",
+        suggestedAction:
+          "Apri il registro accessi e verifica il motivo denial.",
         time: latestDenied.created_at,
         badgeOrCustomer: latestDenied.badge_code || "Badge -",
       });
@@ -653,8 +535,10 @@ export default function ReceptionDashboard() {
       });
     }
 
-    return items.sort((a, b) => +new Date(b.time) - +new Date(a.time)).slice(0, 8);
-  }, [bridgeStatus, bridgeWatchdog, customerAccessLogs, logs, gymPresence]);
+    return items
+      .sort((a, b) => +new Date(b.time) - +new Date(a.time))
+      .slice(0, 8);
+  }, [bridgeStatus, bridgeWatchdog, logs, gymPresence]);
 
   function systemStatusLabel(state: BridgeWatchdog["state"]) {
     if (state === "online") return "Sistema operativo";
@@ -662,8 +546,15 @@ export default function ReceptionDashboard() {
     return "Sistema critico";
   }
 
-  function systemBadgeStyle(state: BridgeWatchdog["state"]): React.CSSProperties {
-    const color = state === "online" ? "#22c55e" : state === "degraded" ? "#f59e0b" : "#ef4444";
+  function systemBadgeStyle(
+    state: BridgeWatchdog["state"],
+  ): React.CSSProperties {
+    const color =
+      state === "online"
+        ? "#22c55e"
+        : state === "degraded"
+          ? "#f59e0b"
+          : "#ef4444";
     return {
       background: `${color}22`,
       color,
@@ -678,175 +569,36 @@ export default function ReceptionDashboard() {
 
   return (
     <main style={pageStyle}>
-      <div style={heroStyle}>
-        <div>
-          <div style={eyebrowStyle}>BodyGate Reception</div>
-          <h1 style={titleStyle}>Reception live</h1>
-          <p style={subtitleStyle}>
-            Console operativa realtime per gestire ingressi, alert e clienti senza perdere priorità.
-          </p>
-        </div>
-
-        <div style={heroActionsStyle}>
-          <div style={systemBadgeStyle(bridgeWatchdog.state)}>
-            {systemStatusLabel(bridgeWatchdog.state)}
-          </div>
-          <button
-            style={secondaryButtonStyle}
-            onClick={() => {
-              loadData();
-              loadBridgeStatus();
-            }}
-          >
-            Aggiorna dashboard
-          </button>
-          <button style={primaryButtonStyle} onClick={() => setShowQuickModal(true)}>
-            Nuovo cliente rapido
-          </button>
-          <div style={liveBadgeStyle}>
-            <span style={dotStyle} />
-            Polling live 5s
-          </div>
-        </div>
-      </div>
-
-      {showQuickModal && (
-        <div style={modalOverlayStyle}>
-          <div style={modalStyle}>
-            <div style={modalHeaderStyle}>
-              <h2 style={{ margin: 0 }}>Nuovo cliente rapido</h2>
-              <button
-                style={closeButtonStyle}
-                onClick={() => {
-                  setShowQuickModal(false);
-                  setQuickError("");
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={submitQuickCustomer} style={modalFormStyle}>
-              <div style={modalGridStyle}>
-                <input
-                  style={inputStyle}
-                  placeholder="Nome"
-                  value={quickForm.first_name}
-                  onChange={(e) => setQuickField("first_name", e.target.value)}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Cognome"
-                  value={quickForm.last_name}
-                  onChange={(e) => setQuickField("last_name", e.target.value)}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Telefono"
-                  value={quickForm.phone}
-                  onChange={(e) => setQuickField("phone", e.target.value)}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Email"
-                  value={quickForm.email}
-                  onChange={(e) => setQuickField("email", e.target.value)}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Codice fiscale"
-                  value={quickForm.tax_code}
-                  onChange={(e) => setQuickField("tax_code", e.target.value.toUpperCase())}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Badge code"
-                  value={quickForm.badge_code}
-                  onChange={(e) => setQuickField("badge_code", e.target.value)}
-                />
-                <input
-                  style={inputStyle}
-                  placeholder="Controller code (opzionale)"
-                  value={quickForm.controller_code}
-                  onChange={(e) => setQuickField("controller_code", e.target.value)}
-                />
-                <label style={labelStyle}>
-                  Inizio certificato
-                  <input
-                    type="date"
-                    style={inputStyle}
-                    value={quickForm.medical_valid_from}
-                    onChange={(e) => setQuickField("medical_valid_from", e.target.value)}
-                  />
-                </label>
-                <label style={labelStyle}>
-                  Fine certificato
-                  <input
-                    type="date"
-                    style={inputStyle}
-                    value={quickForm.medical_valid_until}
-                    onChange={(e) => setQuickField("medical_valid_until", e.target.value)}
-                  />
-                </label>
-                <label style={labelStyle}>
-                  Quota associativa fino al
-                  <input
-                    type="date"
-                    style={inputStyle}
-                    value={quickForm.membership_valid_until}
-                    onChange={(e) => setQuickField("membership_valid_until", e.target.value)}
-                  />
-                </label>
-                <label style={labelStyle}>
-                  Abbonamento dal
-                  <input
-                    type="date"
-                    style={inputStyle}
-                    value={quickForm.subscription_starts_at}
-                    onChange={(e) =>
-                      setQuickField("subscription_starts_at", e.target.value)
-                    }
-                  />
-                </label>
-                <label style={labelStyle}>
-                  Abbonamento al
-                  <input
-                    type="date"
-                    style={inputStyle}
-                    value={quickForm.subscription_ends_at}
-                    onChange={(e) => setQuickField("subscription_ends_at", e.target.value)}
-                  />
-                </label>
-              </div>
-
-              {quickError && <div style={errorStyle}>{quickError}</div>}
-              {quickWarnings.length > 0 && (
-                <div style={warningStyle}>
-                  {quickWarnings.map((w) => (
-                    <div key={w}>• {w}</div>
-                  ))}
-                </div>
-              )}
-              {quickSuccess && <div style={successStyle}>{quickSuccess}</div>}
-
-              <div style={modalActionsStyle}>
-                <button
-                  type="button"
-                  style={secondaryButtonStyle}
-                  onClick={() => {
-                    setShowQuickModal(false);
-                    setQuickError("");
-                  }}
-                >
-                  Annulla
-                </button>
-                <button type="submit" style={primaryButtonStyle} disabled={savingQuick}>
-                  {savingQuick ? "Salvataggio..." : "Salva cliente"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <BGPageHeader
+        eyebrow="BodyGate Reception"
+        title="Reception live"
+        subtitle="Console operativa realtime per monitorare ingressi, alert e clienti senza scritture DB dalla reception."
+        actions={
+          <>
+            <BGStatusBadge
+              tone={
+                bridgeWatchdog.state === "online"
+                  ? "success"
+                  : bridgeWatchdog.state === "degraded"
+                    ? "warning"
+                    : "danger"
+              }
+            >
+              {systemStatusLabel(bridgeWatchdog.state)}
+            </BGStatusBadge>
+            <BGButton
+              variant="secondary"
+              onClick={() => {
+                loadData();
+                loadBridgeStatus();
+              }}
+            >
+              Aggiorna dashboard
+            </BGButton>
+            <BGStatusBadge tone="info">Polling live 5s</BGStatusBadge>
+          </>
+        }
+      />
 
       <div style={firstRowStyle}>
         <BridgeStatusCard
@@ -858,28 +610,36 @@ export default function ReceptionDashboard() {
         {receptionAlerts.length > 0 ? (
           <ReceptionAlertsCard alerts={receptionAlerts} />
         ) : (
-          <AlertCard title="Alert Reception" text="Nessuna anomalia critica attiva." tone="success" />
+          <AlertCard
+            title="Alert Reception"
+            text="Nessuna anomalia critica attiva."
+            tone="success"
+          />
         )}
-        <Card title="Presenti ora" value={String(gymPresence.filter((p) => p.is_inside).length)} note="Clienti attualmente in palestra" />
+        <Card
+          title="Presenti ora"
+          value={String(gymPresence.filter((p) => p.is_inside).length)}
+          note="Clienti attualmente in palestra"
+        />
       </div>
 
       <div style={secondRowStyle}>
-        <section style={panelStyle}>
+        <BGCard className="reception-panel">
           <div style={panelHeaderStyle}>
             <div>
               <h2 style={sectionTitleStyle}>Accessi recenti</h2>
-              <p style={sectionTextStyle}>Ultimi eventi dal tornello, aggiornati in tempo reale.</p>
+              <p style={sectionTextStyle}>
+                Ultimi eventi dal tornello, aggiornati in tempo reale.
+              </p>
             </div>
 
-            <Link href="/access-logs" style={smallLinkStyle}>
-              Apri registro
-            </Link>
+            <BGActionLink href="/access-logs">Apri registro</BGActionLink>
           </div>
 
           {loading ? (
-            <div style={emptyStyle}>Caricamento accessi...</div>
+            <BGEmptyState title="Caricamento accessi..." />
           ) : logs.length === 0 ? (
-            <div style={emptyStyle}>Nessun accesso registrato oggi.</div>
+            <BGEmptyState title="Nessun accesso registrato oggi." />
           ) : (
             <div style={listStyle}>
               {logs.slice(0, 10).map((log) => {
@@ -890,75 +650,130 @@ export default function ReceptionDashboard() {
                 return (
                   <div key={log.id} style={rowStyle}>
                     <div>
-                      <div style={rowTitleStyle}>{customerName}</div>
-                      <div style={rowMetaStyle}>
-                        {new Date(log.created_at).toLocaleTimeString("it-IT")} · Badge{" "}
-                        {log.badge_code || "-"}
+                      <div style={rowTitleStyle}>
+                        {log.customer_id ? (
+                          <Link
+                            href={`/customers/${log.customer_id}`}
+                            style={rowLinkStyle}
+                          >
+                            {customerName}
+                          </Link>
+                        ) : (
+                          customerName
+                        )}
                       </div>
-                      {log.reason && <div style={rowMetaStyle}>{log.reason}</div>}
+                      <div style={rowMetaStyle}>
+                        {new Date(log.created_at).toLocaleTimeString("it-IT")} ·
+                        Badge {log.badge_code || "-"}
+                      </div>
+                      {log.reason && (
+                        <div style={rowMetaStyle}>{log.reason}</div>
+                      )}
                     </div>
 
                     <div
                       style={{
                         ...statusBadgeStyle,
-                        color: log.allowed ? "#22c55e" : "#ef4444",
-                        borderColor: log.allowed ? "#22c55e" : "#ef4444",
-                        background: log.allowed
+                        color: isAllowed(log) ? "#22c55e" : "#ef4444",
+                        borderColor: isAllowed(log) ? "#22c55e" : "#ef4444",
+                        background: isAllowed(log)
                           ? "rgba(34,197,94,0.12)"
                           : "rgba(239,68,68,0.12)",
                       }}
                     >
-                      {log.allowed ? "OK" : "NEGATO"}
+                      {isAllowed(log) ? "OK" : "NEGATO"}
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </section>
+        </BGCard>
 
-        <section style={panelStyle}>
+        <BGCard className="reception-panel">
           <h2 style={sectionTitleStyle}>Accessi negati</h2>
-          <p style={sectionTextStyle}>Focus operativo su negazioni e cause principali della giornata.</p>
+          <p style={sectionTextStyle}>
+            Focus operativo su negazioni e cause principali della giornata.
+          </p>
 
           {loading ? (
-            <div style={emptyStyle}>Caricamento negati...</div>
-          ) : customerAccessLogs.filter((log) => !log.allowed).length === 0 ? (
-            <div style={emptyStyle}>Nessun accesso negato oggi.</div>
+            <BGEmptyState title="Caricamento negati..." />
+          ) : logs.filter((log) => !isAllowed(log)).length === 0 ? (
+            <BGEmptyState title="Nessun accesso negato oggi." />
           ) : (
             <div style={listStyle}>
-              {customerAccessLogs.filter((log) => !log.allowed).slice(0, 10).map((log) => {
-                const customerName = log.customers ? getName(log.customers) : "Cliente non associato";
-                return (
-                  <div key={log.id} style={rowStyle}>
-                    <div>
-                      <div style={rowTitleStyle}>{customerName}</div>
-                      <div style={rowMetaStyle}>
-                        {new Date(log.created_at).toLocaleTimeString("it-IT")} · Badge {log.badge_code || "-"}
+              {logs
+                .filter((log) => !isAllowed(log))
+                .slice(0, 10)
+                .map((log) => {
+                  const customerName = log.customers
+                    ? getName(log.customers)
+                    : "Cliente non associato";
+                  return (
+                    <div key={log.id} style={rowStyle}>
+                      <div>
+                        <div style={rowTitleStyle}>
+                          {log.customer_id ? (
+                            <Link
+                              href={`/customers/${log.customer_id}`}
+                              style={rowLinkStyle}
+                            >
+                              {customerName}
+                            </Link>
+                          ) : (
+                            customerName
+                          )}
+                        </div>
+                        <div style={rowMetaStyle}>
+                          {new Date(log.created_at).toLocaleTimeString("it-IT")}{" "}
+                          · Badge {log.badge_code || "-"}
+                        </div>
+                        <div style={rowMetaStyle}>
+                          {log.reason || "Motivo non disponibile"}
+                        </div>
                       </div>
-                      <div style={rowMetaStyle}>{log.denial_reason || "Motivo non disponibile"}</div>
+                      <span
+                        style={{
+                          ...statusBadgeStyle,
+                          color: "#ef4444",
+                          borderColor: "#ef4444",
+                          background: "rgba(239,68,68,0.12)",
+                        }}
+                      >
+                        NEGATO
+                      </span>
                     </div>
-                    <span style={{ ...statusBadgeStyle, color: "#ef4444", borderColor: "#ef4444", background: "rgba(239,68,68,0.12)" }}>NEGATO</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
-        </section>
+        </BGCard>
       </div>
 
       <div style={gridStyle}>
-        <Card title="Accessi oggi" value={String(stats.accessToday)} note="Ingressi autorizzati" />
-        <Card title="Accessi negati" value={String(stats.deniedToday)} note="Richiedono verifica reception" />
-        <Card
-          title="Certificati in scadenza"
-          value={String(stats.certificatesExpiring)}
-          note="Da gestire nei prossimi 30 giorni"
+        <BGStatCard
+          label="Accessi oggi"
+          value={stats.accessToday}
+          note="Ingressi autorizzati"
+          tone="green"
         />
-        <Card
-          title="Abbonamenti scaduti"
-          value={String(stats.expiredSubscriptions)}
+        <BGStatCard
+          label="Accessi negati"
+          value={stats.deniedToday}
+          note="Richiedono verifica reception"
+          tone={stats.deniedToday > 0 ? "red" : "neutral"}
+        />
+        <BGStatCard
+          label="Certificati in scadenza"
+          value={stats.certificatesExpiring}
+          note="Da gestire nei prossimi 30 giorni"
+          tone={stats.certificatesExpiring > 0 ? "yellow" : "neutral"}
+        />
+        <BGStatCard
+          label="Abbonamenti scaduti"
+          value={stats.expiredSubscriptions}
           note={`${stats.blockedCustomers} clienti bloccati`}
+          tone={stats.expiredSubscriptions > 0 ? "red" : "neutral"}
         />
       </div>
     </main>
@@ -994,19 +809,31 @@ function BridgeStatusCard({
       <div style={{ ...alertTitleStyle, color }}>
         Bridge {status.online ? "Online" : "Offline"}
       </div>
-      <div style={alertTextStyle}>Connected controller: {String(status.connected)}</div>
-      <div style={alertTextStyle}>Bridge processing: {String(status.processing)}</div>
+      <div style={alertTextStyle}>
+        Connected controller: {String(status.connected)}
+      </div>
+      <div style={alertTextStyle}>
+        Bridge processing: {String(status.processing)}
+      </div>
       <div style={alertTextStyle}>Watchdog: {watchdog.state.toUpperCase()}</div>
       <div style={alertTextStyle}>Ultimo badge: {status.lastBadge || "-"}</div>
       <div style={alertTextStyle}>
         lastBadgeTime:{" "}
-        {status.lastBadgeTime ? new Date(status.lastBadgeTime).toLocaleString("it-IT") : "-"}
+        {status.lastBadgeTime
+          ? new Date(status.lastBadgeTime).toLocaleString("it-IT")
+          : "-"}
       </div>
       <div style={alertTextStyle}>
         ultimo controllo:{" "}
-        {status.checkedAt ? new Date(status.checkedAt).toLocaleTimeString("it-IT") : "-"}
+        {status.checkedAt
+          ? new Date(status.checkedAt).toLocaleTimeString("it-IT")
+          : "-"}
       </div>
-      {status.error && <div style={{ ...alertTextStyle, color: "#fecaca" }}>Errore: {status.error}</div>}
+      {status.error && (
+        <div style={{ ...alertTextStyle, color: "#fecaca" }}>
+          Errore: {status.error}
+        </div>
+      )}
       <button style={bridgeButtonStyle} onClick={onRefresh} disabled={loading}>
         {loading ? "Aggiornamento..." : "Aggiorna stato"}
       </button>
@@ -1050,7 +877,6 @@ function AlertCard({
   );
 }
 
-
 function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -1064,14 +890,35 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
   }
 
   return (
-    <div style={{ ...alertCardStyle, alignItems: "stretch", flexDirection: "column" }}>
-      <div style={{ ...alertTitleStyle, color: "#fca5a5" }}>Alert Reception</div>
+    <div
+      style={{
+        ...alertCardStyle,
+        alignItems: "stretch",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ ...alertTitleStyle, color: "#fca5a5" }}>
+        Alert Reception
+      </div>
       <div style={{ display: "grid", gap: "8px", width: "100%" }}>
         {alerts.map((alert) => (
-          <div key={alert.id} style={{ background: "rgba(15,23,42,0.55)", border: "1px solid rgba(148,163,184,.25)", borderRadius: "12px", padding: "10px" }}>
-            <div style={{ fontWeight: 800 }}>{alert.type} · {alert.severity.toUpperCase()}</div>
+          <div
+            key={alert.id}
+            style={{
+              background: "rgba(15,23,42,0.55)",
+              border: "1px solid rgba(148,163,184,.25)",
+              borderRadius: "12px",
+              padding: "10px",
+            }}
+          >
+            <div style={{ fontWeight: 800 }}>
+              {alert.type} · {alert.severity.toUpperCase()}
+            </div>
             <div style={alertTextStyle}>{alert.message}</div>
-            <div style={alertTextStyle}>Orario: {formatAlertTime(alert.time)} · Riferimento: {alert.badgeOrCustomer}</div>
+            <div style={alertTextStyle}>
+              Orario: {formatAlertTime(alert.time)} · Riferimento:{" "}
+              {alert.badgeOrCustomer}
+            </div>
             <div style={alertTextStyle}>Azione: {alert.suggestedAction}</div>
           </div>
         ))}
@@ -1305,6 +1152,11 @@ const rowTitleStyle: React.CSSProperties = {
   fontSize: "16px",
 };
 
+const rowLinkStyle: React.CSSProperties = {
+  color: "#ffffff",
+  textDecoration: "none",
+};
+
 const rowMetaStyle: React.CSSProperties = {
   color: "var(--muted)",
   fontSize: "13px",
@@ -1417,7 +1269,10 @@ const inputStyle: React.CSSProperties = {
 };
 
 const errorStyle: React.CSSProperties = { color: "#fca5a5" };
-const warningStyle: React.CSSProperties = { color: "#fcd34d", fontSize: "13px" };
+const warningStyle: React.CSSProperties = {
+  color: "#fcd34d",
+  fontSize: "13px",
+};
 const successStyle: React.CSSProperties = { color: "#86efac" };
 
 const smallLinkStyle: React.CSSProperties = {
