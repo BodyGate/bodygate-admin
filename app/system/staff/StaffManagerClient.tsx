@@ -144,7 +144,28 @@ export default function StaffManagerClient() {
       return;
     }
 
-    window.open(json.whatsapp_url, "_blank");
+    if (json.pass_url && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(json.pass_url).catch(() => undefined);
+    }
+
+    const passUrl = json.pass_url || "link non disponibile";
+    const whatsappUrl = json.whatsapp_web_url || json.whatsapp_url;
+    let openedWindow: Window | null = null;
+
+    if (whatsappUrl) {
+      openedWindow = window.open(whatsappUrl, "_blank");
+    }
+
+    alert(
+      `Staff Mobile Pass generato. Se WhatsApp non si apre, copia il link: ${passUrl}`
+    );
+
+    if (!openedWindow && json.pass_url) {
+      console.warn(
+        "Apertura WhatsApp non riuscita o URL mancante. Link Staff Mobile Pass:",
+        json.pass_url
+      );
+    }
   }
 
   return (

@@ -21,11 +21,24 @@ function getSupabaseAdmin() {
 }
 
 function normalizePhone(phone: string) {
-  const cleaned = phone.replace(/\D/g, "");
+  let cleaned = phone.replace(/\D/g, "");
+
+  if (!cleaned || cleaned.length < 8) {
+    throw new Error("Numero WhatsApp staff non valido");
+  }
+
+  if (cleaned.startsWith("00")) {
+    cleaned = cleaned.slice(2);
+  }
+
+  if (!cleaned || cleaned.length < 8) {
+    throw new Error("Numero WhatsApp staff non valido");
+  }
 
   if (cleaned.startsWith("39")) return cleaned;
+  if (cleaned.startsWith("3")) return `39${cleaned}`;
   if (cleaned.startsWith("0")) return `39${cleaned}`;
-  return `39${cleaned}`;
+  return cleaned;
 }
 
 function getPublicAppUrl() {
@@ -201,6 +214,17 @@ export async function POST(req: Request) {
       mobilePass = newPass;
     }
 
+    let phoneNormalized: string;
+
+    try {
+      phoneNormalized = normalizePhone(staffUser.phone);
+    } catch (error: any) {
+      return NextResponse.json(
+        { ok: false, error: error?.message || "Numero WhatsApp staff non valido" },
+        { status: 400 }
+      );
+    }
+
     const publicAppUrl = getPublicAppUrl();
     const passUrl = `${publicAppUrl}/staff-mobile/${mobilePass.public_token}`;
 
@@ -211,18 +235,20 @@ export async function POST(req: Request) {
       `Aprilo e mostra il QR DNake al lettore per accedere.\n\n` +
       `Body Energy ASD`;
 
-    const whatsappUrl = `https://wa.me/${normalizePhone(
-      staffUser.phone
-    )}?text=${encodeURIComponent(message)}`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNormalized}?text=${encodedMessage}`;
+    const whatsappWebUrl = `https://web.whatsapp.com/send?phone=${phoneNormalized}&text=${encodedMessage}`;
 
     return NextResponse.json({
       ok: true,
       staff_user_id: staffUserId,
       staff_mobile_pass_id: mobilePass.id,
       public_token: mobilePass.public_token,
+      phone_normalized: phoneNormalized,
       pass_url: passUrl,
       qr_code: qrCredential.code,
       whatsapp_url: whatsappUrl,
+      whatsapp_web_url: whatsappWebUrl,
     });
   } catch (error: any) {
     return NextResponse.json(
