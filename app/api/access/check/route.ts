@@ -542,9 +542,8 @@ export async function POST(req: Request) {
 
     const { data: validSubscription } = await supabase
       .from("customer_subscriptions")
-      .select("*")
+      .select("id, customer_id, starts_at, ends_at, is_active")
       .eq("customer_id", customerId)
-      .eq("branch_id", branchId)
       .eq("is_active", true)
       .lte("starts_at", today)
       .gte("ends_at", today)
