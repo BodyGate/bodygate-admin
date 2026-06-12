@@ -19,6 +19,22 @@ import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
 
 type Customer = any;
 type Plan = any;
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function defaultMembershipEndDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 365);
+
+  return formatLocalDate(date);
+}
+
 type StatusTone = "neutral" | "success" | "danger" | "warning" | "info";
 type SectionKey =
   | "overview"
@@ -53,6 +69,17 @@ export default function CustomerDetailsClient({
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
+  const [membershipAmount, setMembershipAmount] = useState("10.00");
+  const [membershipPaymentMethod, setMembershipPaymentMethod] = useState("cash");
+  const [membershipValidFrom, setMembershipValidFrom] = useState(() =>
+    formatLocalDate(new Date()),
+  );
+  const [membershipValidUntil, setMembershipValidUntil] = useState(() =>
+    defaultMembershipEndDate(),
+  );
+  const [membershipSaving, setMembershipSaving] = useState(false);
+  const [membershipFeedback, setMembershipFeedback] = useState("");
+  const [membershipReceiptUrl, setMembershipReceiptUrl] = useState("");
   const [showSubscriptionHistory, setShowSubscriptionHistory] = useState(false);
   const [showMembershipHistory, setShowMembershipHistory] = useState(false);
 
@@ -652,45 +679,111 @@ export default function CustomerDetailsClient({
     );
   }
 
-  async function renewMembershipFee() {
+  async function renewMembershipFee(allowDuplicate = false) {
     if (!customer?.id) {
       alert("Cliente non caricato.");
       return;
     }
 
-    const confirmed = window.confirm(
-      "Confermi il rinnovo della quota associativa annuale (€10)?",
-    );
+    const amount = Number(String(membershipAmount).replace(",", "."));
 
-    if (!confirmed) return;
+    if (!amount || amount <= 0) {
+      alert("Inserisci un importo quota associativa valido.");
+      return;
+    }
+
+    if (!membershipPaymentMethod) {
+      alert("Seleziona il metodo pagamento quota associativa.");
+      return;
+    }
+
+    if (!membershipValidFrom) {
+      alert("Seleziona la data inizio validità quota associativa.");
+      return;
+    }
+
+    if (!membershipValidUntil) {
+      alert("Seleziona la data fine validità quota associativa.");
+      return;
+    }
+
+    if (membershipValidUntil < membershipValidFrom) {
+      alert("La data fine quota deve essere successiva o uguale alla data inizio.");
+      return;
+    }
+
+    setMembershipSaving(true);
+    setMembershipFeedback("");
+    setMembershipReceiptUrl("");
 
     try {
-      const response = await fetch("/api/payments/create", {
+      const response = await fetch("/api/customers/renew-membership-fee", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customerId: customer.id,
-          paymentType: "membership_fee",
-          amount: 10,
-          description: "Quota associativa annuale",
+          customer_id: customer.id,
+          amount,
+          payment_method: membershipPaymentMethod,
+          valid_from: membershipValidFrom,
+          valid_until: membershipValidUntil,
+          allow_duplicate: allowDuplicate,
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result.ok) {
-        alert(result.error || "Errore rinnovo quota associativa.");
+      if (
+        response.status === 409 &&
+        result?.code &&
+        String(result.code).startsWith("DUPLICATE_MEMBERSHIP")
+      ) {
+        const confirmed = window.confirm(
+          `${result.error}\n\nVuoi registrare comunque una nuova quota e una nuova ricevuta?`,
+        );
+
+        if (confirmed) {
+          await renewMembershipFee(true);
+        }
+
+        return;
+      }
+
+      if (!response.ok || !result?.ok) {
+        alert(result?.error || "Errore rinnovo quota associativa.");
         return;
       }
 
       await loadAll();
 
-      alert("Quota associativa rinnovata correttamente.");
+      const receiptNumber = result.receipt?.receipt_number || "creata";
+      const successMessage =
+        `Quota associativa registrata.\n\n` +
+        `Periodo: ${formatDateIT(membershipValidFrom)} - ${formatDateIT(membershipValidUntil)}\n` +
+        `Ricevuta: ${receiptNumber}`;
+
+      setMembershipFeedback(successMessage);
+      setMembershipReceiptUrl(result.receipt_url || "");
+
+      if (result.print_url) {
+        const receiptWindow = window.open(result.print_url, "_blank");
+
+        if (receiptWindow === null) {
+          alert(
+            "Quota registrata, ma il browser ha bloccato l'apertura della ricevuta. Aprila dallo storico ricevute.",
+          );
+        } else {
+          alert(successMessage);
+        }
+      } else {
+        alert(successMessage);
+      }
     } catch (error) {
       console.error(error);
-      alert("Errore imprevisto.");
+      alert("Errore imprevisto durante la registrazione quota associativa.");
+    } finally {
+      setMembershipSaving(false);
     }
   }
 
@@ -3304,13 +3397,124 @@ export default function CustomerDetailsClient({
             <BGCard variant="premium">
               <BGSectionHeader
                 title="Rinnovo rapido + pagamento"
-                subtitle="Prepara il rinnovo guidato: data inizio modificabile, importo, metodo e ricevuta automatica."
-                actions={
-                  <BGButton onClick={renewMembershipFee}>
-                    Rinnova quota 10€
-                  </BGButton>
-                }
+                subtitle="Prepara quota associativa e rinnovo guidato: importo, metodo, periodo e ricevuta automatica."
               />
+
+              <div className="manual-renew-box" style={{ marginBottom: 16 }}>
+                <BGSectionHeader
+                  title="Associazione / Quota associativa"
+                  subtitle="Registra o rinnova la quota pagata generando pagamento, ricevuta ufficiale e storico cliente."
+                />
+
+                <div className="form-grid" style={{ marginTop: 14 }}>
+                  <EditField label="Importo quota">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={membershipAmount}
+                      onChange={(e) => setMembershipAmount(e.target.value)}
+                    />
+                  </EditField>
+
+                  <EditField label="Metodo pagamento">
+                    <select
+                      value={membershipPaymentMethod}
+                      onChange={(e) => setMembershipPaymentMethod(e.target.value)}
+                    >
+                      <option value="cash">Contanti</option>
+                      <option value="pos">POS</option>
+                      <option value="bank_transfer">Bonifico</option>
+                    </select>
+                  </EditField>
+
+                  <EditField label="Data inizio validità">
+                    <input
+                      type="date"
+                      value={membershipValidFrom}
+                      onChange={(e) => setMembershipValidFrom(e.target.value)}
+                    />
+                  </EditField>
+
+                  <EditField label="Data fine validità">
+                    <input
+                      type="date"
+                      value={membershipValidUntil}
+                      onChange={(e) => setMembershipValidUntil(e.target.value)}
+                    />
+                  </EditField>
+                </div>
+
+                <div className="payment-box" style={{ marginTop: 14 }}>
+                  <div className="small-muted" style={{ marginBottom: 8 }}>
+                    Riepilogo quota associativa
+                  </div>
+                  <div className="info-grid">
+                    <InfoMini
+                      label="Descrizione ricevuta"
+                      value={`Quota associativa Body Energy ASD anno ${membershipValidFrom ? membershipValidFrom.slice(0, 4) : "-"}`}
+                    />
+                    <InfoMini
+                      label="Periodo"
+                      value={`${formatDateIT(membershipValidFrom)} → ${formatDateIT(membershipValidUntil)}`}
+                    />
+                    <InfoMini
+                      label="Importo"
+                      value={`€ ${Number(String(membershipAmount).replace(",", ".") || 0).toFixed(2)}`}
+                    />
+                    <InfoMini
+                      label="Pagamento"
+                      value={paymentMethodLabel(membershipPaymentMethod)}
+                    />
+                  </div>
+                  <div className="small-muted" style={{ marginTop: 10 }}>
+                    Alla conferma BodyGate creerà customer_payments, payments,
+                    customer_receipts numerata e timeline cliente. Nessuna
+                    prima nota o cash movement viene generato.
+                  </div>
+                </div>
+
+                {membershipFeedback ? (
+                  <div className="payment-box" style={{ marginTop: 14 }}>
+                    <div className="history-title">Quota registrata</div>
+                    <div className="history-period">
+                      {membershipFeedback.split("\n").map((line) => (
+                        <span key={line || "blank"}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
+                    </div>
+                    {membershipReceiptUrl ? (
+                      <div className="actions" style={{ marginTop: 10 }}>
+                        <BGButton
+                          variant="secondary"
+                          onClick={() => window.open(membershipReceiptUrl, "_blank")}
+                        >
+                          Apri ricevuta generata
+                        </BGButton>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="actions" style={{ marginTop: 16 }}>
+                  <BGButton
+                    onClick={() => renewMembershipFee()}
+                    disabled={membershipSaving}
+                  >
+                    {membershipSaving
+                      ? "Registrazione quota..."
+                      : "Salva quota e genera ricevuta"}
+                  </BGButton>
+                  <BGButton
+                    variant="ghost"
+                    onClick={() => setActiveSection("payments")}
+                  >
+                    Storico ricevute
+                  </BGButton>
+                </div>
+              </div>
 
               <div className="payment-box">
                 <div className="small-muted" style={{ marginBottom: 8 }}>

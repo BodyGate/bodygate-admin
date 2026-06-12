@@ -59,7 +59,7 @@ function formatMethod(method?: string | null) {
 function formatType(type?: string | null) {
   if (type === "subscription") return "Abbonamento";
   if (type === "onboarding") return "Iscrizione";
-  if (type === "membership") return "Quota";
+  if (type === "membership" || type === "membership_fee") return "Quota";
   return type || "Ricevuta";
 }
 
