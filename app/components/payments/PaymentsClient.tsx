@@ -1,221 +1,178 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import BGActionLink from "../ui/BGActionLink";
+import BGButton from "../ui/BGButton";
+import BGCard from "../ui/BGCard";
+import BGDataTable from "../ui/BGDataTable";
+import BGEmptyState from "../ui/BGEmptyState";
+import BGPageHeader from "../ui/BGPageHeader";
+import BGStatCard from "../ui/BGStatCard";
+import BGStatusBadge from "../ui/BGStatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 
-type Customer = {
-  id: string;
+type CustomerRelation = {
   first_name: string | null;
   last_name: string | null;
 };
 
-type PaymentMethod = {
-  id: string;
-  name: string;
-  method_key: string;
-};
-
-type SubscriptionPlan = {
-  id: string;
-  name: string;
-  price: number;
-  promo_price: number | null;
-  duration_days: number | null;
-  is_active: boolean | null;
-};
-
-type TrainingService = {
-  id: string;
-  name: string;
-  price: number;
-  duration_days: number | null;
-  is_active: boolean | null;
+type PaymentMethodRelation = {
+  name: string | null;
+  method_key?: string | null;
 };
 
 type Payment = {
   id: string;
-  amount: number;
-  payment_type: string;
+  customer_id: string | null;
+  amount: number | string | null;
+  payment_type: string | null;
   description: string | null;
   status: string | null;
-  paid_at: string;
-  customers?: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
-  payment_methods?: {
-    name: string | null;
-  } | null;
+  paid_at: string | null;
+  created_at?: string | null;
+  customers?: CustomerRelation | CustomerRelation[] | null;
+  payment_methods?: PaymentMethodRelation | PaymentMethodRelation[] | null;
 };
+
+function formatMoney(value: number | string | null | undefined) {
+  const amount = Number(value || 0);
+
+  return amount.toLocaleString("it-IT", {
+    style: "currency",
+    currency: "EUR",
+  });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatPaymentType(type?: string | null) {
+  if (type === "subscription") return "Abbonamento";
+  if (type === "membership_fee" || type === "membership")
+    return "Quota associativa";
+  if (type === "training") return "Training";
+  if (type === "product") return "Prodotto";
+  if (type === "other") return "Altro";
+  return type || "N/D";
+}
+
+function firstRelation<T>(value?: T | T[] | null) {
+  if (Array.isArray(value)) return value[0] || null;
+  return value || null;
+}
+
+function formatPaymentMethod(payment: Payment) {
+  const paymentMethod = firstRelation(payment.payment_methods);
+  const method = paymentMethod?.method_key || paymentMethod?.name;
+
+  if (method === "cash") return "Contanti";
+  if (method === "pos") return "POS";
+  if (method === "bank_transfer") return "Bonifico";
+
+  return method || "N/D";
+}
+
+function customerName(payment: Payment) {
+  const customer = firstRelation(payment.customers);
+  return `${customer?.last_name || ""} ${customer?.first_name || ""}`.trim();
+}
+
+function isToday(value?: string | null) {
+  if (!value) return false;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const today = new Date();
+  return date.toDateString() === today.toDateString();
+}
+
+function isCurrentMonth(value?: string | null) {
+  if (!value) return false;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  return (
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  );
+}
+
+function statusTone(
+  status?: string | null,
+): "success" | "warning" | "danger" | "info" | "neutral" {
+  if (!status || status === "paid" || status === "completed") return "success";
+  if (status === "pending") return "warning";
+  if (status === "cancelled" || status === "failed") return "danger";
+  return "info";
+}
 
 export default function PaymentsClient() {
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [methods, setMethods] = useState<PaymentMethod[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [services, setServices] = useState<TrainingService[]>([]);
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
-  const [customerId, setCustomerId] = useState("");
-  const [methodId, setMethodId] = useState("");
-  const [paymentType, setPaymentType] = useState("subscription");
-  const [selectedPlanId, setSelectedPlanId] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-
-  async function loadData() {
+  async function loadPayments() {
     setLoading(true);
+    setLoadError("");
 
-    const { data: paymentsData } = await supabase
+    const { data, error } = await supabase
       .from("payments")
-      .select(`
-        *,
+      .select(
+        `
+        id,
+        customer_id,
+        amount,
+        payment_type,
+        description,
+        status,
+        paid_at,
+        created_at,
         customers (
           first_name,
           last_name
         ),
         payment_methods (
-          name
+          name,
+          method_key
         )
-      `)
-      .order("paid_at", { ascending: false })
+      `,
+      )
+      .order("paid_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false, nullsFirst: false })
       .limit(100);
 
-    const { data: customersData } = await supabase
-      .from("customers")
-      .select("id, first_name, last_name")
-      .order("last_name");
-
-    const { data: methodsData } = await supabase
-      .from("payment_methods")
-      .select("*")
-      .eq("is_active", true)
-      .order("name");
-
-    const { data: plansData } = await supabase
-      .from("subscription_plans")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order");
-
-    const { data: servicesData } = await supabase
-      .from("training_services")
-      .select("*")
-      .eq("is_active", true)
-      .order("name");
-
-    setPayments(paymentsData || []);
-    setCustomers(customersData || []);
-    setMethods(methodsData || []);
-    setPlans(plansData || []);
-    setServices(servicesData || []);
-
-    if (!methodId && methodsData && methodsData.length > 0) {
-      setMethodId(methodsData[0].id);
+    if (error) {
+      console.error("Errore caricamento pagamenti:", error);
+      setPayments([]);
+      setLoadError(error.message || "Errore caricamento pagamenti.");
+      setLoading(false);
+      return;
     }
 
+    setPayments((data || []) as unknown as Payment[]);
     setLoading(false);
   }
 
-  function applySubscriptionPlan(planId: string) {
-    setSelectedPlanId(planId);
-
-    const plan = plans.find((item) => item.id === planId);
-
-    if (!plan) return;
-
-    const finalPrice = Number(plan.promo_price || plan.price || 0);
-
-    setAmount(String(finalPrice));
-    setDescription(`Abbonamento ${plan.name}`);
-  }
-
-  function applyTrainingService(serviceId: string) {
-    setSelectedServiceId(serviceId);
-
-    const service = services.find((item) => item.id === serviceId);
-
-    if (!service) return;
-
-    setAmount(String(Number(service.price || 0)));
-    setDescription(`Servizio training ${service.name}`);
-  }
-
-  function handlePaymentTypeChange(value: string) {
-    setPaymentType(value);
-    setSelectedPlanId("");
-    setSelectedServiceId("");
-    setAmount("");
-    setDescription("");
-
-    if (value === "membership_fee") {
-      setAmount("10");
-      setDescription("Quota associativa annuale");
-    }
-  }
-
-  async function createPayment(e: React.FormEvent) {
-    e.preventDefault();
-
-    const numericAmount = Number(amount);
-
-    if (!numericAmount || numericAmount <= 0) {
-      alert("Importo non valido.");
-      return;
-    }
-
-    setSaving(true);
-
-    const { data: payment, error } = await supabase
-      .from("payments")
-      .insert({
-        customer_id: customerId || null,
-        payment_method_id: methodId || null,
-        amount: numericAmount,
-        payment_type: paymentType,
-        description: description || null,
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        created_by: "admin@bodygate.it",
-      })
-      .select("id")
-      .single();
-
-    if (error) {
-      alert("Errore durante il salvataggio del pagamento.");
-      setSaving(false);
-      return;
-    }
-
-    await supabase.from("cash_movements").insert({
-      movement_type: "income",
-      amount: numericAmount,
-      category: paymentType,
-      description: description || "Incasso registrato",
-      payment_id: payment?.id || null,
-      created_by: "admin@bodygate.it",
-      movement_at: new Date().toISOString(),
-    });
-
-    setCustomerId("");
-    setPaymentType("subscription");
-    setSelectedPlanId("");
-    setSelectedServiceId("");
-    setAmount("");
-    setDescription("");
-
-    await loadData();
-    setSaving(false);
-  }
-
   useEffect(() => {
-    loadData();
+    loadPayments();
 
     const channel = supabase
-      .channel(`payments-live-${crypto.randomUUID()}`)
+      .channel(`payments-readonly-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         {
@@ -223,7 +180,7 @@ export default function PaymentsClient() {
           schema: "public",
           table: "payments",
         },
-        loadData
+        loadPayments,
       )
       .subscribe();
 
@@ -233,420 +190,300 @@ export default function PaymentsClient() {
   }, []);
 
   const todayTotal = useMemo(() => {
-    const today = new Date().toDateString();
-
     return payments
-      .filter((payment) => new Date(payment.paid_at).toDateString() === today)
+      .filter((payment) => isToday(payment.paid_at || payment.created_at))
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   }, [payments]);
 
   const monthTotal = useMemo(() => {
-    const now = new Date();
-
     return payments
-      .filter((payment) => {
-        const date = new Date(payment.paid_at);
-
-        return (
-          date.getMonth() === now.getMonth() &&
-          date.getFullYear() === now.getFullYear()
-        );
-      })
+      .filter((payment) =>
+        isCurrentMonth(payment.paid_at || payment.created_at),
+      )
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   }, [payments]);
 
+  const loadedTotal = useMemo(() => {
+    return payments.reduce(
+      (sum, payment) => sum + Number(payment.amount || 0),
+      0,
+    );
+  }, [payments]);
+
   return (
-    <main style={styles.page}>
-      <section style={styles.hero}>
-        <div>
-          <p style={styles.eyebrow}>BodyGate Financial</p>
-          <h1 style={styles.title}>Pagamenti</h1>
-          <p style={styles.subtitle}>
-            Incassi, rinnovi, servizi training e prima nota automatica.
-          </p>
-        </div>
-      </section>
+    <main className="payments-page bg-page-shell">
+      <BGPageHeader
+        eyebrow="BodyGate Premium"
+        title="Cassa / Pagamenti"
+        subtitle="Pagina consultiva per monitorare gli incassi già registrati dai flussi ufficiali BodyGate."
+        actions={
+          <BGButton
+            onClick={loadPayments}
+            variant="secondary"
+            disabled={loading}
+          >
+            {loading ? "Aggiornamento..." : "Aggiorna storico"}
+          </BGButton>
+        }
+      />
 
-      <section style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <p style={styles.statLabel}>Incassi oggi</p>
-          <strong style={styles.statValue}>€ {todayTotal.toFixed(2)}</strong>
-        </div>
-
-        <div style={styles.statCard}>
-          <p style={styles.statLabel}>Incassi mese</p>
-          <strong style={styles.statValue}>€ {monthTotal.toFixed(2)}</strong>
-        </div>
-
-        <div style={styles.statCard}>
-          <p style={styles.statLabel}>Operazioni</p>
-          <strong style={styles.statValue}>{payments.length}</strong>
-        </div>
-
-        <div style={styles.statCard}>
-          <p style={styles.statLabel}>Stato cassa</p>
-          <strong style={styles.statValue}>Attiva</strong>
-        </div>
-      </section>
-
-      <section style={styles.formPanel}>
-        <h2 style={styles.panelTitle}>Nuovo incasso</h2>
-
-        <form onSubmit={createPayment} style={styles.formGrid}>
-          <label style={styles.label}>
-            Cliente
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              style={styles.input}
-            >
-              <option value="">Nessun cliente</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {`${customer.last_name || ""} ${customer.first_name || ""}`.trim()}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={styles.label}>
-            Metodo pagamento
-            <select
-              value={methodId}
-              onChange={(e) => setMethodId(e.target.value)}
-              style={styles.input}
-            >
-              {methods.map((method) => (
-                <option key={method.id} value={method.id}>
-                  {method.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={styles.label}>
-            Tipo incasso
-            <select
-              value={paymentType}
-              onChange={(e) => handlePaymentTypeChange(e.target.value)}
-              style={styles.input}
-            >
-              <option value="subscription">Abbonamento</option>
-              <option value="membership_fee">Quota associativa</option>
-              <option value="training">Training</option>
-              <option value="product">Prodotto</option>
-              <option value="other">Altro</option>
-            </select>
-          </label>
-
-          {paymentType === "subscription" && (
-            <label style={styles.label}>
-              Piano abbonamento
-              <select
-                value={selectedPlanId}
-                onChange={(e) => applySubscriptionPlan(e.target.value)}
-                style={styles.input}
-              >
-                <option value="">Seleziona piano</option>
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} — € {Number(plan.promo_price || plan.price).toFixed(2)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {paymentType === "training" && (
-            <label style={styles.label}>
-              Servizio training
-              <select
-                value={selectedServiceId}
-                onChange={(e) => applyTrainingService(e.target.value)}
-                style={styles.input}
-              >
-                <option value="">Seleziona servizio</option>
-                {services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name} — € {Number(service.price).toFixed(2)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label style={styles.label}>
-            Importo automatico
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              style={styles.input}
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              readOnly={
-                paymentType === "subscription" ||
-                paymentType === "training" ||
-                paymentType === "membership_fee"
-              }
-            />
-          </label>
-
-          <label style={{ ...styles.label, gridColumn: "1 / -1" }}>
-            Descrizione
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={styles.input}
-              placeholder="Descrizione incasso"
-            />
-          </label>
-
-          <button disabled={saving} style={styles.saveButton}>
-            {saving ? "Salvataggio..." : "Registra incasso"}
-          </button>
-        </form>
-      </section>
-
-      <section style={styles.panel}>
-        <div style={styles.panelHeader}>
+      <BGCard className="payments-readonly-alert" variant="warning">
+        <div className="payments-alert-content">
           <div>
-            <h2 style={styles.panelTitle}>Storico pagamenti</h2>
-            <p style={styles.panelSubtitle}>Ultime 100 operazioni registrate.</p>
+            <div className="bg-eyebrow">Solo consultazione</div>
+            <h2>Creazione incassi disabilitata</h2>
+            <p>
+              Per creare rinnovi, quote associative e ricevute usare la scheda
+              cliente. Questa pagina è solo consultiva finché non verrà attivata
+              la contabilità generale.
+            </p>
           </div>
+          <BGActionLink href="/customers" variant="primary">
+            Apri clienti
+          </BGActionLink>
+        </div>
+      </BGCard>
 
-          <button onClick={loadData} style={styles.refreshButton}>
-            Aggiorna
-          </button>
+      <section
+        className="bg-kpi-grid payments-kpi-grid"
+        aria-label="Indicatori pagamenti"
+      >
+        <BGStatCard
+          label="Incassi oggi"
+          value={formatMoney(todayTotal)}
+          note="Somma pagamenti caricati con data odierna"
+          tone="green"
+        />
+        <BGStatCard
+          label="Incassi mese"
+          value={formatMoney(monthTotal)}
+          note="Somma pagamenti caricati nel mese corrente"
+          tone="blue"
+        />
+        <BGStatCard
+          label="Operazioni caricate"
+          value={payments.length}
+          note="Ultimi pagamenti letti dallo storico"
+          tone="neutral"
+        />
+        <BGStatCard
+          label="Totale caricato"
+          value={formatMoney(loadedTotal)}
+          note="Totale ultimi pagamenti mostrati"
+          tone="red"
+        />
+      </section>
+
+      <BGCard className="payments-history-card" variant="premium">
+        <div className="bg-section-header payments-section-header">
+          <div>
+            <div className="bg-eyebrow">Storico pagamenti</div>
+            <h2>Ultime operazioni</h2>
+            <p>
+              Lettura delle ultime 100 operazioni presenti nella tabella
+              pagamenti. Nessuna scrittura DB viene eseguita da questa pagina.
+            </p>
+          </div>
+          <BGStatusBadge
+            tone={loadError ? "danger" : loading ? "warning" : "info"}
+          >
+            {loadError
+              ? "Errore"
+              : loading
+                ? "Caricamento"
+                : `${payments.length} operazioni`}
+          </BGStatusBadge>
         </div>
 
         {loading ? (
-          <div style={styles.empty}>Caricamento pagamenti...</div>
-        ) : payments.length === 0 ? (
-          <div style={styles.empty}>Nessun pagamento registrato.</div>
-        ) : (
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Data</th>
-                  <th style={styles.th}>Cliente</th>
-                  <th style={styles.th}>Tipo</th>
-                  <th style={styles.th}>Metodo</th>
-                  <th style={styles.th}>Descrizione</th>
-                  <th style={styles.th}>Importo</th>
-                  <th style={styles.th}>Stato</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {payments.map((payment) => {
-                  const customerName = `${payment.customers?.first_name || ""} ${
-                    payment.customers?.last_name || ""
-                  }`.trim();
-
-                  return (
-                    <tr key={payment.id}>
-                      <td style={styles.td}>
-                        {new Date(payment.paid_at).toLocaleString("it-IT")}
-                      </td>
-
-                      <td style={styles.td}>{customerName || "N/D"}</td>
-
-                      <td style={styles.td}>{payment.payment_type || "N/D"}</td>
-
-                      <td style={styles.td}>
-                        {payment.payment_methods?.name || "N/D"}
-                      </td>
-
-                      <td style={styles.td}>{payment.description || "-"}</td>
-
-                      <td style={styles.amount}>
-                        € {Number(payment.amount || 0).toFixed(2)}
-                      </td>
-
-                      <td style={styles.td}>
-                        <span style={styles.statusBadge}>
-                          {payment.status || "paid"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <BGEmptyState
+            title="Caricamento pagamenti"
+            description="Recupero dello storico pagamenti in corso."
+          />
+        ) : loadError ? (
+          <div className="payments-error" role="alert">
+            <strong>Errore caricamento storico</strong>
+            <span>{loadError}</span>
+            <BGButton onClick={loadPayments} variant="secondary">
+              Riprova
+            </BGButton>
           </div>
+        ) : payments.length === 0 ? (
+          <BGEmptyState
+            title="Nessun pagamento caricato"
+            description="Quando i flussi ufficiali registrano pagamenti, lo storico consultivo comparirà qui."
+          />
+        ) : (
+          <BGDataTable minWidth={1180} className="payments-table-wrap">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Metodo</th>
+                <th>Descrizione</th>
+                <th>Ricevuta</th>
+                <th className="bg-table-align-right">Importo</th>
+                <th>Stato</th>
+                <th className="bg-table-align-right">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((payment) => {
+                const name = customerName(payment);
+
+                return (
+                  <tr key={payment.id}>
+                    <td>
+                      {formatDateTime(payment.paid_at || payment.created_at)}
+                    </td>
+                    <td>{name || "N/D"}</td>
+                    <td>
+                      <BGStatusBadge tone="info">
+                        {formatPaymentType(payment.payment_type)}
+                      </BGStatusBadge>
+                    </td>
+                    <td>{formatPaymentMethod(payment)}</td>
+                    <td>
+                      <div className="payments-description">
+                        {payment.description || "-"}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="payments-receipt-reference">
+                        Solo da scheda cliente
+                      </span>
+                    </td>
+                    <td className="bg-table-align-right payments-amount">
+                      {formatMoney(payment.amount)}
+                    </td>
+                    <td>
+                      <BGStatusBadge tone={statusTone(payment.status)}>
+                        {payment.status || "paid"}
+                      </BGStatusBadge>
+                    </td>
+                    <td>
+                      <div className="payments-actions">
+                        {payment.customer_id ? (
+                          <BGActionLink
+                            href={`/customers/${payment.customer_id}`}
+                            variant="secondary"
+                          >
+                            Apri cliente
+                          </BGActionLink>
+                        ) : (
+                          <span className="payments-no-action">
+                            Cliente non collegato
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </BGDataTable>
         )}
-      </section>
+      </BGCard>
+
+      <style jsx>{`
+        .payments-page {
+          color: #ffffff;
+        }
+
+        .payments-readonly-alert {
+          margin-bottom: 22px;
+        }
+
+        .payments-alert-content,
+        .payments-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .payments-alert-content h2,
+        .payments-section-header h2 {
+          margin: 6px 0 8px;
+          color: #ffffff;
+          font-size: 24px;
+          font-weight: 900;
+        }
+
+        .payments-alert-content p,
+        .payments-section-header p {
+          margin: 0;
+          max-width: 860px;
+          color: rgba(255, 255, 255, 0.72);
+          line-height: 1.55;
+        }
+
+        .payments-kpi-grid {
+          margin: 22px 0;
+        }
+
+        .payments-history-card {
+          overflow: hidden;
+        }
+
+        .payments-section-header {
+          margin-bottom: 20px;
+        }
+
+        .payments-description {
+          max-width: 320px;
+          color: rgba(255, 255, 255, 0.82);
+          line-height: 1.45;
+        }
+
+        .payments-amount {
+          color: #ffffff;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .payments-actions {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .payments-receipt-reference,
+        .payments-no-action {
+          color: rgba(255, 255, 255, 0.52);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .payments-error {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 18px;
+          border: 1px solid rgba(239, 68, 68, 0.35);
+          border-radius: 20px;
+          background: rgba(127, 29, 29, 0.24);
+          color: #ffffff;
+        }
+
+        .payments-error span {
+          color: rgba(255, 255, 255, 0.72);
+        }
+
+        @media (max-width: 860px) {
+          .payments-alert-content,
+          .payments-section-header,
+          .payments-error {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .payments-actions {
+            justify-content: flex-start;
+          }
+        }
+      `}</style>
     </main>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    padding: 28,
-    color: "#fff",
-  },
-  hero: {
-    padding: 28,
-    borderRadius: 28,
-    marginBottom: 24,
-    background:
-      "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
-    border: "1px solid rgba(255,255,255,0.08)",
-  },
-  eyebrow: {
-    color: "#4ade80",
-    textTransform: "uppercase",
-    fontSize: 13,
-    fontWeight: 800,
-    letterSpacing: 2,
-  },
-  title: {
-    fontSize: 38,
-    fontWeight: 900,
-    marginTop: 10,
-  },
-  subtitle: {
-    color: "#94a3b8",
-    maxWidth: 760,
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 16,
-    marginBottom: 24,
-  },
-  statCard: {
-    padding: 22,
-    borderRadius: 24,
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(255,255,255,0.08)",
-  },
-  statLabel: {
-    margin: 0,
-    color: "#94a3b8",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  statValue: {
-    display: "block",
-    marginTop: 10,
-    fontSize: 30,
-    fontWeight: 900,
-  },
-  formPanel: {
-    padding: 24,
-    borderRadius: 28,
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    marginBottom: 24,
-  },
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 16,
-    marginTop: 18,
-  },
-  label: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    color: "#cbd5e1",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  input: {
-    background: "#020617",
-    border: "1px solid rgba(255,255,255,0.10)",
-    color: "#fff",
-    padding: "13px 14px",
-    borderRadius: 14,
-    outline: "none",
-  },
-  saveButton: {
-    alignSelf: "end",
-    border: "none",
-    background: "#22c55e",
-    color: "#04130a",
-    padding: "14px 18px",
-    borderRadius: 14,
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  panel: {
-    padding: 24,
-    borderRadius: 28,
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(255,255,255,0.08)",
-  },
-  panelHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 16,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  panelTitle: {
-    fontSize: 24,
-    fontWeight: 900,
-    margin: 0,
-  },
-  panelSubtitle: {
-    color: "#94a3b8",
-    marginTop: 6,
-  },
-  refreshButton: {
-    border: "1px solid rgba(34,197,94,0.45)",
-    background: "rgba(34,197,94,0.16)",
-    color: "#fff",
-    padding: "12px 16px",
-    borderRadius: 14,
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  empty: {
-    color: "#94a3b8",
-    padding: 20,
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.08)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  th: {
-    textAlign: "left",
-    padding: 16,
-    color: "#94a3b8",
-    fontSize: 12,
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  td: {
-    padding: 16,
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-    color: "#cbd5e1",
-    fontSize: 14,
-  },
-  amount: {
-    padding: 16,
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-    color: "#4ade80",
-    fontWeight: 900,
-    fontSize: 15,
-  },
-  statusBadge: {
-    display: "inline-block",
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "rgba(34,197,94,0.16)",
-    color: "#86efac",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-};
