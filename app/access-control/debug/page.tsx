@@ -40,7 +40,7 @@ type DebugCheck = {
 };
 
 type DebugResponse = {
-  input?: { code?: string; checked_at?: string };
+  input?: { code?: string; variants?: string[]; checked_at?: string };
   matches?: DebugMatch[];
   owner_type?: string;
   customer?: DebugPerson | null;
@@ -150,6 +150,11 @@ export default function AccessControlDebugPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const initialCode = new URLSearchParams(window.location.search).get("code");
+    if (initialCode) setCode(initialCode);
+  }, []);
+
   const checks = useMemo(() => result?.checks || {}, [result]);
   const owner = result?.customer || result?.staff || null;
   const finalTone: Tone = result?.final_allowed ? "success" : "danger";
@@ -240,6 +245,7 @@ export default function AccessControlDebugPage() {
             <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
               <DiagnosticCard title="Input ricevuto" status="valid">
                 <FieldRow label="Codice" value={<span className="font-mono">{result.input?.code || "—"}</span>} />
+                <FieldRow label="Varianti normalizzate" value={(result.input?.variants || []).join(" · ") || "—"} />
                 <FieldRow label="Verificato il" value={formatDateTime(result.input?.checked_at)} />
               </DiagnosticCard>
 

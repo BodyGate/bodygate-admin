@@ -7,6 +7,7 @@ import BGButton from "../../components/ui/BGButton";
 import BGPageHeader from "../../components/ui/BGPageHeader";
 import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
+import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 
 const plans = [
   { id: "", name: "Solo quota associativa", price: 0, duration: 0 },
@@ -102,6 +103,7 @@ export default function NewCustomerPage() {
 
   const membershipAmount = 10;
   const totalAmount = membershipAmount + selectedPlan.price;
+  const badgePreview = useMemo(() => normalizeAccessCode(form.badge_code), [form.badge_code]);
 
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -543,11 +545,20 @@ export default function NewCustomerPage() {
                   accessTypes.map((a) => [a.id, a.label]),
                 )}
               />
-              <Field
-                label="Codice badge / card RFID"
-                value={form.badge_code}
-                onChange={(v) => update("badge_code", v)}
-              />
+              <div className="badge-rfid-field">
+                <Field
+                  label="Codice badge / card RFID"
+                  value={form.badge_code}
+                  onChange={(v) => update("badge_code", v)}
+                />
+                {form.badge_code.trim() ? (
+                  <div className={badgePreview.controllerCode ? "bridge-preview" : "bridge-preview bridge-preview-warning"}>
+                    <span>Codice bridge calcolato</span>
+                    <b>{badgePreview.controllerCode || "Non derivabile"}</b>
+                    {badgePreview.warning ? <small>{badgePreview.warning}</small> : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </section>
 
