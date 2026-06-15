@@ -188,7 +188,7 @@ export default function AccessControlDebugPage() {
           </div>
           <div className="bg-header-actions">
             <StatusBadge tone="info" label="Simulation only" />
-            <BGButton href="/access" variant="ghost">← Access Control</BGButton>
+            <BGButton href="/access-control" variant="ghost">← Access Control</BGButton>
             <BGButton href="/access-control/credentials-audit" variant="secondary">Audit credenziali</BGButton>
             <BGButton href="/" variant="secondary">Dashboard</BGButton>
           </div>

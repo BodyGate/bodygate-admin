@@ -82,7 +82,7 @@ export default function CredentialsAuditPage() {
           <div className="bg-header-actions">
             <StatusBadge tone="info" label="Solo diagnostica" />
             <BGButton href="/access-control/debug" variant="ghost">Debug Center</BGButton>
-            <BGButton href="/access" variant="secondary">Access Control</BGButton>
+            <BGButton href="/access-control" variant="secondary">Access Control</BGButton>
           </div>
         </header>
 
