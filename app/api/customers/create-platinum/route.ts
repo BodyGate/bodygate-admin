@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { normalizeRfidCode } from "../../../utils/rfid";
+import { credentialLookupCodes, normalizeRfidCode } from "../../../utils/rfid";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +27,15 @@ function activeCustomerFilter(query: any) {
 }
 
 async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string) {
+  const lookupCodes = credentialLookupCodes(rawCode || controllerCode);
+  const credentialFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
+  const customerFilter = lookupCodes.map((code) => `badge_code.eq.${code},controller_code.eq.${code}`).join(",");
+  const badgeFilter = lookupCodes.map((code) => `badge_code.eq.${code}`).join(",");
   const { data: customers, error: customersError } = await activeCustomerFilter(
     supabase
       .from("customers")
       .select("id, first_name, last_name, badge_code, controller_code, is_active, active, status")
-      .or(`badge_code.eq.${rawCode},badge_code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`),
+      .or(customerFilter),
   );
 
   if (customersError) throw new Error(`Errore controllo duplicati clienti: ${customersError.message}`);
@@ -45,7 +49,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
   const { data: credentials, error: credentialsError } = await supabase
     .from("access_credentials")
     .select("id, customer_id, code, controller_code, status, is_active")
-    .or(`code.eq.${rawCode},code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`);
+    .or(credentialFilter);
 
   if (credentialsError) throw new Error(`Errore controllo duplicati credenziali clienti: ${credentialsError.message}`);
 
@@ -55,7 +59,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
   const { data: customerBadges, error: customerBadgesError } = await supabase
     .from("customer_badges")
     .select("id, customer_id, badge_code, is_active")
-    .or(`badge_code.eq.${rawCode},badge_code.eq.${controllerCode}`);
+    .or(badgeFilter);
 
   if (customerBadgesError) throw new Error(`Errore controllo duplicati badge clienti: ${customerBadgesError.message}`);
 
@@ -65,7 +69,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
   const { data: staff, error: staffError } = await supabase
     .from("staff_access_credentials")
     .select("id, staff_user_id, code, controller_code, status, is_active")
-    .or(`code.eq.${rawCode},code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`)
+    .or(credentialFilter)
     .limit(1);
 
   if (staffError) throw new Error(`Errore controllo duplicati staff: ${staffError.message}`);
