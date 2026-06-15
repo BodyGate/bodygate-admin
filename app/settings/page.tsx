@@ -1,5 +1,10 @@
+import PermissionGuard from "../components/security/PermissionGuard";
 import SettingsPageClient from "./components/SettingsPageClient";
 
 export default function SettingsPage() {
-  return <SettingsPageClient />;
+  return (
+    <PermissionGuard permission="manage_staff">
+      <SettingsPageClient />
+    </PermissionGuard>
+  );
 }

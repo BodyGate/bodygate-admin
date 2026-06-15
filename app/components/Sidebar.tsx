@@ -167,7 +167,7 @@ export default function Sidebar() {
 
       <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
         <div
-          title="Sistema operativo"
+          title="Online"
           style={{
             width: 50,
             height: 38,
