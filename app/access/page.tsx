@@ -148,9 +148,17 @@ export default function AccessControl() {
   return (
     <main className="min-h-screen bg-gray-100 p-10">
       <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-block mb-6 text-gray-600 hover:text-black">
-          ← Torna alla dashboard
-        </Link>
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Link href="/" className="inline-block text-gray-600 hover:text-black">
+            ← Torna alla dashboard
+          </Link>
+          <Link href="/access-control/credentials-audit" className="inline-block rounded-xl bg-black px-4 py-2 font-bold text-white hover:bg-red-800">
+            Audit Credenziali Accesso
+          </Link>
+          <Link href="/access-control/debug" className="inline-block rounded-xl border border-gray-300 px-4 py-2 font-bold text-gray-700 hover:border-red-700 hover:text-red-800">
+            Debug Center
+          </Link>
+        </div>
 
         <div className="bg-white rounded-2xl shadow p-8 mb-8">
           <h1 className="text-4xl font-bold">Controllo accessi</h1>
