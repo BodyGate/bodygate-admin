@@ -89,7 +89,6 @@ export default function NewCustomerPage() {
     medical_certificate_end_date: "",
     access_type: "qr_card",
     badge_code: "",
-    controller_code: "",
     subscription_plan: "mensile",
     payment_method: "cash",
     privacy_consent: true,
@@ -134,11 +133,10 @@ export default function NewCustomerPage() {
 
     if (
       (form.access_type === "card" || form.access_type === "qr_card") &&
-      !form.badge_code.trim() &&
-      !form.controller_code.trim()
+      !form.badge_code.trim()
     ) {
       setMessage(
-        "Per usare la card devi inserire badge code o controller code.",
+        "Per usare la card devi inserire il codice badge / card RFID.",
       );
       return;
     }
@@ -546,14 +544,9 @@ export default function NewCustomerPage() {
                 )}
               />
               <Field
-                label="Codice badge / card"
+                label="Codice badge / card RFID"
                 value={form.badge_code}
                 onChange={(v) => update("badge_code", v)}
-              />
-              <Field
-                label="Controller code"
-                value={form.controller_code}
-                onChange={(v) => update("controller_code", v)}
               />
             </div>
           </section>

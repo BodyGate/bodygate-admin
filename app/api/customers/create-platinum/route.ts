@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeRfidCode } from "../../../utils/rfid";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,60 @@ function addDays(date: Date, days: number) {
 
 function dateOnly(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function activeCustomerFilter(query: any) {
+  return query.or("is_active.eq.true,active.eq.true,status.eq.active,status.eq.onboarding");
+}
+
+async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string) {
+  const { data: customers, error: customersError } = await activeCustomerFilter(
+    supabase
+      .from("customers")
+      .select("id, first_name, last_name, badge_code, controller_code, is_active, active, status")
+      .or(`badge_code.eq.${rawCode},badge_code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`),
+  );
+
+  if (customersError) throw new Error(`Errore controllo duplicati clienti: ${customersError.message}`);
+
+  if (customers?.length) {
+    const owner = customers[0];
+    const name = `${owner.first_name || ""} ${owner.last_name || ""}`.trim() || owner.id;
+    return `Badge già assegnato a cliente attivo: ${name}.`;
+  }
+
+  const { data: credentials, error: credentialsError } = await supabase
+    .from("access_credentials")
+    .select("id, customer_id, code, controller_code, status, is_active")
+    .or(`code.eq.${rawCode},code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`);
+
+  if (credentialsError) throw new Error(`Errore controllo duplicati credenziali clienti: ${credentialsError.message}`);
+
+  const activeCredential = (credentials || []).find((row: any) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
+  if (activeCredential) return "Badge già assegnato a una credenziale cliente attiva.";
+
+  const { data: customerBadges, error: customerBadgesError } = await supabase
+    .from("customer_badges")
+    .select("id, customer_id, badge_code, is_active")
+    .or(`badge_code.eq.${rawCode},badge_code.eq.${controllerCode}`);
+
+  if (customerBadgesError) throw new Error(`Errore controllo duplicati badge clienti: ${customerBadgesError.message}`);
+
+  const activeCustomerBadge = (customerBadges || []).find((row: any) => row.is_active !== false);
+  if (activeCustomerBadge) return "Badge già assegnato a un badge cliente attivo.";
+
+  const { data: staff, error: staffError } = await supabase
+    .from("staff_access_credentials")
+    .select("id, staff_user_id, code, controller_code, status, is_active")
+    .or(`code.eq.${rawCode},code.eq.${controllerCode},controller_code.eq.${rawCode},controller_code.eq.${controllerCode}`)
+    .limit(1);
+
+  if (staffError) throw new Error(`Errore controllo duplicati staff: ${staffError.message}`);
+
+  const activeStaff = (staff || []).find((row: any) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
+  if (activeStaff) return "Badge già assegnato a staff attivo.";
+
+  return null;
 }
 
 type ReceiptNumberPayload = {
@@ -105,8 +160,10 @@ export async function POST(req: Request) {
     const membershipAmount = Number(body.membership_amount || 10);
     const paymentMethod = String(body.payment_method || "cash").trim();
 
-    const badgeCode = String(body.badge_code || "").trim();
-    const controllerCode = String(body.controller_code || "").trim();
+    const badgeInput = String(body.badge_code || body.controller_code || "").trim();
+    const normalizedBadge = normalizeRfidCode(badgeInput);
+    const badgeCode = normalizedBadge?.rawCode || "";
+    const controllerCode = normalizedBadge?.controllerCode || "";
 
     if (!firstName || !lastName) {
       return NextResponse.json(
@@ -147,6 +204,24 @@ export async function POST(req: Request) {
         { ok: false, error: "Incasso obbligatorio mancante." },
         { status: 400 },
       );
+    }
+
+    if (badgeInput && !normalizedBadge) {
+      return NextResponse.json(
+        { ok: false, error: "Codice badge RFID non valido." },
+        { status: 400 },
+      );
+    }
+
+    if (normalizedBadge) {
+      const duplicateError = await findActiveBadgeDuplicate(
+        normalizedBadge.rawCode,
+        normalizedBadge.controllerCode,
+      );
+
+      if (duplicateError) {
+        return NextResponse.json({ ok: false, error: duplicateError }, { status: 409 });
+      }
     }
 
     const receiptNumber = await getNextReceiptNumber();
@@ -401,8 +476,8 @@ export async function POST(req: Request) {
           {
             customer_id: customerId,
             type: "card",
-            code: badgeCode || controllerCode,
-            controller_code: controllerCode || null,
+            code: badgeCode,
+            controller_code: controllerCode,
             status: "active",
           },
           { onConflict: "code" },

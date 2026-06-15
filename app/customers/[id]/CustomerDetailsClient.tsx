@@ -352,13 +352,23 @@ export default function CustomerDetailsClient({
       }
 
       setCustomer((prev: any) =>
-        prev ? { ...prev, badge_code: normalizedBadge } : prev,
+        prev
+          ? {
+              ...prev,
+              badge_code: result.customer?.badge_code || normalizedBadge,
+              controller_code: result.customer?.controller_code || prev.controller_code,
+            }
+          : prev,
       );
-      setEditForm((prev: any) => ({ ...prev, badge_code: normalizedBadge }));
+      setEditForm((prev: any) => ({
+        ...prev,
+        badge_code: result.customer?.badge_code || normalizedBadge,
+        controller_code: result.customer?.controller_code || prev.controller_code,
+      }));
       setBadgePanelOpen(false);
       setBadgeFeedback({
         tone: "success",
-        message: "Badge assegnato correttamente.",
+        message: `Badge assegnato correttamente. Codice badge: ${result.customer?.badge_code || normalizedBadge}. Codice bridge: ${result.customer?.controller_code || "-"}.`,
       });
     } catch (error: any) {
       console.error("saveBadgeCode failed", error);
@@ -3376,13 +3386,8 @@ export default function CustomerDetailsClient({
                     }
                   />
                 </EditField>
-                <EditField label="Controller code">
-                  <input
-                    value={editForm.controller_code || ""}
-                    onChange={(e) =>
-                      updateEditField("controller_code", e.target.value)
-                    }
-                  />
+                <EditField label="Codice bridge calcolato">
+                  <input value={editForm.controller_code || "-"} readOnly />
                 </EditField>
                 <EditField label="Stato cliente">
                   <div className="checkbox-field">
