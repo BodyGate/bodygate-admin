@@ -1,3 +1,4 @@
+import PermissionGuard from "../components/security/PermissionGuard";
 import SystemLivePanel from "../components/SystemLivePanel";
 import SystemStatusCard from "../components/SystemStatusCard";
 import BGButton from "../components/ui/BGButton";
@@ -6,7 +7,8 @@ import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function SystemPage() {
   return (
-    <main className="bg-page-shell">
+    <PermissionGuard permission="manage_staff">
+      <main className="bg-page-shell">
       <BGPageHeader
         eyebrow="BodyGate System"
         title="System Control"
@@ -41,5 +43,6 @@ export default function SystemPage() {
 
       <SystemLivePanel />
     </main>
+    </PermissionGuard>
   );
 }

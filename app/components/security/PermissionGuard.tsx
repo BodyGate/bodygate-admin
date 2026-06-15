@@ -15,8 +15,37 @@ export default function PermissionGuard({
 
   if (loading) {
     return (
-      <main style={{ padding: 28, color: "white" }}>
-        Verifica permessi...
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#050505",
+          color: "white",
+          padding: 24,
+        }}
+      >
+        <section
+          style={{
+            width: "min(520px, 100%)",
+            borderRadius: 28,
+            padding: 28,
+            background:
+              "radial-gradient(circle at top left, rgba(239,68,68,0.20), transparent 36%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
+            border: "1px solid rgba(255,255,255,0.10)",
+            boxShadow: "0 28px 90px rgba(0,0,0,0.46)",
+          }}
+        >
+          <p style={{ color: "#f87171", textTransform: "uppercase", letterSpacing: 2, fontSize: 12, fontWeight: 950, margin: 0 }}>
+            BodyGate Security
+          </p>
+          <h1 style={{ fontSize: 30, fontWeight: 950, margin: "10px 0" }}>
+            Verifica permessi in corso
+          </h1>
+          <p style={{ color: "#cbd5e1", lineHeight: 1.6, margin: 0 }}>
+            Stiamo validando sessione, ruolo e permessi prima di aprire la sezione richiesta.
+          </p>
+        </section>
       </main>
     );
   }

@@ -3,6 +3,24 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
+const ADMIN_ROLE_KEYS = new Set([
+  "admin",
+  "administrator",
+  "owner",
+  "proprietario",
+  "super_admin",
+  "amministrazione",
+  "amministratore",
+]);
+
+function normalizeRoleKey(roleKey?: string | null) {
+  return roleKey?.toLowerCase().trim() || null;
+}
+
+export function isAdminRole(roleKey?: string | null) {
+  const normalized = normalizeRoleKey(roleKey);
+  return normalized ? ADMIN_ROLE_KEYS.has(normalized) : false;
+}
 
 export function useCurrentPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -63,9 +81,19 @@ export function useCurrentPermissions() {
       .eq("is_active", true)
       .maybeSingle();
 
+    const appRoleKey = appUser.role || null;
+
+    if (isAdminRole(appRoleKey)) {
+      setPermissions([]);
+      setRoleKey(appRoleKey);
+      setStaffName(staffUser?.full_name || appUser.email);
+      setLoading(false);
+      return;
+    }
+
     if (!staffUser || !staffUser.staff_roles) {
       setPermissions([]);
-      setRoleKey(appUser.role || null);
+      setRoleKey(appRoleKey);
       setStaffName(appUser.email);
       setLoading(false);
       return;
@@ -74,9 +102,18 @@ export function useCurrentPermissions() {
     const role: any = Array.isArray(staffUser.staff_roles)
       ? staffUser.staff_roles[0]
       : staffUser.staff_roles;
+    const resolvedRoleKey = role?.role_key || appRoleKey;
 
-    setRoleKey(role.role_key);
-    setStaffName(staffUser.full_name);
+    if (!role?.id) {
+      setPermissions([]);
+      setRoleKey(resolvedRoleKey);
+      setStaffName(staffUser.full_name || appUser.email);
+      setLoading(false);
+      return;
+    }
+
+    setRoleKey(resolvedRoleKey);
+    setStaffName(staffUser.full_name || appUser.email);
 
     const { data: rolePermissions } = await supabase
       .from("staff_role_permissions")
@@ -134,10 +171,7 @@ export function useCurrentPermissions() {
     };
   }, []);
 
-  const normalizedRoleKey = roleKey?.toLowerCase().trim() || null;
-  const isAdmin = normalizedRoleKey
-    ? ["admin", "administrator", "amministratore", "amministrazione", "owner"].includes(normalizedRoleKey)
-    : false;
+  const isAdmin = isAdminRole(roleKey);
 
   function hasPermission(permissionKey: string) {
     if (isAdmin) return true;

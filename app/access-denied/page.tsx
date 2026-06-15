@@ -41,7 +41,7 @@ function AccessDeniedContent() {
         </h1>
 
         <p style={{ color: "#cbd5e1", lineHeight: 1.65, marginBottom: 18 }}>
-          Questa è una pagina di fallback: la sidebar non deve usarla come destinazione normale. La sezione richiesta è protetta oppure i permessi non sono ancora configurati per il tuo profilo.
+          Questa è una pagina di fallback di sicurezza: la sidebar non deve usarla come destinazione normale. Se hai un ruolo amministrativo valido, torna alla dashboard e riprova dopo il caricamento della sessione; altrimenti richiedi a un amministratore il permesso indicato.
         </p>
 
         <div style={{ display: "grid", gap: 8, marginBottom: 24, color: "#f8fafc", fontWeight: 800 }}>
