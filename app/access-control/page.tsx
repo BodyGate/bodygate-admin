@@ -16,14 +16,16 @@ const activeCards = [
       "Analizza duplicati, codici test, credenziali sospette, cliente/staff sovrapposti e proprietari mancanti.",
     status: "Disponibile",
   },
+  {
+    title: "Registro accessi",
+    href: "/access-logs",
+    description:
+      "Consulta lo storico transiti dalla console operativa senza avviare comandi sul tornello.",
+    status: "Disponibile",
+  },
 ];
 
 const disabledCards = [
-  {
-    title: "Accessi recenti",
-    description: "Vista operativa dedicata agli ultimi transiti del modulo accessi.",
-    status: "In sviluppo",
-  },
   {
     title: "Accessi negati",
     description: "Analisi separata dei tentativi negati e delle motivazioni più frequenti.",
@@ -111,7 +113,7 @@ export default function AccessControlHubPage() {
           </div>
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-2">
+        <section className="grid gap-4 lg:grid-cols-3">
           {activeCards.map((card) => (
             <ActiveCard key={card.href} card={card} />
           ))}

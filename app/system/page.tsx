@@ -30,6 +30,10 @@ export default function SystemPage() {
             <BGButton href="/access-control/debug" variant="secondary">Debug Center</BGButton>
             <BGButton href="/access-control/credentials-audit" variant="secondary">Credentials Audit</BGButton>
             <BGButton href="/system/staff" variant="secondary">Staff</BGButton>
+            <BGButton href="/system/audit" variant="secondary">Audit Logs</BGButton>
+            <BGButton href="/settings" variant="secondary">Settings</BGButton>
+            <BGButton href="/settings/modules" variant="secondary">Moduli</BGButton>
+            <BGButton href="/settings/permissions" variant="secondary">Permessi</BGButton>
             <BGButton href="/subscriptions/plans" variant="secondary">Subscription Plans</BGButton>
           </div>
         </div>
