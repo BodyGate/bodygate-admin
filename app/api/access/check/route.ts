@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { rfidLookupCodes } from "../../../utils/rfid";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,8 +60,12 @@ async function findBadgeMatch(
   match: BadgeMatch | null;
   debug: BadgeLookupDebug;
 }> {
+  const lookupCodes = rfidLookupCodes(badge);
+  const lookupFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
+  const badgeFilter = lookupCodes.map((code) => `badge_code.eq.${code}`).join(",");
+  const customerFilter = lookupCodes.map((code) => `badge_code.eq.${code},controller_code.eq.${code}`).join(",");
   const exactQueryPathUsed = [
-    "access_credentials.status=active AND (code=badge OR controller_code=badge)",
+    "access_credentials.status=active AND normalized(code/controller_code)=badge",
   ];
 
   const { data: accessCredential, error: accessCredentialError } =
@@ -68,7 +73,7 @@ async function findBadgeMatch(
       .from("access_credentials")
       .select("id, customer_id, code, controller_code, status, type")
       .eq("status", "active")
-      .or(`code.eq.${badge},controller_code.eq.${badge}`)
+      .or(lookupFilter)
       .limit(1)
       .maybeSingle();
 
@@ -101,12 +106,12 @@ async function findBadgeMatch(
     };
   }
 
-  exactQueryPathUsed.push("customer_badges.badge_code=badge AND is_active=true");
+  exactQueryPathUsed.push("customer_badges.normalized(badge_code)=badge AND is_active=true");
 
   const { data: customerBadge, error: customerBadgeError } = await supabase
     .from("customer_badges")
     .select("id, customer_id, badge_code, is_active")
-    .eq("badge_code", badge)
+    .or(badgeFilter)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
@@ -145,14 +150,14 @@ async function findBadgeMatch(
   }
 
   exactQueryPathUsed.push(
-    "customers.badge_code=badge OR customers.controller_code=badge"
+    "customers.normalized(badge_code/controller_code)=badge"
   );
 
   const { data: customerByLegacyBadge, error: customerByLegacyBadgeError } =
     await supabase
       .from("customers")
       .select("id, badge_code, controller_code")
-      .or(`badge_code.eq.${badge},controller_code.eq.${badge}`)
+      .or(customerFilter)
       .limit(1)
       .maybeSingle();
 
@@ -193,7 +198,7 @@ async function findBadgeMatch(
     await supabase
       .from("access_credentials")
       .select("id", { count: "exact", head: true })
-      .or(`code.eq.${badge},controller_code.eq.${badge}`);
+      .or(lookupFilter);
 
   if (accessCountError) {
     console.error("access_credentials debug count failed", {
@@ -227,11 +232,13 @@ async function findStaffAccess(
   badge: string,
   source: string
 ) {
+  const lookupCodes = rfidLookupCodes(badge);
+  const lookupFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
   const { data: staffCredential, error: staffCredentialError } = await supabase
     .from("staff_access_credentials")
     .select("id, staff_user_id, code, controller_code, type, status")
     .eq("status", "active")
-    .or(`code.eq.${badge},controller_code.eq.${badge}`)
+    .or(lookupFilter)
     .limit(1)
     .maybeSingle();
 

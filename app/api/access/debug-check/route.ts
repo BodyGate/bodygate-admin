@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { rfidLookupCodes } from "../../../utils/rfid";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,20 +59,24 @@ async function safeSelect<T>(label: string, query: PromiseLike<{ data: T | null;
 
 async function findMatches(supabase: Supabase, code: string, warnings: string[]) {
   const matches: DebugMatch[] = [];
+  const lookupCodes = rfidLookupCodes(code);
+  const credentialFilter = lookupCodes.map((item) => `code.eq.${item},controller_code.eq.${item}`).join(",");
+  const badgeFilter = lookupCodes.map((item) => `badge_code.eq.${item}`).join(",");
+  const customerFilter = lookupCodes.map((item) => `badge_code.eq.${item},controller_code.eq.${item}`).join(",");
 
   const accessCredentials = await safeSelect<any[]>(
     "Lettura access_credentials",
     supabase
       .from("access_credentials")
       .select("id, customer_id, code, controller_code, type, status")
-      .or(`code.eq.${code},controller_code.eq.${code}`),
+      .or(credentialFilter),
     warnings
   );
 
   for (const row of accessCredentials || []) {
     matches.push({
       source: "access_credentials",
-      field: row.code === code ? "code" : "controller_code",
+      field: lookupCodes.includes(row.code) ? "code" : "controller_code",
       id: row.id ?? null,
       owner_type: "customer",
       owner_id: row.customer_id ?? null,
@@ -86,7 +91,7 @@ async function findMatches(supabase: Supabase, code: string, warnings: string[])
     supabase
       .from("customer_badges")
       .select("id, customer_id, badge_code, is_active")
-      .eq("badge_code", code),
+      .or(badgeFilter),
     warnings
   );
 
@@ -108,14 +113,14 @@ async function findMatches(supabase: Supabase, code: string, warnings: string[])
     supabase
       .from("staff_access_credentials")
       .select("id, staff_user_id, code, controller_code, type, status")
-      .or(`code.eq.${code},controller_code.eq.${code}`),
+      .or(credentialFilter),
     warnings
   );
 
   for (const row of staffCredentials || []) {
     matches.push({
       source: "staff_access_credentials",
-      field: row.code === code ? "code" : "controller_code",
+      field: lookupCodes.includes(row.code) ? "code" : "controller_code",
       id: row.id ?? null,
       owner_type: "staff",
       owner_id: row.staff_user_id ?? null,
@@ -130,15 +135,15 @@ async function findMatches(supabase: Supabase, code: string, warnings: string[])
     supabase
       .from("customers")
       .select("id, badge_code, controller_code")
-      .or(`badge_code.eq.${code},controller_code.eq.${code}`),
+      .or(customerFilter),
     warnings
   );
 
   for (const row of customers || []) {
-    if (row.badge_code === code) {
+    if (lookupCodes.includes(row.badge_code)) {
       matches.push({ source: "customers.badge_code", field: "badge_code", id: row.id ?? null, owner_type: "customer", owner_id: row.id ?? null, code, active: null, status: "legacy" });
     }
-    if (row.controller_code === code) {
+    if (lookupCodes.includes(row.controller_code)) {
       matches.push({ source: "customers.controller_code", field: "controller_code", id: row.id ?? null, owner_type: "customer", owner_id: row.id ?? null, code, active: null, status: "legacy" });
     }
   }
