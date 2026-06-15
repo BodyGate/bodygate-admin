@@ -1,5 +1,7 @@
 import SystemLivePanel from "../components/SystemLivePanel";
 import SystemStatusCard from "../components/SystemStatusCard";
+import BGButton from "../components/ui/BGButton";
+import BGCard from "../components/ui/BGCard";
 import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function SystemPage() {
@@ -17,6 +19,21 @@ export default function SystemPage() {
         <SystemStatusCard title="Supabase" value="SYNCED" status="online" />
         <SystemStatusCard title="Realtime" value="ACTIVE" status="online" />
       </section>
+
+      <BGCard variant="premium">
+        <div className="bg-section-header !mb-0">
+          <div>
+            <h2>Console operative collegate</h2>
+            <p>Accessi rapidi alle pagine tecniche principali, così ogni area isolata resta raggiungibile dalla navigazione di sistema.</p>
+          </div>
+          <div className="bg-header-actions">
+            <BGButton href="/access-control/debug" variant="secondary">Debug Center</BGButton>
+            <BGButton href="/access-control/credentials-audit" variant="secondary">Credentials Audit</BGButton>
+            <BGButton href="/system/staff" variant="secondary">Staff</BGButton>
+            <BGButton href="/subscriptions/plans" variant="secondary">Subscription Plans</BGButton>
+          </div>
+        </div>
+      </BGCard>
 
       <SystemLivePanel />
     </main>

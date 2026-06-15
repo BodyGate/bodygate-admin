@@ -99,9 +99,23 @@ export default function SystemLivePanel() {
           {opening ? "Apertura..." : "Apri tornello"}
         </button>
 
-        <button style={secondaryButtonStyle}>Ping controller</button>
+        <button
+          type="button"
+          disabled
+          title="Comando disabilitato: diagnostica controller disponibile dal Debug Center."
+          style={disabledButtonStyle}
+        >
+          Ping controller · usa Debug Center
+        </button>
 
-        <button style={secondaryButtonStyle}>Refresh logs</button>
+        <button
+          type="button"
+          disabled
+          title="Comando disabilitato: lo storico accessi è raggiungibile dalla pagina Accessi."
+          style={disabledButtonStyle}
+        >
+          Refresh logs · apri Accessi
+        </button>
 
         <button
           onClick={checkExpiredSubscriptions}
@@ -232,4 +246,9 @@ const messageStyle: React.CSSProperties = {
   border: "1px solid var(--border)",
   color: "var(--text)",
   fontWeight: 600,
+};
+const disabledButtonStyle: React.CSSProperties = {
+  ...secondaryButtonStyle,
+  opacity: 0.55,
+  cursor: "not-allowed",
 };

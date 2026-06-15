@@ -42,7 +42,10 @@ export default function CredentialsAuditPage() {
     }
   }
 
-  useEffect(() => { loadAudit(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAudit();
+  }, []);
 
   const filtered = useMemo(() => {
     const items = payload?.items || [];
@@ -79,7 +82,7 @@ export default function CredentialsAuditPage() {
           <div className="bg-header-actions">
             <StatusBadge tone="info" label="Solo diagnostica" />
             <BGButton href="/access-control/debug" variant="ghost">Debug Center</BGButton>
-            <BGButton href="/access" variant="secondary">Access Control</BGButton>
+            <BGButton href="/access-control" variant="secondary">Access Control</BGButton>
           </div>
         </header>
 
@@ -88,15 +91,15 @@ export default function CredentialsAuditPage() {
 
         {summary && !loading && !error ? <>
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            {kpis.map(([label, value, tone]) => <BGCard key={label} variant="soft" className="!p-5"><div className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">{label}</div><div className="mt-3 text-4xl font-black">{value}</div><div className="mt-3"><StatusBadge tone={tone as any} label={value ? "attenzione" : "ok"} /></div></BGCard>)}
+            {kpis.map(([label, value, tone]) => <BGCard key={label} variant="soft" className="!p-5"><div className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">{label}</div><div className="mt-3 text-4xl font-black">{value}</div><div className="mt-3"><StatusBadge tone={tone} label={value ? "attenzione" : "ok"} /></div></BGCard>)}
           </section>
           <BGCard variant="premium"><div className="flex flex-wrap gap-2">{filters.map((item) => <button key={item.key} onClick={() => setFilter(item.key)} className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${filter === item.key ? "border-red-400 bg-red-500/25 text-white" : "border-white/10 bg-white/[0.04] text-zinc-300 hover:border-red-400/60"}`}>{item.label}</button>)}</div>{payload.warnings?.length ? <p className="mt-4 text-sm font-bold text-amber-200">Warning tecnici: {payload.warnings.join(" · ")}</p> : null}</BGCard>
           {filter === "ok" ? <BGCard variant="success"><div className="bg-section-header !mb-0"><div><h2>Record OK</h2><p>{summary.ok_records} credenziali non hanno anomalie operative rilevate dall&apos;audit.</p></div><StatusBadge tone="success" label="OK" /></div></BGCard> : null}
           {filter !== "ok" && !filtered.length ? <BGCard variant="success"><div className="text-center"><div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-3xl bg-emerald-400/15 text-3xl">✓</div><h2 className="text-3xl font-black">Nessuna anomalia rilevata</h2><p className="mt-2 text-sm font-bold text-zinc-300">La vista selezionata non contiene problemi da mostrare.</p></div></BGCard> : null}
           <section className="grid gap-4">{filtered.map((item) => <BGCard key={item.id} variant={item.risk === "critical" ? "danger" : item.risk === "medium" ? "warning" : "soft"}>
-            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-start"><div><div className="flex flex-wrap items-center gap-2"><StatusBadge tone={riskTone(item.risk) as any} label={item.risk === "critical" ? "Rischio alto" : item.risk === "medium" ? "Rischio medio" : "Rischio basso"} /><StatusBadge label={item.category} /><span className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm font-black text-white">{item.code}</span></div><h2 className="mt-4 text-2xl font-black">{item.explanation}</h2><p className="mt-2 text-sm font-bold text-zinc-300">Azione consigliata: {item.recommended_action}</p></div><BGButton href={item.debug_url} variant="secondary">Apri nel Debug Center</BGButton></div>
+            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-start"><div><div className="flex flex-wrap items-center gap-2"><StatusBadge tone={riskTone(item.risk)} label={item.risk === "critical" ? "Rischio alto" : item.risk === "medium" ? "Rischio medio" : "Rischio basso"} /><StatusBadge label={item.category} /><span className="rounded-2xl border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm font-black text-white">{item.code}</span></div><h2 className="mt-4 text-2xl font-black">{item.explanation}</h2><p className="mt-2 text-sm font-bold text-zinc-300">Azione consigliata: {item.recommended_action}</p></div><BGButton href={item.debug_url} variant="secondary">Apri nel Debug Center</BGButton></div>
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><Info label="Fonte" value={item.source} /><Info label="Proprietario" value={item.owner} /><Info label="Stato credenziale" value={item.credential_status} /><Info label="Stato cliente/staff" value={item.owner_status} /></div>
-            <details className="mt-4 rounded-2xl border border-white/10 bg-black/35 p-4"><summary className="cursor-pointer text-xs font-black uppercase tracking-[0.18em] text-zinc-300">Dettaglio tecnico</summary><pre className="mt-3 max-h-80 overflow-auto rounded-2xl bg-black/70 p-4 text-xs text-zinc-200">{JSON.stringify(item.technical, null, 2)}</pre></details>
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/35 p-4"><div className="text-xs font-black uppercase tracking-[0.18em] text-zinc-300">Dettaglio tecnico sintetico</div><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">{Object.entries(item.technical || {}).slice(0, 8).map(([key, value]) => <Info key={key} label={key.replaceAll("_", " ")} value={String(value ?? "—")} />)}</div></div>
           </BGCard>)}</section>
         </> : null}
       </div>

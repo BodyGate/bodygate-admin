@@ -69,6 +69,30 @@ function StatusBadge({ tone = "neutral", label }: { tone?: Tone; label: string }
   return <span className={className}>{label}</span>;
 }
 
+
+function TechnicalSummary({ data }: { data: DebugResponse }) {
+  const checks = Object.entries(data.checks || {});
+  return (
+    <BGCard variant="soft">
+      <div className="bg-section-header">
+        <div>
+          <h2>Dettaglio tecnico sintetico</h2>
+          <p>Dati diagnostici resi in formato leggibile, senza JSON grezzo in pagina.</p>
+        </div>
+        <StatusBadge tone={data.final_allowed ? "success" : "warning"} label={data.simulation_only ? "simulazione" : "diagnostica"} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <FieldRow label="Codice verificato" value={data.input?.code} />
+        <FieldRow label="Verificato il" value={data.input?.checked_at} />
+        <FieldRow label="Esito finale" value={data.final_reason} />
+        {checks.map(([key, check]) => (
+          <FieldRow key={key} label={key.replaceAll("_", " ")} value={check.status || "n/d"} />
+        ))}
+      </div>
+    </BGCard>
+  );
+}
+
 function DiagnosticCard({ title, status, children }: { title: string; status?: string; children: ReactNode }) {
   return (
     <BGCard variant="soft" className="min-h-full">
@@ -120,7 +144,10 @@ export default function AccessControlDebugPage() {
 
   useEffect(() => {
     const initialCode = new URLSearchParams(window.location.search).get("code");
-    if (initialCode) setCode(initialCode);
+    if (initialCode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCode(initialCode);
+    }
   }, []);
 
   const checks = useMemo(() => result?.checks || {}, [result]);
@@ -161,7 +188,7 @@ export default function AccessControlDebugPage() {
           </div>
           <div className="bg-header-actions">
             <StatusBadge tone="info" label="Simulation only" />
-            <BGButton href="/access" variant="ghost">← Access Control</BGButton>
+            <BGButton href="/access-control" variant="ghost">← Access Control</BGButton>
             <BGButton href="/access-control/credentials-audit" variant="secondary">Audit credenziali</BGButton>
             <BGButton href="/" variant="secondary">Dashboard</BGButton>
           </div>
@@ -239,10 +266,7 @@ export default function AccessControlDebugPage() {
               </DiagnosticCard>
             </section>
 
-            <details className="rounded-[26px] border border-white/10 bg-black/45 p-5 shadow-2xl shadow-black/30">
-              <summary className="cursor-pointer text-sm font-black uppercase tracking-[0.18em] text-zinc-200">Dettaglio tecnico</summary>
-              <pre className="mt-4 max-h-96 overflow-auto rounded-2xl border border-white/10 bg-black/70 p-4 text-xs leading-relaxed text-zinc-200">{JSON.stringify(result, null, 2)}</pre>
-            </details>
+            <TechnicalSummary data={result} />
           </>
         ) : null}
       </div>
