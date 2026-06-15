@@ -134,7 +134,14 @@ export function useCurrentPermissions() {
     };
   }, []);
 
+  const normalizedRoleKey = roleKey?.toLowerCase().trim() || null;
+  const isAdmin = normalizedRoleKey
+    ? ["admin", "administrator", "amministratore", "amministrazione", "owner"].includes(normalizedRoleKey)
+    : false;
+
   function hasPermission(permissionKey: string) {
+    if (isAdmin) return true;
+
     return permissions.includes(permissionKey);
   }
 
@@ -144,5 +151,6 @@ export function useCurrentPermissions() {
     staffName,
     loading,
     hasPermission,
+    isAdmin,
   };
 }

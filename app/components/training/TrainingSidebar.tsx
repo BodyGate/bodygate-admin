@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCurrentPermissions } from "../../hooks/useCurrentPermissions";
 
 const menu = [
   {
@@ -15,6 +16,7 @@ const menu = [
   {
     label: "Programmi",
     href: "/training/programs",
+    permission: "manage_training",
   },
   {
     label: "Workout",
@@ -27,11 +29,13 @@ const menu = [
   {
     label: "Libreria",
     href: "/training/library",
+    permission: "manage_training",
   },
 ];
 
 export default function TrainingSidebar() {
   const pathname = usePathname();
+  const { loading, hasPermission } = useCurrentPermissions();
 
   return (
     <aside
@@ -79,11 +83,39 @@ export default function TrainingSidebar() {
       >
         {menu.map((item) => {
           const active = pathname === item.href;
+          const disabled = Boolean(item.permission) && !loading && !hasPermission(item.permission!);
+          const title = disabled
+            ? `${item.label} · Protetto / Permessi non configurati`
+            : item.label;
+
+          if (disabled) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                title={title}
+                disabled
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 16,
+                  background: "rgba(255,255,255,0.035)",
+                  color: "#64748b",
+                  fontWeight: 700,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  cursor: "not-allowed",
+                  textAlign: "left",
+                }}
+              >
+                {item.label} · Protetto
+              </button>
+            );
+          }
 
           return (
             <Link
               key={item.href}
               href={item.href}
+              title={title}
               style={{
                 padding: "14px 16px",
                 borderRadius: 16,
