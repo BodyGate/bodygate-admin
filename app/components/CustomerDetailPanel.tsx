@@ -156,7 +156,9 @@ export default function CustomerDetailPanel({
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCustomer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   if (loading) {
@@ -268,7 +270,14 @@ export default function CustomerDetailPanel({
             Stampa contratto
           </Link>
 
-          <button style={secondaryButton}>Genera QR virtuale</button>
+          <button
+            type="button"
+            disabled
+            title="Azione disabilitata: Mobile Pass clienti escluso dalla QA Sweep."
+            style={{ ...secondaryButton, opacity: 0.55, cursor: "not-allowed" }}
+          >
+            Genera QR virtuale · non disponibile
+          </button>
 
           <button
             onClick={toggleAccess}
