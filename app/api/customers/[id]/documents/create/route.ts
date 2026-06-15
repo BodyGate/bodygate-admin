@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: Props) {
   const host = request.headers.get("host");
   const protocol = host?.includes("localhost") ? "http" : "https";
 
-  const contractUrl = `${protocol}://${host}/customers/${id}/contract`;
+  const contractUrl = `${protocol}://${host}/customers/${id}/contract/print`;
 
   let browser;
 
