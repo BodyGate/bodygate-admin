@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BGButton from "../../components/ui/BGButton";
 import BGCard from "../../components/ui/BGCard";
 
@@ -118,6 +118,11 @@ export default function AccessControlDebugPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const initialCode = new URLSearchParams(window.location.search).get("code");
+    if (initialCode) setCode(initialCode);
+  }, []);
+
   const checks = useMemo(() => result?.checks || {}, [result]);
   const owner = result?.customer || result?.staff || null;
   const finalTone: Tone = result?.final_allowed ? "success" : "danger";
@@ -157,6 +162,7 @@ export default function AccessControlDebugPage() {
           <div className="bg-header-actions">
             <StatusBadge tone="info" label="Simulation only" />
             <BGButton href="/access" variant="ghost">← Access Control</BGButton>
+            <BGButton href="/access-control/credentials-audit" variant="secondary">Audit credenziali</BGButton>
             <BGButton href="/" variant="secondary">Dashboard</BGButton>
           </div>
         </header>
