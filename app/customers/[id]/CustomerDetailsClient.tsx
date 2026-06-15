@@ -400,11 +400,9 @@ export default function CustomerDetailsClient({
         console.error("BODYGATE CUSTOMER LOAD ERROR", diagnostic);
 
         setErrorMessage(
-          `Cliente non trovato o bloccato dalla lettura Supabase. Dettaglio: ${JSON.stringify(
-            diagnostic,
-            null,
-            2,
-          )}`,
+          customerError?.code
+            ? `Cliente non trovato o non leggibile. Codice diagnostico: ${customerError.code}. Apri la console tecnica per i dettagli.`
+            : "Cliente non trovato o non leggibile. Verifica l’anagrafica dalla lista clienti.",
         );
 
         setCustomer(null);

@@ -114,13 +114,16 @@ export default function AuditLogsClient() {
               </div>
 
               {log.details && (
-                <pre style={styles.details}>
-                  {JSON.stringify(
-                    log.details,
-                    null,
-                    2
-                  )}
-                </pre>
+                <details style={styles.detailsDisclosure}>
+                  <summary style={styles.detailsSummary}>Dettagli tecnici</summary>
+                  <pre style={styles.details}>
+                    {JSON.stringify(
+                      log.details,
+                      null,
+                      2
+                    )}
+                  </pre>
+                </details>
               )}
             </article>
           ))}
@@ -214,6 +217,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
   },
 
+  detailsDisclosure: {
+    marginTop: 14,
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,.08)",
+    background: "rgba(0,0,0,.22)",
+    overflow: "hidden",
+  },
+  detailsSummary: {
+    cursor: "pointer",
+    padding: "12px 14px",
+    color: "#fca5a5",
+    fontWeight: 900,
+    letterSpacing: ".04em",
+    textTransform: "uppercase",
+    fontSize: 12,
+  },
   details: {
     background: "#020617",
     borderRadius: 16,

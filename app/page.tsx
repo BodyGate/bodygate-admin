@@ -424,6 +424,18 @@ export default function DashboardPage() {
                   title="Notification Center"
                   description="Scadenze, blocchi e alert da lavorare."
                 />
+                <BGQuickActionCard
+                  href="/access-control"
+                  icon="↳"
+                  title="Access Control"
+                  description="Hub debug, audit credenziali e registro accessi."
+                />
+                <BGQuickActionCard
+                  href="/system/staff"
+                  icon="S"
+                  title="Staff"
+                  description="Ruoli, stato operatori e invio Staff Mobile Pass."
+                />
               </div>
             </BGCard>
 
