@@ -166,7 +166,7 @@ export async function POST(req: Request) {
     const warnings: string[] = [];
 
     if (!code) {
-      return NextResponse.json({ input: { code }, matches: [], owner_type: "none", checks: {}, warnings: ["Codice mancante"], final_allowed: false, final_reason: "Codice badge/QR mancante" }, { status: 400 });
+      return NextResponse.json({ input: { code, variants: [] }, matches: [], owner_type: "none", checks: {}, warnings: ["Codice mancante"], final_allowed: false, final_reason: "Codice badge/QR mancante" }, { status: 400 });
     }
 
     const supabase = getSupabaseClient();
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
     const activeMatches = matches.filter((m) => m.active !== false);
 
     const response: any = {
-      input: { code, checked_at: new Date().toISOString() },
+      input: { code, variants: rfidLookupCodes(code), checked_at: new Date().toISOString() },
       matches,
       owner_type: ownerType,
       customer: null,

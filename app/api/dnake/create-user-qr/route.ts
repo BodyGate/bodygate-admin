@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeNumericControllerCode } from "../../../lib/accessCodeNormalizer";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -176,6 +177,7 @@ export async function POST(req: Request) {
     }
 
     const qrPayload = String(qrJson.qrcode);
+    const bridgeControllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
     const now = new Date().toISOString();
 
     const { error: dnakeSaveError } = await supabaseAdmin
@@ -211,7 +213,7 @@ export async function POST(req: Request) {
           customer_id: customerId,
           type: "qr",
           code: qrPayload,
-          controller_code: dnakeUserId,
+          controller_code: bridgeControllerCode,
           status: "active",
         },
         { onConflict: "code" }

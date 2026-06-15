@@ -16,6 +16,7 @@ import BGEmptyState from "../../components/ui/BGEmptyState";
 import BGSectionHeader from "../../components/ui/BGSectionHeader";
 import BGStatusBadge from "../../components/ui/BGStatusBadge";
 import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
+import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 
 type Customer = any;
 type Plan = any;
@@ -568,6 +569,15 @@ export default function CustomerDetailsClient({
   const qrCredentials = useMemo(() => {
     return accessCredentials.filter((item) => item.type === "qr");
   }, [accessCredentials]);
+
+  const badgeDraftPreview = useMemo(() => normalizeAccessCode(badgeDraft), [badgeDraft]);
+
+  const primaryCardCredential = useMemo(() => {
+    return cardCredentials.find((item) => item.status === "active") || cardCredentials[0] || null;
+  }, [cardCredentials]);
+
+  const cardBridgeCode = customer?.controller_code || primaryCardCredential?.controller_code || null;
+  const cardOperative = Boolean((customer?.badge_code || primaryCardCredential?.code) && cardBridgeCode);
 
   const activeDnakeQr = useMemo(() => {
     return (
@@ -3378,7 +3388,7 @@ export default function CustomerDetailsClient({
                     }
                   />
                 </EditField>
-                <EditField label="Badge principale">
+                <EditField label="Codice badge / card RFID">
                   <input
                     value={editForm.badge_code || ""}
                     onChange={(e) =>
@@ -3387,7 +3397,7 @@ export default function CustomerDetailsClient({
                   />
                 </EditField>
                 <EditField label="Codice bridge calcolato">
-                  <input value={editForm.controller_code || "-"} readOnly />
+                  <input value={normalizeAccessCode(editForm.badge_code).controllerCode || editForm.controller_code || "Non derivabile"} readOnly />
                 </EditField>
                 <EditField label="Stato cliente">
                   <div className="checkbox-field">
@@ -4036,13 +4046,14 @@ export default function CustomerDetailsClient({
                 <div className="badge-card-panel">
                   <div className="badge-card-main">
                     <div>
-                      <div className="small-muted">Codice badge attuale</div>
+                      <div className="small-muted">Codice badge/card</div>
                       <div className="badge-card-code">
-                        {customer.badge_code || customer.controller_code}
+                        {customer.badge_code || primaryCardCredential?.code || "-"}
                       </div>
+                      <div className="small-muted">Codice bridge: {cardBridgeCode || "mancante"}</div>
                     </div>
-                    <BGStatusBadge tone="success">
-                      Badge collegato
+                    <BGStatusBadge tone={cardOperative ? "success" : "warning"}>
+                      {cardOperative ? "Attivo" : "Credenziale non operativa"}
                     </BGStatusBadge>
                   </div>
                   {cardCredentials.length > 0 ? (
@@ -4057,7 +4068,10 @@ export default function CustomerDetailsClient({
                   ) : null}
                   <div className="actions">
                     <BGButton variant="secondary" onClick={openBadgePanel}>
-                      Modifica badge
+                      {cardOperative ? "Modifica badge" : "Rigenera codice bridge"}
+                    </BGButton>
+                    <BGButton variant="ghost" onClick={() => window.open(`/access-control/debug?code=${encodeURIComponent(customer.badge_code || cardBridgeCode || "")}`, "_blank")}>
+                      Verifica nel Debug Center
                     </BGButton>
                   </div>
                 </div>
@@ -4083,13 +4097,16 @@ export default function CustomerDetailsClient({
               {badgePanelOpen ? (
                 <div className="badge-edit-panel">
                   <div className="edit-field">
-                    <label>Codice badge</label>
+                    <label>Codice badge / card RFID</label>
                     <input
                       autoFocus
                       value={badgeDraft}
                       onChange={(event) => setBadgeDraft(event.target.value)}
-                      placeholder="Es. RFID-001234"
+                      placeholder="Es. 51006b659d"
                     />
+                    {badgeDraft.trim() ? (
+                      <small>Codice bridge calcolato: {badgeDraftPreview.controllerCode || "Non derivabile"}</small>
+                    ) : null}
                   </div>
                   <div className="actions">
                     <BGButton onClick={saveBadgeCode} disabled={badgeSaving}>
@@ -4136,6 +4153,11 @@ export default function CustomerDetailsClient({
                     <InfoMini
                       label="Stato"
                       value={activeDnakeQr.qr_status || "-"}
+                    />
+                    <InfoMini
+                      label="Codice bridge QR"
+                      value={qrCredentials.find((item) => item.status === "active")?.controller_code || "-"}
+                      tone={qrCredentials.find((item) => item.status === "active")?.controller_code ? "success" : "danger"}
                     />
                   </div>
                   <div className="actions">
