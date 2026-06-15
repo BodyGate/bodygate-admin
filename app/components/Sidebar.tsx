@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCurrentPermissions } from "../hooks/useCurrentPermissions";
 import {
   BadgeCheck,
   BarChart3,
@@ -22,6 +23,7 @@ type MenuItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
+  permission?: string;
 };
 
 const mainMenu: MenuItem[] = [
@@ -30,7 +32,7 @@ const mainMenu: MenuItem[] = [
   { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
   { label: "Access Control", href: "/access-control", icon: <DoorOpen size={20} /> },
   { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} /> },
-  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} /> },
+  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} />, permission: "view_payments" },
   { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} /> },
   { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
   { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
@@ -47,6 +49,7 @@ function isActive(pathname: string, href: string) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { loading, hasPermission } = useCurrentPermissions();
 
   return (
     <aside
@@ -99,13 +102,44 @@ export default function Sidebar() {
       >
         {mainMenu.map((item) => {
           const active = isActive(pathname, item.href);
+          const isProtected = Boolean(item.permission);
+          const disabled = isProtected && !loading && !hasPermission(item.permission!);
+          const title = disabled
+            ? `${item.label} · Protetto / Permessi non configurati`
+            : item.label;
+
+          if (disabled) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                title={title}
+                aria-label={title}
+                disabled
+                style={{
+                  width: 56,
+                  height: 52,
+                  borderRadius: 18,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#71717a",
+                  background: "rgba(255,255,255,0.025)",
+                  border: "1px solid rgba(255,255,255,0.045)",
+                  cursor: "not-allowed",
+                  opacity: 0.58,
+                }}
+              >
+                {item.icon}
+              </button>
+            );
+          }
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={item.label}
-              aria-label={item.label}
+              title={title}
+              aria-label={title}
               style={{
                 width: 56,
                 height: 52,
