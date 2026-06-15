@@ -472,7 +472,7 @@ export async function POST(req: Request) {
       payment_id: payment.id,
       subscription_id: subscriptionId,
       receipt_number: receiptNumber.receipt_number,
-      next_url: `/customers/${customerId}/contract`,
+      next_url: `/customers/${customerId}/contract/print`,
     });
   } catch (error: any) {
     return NextResponse.json(

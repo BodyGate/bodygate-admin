@@ -18,9 +18,38 @@ type Props = {
     subscription_expiry: string | null;
     created_at: string;
   };
+  subscription?: {
+    amount?: number | string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    subscription_plans?: {
+      name?: string | null;
+      price?: number | string | null;
+      promo_price?: number | string | null;
+      duration_days?: number | string | null;
+    } | null;
+  } | null;
+  membershipFee?: {
+    amount?: number | string | null;
+    valid_from?: string | null;
+    valid_until?: string | null;
+  } | null;
 };
 
-export default function CustomerContract({ customer }: Props) {
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleDateString("it-IT") : "________________";
+}
+
+function formatCurrency(value?: number | string | null) {
+  const amount = Number(value || 0);
+  return amount ? `€ ${amount.toFixed(2).replace(".", ",")}` : "________________";
+}
+
+export default function CustomerContract({
+  customer,
+  subscription,
+  membershipFee,
+}: Props) {
   const today = new Date().toLocaleDateString("it-IT");
 
   const fullName =
@@ -28,20 +57,41 @@ export default function CustomerContract({ customer }: Props) {
     `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
     "____________________________";
 
-  const birthDate = customer.birth_date
-    ? new Date(customer.birth_date).toLocaleDateString("it-IT")
+  const birthDate = formatDate(customer.birth_date);
+  const createdAt = formatDate(customer.created_at);
+  const planName = subscription?.subscription_plans?.name || "________________";
+  const planAmount = formatCurrency(
+    subscription?.amount ||
+      subscription?.subscription_plans?.promo_price ||
+      subscription?.subscription_plans?.price
+  );
+  const planPeriod = subscription
+    ? `${formatDate(subscription.start_date)} - ${formatDate(
+        subscription.end_date || customer.subscription_expiry
+      )}`
+    : "________________";
+  const membershipAmount = formatCurrency(membershipFee?.amount);
+  const membershipPeriod = membershipFee
+    ? `${formatDate(membershipFee.valid_from)} - ${formatDate(
+        membershipFee.valid_until
+      )}`
     : "________________";
 
   return (
-    <div style={pageStyle}>
+    <div className="contract-document" style={pageStyle}>
       <div style={topRowStyle}>
-        <h1 style={brandStyle}>BODY ENERGY</h1>
+        <h1 style={brandStyle}>BODY ENERGY ASD</h1>
+        <div style={companyInfoStyle}>
+          Viale Amedeo D’Aosta 3, Palermo · C.F. 97308970827 · Tel.
+          0917785001 · bodyenergy.asd@gmail.com
+        </div>
 
         <h2 style={mainTitleStyle}>
           DICHIARAZIONE LIBERATORIA DI RESPONSABILITÀ
         </h2>
 
-        <div style={dateBoxStyle}>Data: {today}</div>
+        <div style={dateBoxStyle}>Data stampa: {today}</div>
+        <div style={dateBoxStyle}>Data creazione cliente: {createdAt}</div>
       </div>
 
       <div style={textStyle}>
@@ -78,6 +128,15 @@ export default function CustomerContract({ customer }: Props) {
       <div style={textStyle}>
         Per l’attività sportiva: <Field value="Sala pesi / Fitness" />
       </div>
+
+      <section style={summaryBoxStyle}>
+        <div style={summaryTitleStyle}>Riepilogo iscrizione</div>
+        <div>Piano/abbonamento: <Field value={planName} /></div>
+        <div>Importo piano: <Field value={planAmount} /></div>
+        <div>Periodo abbonamento: <Field value={planPeriod} /></div>
+        <div>Quota associativa: <Field value={membershipAmount} /></div>
+        <div>Validità quota: <Field value={membershipPeriod} /></div>
+      </section>
 
       <h3 style={declareStyle}>DICHIARA</h3>
 
@@ -146,6 +205,17 @@ export default function CustomerContract({ customer }: Props) {
         della stessa ASD per le sue finalità istituzionali e amministrative.
       </Paragraph>
 
+      <div style={signatureGridStyle}>
+        <div style={signatureBoxStyle}>
+          <div>Firma cliente</div>
+          <div style={signatureRuleStyle} />
+        </div>
+        <div style={signatureBoxStyle}>
+          <div>Firma Body Energy ASD</div>
+          <div style={signatureRuleStyle} />
+        </div>
+      </div>
+
       <div style={signatureLineStyle}>
         Autorizzo firma ___________________________________________
       </div>
@@ -187,6 +257,14 @@ const brandStyle: React.CSSProperties = {
   margin: 0,
   fontSize: "20px",
   fontWeight: 900,
+};
+
+const companyInfoStyle: React.CSSProperties = {
+  marginTop: "4px",
+  maxWidth: "170mm",
+  fontSize: "10px",
+  fontWeight: 700,
+  color: "#111",
 };
 
 const mainTitleStyle: React.CSSProperties = {
@@ -233,4 +311,33 @@ const privacyTitleStyle: React.CSSProperties = {
   margin: "18px 0 8px",
   fontSize: "14px",
   fontWeight: 900,
+};
+const summaryBoxStyle: React.CSSProperties = {
+  border: "1px solid #111",
+  padding: "8px 10px",
+  margin: "10px 0 12px",
+  pageBreakInside: "avoid",
+};
+
+const summaryTitleStyle: React.CSSProperties = {
+  fontWeight: 900,
+  marginBottom: "6px",
+  textTransform: "uppercase",
+};
+
+const signatureGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "18mm",
+  marginTop: "18px",
+  pageBreakInside: "avoid",
+};
+
+const signatureBoxStyle: React.CSSProperties = {
+  fontWeight: 700,
+};
+
+const signatureRuleStyle: React.CSSProperties = {
+  height: "28px",
+  borderBottom: "1px solid #000",
 };

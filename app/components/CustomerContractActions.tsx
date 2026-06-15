@@ -44,7 +44,7 @@ export default function CustomerContractActions({
           ← Torna alla scheda
         </Link>
 
-        <button onClick={() => window.print()} style={primaryButtonStyle}>
+        <button onClick={() => window.open(`/customers/${customerId}/contract/print`, "_blank")} style={primaryButtonStyle}>
           Stampa / Salva PDF
         </button>
 

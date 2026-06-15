@@ -25,19 +25,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isReceiptPage =
     pathname.startsWith("/customers/") && pathname.includes("/receipt/");
+  const isContractPrintPage =
+    pathname.startsWith("/customers/") && pathname.endsWith("/contract/print");
 
   const isPublicStandalonePage =
     pathname.startsWith("/mobile") ||
     pathname.startsWith("/staff-mobile") ||
     pathname.startsWith("/login") ||
-    isReceiptPage;
+    isReceiptPage ||
+    isContractPrintPage;
 
   if (isPublicStandalonePage) {
     return (
       <main
         style={{
           minHeight: "100vh",
-          background: isReceiptPage ? "#ffffff" : "#050505",
+          background: isReceiptPage || isContractPrintPage ? "#ffffff" : "#050505",
         }}
       >
         {children}

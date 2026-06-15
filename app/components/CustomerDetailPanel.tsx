@@ -264,7 +264,7 @@ export default function CustomerDetailPanel({
           </Link>
 
           <Link
-            href={`/customers/${customer.id}/contract`}
+            href={`/customers/${customer.id}/contract/print`}
             style={primaryLinkButton}
           >
             Stampa contratto
