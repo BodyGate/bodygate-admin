@@ -66,7 +66,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     ]);
 
     const documentStatus = type === "medical_certificate" ? statusForCertificate(validFrom, validUntil) : "uploaded";
-    const insertPayload: Record<string, any> = { customer_id: id, document_type: type, title: titleFor(type), status: documentStatus };
+    const insertPayload: Record<string, any> = { customer_id: id, type, document_type: type, title: titleFor(type), status: documentStatus };
     if (hasFileUrl) insertPayload.file_url = publicUrl;
     if (hasFilePath) insertPayload.file_path = path;
     if (hasFileName) insertPayload.file_name = fileName;
@@ -85,8 +85,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     if (type === "customer_photo") await supabase.from("customers").update({ photo_url: publicUrl }).eq("id", id);
     if (type === "medical_certificate") {
-      await supabase.from("customers").update({ medical_certificate_url: publicUrl, medical_certificate_start_date: validFrom, medical_certificate_end_date: validUntil, medical_certificate_status: documentStatus, medical_certificate_start: validFrom, medical_certificate_end: validUntil }).eq("id", id);
-      await supabase.from("medical_certificates").insert({ customer_id: id, valid_from: validFrom, valid_until: validUntil, expiry_date: validUntil, status: documentStatus, certificate_type: "non_agonistico" });
+      await supabase.from("customers").update({ medical_certificate_url: publicUrl, medical_certificate_start_date: validFrom, medical_certificate_end_date: validUntil, medical_certificate_status: documentStatus }).eq("id", id);
     }
 
     return NextResponse.json({ ok: true, document: { id: document.id, customer_id: id, document_type: type, title: titleFor(type), status: documentStatus, created_at: document.created_at || new Date().toISOString(), view_url: publicUrl } });
