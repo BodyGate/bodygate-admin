@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import DocumentScannerDrawer from "./DocumentScannerDrawer";
 import type { ScannerDocumentType } from "./documentScannerUtils";
 
@@ -52,7 +52,8 @@ function documentUrl(type: ScannerDocumentType, customer: any, doc?: ExistingDoc
 
 export default function CustomerDocumentRows({ customerId, customer, pendingDocuments = {}, onPendingChange, onUploaded, compactTitle = "Documenti e certificato" }: Props) {
   const [docs, setDocs] = useState<ExistingDocument[]>([]);
-  const [active, setActive] = useState<Row | null>(null);
+  const inputNamespace = useId().replace(/:/g, "");
+  const [active, setActive] = useState<(Row & { initialFile?: File; initialMode?: "camera" | "file" }) | null>(null);
   const [busyType, setBusyType] = useState<string>("");
   const [error, setError] = useState("");
 
@@ -70,6 +71,16 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
     docs.forEach((doc) => { if (doc.document_type && !map.has(doc.document_type)) map.set(doc.document_type, doc); });
     return map;
   }, [docs]);
+
+  function openScanner(row: Row, initialMode: "camera" | "file", initialFile?: File) {
+    setError("");
+    setActive({ ...row, initialMode, initialFile });
+  }
+
+  function handleNativeFileChange(row: Row, initialMode: "camera" | "file", file?: File) {
+    if (!file) return;
+    openScanner(row, initialMode, file);
+  }
 
   async function handleConfirm(file: File, metadata: any) {
     const type = metadata.documentType as ScannerDocumentType;
@@ -114,19 +125,29 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
       .row { display:grid; grid-template-columns:minmax(150px,1fr) 128px minmax(120px,1fr) auto; gap:10px; align-items:center; border:1px solid #242424; border-radius:16px; padding:10px; background:#0c0c0c; }
       .name { font-weight:900; } .sub { color:#a3a3a3; font-size:12px; margin-top:2px; }
       .badge { justify-self:start; border-radius:999px; padding:7px 10px; font-size:12px; font-weight:900; background:#262626; color:#ddd; } .valid,.uploaded{background:#052e18;color:#86efac}.expired,.non_operational,.error{background:#3b0711;color:#fda4af}.needs_dates{background:#422006;color:#fcd34d}
-      .detail { color:#bdbdbd; font-size:12px; } .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end} button{border:1px solid #333;background:#151515;color:#fff;border-radius:11px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer} button.primary{background:#e11d2e;border-color:#ef4444} button:disabled{opacity:.42;cursor:not-allowed}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:820px){.row{grid-template-columns:1fr}.actions{justify-content:flex-start}}
+      .detail { color:#bdbdbd; font-size:12px; } .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.native-file{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;opacity:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;pointer-events:none}.buttonlike,button{border:1px solid #333;background:#151515;color:#fff;border-radius:11px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer;text-decoration:none;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:34px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}.buttonlike.primary,button.primary{background:#e11d2e;border-color:#ef4444}.buttonlike.disabled,button:disabled{opacity:.42;cursor:not-allowed;pointer-events:none}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:820px){.row{grid-template-columns:1fr}.actions{justify-content:flex-start}}
     `}</style>
     <div className="head"><div><b>{compactTitle}</b><br/><span>Scanner compatto per reception e tablet</span></div></div>
     {rows.map((row) => {
       const status = statusFor(row); const doc = byType.get(row.type); const url = documentUrl(row.type, customer, doc, pendingDocuments[row.type]); const critical = row.type === "medical_certificate" && !["valid"].includes(status);
+      const cameraInputId = `${inputNamespace}-${row.type}-camera`;
+      const fileInputId = `${inputNamespace}-${row.type}-file`;
+      const disabled = busyType === row.type;
       return <div className="row" key={row.type}>
         <div><div className="name">{row.title}{row.side ? ` — ${row.side}` : ""}</div><div className="sub">{critical ? "Bloccante accesso" : row.optional ? "Opzionale" : "Warning amministrativo"}</div></div>
         <div className={`badge ${status}`}>{labels[status]}</div>
         <div className="detail">{row.type === "medical_certificate" ? `${pendingDocuments.medical_certificate?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "data inizio mancante"} → ${pendingDocuments.medical_certificate?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "data fine mancante"}` : doc?.created_at ? `Aggiornato ${new Date(doc.created_at).toLocaleDateString("it-IT")}` : pendingDocuments[row.type] ? "Pronto per salvataggio cliente" : "Da acquisire"}</div>
-        <div className="actions"><button type="button" className="primary" onClick={() => setActive(row)} disabled={busyType === row.type}>Scatta foto</button><button type="button" onClick={() => setActive(row)} disabled={busyType === row.type}>Carica file</button><button type="button" onClick={() => url && window.open(url, "_blank", "noopener,noreferrer")} disabled={!url}>Visualizza</button><button type="button" onClick={() => setActive(row)} disabled={busyType === row.type}>{url || doc ? "Sostituisci" : "Sostituisci"}</button></div>
+        <div className="actions">
+          <input id={cameraInputId} className="native-file" type="file" accept="image/*" capture="environment" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "camera", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+          <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : cameraInputId} aria-disabled={disabled}>Scatta</label>
+          <input id={fileInputId} className="native-file" type="file" accept="image/*,.pdf" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "file", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
+          <label className={`buttonlike${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Carica</label>
+          <button type="button" onClick={() => url && window.open(url, "_blank", "noopener,noreferrer")} disabled={!url}>Visualizza</button>
+          <button type="button" onClick={() => openScanner(row, "file")} disabled={disabled}>{url || doc ? "Sostituisci" : "Sostituisci"}</button>
+        </div>
       </div>;
     })}
     {error ? <div className="errorline">{error}</div> : null}
-    {active ? <DocumentScannerDrawer open title={`${active.title}${active.side ? ` — ${active.side}` : ""}`} documentType={active.type} onClose={() => setActive(null)} onConfirm={async (file, meta) => { try { await handleConfirm(file, meta); } catch (err: any) { setError(err?.message || "Errore upload documento"); setBusyType(""); throw err; } }} /> : null}
+    {active ? <DocumentScannerDrawer open title={`${active.title}${active.side ? ` — ${active.side}` : ""}`} documentType={active.type} initialFile={active.initialFile} initialMode={active.initialMode} onClose={() => setActive(null)} onConfirm={async (file, meta) => { try { await handleConfirm(file, meta); } catch (err: any) { setError(err?.message || "Errore upload documento"); setBusyType(""); throw err; } }} /> : null}
   </div>;
 }
