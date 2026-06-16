@@ -104,6 +104,12 @@ export default function NewCustomerPage() {
   const membershipAmount = 10;
   const totalAmount = membershipAmount + selectedPlan.price;
   const badgePreview = useMemo(() => normalizeAccessCode(form.badge_code), [form.badge_code]);
+  const operationalBranch = {
+    id: "ffbd8d1a-35a8-4b3e-8219-e9a56533d30c",
+    name: "Body Energy",
+    city: "Palermo",
+    address: "Viale Amedeo D'Aosta 3",
+  };
 
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -156,6 +162,7 @@ export default function NewCustomerPage() {
         subscription_duration_days: selectedPlan.duration,
         payment_method: form.payment_method,
         customer_tags: [],
+        branch_id: operationalBranch.id,
       });
 
       const customerId = result.customer_id;
@@ -298,6 +305,34 @@ export default function NewCustomerPage() {
           width: 100%;
           min-height: 54px;
           font-size: 15px;
+        }
+
+        .branch-card {
+          border: 1px solid rgba(239, 68, 68, 0.26);
+          border-radius: 22px;
+          padding: 18px;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.04));
+          display: grid;
+          gap: 6px;
+        }
+
+        .branch-card span {
+          color: #fca5a5;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
+        .branch-card strong {
+          color: #fff;
+          font-size: 18px;
+          font-weight: 950;
+        }
+
+        .branch-card small {
+          color: #d4d4d8;
+          font-weight: 800;
         }
 
         .message {
@@ -621,6 +656,12 @@ export default function NewCustomerPage() {
 
         <aside className="summary bg-content-sidebar bg-card-premium">
           <div className="summary-title">Riepilogo</div>
+
+          <div className="branch-card" aria-label="Sede operativa predefinita">
+            <span>Sede operativa</span>
+            <strong>{operationalBranch.name} — {operationalBranch.city}</strong>
+            <small>{operationalBranch.address}</small>
+          </div>
 
           <div className="line">
             <span>Quota associativa</span>

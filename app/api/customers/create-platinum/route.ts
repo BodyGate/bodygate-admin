@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { credentialLookupCodes, normalizeRfidCode } from "../../../utils/rfid";
+import {
+  getDefaultOperationalBranch,
+  tableHasColumn,
+} from "../../../lib/server/defaultBranch";
 
 export const dynamic = "force-dynamic";
 
@@ -228,6 +232,25 @@ export async function POST(req: Request) {
       }
     }
 
+    const defaultBranch = await getDefaultOperationalBranch(supabase);
+    const branchId = typeof body.branch_id === "string" && UUID_RE.test(body.branch_id)
+      ? body.branch_id
+      : defaultBranch?.id || null;
+
+    if (!branchId) {
+      return NextResponse.json(
+        { ok: false, error: "Nessuna sede operativa attiva disponibile per completare l’onboarding." },
+        { status: 500 },
+      );
+    }
+
+    const [customerPaymentsHasBranch, paymentsHasBranch, receiptsHasBranch] =
+      await Promise.all([
+        tableHasColumn(supabase, "customer_payments", "branch_id"),
+        tableHasColumn(supabase, "payments", "branch_id"),
+        tableHasColumn(supabase, "customer_receipts", "branch_id"),
+      ]);
+
     const receiptNumber = await getNextReceiptNumber();
 
     const { data: customer, error: customerError } = await supabase
@@ -238,6 +261,7 @@ export async function POST(req: Request) {
         phone,
         email: email || null,
         fiscal_code: fiscalCode,
+        branch_id: branchId,
 
         gender: body.gender || null,
         birth_date: body.birth_date || null,
@@ -308,13 +332,13 @@ export async function POST(req: Request) {
     }
 
     const customerId = customer.id;
-    const branchId = customer.branch_id || null;
+    const customerBranchId = customer.branch_id || branchId;
 
     const { error: membershipError } = await supabase
       .from("customer_membership_fees")
       .insert({
         customer_id: customerId,
-        branch_id: branchId,
+        branch_id: customerBranchId,
         amount: membershipAmount,
         paid_at: now,
         valid_from: todayDate,
@@ -344,7 +368,7 @@ export async function POST(req: Request) {
         .from("customer_subscriptions")
         .insert({
           customer_id: customerId,
-          branch_id: branchId,
+          branch_id: customerBranchId,
           plan_id: subscriptionPlanId,
           amount: subscriptionAmount,
           starts_at: todayDate,
@@ -395,6 +419,7 @@ export async function POST(req: Request) {
       .from("customer_payments")
       .insert({
         customer_id: customerId,
+        ...(customerPaymentsHasBranch ? { branch_id: customerBranchId } : {}),
         type: "onboarding",
         description,
         amount: totalAmount,
@@ -421,6 +446,7 @@ export async function POST(req: Request) {
 
     await supabase.from("payments").insert({
       customer_id: customerId,
+      ...(paymentsHasBranch ? { branch_id: customerBranchId } : {}),
       payment_method_id: null,
       amount: totalAmount,
       payment_type: "onboarding",
@@ -431,7 +457,7 @@ export async function POST(req: Request) {
     });
 
     await supabase.from("accounting_entries").insert({
-      branch_id: branchId,
+      branch_id: customerBranchId,
       customer_id: customerId,
       direction: "income",
       category: "onboarding",
@@ -448,6 +474,7 @@ export async function POST(req: Request) {
       .from("customer_receipts")
       .insert({
         customer_id: customerId,
+        ...(receiptsHasBranch ? { branch_id: customerBranchId } : {}),
         payment_id: payment.id,
         subscription_id: subscriptionId,
         receipt_year: receiptNumber.receipt_year,
@@ -550,6 +577,7 @@ export async function POST(req: Request) {
       customer_id: customerId,
       payment_id: payment.id,
       subscription_id: subscriptionId,
+      branch_id: customerBranchId,
       receipt_number: receiptNumber.receipt_number,
       next_url: `/customers/${customerId}/contract/print`,
     });

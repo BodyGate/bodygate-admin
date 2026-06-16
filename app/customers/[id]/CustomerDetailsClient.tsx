@@ -20,6 +20,7 @@ import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 
 type Customer = any;
 type Plan = any;
+type Branch = { id: string; name?: string | null; address?: string | null; city?: string | null };
 
 const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
   "Mensile",
@@ -69,6 +70,7 @@ export default function CustomerDetailsClient({
 }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [customerBranch, setCustomerBranch] = useState<Branch | null>(null);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [membershipFees, setMembershipFees] = useState<any[]>([]);
   const [blocks, setBlocks] = useState<any[]>([]);
@@ -422,6 +424,17 @@ export default function CustomerDetailsClient({
 
       setCustomer(customerData);
 
+      if (customerData.branch_id) {
+        const { data: branchData } = await supabase
+          .from("branches")
+          .select("id, name, address, city")
+          .eq("id", customerData.branch_id)
+          .maybeSingle();
+        setCustomerBranch(branchData || null);
+      } else {
+        setCustomerBranch(null);
+      }
+
       let plansQuery = supabase
         .from("subscription_plans")
         .select("*")
@@ -537,14 +550,23 @@ export default function CustomerDetailsClient({
   const certificateValid =
     medicalCertificateEnd && medicalCertificateEnd >= today;
 
+  const branchMissing = !customer?.branch_id;
+  const branchLabel = customerBranch
+    ? `${customerBranch.name || "Sede operativa"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}`
+    : branchMissing
+      ? "Cliente non associato a una sede operativa"
+      : customer?.branch_id || "-";
+
   const accessAllowed =
     !!activeSubscription &&
     !!activeMembership &&
+    !!customer?.branch_id &&
     !!certificateValid &&
     !activeBlock &&
     !!customer?.is_active;
 
   const customerInfo = [
+    { label: "Sede operativa", value: customerBranch ? `${customerBranch.name || "Sede"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}` : customer?.branch_id ? customer.branch_id : "Sede mancante" },
     { label: "Telefono", value: customer?.phone || "-" },
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
@@ -1468,6 +1490,7 @@ export default function CustomerDetailsClient({
     { label: "Cliente attivo", ok: customer?.is_active !== false },
     { label: "Abbonamento", ok: !!activeSubscription },
     { label: "Quota", ok: !!activeMembership },
+    { label: "Sede", ok: !branchMissing },
     { label: "Certificato", ok: !!certificateValid },
     { label: "Blocchi", ok: !activeBlock },
   ];
@@ -1479,11 +1502,13 @@ export default function CustomerDetailsClient({
       : null,
     !certificateValid ? "Certificato medico scaduto o mancante" : null,
     !activeMembership ? "Quota associativa da verificare" : null,
+    branchMissing ? "Cliente non associato a una sede operativa" : null,
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
     customer?.is_active === false ? "Cliente disattivato" : null,
   ].filter(Boolean) as string[];
 
   const compactProfileInfo = [
+    { label: "Sede operativa", value: customerBranch ? `${customerBranch.name || "Sede"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}` : customer?.branch_id ? customer.branch_id : "Sede mancante" },
     { label: "Telefono", value: customer?.phone || "-" },
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
@@ -2872,6 +2897,7 @@ export default function CustomerDetailsClient({
                   <div className="bg-eyebrow">Situazione cliente</div>
                   <h2 className="situation-title">{currentPlanName}</h2>
                   <div className="situation-subtitle">
+                    Sede operativa: {branchLabel}.<br />
                     Stato immediato per reception:{" "}
                     {subscriptionStatus.toLowerCase()} · accesso{" "}
                     {accessAllowed ? "consentito" : "da verificare"}
@@ -2970,7 +2996,7 @@ export default function CustomerDetailsClient({
                     color: "#bbf7d0",
                   }}
                 >
-                  Nessun alert operativo: cliente regolare per abbonamento,
+                  Nessun alert operativo: cliente regolare per sede, abbonamento,
                   quota, certificato e blocchi.
                 </div>
               )}
@@ -3013,6 +3039,11 @@ export default function CustomerDetailsClient({
                   }
                 />
                 <div className="info-grid">
+                  <InfoMini
+                    label="Sede operativa"
+                    value={branchLabel}
+                    tone={branchMissing ? "danger" : "success"}
+                  />
                   <InfoMini
                     label="Badge"
                     value={badgeDisplay}
@@ -3153,6 +3184,16 @@ export default function CustomerDetailsClient({
                 note="Registro ricevute e ristampe A4 mantenuti nella sezione pagamenti."
                 action="Vedi ricevute"
                 onAction={() => setActiveSection("payments")}
+              />
+              <OverviewCard
+                eyebrow="Sede"
+                title="Sede operativa"
+                status={branchMissing ? "Mancante" : "Associata"}
+                tone={branchMissing ? "danger" : "success"}
+                value={branchLabel}
+                note={branchMissing ? "Correggere l’anagrafica prima di considerare l’accesso operativo." : customerBranch?.address || "Sede cliente valorizzata"}
+                action="Apri profilo"
+                onAction={() => setActiveSection("profile")}
               />
               <OverviewCard
                 eyebrow="Gate"
