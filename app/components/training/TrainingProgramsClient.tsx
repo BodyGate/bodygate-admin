@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { safeRandomId } from "../../lib/safeRandomId";
 import { supabase } from "../../lib/supabaseClient";
 
 type Customer = {
@@ -69,7 +70,7 @@ export default function TrainingProgramsClient() {
     loadData();
 
     const channel = supabase
-      .channel(`training-programs-live-${crypto.randomUUID()}`)
+      .channel(safeRandomId("training-programs-live"))
       .on(
         "postgres_changes",
         {

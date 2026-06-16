@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { safeRandomId } from "../../lib/safeRandomId";
 import { supabase } from "../../lib/supabaseClient";
 
 type Exercise = any;
@@ -42,7 +43,7 @@ export default function ExercisesLibraryClient() {
     loadExercises();
 
     const channel = supabase
-      .channel(`exercises-library-live-${crypto.randomUUID()}`)
+      .channel(safeRandomId("exercises-library-live"))
       .on(
         "postgres_changes",
         {

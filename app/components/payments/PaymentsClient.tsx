@@ -9,6 +9,7 @@ import BGEmptyState from "../ui/BGEmptyState";
 import BGPageHeader from "../ui/BGPageHeader";
 import BGStatCard from "../ui/BGStatCard";
 import BGStatusBadge from "../ui/BGStatusBadge";
+import { safeRandomId } from "../../lib/safeRandomId";
 import { supabase } from "../../lib/supabaseClient";
 
 type CustomerRelation = {
@@ -172,7 +173,7 @@ export default function PaymentsClient() {
     loadPayments();
 
     const channel = supabase
-      .channel(`payments-readonly-${crypto.randomUUID()}`)
+      .channel(safeRandomId("payments-readonly"))
       .on(
         "postgres_changes",
         {

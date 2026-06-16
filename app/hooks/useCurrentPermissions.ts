@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { safeRandomId } from "../lib/safeRandomId";
 import { supabase } from "../lib/supabaseClient";
 
 const ADMIN_ROLE_KEYS = new Set([
@@ -39,34 +40,35 @@ export function useCurrentPermissions() {
   async function loadPermissions() {
     setLoading(true);
 
-    const sessionUserId = readCookie("bodygate_session");
+    try {
+      const sessionUserId = readCookie("bodygate_session");
 
-    if (!sessionUserId) {
-      setPermissions([]);
-      setRoleKey(null);
-      setStaffName(null);
-      setLoading(false);
-      return;
-    }
+      if (!sessionUserId) {
+        setPermissions([]);
+        setRoleKey(null);
+        setStaffName(null);
+        setLoading(false);
+        return;
+      }
 
-    const { data: appUser } = await supabase
-      .from("app_users")
-      .select("id, email, role, active")
-      .eq("id", sessionUserId)
-      .eq("active", true)
-      .maybeSingle();
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("id, email, role, active")
+        .eq("id", sessionUserId)
+        .eq("active", true)
+        .maybeSingle();
 
-    if (!appUser?.email) {
-      setPermissions([]);
-      setRoleKey(null);
-      setStaffName(null);
-      setLoading(false);
-      return;
-    }
+      if (!appUser?.email) {
+        setPermissions([]);
+        setRoleKey(null);
+        setStaffName(null);
+        setLoading(false);
+        return;
+      }
 
-    const { data: staffUser } = await supabase
-      .from("staff_users")
-      .select(`
+      const { data: staffUser } = await supabase
+        .from("staff_users")
+        .select(`
         id,
         full_name,
         email,
@@ -77,97 +79,113 @@ export function useCurrentPermissions() {
           role_name
         )
       `)
-      .eq("email", appUser.email)
-      .eq("is_active", true)
-      .maybeSingle();
+        .eq("email", appUser.email)
+        .eq("is_active", true)
+        .maybeSingle();
 
-    const appRoleKey = appUser.role || null;
+      const appRoleKey = appUser.role || null;
 
-    if (isAdminRole(appRoleKey)) {
-      setPermissions([]);
-      setRoleKey(appRoleKey);
-      setStaffName(staffUser?.full_name || appUser.email);
-      setLoading(false);
-      return;
-    }
+      if (isAdminRole(appRoleKey)) {
+        setPermissions([]);
+        setRoleKey(appRoleKey);
+        setStaffName(staffUser?.full_name || appUser.email);
+        setLoading(false);
+        return;
+      }
 
-    if (!staffUser || !staffUser.staff_roles) {
-      setPermissions([]);
-      setRoleKey(appRoleKey);
-      setStaffName(appUser.email);
-      setLoading(false);
-      return;
-    }
+      if (!staffUser || !staffUser.staff_roles) {
+        setPermissions([]);
+        setRoleKey(appRoleKey);
+        setStaffName(appUser.email);
+        setLoading(false);
+        return;
+      }
 
-    const role: any = Array.isArray(staffUser.staff_roles)
-      ? staffUser.staff_roles[0]
-      : staffUser.staff_roles;
-    const resolvedRoleKey = role?.role_key || appRoleKey;
+      const role: any = Array.isArray(staffUser.staff_roles)
+        ? staffUser.staff_roles[0]
+        : staffUser.staff_roles;
+      const resolvedRoleKey = role?.role_key || appRoleKey;
 
-    if (!role?.id) {
-      setPermissions([]);
+      if (!role?.id) {
+        setPermissions([]);
+        setRoleKey(resolvedRoleKey);
+        setStaffName(staffUser.full_name || appUser.email);
+        setLoading(false);
+        return;
+      }
+
       setRoleKey(resolvedRoleKey);
       setStaffName(staffUser.full_name || appUser.email);
-      setLoading(false);
-      return;
-    }
 
-    setRoleKey(resolvedRoleKey);
-    setStaffName(staffUser.full_name || appUser.email);
-
-    const { data: rolePermissions } = await supabase
-      .from("staff_role_permissions")
-      .select(`
+      const { data: rolePermissions } = await supabase
+        .from("staff_role_permissions")
+        .select(`
         staff_permissions (
           permission_key
         )
       `)
-      .eq("role_id", role.id);
+        .eq("role_id", role.id);
 
-    const keys =
-      rolePermissions
-        ?.map((item: any) => {
-          const permission = Array.isArray(item.staff_permissions)
-            ? item.staff_permissions[0]
-            : item.staff_permissions;
+      const keys =
+        rolePermissions
+          ?.map((item: any) => {
+            const permission = Array.isArray(item.staff_permissions)
+              ? item.staff_permissions[0]
+              : item.staff_permissions;
 
-          return permission?.permission_key;
-        })
-        .filter(Boolean) || [];
+            return permission?.permission_key;
+          })
+          .filter(Boolean) || [];
 
-    setPermissions(keys);
-    setLoading(false);
+      setPermissions(keys);
+    } catch (error) {
+      console.error("Errore caricamento permessi:", error);
+      setPermissions([]);
+      setRoleKey(null);
+      setStaffName(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadPermissions();
 
-    const channelName = `current-permissions-live-${crypto.randomUUID()}`;
+    const channelName = safeRandomId("current-permissions-live");
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "staff_role_permissions",
-        },
-        loadPermissions
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "staff_users",
-        },
-        loadPermissions
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "staff_role_permissions",
+          },
+          loadPermissions
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "staff_users",
+          },
+          loadPermissions
+        )
+        .subscribe();
+    } catch (error) {
+      console.error("Errore setup realtime permessi:", error);
+      setLoading(false);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
