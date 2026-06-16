@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { supabase } from "../../lib/supabaseClient";
 import CustomerPhotoUpload from "../components/CustomerPhotoUpload";
-import MedicalCertificateCard from "../components/MedicalCertificateCard";
+import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
@@ -4362,29 +4362,21 @@ export default function CustomerDetailsClient({
 
       {activeSection === "documents" ? (
         <section className="content-grid">
-          <MedicalCertificateCard
+          <CustomerDocumentRows
             customerId={customer.id}
-            currentCertificateUrl={customer.medical_certificate_url}
-            startDate={
-              customer.medical_certificate_start_date ||
-              customer.medical_certificate_start
-            }
-            endDate={
-              customer.medical_certificate_end_date ||
-              customer.medical_certificate_end
-            }
-            onUpdated={(data) =>
-              setCustomer((prev: any) => ({
-                ...prev,
-                ...(data.customer || {}),
-                medical_certificate_url: data.url,
-                medical_certificate_start_date: data.startDate,
-                medical_certificate_end_date: data.endDate,
-                medical_certificate_status: data.status,
-                medical_certificate_start: data.startDate,
-                medical_certificate_end: data.endDate,
-              }))
-            }
+            customer={customer}
+            onUploaded={(document) => {
+              if (document.document_type === "customer_photo" && document.view_url) {
+                setCustomer((prev: any) => ({ ...prev, photo_url: document.view_url }));
+              }
+              if (document.document_type === "medical_certificate") {
+                setCustomer((prev: any) => ({
+                  ...prev,
+                  medical_certificate_url: document.view_url || prev.medical_certificate_url,
+                  medical_certificate_status: document.status || prev.medical_certificate_status,
+                }));
+              }
+            }}
           />
           <BGCard variant="premium">
             <BGSectionHeader

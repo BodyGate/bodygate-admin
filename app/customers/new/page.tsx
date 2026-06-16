@@ -8,6 +8,8 @@ import BGPageHeader from "../../components/ui/BGPageHeader";
 import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
+import CustomerDocumentRows from "../components/CustomerDocumentRows";
+import type { ScannerDocumentType } from "../components/documentScannerUtils";
 
 const plans = [
   { id: "", name: "Solo quota associativa", price: 0, duration: 0 },
@@ -59,6 +61,7 @@ export default function NewCustomerPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [pendingDocuments, setPendingDocuments] = useState<Partial<Record<ScannerDocumentType, any>>>({});
 
   const [form, setForm] = useState({
     first_name: "",
@@ -113,6 +116,29 @@ export default function NewCustomerPage() {
 
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updatePendingDocument(type: ScannerDocumentType, doc: any) {
+    setPendingDocuments((current) => ({ ...current, [type]: doc }));
+  }
+
+  async function uploadPendingDocuments(customerId: string) {
+    const entries = Object.entries(pendingDocuments) as [ScannerDocumentType, any][];
+    const failures: string[] = [];
+    for (const [type, doc] of entries) {
+      if (!doc?.file) continue;
+      const formData = new FormData();
+      formData.append("file", doc.file);
+      formData.append("document_type", type);
+      if (type === "medical_certificate") {
+        formData.append("valid_from", form.medical_certificate_start_date || doc.validFrom || "");
+        formData.append("valid_until", form.medical_certificate_end_date || doc.validUntil || "");
+      }
+      const response = await fetch(`/api/customers/${customerId}/documents/upload`, { method: "POST", body: formData });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) failures.push(result?.error || `Upload ${type} non riuscito`);
+    }
+    return failures;
   }
 
   async function submit(event: React.FormEvent) {
@@ -183,6 +209,13 @@ export default function NewCustomerPage() {
         } catch (error) {
           console.warn("QR DNake non generato:", error);
         }
+      }
+
+      const documentFailures = await uploadPendingDocuments(customerId);
+      if (documentFailures.length) {
+        setMessage(`Cliente creato, documenti da completare: ${documentFailures.join("; ")}`);
+        setSaving(false);
+        return;
       }
 
       router.push(result.next_url || `/customers/${customerId}/contract`);
@@ -554,6 +587,17 @@ export default function NewCustomerPage() {
                 ]}
               />
             </div>
+          </section>
+
+          <section className="card bg-card bg-form-panel">
+            <CustomerDocumentRows
+              customer={{
+                medical_certificate_start_date: form.medical_certificate_start_date,
+                medical_certificate_end_date: form.medical_certificate_end_date,
+              }}
+              pendingDocuments={pendingDocuments}
+              onPendingChange={updatePendingDocument}
+            />
           </section>
 
           <section className="card bg-card bg-form-panel">
