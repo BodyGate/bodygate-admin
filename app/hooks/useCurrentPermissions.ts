@@ -179,7 +179,8 @@ export function useCurrentPermissions() {
         .subscribe();
     } catch (error) {
       console.error("Errore setup realtime permessi:", error);
-      setLoading(false);
+      // Il caricamento iniziale è gestito da loadPermissions(): un errore nel
+      // setup realtime non deve interromperlo né lasciare la UI in attesa.
     }
 
     return () => {
