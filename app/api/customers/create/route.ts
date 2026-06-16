@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDefaultOperationalBranch } from "../../../lib/server/defaultBranch";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey =
@@ -82,6 +83,15 @@ export async function POST(req: Request) {
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
     const warnings: string[] = [];
+    const defaultBranch = await getDefaultOperationalBranch(supabase);
+    const branchId = defaultBranch?.id || null;
+
+    if (!branchId) {
+      return NextResponse.json(
+        { ok: false, error: "Nessuna sede operativa attiva disponibile per creare il cliente." },
+        { status: 500 }
+      );
+    }
 
     const customerPayload: Record<string, unknown> = {
       first_name: firstName,
@@ -90,6 +100,7 @@ export async function POST(req: Request) {
       phone: phone || null,
       email: email || null,
       tax_code: taxCode || null,
+      branch_id: branchId,
       active: true,
     };
 
@@ -170,6 +181,7 @@ export async function POST(req: Request) {
         .from("customer_membership_fees")
         .insert({
           customer_id: customerId,
+          branch_id: branchId,
           valid_from: today,
           valid_until: membershipValidUntil,
           amount: 10,
@@ -194,6 +206,7 @@ export async function POST(req: Request) {
         .from("customer_subscriptions")
         .insert({
           customer_id: customerId,
+          branch_id: branchId,
           is_active: true,
           starts_at: subscriptionStartsAt,
           ends_at: subscriptionEndsAt,
