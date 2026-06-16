@@ -120,12 +120,13 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
 
   return <div className="doc-panel">
     <style jsx>{`
-      .doc-panel { border:1px solid #252525; border-radius:22px; background:linear-gradient(135deg,#121212,#070707); padding:14px; color:#fff; display:grid; gap:10px; }
-      .head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:2px 4px 8px; } .head b{font-size:18px;} .head span{color:#a3a3a3;font-size:12px;}
-      .row { display:grid; grid-template-columns:minmax(150px,1fr) 128px minmax(120px,1fr) auto; gap:10px; align-items:center; border:1px solid #242424; border-radius:16px; padding:10px; background:#0c0c0c; }
-      .name { font-weight:900; } .sub { color:#a3a3a3; font-size:12px; margin-top:2px; }
-      .badge { justify-self:start; border-radius:999px; padding:7px 10px; font-size:12px; font-weight:900; background:#262626; color:#ddd; } .valid,.uploaded{background:#052e18;color:#86efac}.expired,.non_operational,.error{background:#3b0711;color:#fda4af}.needs_dates{background:#422006;color:#fcd34d}
-      .detail { color:#bdbdbd; font-size:12px; } .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.native-file{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;opacity:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;pointer-events:none}.buttonlike,button{border:1px solid #333;background:#151515;color:#fff;border-radius:11px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer;text-decoration:none;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:34px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}.buttonlike.primary,button.primary{background:#e11d2e;border-color:#ef4444}.buttonlike.disabled,button:disabled{opacity:.42;cursor:not-allowed;pointer-events:none}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:820px){.row{grid-template-columns:1fr}.actions{justify-content:flex-start}}
+      .doc-panel { border:1px solid #252525; border-radius:20px; background:linear-gradient(135deg,#121212,#070707); padding:12px; color:#fff; display:grid; gap:8px; }
+      .head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:2px 4px 6px; } .head b{font-size:17px;} .head span{color:#a3a3a3;font-size:12px;}
+      .row { display:grid; grid-template-columns:minmax(190px,1.15fr) 118px minmax(150px,.9fr) auto; gap:9px; align-items:center; border:1px solid #222; border-radius:14px; padding:8px 10px; background:rgba(12,12,12,.86); }
+      .row.optional { border-style:dashed; background:rgba(8,8,8,.56); padding:7px 10px; }
+      .name { font-weight:850; font-size:14px; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .optional .name{font-weight:800;color:#d7d7d7}.sub { color:#9b9b9b; font-size:11px; margin-top:1px; }
+      .badge { justify-self:start; border-radius:999px; padding:6px 9px; font-size:11px; font-weight:900; background:#262626; color:#ddd; white-space:nowrap; } .valid,.uploaded{background:#052e18;color:#86efac}.expired,.non_operational,.error{background:#3b0711;color:#fda4af}.needs_dates{background:#422006;color:#fcd34d}
+      .detail { color:#bdbdbd; font-size:11.5px; line-height:1.25; } .muted-detail{color:#898989}.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}.native-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.buttonlike,button{border:1px solid #343434;background:#151515;color:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900;cursor:pointer;text-decoration:none;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:34px;min-width:74px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .15s ease,border-color .15s ease,transform .15s ease}.buttonlike:hover,button:hover:not(:disabled){background:#202020;border-color:#4a4a4a}.buttonlike:active,button:active:not(:disabled){transform:translateY(1px)}.buttonlike.primary{background:#e11d2e;border-color:#ef4444}.buttonlike.primary:hover{background:#f02b3d}.buttonlike.subtle{min-width:auto;color:#f1f1f1;background:#101010}.buttonlike.disabled,button:disabled{opacity:.42;cursor:not-allowed;pointer-events:none}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:960px){.row{grid-template-columns:minmax(0,1fr) auto}.detail{grid-column:1 / 2}.actions{grid-column:2 / 3;grid-row:1 / span 3;align-self:center;max-width:180px}.name{white-space:normal}}@media(max-width:640px){.row{grid-template-columns:1fr}.actions{grid-column:auto;grid-row:auto;justify-content:flex-start;max-width:none}.detail{grid-column:auto}}
     `}</style>
     <div className="head"><div><b>{compactTitle}</b><br/><span>Scanner compatto per reception e tablet</span></div></div>
     {rows.map((row) => {
@@ -133,17 +134,26 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
       const cameraInputId = `${inputNamespace}-${row.type}-camera`;
       const fileInputId = `${inputNamespace}-${row.type}-file`;
       const disabled = busyType === row.type;
-      return <div className="row" key={row.type}>
-        <div><div className="name">{row.title}{row.side ? ` — ${row.side}` : ""}</div><div className="sub">{critical ? "Bloccante accesso" : row.optional ? "Opzionale" : "Warning amministrativo"}</div></div>
+      const hasDocument = Boolean(url || doc || pendingDocuments[row.type]);
+      const validFrom = pendingDocuments.medical_certificate?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "";
+      const validUntil = pendingDocuments.medical_certificate?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "";
+      const detail = row.type === "medical_certificate"
+        ? !validFrom || !validUntil ? "Date validità mancanti" : `${validFrom} → ${validUntil}`
+        : doc?.created_at ? `Aggiornato ${new Date(doc.created_at).toLocaleDateString("it-IT")}` : pendingDocuments[row.type] ? "Pronto per salvataggio cliente" : row.optional ? "Aggiungi solo se necessario" : "Da acquisire";
+      return <div className={`row${row.optional ? " optional" : ""}`} key={row.type}>
+        <div><div className="name">{row.optional ? "+ Aggiungi altro documento" : `${row.title}${row.side ? ` · ${row.side}` : ""}`}</div><div className="sub">{critical ? "Bloccante accesso" : row.optional ? "Opzionale" : "Warning amministrativo"}</div></div>
         <div className={`badge ${status}`}>{labels[status]}</div>
-        <div className="detail">{row.type === "medical_certificate" ? `${pendingDocuments.medical_certificate?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "data inizio mancante"} → ${pendingDocuments.medical_certificate?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "data fine mancante"}` : doc?.created_at ? `Aggiornato ${new Date(doc.created_at).toLocaleDateString("it-IT")}` : pendingDocuments[row.type] ? "Pronto per salvataggio cliente" : "Da acquisire"}</div>
+        <div className={`detail${row.optional && !hasDocument ? " muted-detail" : ""}`}>{detail}</div>
         <div className="actions">
           <input id={cameraInputId} className="native-file" type="file" accept="image/*" capture="environment" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "camera", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
-          <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : cameraInputId} aria-disabled={disabled}>Scatta</label>
           <input id={fileInputId} className="native-file" type="file" accept="image/*,.pdf" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "file", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
-          <label className={`buttonlike${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Carica</label>
-          <button type="button" onClick={() => url && window.open(url, "_blank", "noopener,noreferrer")} disabled={!url}>Visualizza</button>
-          <button type="button" onClick={() => openScanner(row, "file")} disabled={disabled}>{url || doc ? "Sostituisci" : "Sostituisci"}</button>
+          {hasDocument ? <>
+            {url ? <button type="button" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>Visualizza</button> : null}
+            <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Sostituisci</label>
+          </> : <>
+            <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : cameraInputId} aria-disabled={disabled}>Scatta</label>
+            <label className={`buttonlike subtle${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Carica</label>
+          </>}
         </div>
       </div>;
     })}
