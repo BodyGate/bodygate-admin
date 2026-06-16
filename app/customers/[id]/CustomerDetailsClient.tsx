@@ -557,14 +557,6 @@ export default function CustomerDetailsClient({
       ? "Cliente non associato a una sede operativa"
       : customer?.branch_id || "-";
 
-  const accessAllowed =
-    !!activeSubscription &&
-    !!activeMembership &&
-    !!customer?.branch_id &&
-    !!certificateValid &&
-    !activeBlock &&
-    !!customer?.is_active;
-
   const customerInfo = [
     { label: "Sede operativa", value: customerBranch ? `${customerBranch.name || "Sede"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}` : customer?.branch_id ? customer.branch_id : "Sede mancante" },
     { label: "Telefono", value: customer?.phone || "-" },
@@ -608,6 +600,13 @@ export default function CustomerDetailsClient({
       null
     );
   }, [dnakeUsers]);
+
+  const qrOperative = Boolean(
+    activeDnakeQr?.qr_status === "active" &&
+      (activeDnakeQr?.controller_code || activeDnakeQr?.qr_payload),
+  );
+
+  const operativeCredentialsReady = cardOperative || qrOperative;
 
   function paymentMethodLabel(method: string) {
     if (method === "cash") return "Contanti";
@@ -1421,6 +1420,21 @@ export default function CustomerDetailsClient({
     customer.contract_pdf_url ||
     customer.agreement_url ||
     "";
+
+  const documentsReady = Boolean(contractUrl);
+
+  const accessBlockReasons = [
+    customer?.is_active === false ? "cliente non attivo" : null,
+    branchMissing ? "sede operativa mancante" : null,
+    !operativeCredentialsReady ? "credenziali operative mancanti" : null,
+    !certificateValid ? "certificato medico non valido" : null,
+    !activeMembership ? "quota associativa non valida" : null,
+    !activeSubscription ? "abbonamento non valido" : null,
+    !documentsReady ? "contratto/documenti mancanti" : null,
+    activeBlock ? `blocco attivo: ${activeBlock.reason || "senza motivo"}` : null,
+  ].filter(Boolean) as string[];
+
+  const accessAllowed = accessBlockReasons.length === 0;
   const shortPlans = plans.slice(0, 6);
 
   const activeSubscriptionStart = String(
@@ -1488,11 +1502,13 @@ export default function CustomerDetailsClient({
 
   const accessDecisionChecks = [
     { label: "Cliente attivo", ok: customer?.is_active !== false },
-    { label: "Abbonamento", ok: !!activeSubscription },
-    { label: "Quota", ok: !!activeMembership },
-    { label: "Sede", ok: !branchMissing },
-    { label: "Certificato", ok: !!certificateValid },
-    { label: "Blocchi", ok: !activeBlock },
+    { label: "Sede operativa", ok: !branchMissing },
+    { label: "Credenziali operative", ok: operativeCredentialsReady },
+    { label: "Certificato valido", ok: !!certificateValid },
+    { label: "Quota valida", ok: !!activeMembership },
+    { label: "Abbonamento valido", ok: !!activeSubscription },
+    { label: "Contratto/documenti", ok: documentsReady },
+    { label: activeBlock ? `Blocco: ${activeBlock.reason || "attivo"}` : "Nessun blocco", ok: !activeBlock },
   ];
 
   const customerAlerts = [
@@ -1503,6 +1519,8 @@ export default function CustomerDetailsClient({
     !certificateValid ? "Certificato medico scaduto o mancante" : null,
     !activeMembership ? "Quota associativa da verificare" : null,
     branchMissing ? "Cliente non associato a una sede operativa" : null,
+    !operativeCredentialsReady ? "Credenziali operative mancanti" : null,
+    !documentsReady ? "Contratto/documenti mancanti" : null,
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
     customer?.is_active === false ? "Cliente disattivato" : null,
   ].filter(Boolean) as string[];
@@ -2918,6 +2936,11 @@ export default function CustomerDetailsClient({
                   <div className="access-decision-value">
                     {accessAllowed ? "Può entrare" : "Non può entrare"}
                   </div>
+                  {!accessAllowed ? (
+                    <div className="mt-2 text-xs font-bold text-amber-100">
+                      Motivo reale: {accessBlockReasons.join(" · ")}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="access-check-grid">
                   {accessDecisionChecks.map((check) => (
