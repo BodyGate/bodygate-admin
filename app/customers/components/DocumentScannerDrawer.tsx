@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { compressImageFile, createSafeScannerFileName, isImageFile, isPdfFile, rotateImageFile, validateScannerFile, type ScannerDocumentType } from "./documentScannerUtils";
 
 type Props = {
@@ -12,8 +12,6 @@ type Props = {
 };
 
 export default function DocumentScannerDrawer({ open, title, documentType, onClose, onConfirm }: Props) {
-  const cameraRef = useRef<HTMLInputElement | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
@@ -83,7 +81,10 @@ export default function DocumentScannerDrawer({ open, title, documentType, onClo
         button { border:1px solid #333; background:#151515; color:#fff; border-radius:14px; padding:12px 14px; font-weight:900; cursor:pointer; }
         button:disabled { opacity:.45; cursor:not-allowed; }
         .primary { background:#e11d2e; border-color:#ef4444; } .ghost { background:#090909; }
-        input { display:none; }
+        .file-action { position: relative; border: 1px solid #333; background: #151515; color: #fff; border-radius: 14px; padding: 12px 14px; font-weight: 900; cursor: pointer; text-align: center; min-height: 46px; display: inline-flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .file-action.primary-action { background: #e11d2e; border-color: #ef4444; }
+        .file-action.disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+        .file-input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
         .stage { border:1px solid #2d2d2d; border-radius:22px; min-height:330px; background: radial-gradient(circle at top,#1d1d1d,#080808); display:flex; align-items:center; justify-content:center; overflow:hidden; padding:14px; }
         img { width:100%; height:100%; max-height:420px; object-fit:contain; border-radius:16px; }
         .empty, .pdf { text-align:center; color:#b8b8b8; display:grid; gap:8px; } .pdf b { color:#fff; font-size:28px; }
@@ -96,10 +97,14 @@ export default function DocumentScannerDrawer({ open, title, documentType, onClo
           {preview ? <img src={preview} alt="Anteprima scansione" /> : file && isPdfFile(file) ? <div className="pdf"><b>PDF</b><span>Documento pronto per la conferma</span></div> : <div className="empty"><b>Nessuna scansione</b><span>Usa la camera o carica un file.</span></div>}
         </div>
         <div className="actions">
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={(e) => pick(e.target.files?.[0])} />
-          <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={(e) => pick(e.target.files?.[0])} />
-          <button type="button" onClick={() => cameraRef.current?.click()} disabled={loading}>Scatta</button>
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={loading}>Carica</button>
+          <label className={`file-action primary-action${loading ? " disabled" : ""}`} aria-disabled={loading}>
+            <span>Scatta foto</span>
+            <input className="file-input" type="file" accept="image/*" capture="environment" disabled={loading} onChange={(e) => { pick(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+          </label>
+          <label className={`file-action${loading ? " disabled" : ""}`} aria-disabled={loading}>
+            <span>Carica file</span>
+            <input className="file-input" type="file" accept="image/*,.pdf" disabled={loading} onChange={(e) => { pick(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+          </label>
           <button type="button" onClick={() => setFile(null)} disabled={!file || loading}>Ripeti</button>
           <button type="button" onClick={rotate} disabled={!file || !isImageFile(file) || loading}>Ruota</button>
           <button className="primary wide" type="button" onClick={confirm} disabled={!file || loading}>{loading ? "Elaborazione..." : "Conferma scansione"}</button>
