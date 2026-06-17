@@ -1664,3 +1664,48 @@ button, input, select, textarea, a { -webkit-tap-highlight-color: transparent; }
     max-width: 100%;
   }
 }
+
+/* Platinum progressive onboarding */
+.platinum-onboarding-page { display: grid; gap: 16px; min-width: 0; max-width: min(1180px, 100%); margin: 0 auto; padding-bottom: 84px; }
+.platinum-onboarding-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 18px 20px; border: 1px solid var(--bg-border-subtle); border-radius: 18px; background: var(--bg-surface-1); }
+.platinum-eyebrow { color: var(--bg-brand-hover); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.platinum-onboarding-header h1 { margin: 4px 0 0; font-size: clamp(26px, 3vw, 38px); line-height: 1; letter-spacing: -.045em; font-weight: 820; }
+.platinum-onboarding-header p { margin: 8px 0 0; color: var(--bg-text-muted); font-size: 13px; }
+.platinum-progress-panel { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--bg-border-subtle); border-radius: 16px; background: rgba(255,255,255,.035); }
+.platinum-onboarding-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); gap: 16px; align-items: start; min-width: 0; }
+.platinum-onboarding-main { display: grid; gap: 12px; min-width: 0; }
+.platinum-step-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.platinum-step-chip { min-width: 0; min-height: 62px; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 4px 8px; align-items: center; text-align: left; padding: 10px; border-radius: 14px; border: 1px solid var(--bg-border-subtle); background: rgba(255,255,255,.035); color: var(--bg-text-secondary); cursor: pointer; }
+.platinum-step-chip span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 99px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 800; }
+.platinum-step-chip strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.platinum-step-chip em { grid-column: 2; color: var(--bg-text-muted); font-size: 10px; font-style: normal; }
+.platinum-step-current { border-color: rgba(239,68,68,.34); background: var(--bg-brand-subtle); color: #fff; }
+.platinum-step-completed span { background: rgba(34,197,94,.18); color: #bbf7d0; }
+.platinum-step-error { border-color: rgba(244,63,94,.4); background: var(--bg-danger-subtle); }
+.platinum-step-card { display: grid; gap: 16px; padding: 18px; border: 1px solid var(--bg-border-subtle); border-radius: 18px; background: var(--bg-surface-1); box-shadow: var(--bg-shadow-card); min-width: 0; }
+.platinum-step-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--bg-border-subtle); }
+.platinum-step-card-header span { color: var(--bg-text-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.platinum-step-card-header h2 { margin: 4px 0 0; font-size: clamp(20px, 2vw, 26px); letter-spacing: -.035em; }
+.platinum-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-width: 0; }
+.platinum-field-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.platinum-step-stack { display: grid; gap: 14px; min-width: 0; }
+.platinum-money-strip { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.platinum-money-strip span { display: grid; gap: 4px; min-height: 58px; padding: 12px; border: 1px solid var(--bg-border-subtle); border-radius: 14px; background: rgba(255,255,255,.035); color: var(--bg-text-muted); font-size: 12px; }
+.platinum-money-strip strong { color: #fff; font-size: 18px; }
+.platinum-summary-panel { position: sticky; top: 88px; display: grid; gap: 10px; padding: 14px; border: 1px solid var(--bg-border-subtle); border-radius: 16px; background: var(--bg-surface-1); min-width: 0; }
+.summary-compact-title { font-weight: 820; font-size: 16px; }
+.summary-compact-line { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bg-border-subtle); font-size: 12px; }
+.summary-compact-line span { color: var(--bg-text-muted); } .summary-compact-line strong { max-width: 140px; overflow-wrap: anywhere; text-align: right; }
+.summary-compact-total { font-size: 28px; line-height: 1; font-weight: 820; letter-spacing: -.04em; }
+.summary-secondary { min-height: 40px; border-radius: 12px; border: 1px solid var(--bg-border); background: rgba(255,255,255,.055); color: #fff; font-weight: 800; }
+.platinum-final-list { display: grid; gap: 8px; }
+.platinum-summary-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; min-height: 54px; padding: 10px 12px; border: 1px solid var(--bg-border-subtle); border-radius: 14px; background: rgba(255,255,255,.035); }
+.platinum-summary-row strong, .platinum-summary-row span { display: block; min-width: 0; overflow-wrap: anywhere; }
+.platinum-summary-row span { margin-top: 3px; color: var(--bg-text-muted); font-size: 12px; }
+.onboarding-error-summary { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(244,63,94,.34); background: var(--bg-danger-subtle); color: #fecdd3; }
+.onboarding-error-summary ul { margin: 0; padding-left: 18px; } .onboarding-error-summary p { margin: 0; }
+.platinum-onboarding-actions { gap: 10px; }
+.platinum-onboarding-actions .bg-button { min-width: 160px; }
+@media (max-width: 1199px) { .platinum-onboarding-form { grid-template-columns: 1fr; } .platinum-summary-panel { position: relative; top: 0; } }
+@media (max-width: 899px) { .platinum-onboarding-page { max-width: 100%; } .platinum-step-list { grid-template-columns: 1fr; } .platinum-step-chip strong { white-space: normal; } .platinum-onboarding-header { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 599px) { .platinum-field-grid, .platinum-field-grid-3, .platinum-money-strip { grid-template-columns: 1fr; } .platinum-step-card, .platinum-onboarding-header { padding: 14px; } .platinum-onboarding-actions { display: grid; grid-template-columns: 1fr; } .platinum-onboarding-actions .bg-button { width: 100%; min-width: 0; } .platinum-summary-row { grid-template-columns: 1fr; } }
