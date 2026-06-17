@@ -8,7 +8,7 @@ import BGPageHeader from "../components/ui/BGPageHeader";
 export default function SystemPage() {
   return (
     <PermissionGuard permission="manage_staff">
-      <main className="bg-page-shell">
+      <div className="bg-page-shell">
       <BGPageHeader
         eyebrow="BodyGate System"
         title="System Control"
@@ -42,7 +42,7 @@ export default function SystemPage() {
       </BGCard>
 
       <SystemLivePanel />
-    </main>
+    </div>
     </PermissionGuard>
   );
 }

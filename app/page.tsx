@@ -136,7 +136,7 @@ export default function DashboardPage() {
   const bridgeOnline = bridgeStatus === "online" || bridgeStatus === "ok";
 
   return (
-    <main className="command-page-v2">
+    <div className="command-page-v2">
       <style jsx>{`
         .command-page-v2 {
           min-height: 100vh;
@@ -530,6 +530,6 @@ export default function DashboardPage() {
           </section>
         </>
       )}
-    </main>
+    </div>
   );
 }

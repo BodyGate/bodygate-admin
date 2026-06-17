@@ -1,5 +1,7 @@
 "use client";
 
+import { Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 
@@ -20,14 +22,23 @@ function titleFromPath(pathname: string) {
   return "BodyGate";
 }
 
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const isReceiptPage =
-    pathname.startsWith("/customers/") && pathname.includes("/receipt/");
-  const isContractPrintPage =
-    pathname.startsWith("/customers/") && pathname.endsWith("/contract/print");
-
+  const isReceiptPage = pathname.startsWith("/customers/") && pathname.includes("/receipt/");
+  const isContractPrintPage = pathname.startsWith("/customers/") && pathname.endsWith("/contract/print");
   const isPublicStandalonePage =
     pathname.startsWith("/mobile") ||
     pathname.startsWith("/staff-mobile") ||
@@ -35,114 +46,83 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     isReceiptPage ||
     isContractPrintPage;
 
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || []);
+    focusable[0]?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDrawerOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [drawerOpen]);
+
   if (isPublicStandalonePage) {
-    return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: isReceiptPage || isContractPrintPage ? "#ffffff" : "#050505",
-        }}
-      >
-        {children}
-      </main>
-    );
+    return <div className={isReceiptPage || isContractPrintPage ? "bg-standalone-page bg-standalone-page--print" : "bg-standalone-page"}>{children}</div>;
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        background:
-          "radial-gradient(circle at top left, rgba(239,68,68,.12), transparent 34%), #050505",
-        color: "#fff",
-      }}
-    >
+    <div className="bg-app-shell">
       <Sidebar />
 
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            height: 76,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 26px",
-            background: "rgba(5,5,6,0.74)",
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
-            backdropFilter: "blur(18px)",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 950,
-                letterSpacing: "-0.7px",
-              }}
-            >
-              {titleFromPath(pathname)}
-            </div>
+      <div className="bg-app-main-column">
+        <header className="bg-app-header">
+          <button ref={triggerRef} type="button" className="bg-mobile-menu-button" aria-label="Apri navigazione" aria-expanded={drawerOpen} aria-controls="bodygate-mobile-nav" onClick={() => setDrawerOpen(true)}>
+            <Menu size={20} aria-hidden="true" />
+          </button>
 
-            <div
-              style={{
-                color: "#8b8b8b",
-                fontSize: 12,
-                marginTop: 4,
-                fontWeight: 700,
-              }}
-            >
-              BodyGate · CRM Operativo Fitness
-            </div>
+          <div className="bg-app-title-block">
+            <div className="bg-app-title">{titleFromPath(pathname)}</div>
+            <div className="bg-app-subtitle">BodyGate · CRM Operativo Fitness</div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              color: "#86efac",
-              fontWeight: 950,
-              letterSpacing: "1.2px",
-              fontSize: 12,
-              padding: "10px 12px",
-              borderRadius: 999,
-              background: "rgba(34,197,94,.08)",
-              border: "1px solid rgba(34,197,94,.18)",
-            }}
-          >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                background: "#22c55e",
-                boxShadow: "0 0 18px rgba(34,197,94,0.85)",
-              }}
-            />
-            OPERATIVO
-          </div>
+          <div className="bg-app-status"><span aria-hidden="true" />OPERATIVO</div>
         </header>
 
-        <main
-          style={{
-            flex: 1,
-            padding: 24,
-            overflowX: "hidden",
-          }}
-        >
-          {children}
-        </main>
+        <main className="bg-app-content">{children}</main>
       </div>
+
+      {drawerOpen ? (
+        <div className="bg-mobile-nav-layer" role="presentation">
+          <button type="button" className="bg-mobile-nav-backdrop" aria-label="Chiudi navigazione" onClick={() => { setDrawerOpen(false); triggerRef.current?.focus(); }} />
+          <div id="bodygate-mobile-nav" ref={drawerRef} role="dialog" aria-modal="true" aria-label="Navigazione BodyGate" className="bg-mobile-nav-dialog">
+            <button type="button" className="bg-mobile-nav-close" aria-label="Chiudi navigazione" onClick={() => { setDrawerOpen(false); triggerRef.current?.focus(); }}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <Sidebar mode="drawer" onNavigate={() => setDrawerOpen(false)} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

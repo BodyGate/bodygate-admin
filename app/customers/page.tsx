@@ -4,7 +4,7 @@ import BGPageHeader from "../components/ui/BGPageHeader";
 
 export default function CustomersPage() {
   return (
-    <main className="bg-page-shell">
+    <div className="bg-page-shell">
       <BGPageHeader
         eyebrow="CRM BodyGate"
         title="Customers"
@@ -13,6 +13,6 @@ export default function CustomersPage() {
       />
 
       <CustomersTable />
-    </main>
+    </div>
   );
 }

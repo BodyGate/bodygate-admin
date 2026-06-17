@@ -226,7 +226,7 @@ export default function NewCustomerPage() {
   }
 
   return (
-    <main className="new-customer-page bg-page-shell">
+    <div className="new-customer-page bg-page-shell">
       <style jsx>{`
         .new-customer-page {
           color: white;
@@ -747,7 +747,7 @@ export default function NewCustomerPage() {
           )}
         </aside>
       </form>
-    </main>
+    </div>
   );
 }
 

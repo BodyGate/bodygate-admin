@@ -26,20 +26,25 @@ type MenuItem = {
   permission?: string;
 };
 
+type SidebarProps = {
+  mode?: "desktop" | "drawer";
+  onNavigate?: () => void;
+};
+
 const mainMenu: MenuItem[] = [
-  { label: "Dashboard", href: "/", icon: <LayoutDashboard size={20} /> },
-  { label: "Clienti", href: "/customers", icon: <Users size={20} /> },
-  { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
-  { label: "Access Control", href: "/access-control", icon: <DoorOpen size={20} /> },
-  { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} /> },
-  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} />, permission: "view_payments" },
-  { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} /> },
-  { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
-  { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
-  { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
-  { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} /> },
-  { label: "Sistema", href: "/system", icon: <Settings size={20} /> },
-  { label: "Impostazioni", href: "/settings", icon: <Settings size={20} /> },
+  { label: "Dashboard", href: "/", icon: <LayoutDashboard size={20} aria-hidden="true" /> },
+  { label: "Clienti", href: "/customers", icon: <Users size={20} aria-hidden="true" /> },
+  { label: "Reception", href: "/reception", icon: <Monitor size={20} aria-hidden="true" /> },
+  { label: "Access Control", href: "/access-control", icon: <DoorOpen size={20} aria-hidden="true" /> },
+  { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} aria-hidden="true" /> },
+  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} aria-hidden="true" />, permission: "view_payments" },
+  { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} aria-hidden="true" /> },
+  { label: "Notifiche", href: "/notifications", icon: <Bell size={20} aria-hidden="true" /> },
+  { label: "Training", href: "/training", icon: <Dumbbell size={20} aria-hidden="true" /> },
+  { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} aria-hidden="true" /> },
+  { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} aria-hidden="true" /> },
+  { label: "Sistema", href: "/system", icon: <Settings size={20} aria-hidden="true" /> },
+  { label: "Impostazioni", href: "/settings", icon: <Settings size={20} aria-hidden="true" /> },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -47,161 +52,57 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mode = "desktop", onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { loading, hasPermission } = useCurrentPermissions();
+  const isDrawer = mode === "drawer";
 
   return (
-    <aside
-      style={{
-        width: 88,
-        minWidth: 88,
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
-        padding: "18px 12px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 16,
-        background:
-          "radial-gradient(circle at top, rgba(239,68,68,0.14), transparent 38%), rgba(5,5,6,0.96)",
-        backdropFilter: "blur(18px)",
-      }}
-    >
-      <Link
-        href="/"
-        title="BodyGate"
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 20,
-          display: "grid",
-          placeItems: "center",
-          textDecoration: "none",
-          color: "#fff",
-          fontSize: 18,
-          fontWeight: 950,
-          background: "linear-gradient(135deg, #ef4444, #7f1d1d)",
-          boxShadow: "0 18px 38px rgba(239,68,68,0.24)",
-        }}
-      >
-        BG
+    <aside className={isDrawer ? "bg-sidebar bg-sidebar--drawer" : "bg-sidebar bg-sidebar--desktop"} aria-label="Navigazione principale">
+      <Link href="/" title="BodyGate" aria-label="BodyGate dashboard" className="bg-sidebar__brand" onClick={onNavigate}>
+        <span aria-hidden="true">BG</span>
       </Link>
 
-      <nav
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 8,
-          overflowY: "auto",
-        }}
-      >
+      {isDrawer ? <div className="bg-sidebar__section-label">Menu principale</div> : null}
+
+      <nav className="bg-sidebar__nav" aria-label="Sezioni BodyGate">
         {mainMenu.map((item) => {
           const active = isActive(pathname, item.href);
-          const isProtected = Boolean(item.permission);
-          const disabled = isProtected && !loading && !hasPermission(item.permission!);
-          const title = disabled
-            ? `${item.label} · Protetto / Permessi non configurati`
-            : item.label;
+          const disabled = Boolean(item.permission) && !loading && !hasPermission(item.permission!);
+          const title = disabled ? `${item.label} · Protetto / Permessi non configurati` : item.label;
+          const className = `bg-sidebar__item${active ? " bg-sidebar__item--active" : ""}${isDrawer ? " bg-sidebar__item--drawer" : ""}`;
 
           if (disabled) {
             return (
-              <button
-                key={item.href}
-                type="button"
-                title={title}
-                aria-label={title}
-                disabled
-                style={{
-                  width: 56,
-                  height: 52,
-                  borderRadius: 18,
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#71717a",
-                  background: "rgba(255,255,255,0.025)",
-                  border: "1px solid rgba(255,255,255,0.045)",
-                  cursor: "not-allowed",
-                  opacity: 0.58,
-                }}
-              >
+              <button key={item.href} type="button" title={title} aria-label={title} disabled className={`${className} bg-sidebar__item--disabled`}>
                 {item.icon}
+                {isDrawer ? <span>{item.label}</span> : null}
               </button>
             );
           }
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={title}
-              aria-label={title}
-              style={{
-                width: 56,
-                height: 52,
-                borderRadius: 18,
-                display: "grid",
-                placeItems: "center",
-                color: active ? "#fff" : "#a1a1aa",
-                textDecoration: "none",
-                background: active
-                  ? "linear-gradient(135deg, rgba(239,68,68,0.95), rgba(127,29,29,0.75))"
-                  : "rgba(255,255,255,0.035)",
-                border: active
-                  ? "1px solid rgba(248,113,113,0.55)"
-                  : "1px solid rgba(255,255,255,0.055)",
-                boxShadow: active
-                  ? "0 16px 32px rgba(239,68,68,0.22)"
-                  : "none",
-              }}
-            >
+            <Link key={item.href} href={item.href} title={title} aria-label={title} aria-current={active ? "page" : undefined} className={className} onClick={onNavigate}>
               {item.icon}
+              {isDrawer ? <span>{item.label}</span> : null}
             </Link>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
-        <div
-          title="Online"
-          style={{
-            width: 50,
-            height: 38,
-            borderRadius: 16,
-            display: "grid",
-            placeItems: "center",
-            color: "#86efac",
-            background: "rgba(34,197,94,0.08)",
-            border: "1px solid rgba(34,197,94,0.22)",
-            fontWeight: 950,
-          }}
-        >
-          ●
-        </div>
-
+      <div className="bg-sidebar__footer">
+        <div title="Online" aria-label="Sistema online" className="bg-sidebar__online">●</div>
         <button
           title="Logout"
+          aria-label="Logout"
           onClick={async () => {
             await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
             window.location.href = "/login";
           }}
-          style={{
-            width: 50,
-            height: 42,
-            borderRadius: 16,
-            cursor: "pointer",
-            color: "#fecaca",
-            background: "rgba(239,68,68,0.11)",
-            border: "1px solid rgba(239,68,68,0.22)",
-            display: "grid",
-            placeItems: "center",
-          }}
+          className="bg-sidebar__logout"
         >
-          <LogOut size={18} />
+          <LogOut size={18} aria-hidden="true" />
+          {isDrawer ? <span>Logout</span> : null}
         </button>
       </div>
     </aside>
