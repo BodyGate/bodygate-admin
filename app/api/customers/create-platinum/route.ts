@@ -16,6 +16,87 @@ const supabase = createClient(
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+type PlatinumPlan = {
+  id: string;
+  name: string;
+  price: number;
+  duration_days: number;
+};
+
+type SubscriptionPlanRow = {
+  id: string;
+  name: string | null;
+  price: number | null;
+  promo_price: number | null;
+  duration_days: number | null;
+};
+
+async function getActiveMembershipFee(branchId: string) {
+  const { data, error } = await supabase
+    .from("membership_fee_settings")
+    .select("name, price, validity_days, is_active")
+    .eq("branch_id", branchId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("membership fee lookup failed", error);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    name: data.name || "Quota associativa",
+    price: Number(data.price || 0),
+    validity_days: Number(data.validity_days || 365),
+  };
+}
+
+async function getActiveSubscriptionPlans(branchId: string): Promise<PlatinumPlan[]> {
+  const { data, error } = await supabase
+    .from("subscription_plans")
+    .select("id, name, price, promo_price, duration_days, sort_order, is_active")
+    .eq("branch_id", branchId)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("duration_days", { ascending: true });
+
+  if (error) {
+    console.warn("subscription plans lookup failed", error);
+    return [];
+  }
+
+  return ((data || []) as SubscriptionPlanRow[]).map((plan) => ({
+    id: plan.id,
+    name: plan.name || "Abbonamento",
+    price: Number(plan.promo_price || plan.price || 0),
+    duration_days: Number(plan.duration_days || 0),
+  }));
+}
+
+async function getPlatinumConfig() {
+  const branch = await getDefaultOperationalBranch(supabase);
+  if (!branch?.id) return null;
+
+  const [membershipFee, plans] = await Promise.all([
+    getActiveMembershipFee(branch.id),
+    getActiveSubscriptionPlans(branch.id),
+  ]);
+
+  return {
+    branch,
+    membership_fee: membershipFee || {
+      name: "Quota associativa",
+      price: 10,
+      validity_days: 365,
+    },
+    plans,
+  };
+}
+
+
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -26,21 +107,16 @@ function dateOnly(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function activeCustomerFilter(query: any) {
-  return query.or("is_active.eq.true,active.eq.true,status.eq.active,status.eq.onboarding");
-}
-
 async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string) {
   const lookupCodes = credentialLookupCodes(rawCode || controllerCode);
   const credentialFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
   const customerFilter = lookupCodes.map((code) => `badge_code.eq.${code},controller_code.eq.${code}`).join(",");
   const badgeFilter = lookupCodes.map((code) => `badge_code.eq.${code}`).join(",");
-  const { data: customers, error: customersError } = await activeCustomerFilter(
-    supabase
-      .from("customers")
-      .select("id, first_name, last_name, badge_code, controller_code, is_active, active, status")
-      .or(customerFilter),
-  );
+  const { data: customers, error: customersError } = await supabase
+    .from("customers")
+    .select("id, first_name, last_name, badge_code, controller_code, is_active, active, status")
+    .or(customerFilter)
+    .or("is_active.eq.true,active.eq.true,status.eq.active,status.eq.onboarding");
 
   if (customersError) throw new Error(`Errore controllo duplicati clienti: ${customersError.message}`);
 
@@ -57,7 +133,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
 
   if (credentialsError) throw new Error(`Errore controllo duplicati credenziali clienti: ${credentialsError.message}`);
 
-  const activeCredential = (credentials || []).find((row: any) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
+  const activeCredential = (credentials || []).find((row) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
   if (activeCredential) return "Badge già assegnato a una credenziale cliente attiva.";
 
   const { data: customerBadges, error: customerBadgesError } = await supabase
@@ -67,7 +143,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
 
   if (customerBadgesError) throw new Error(`Errore controllo duplicati badge clienti: ${customerBadgesError.message}`);
 
-  const activeCustomerBadge = (customerBadges || []).find((row: any) => row.is_active !== false);
+  const activeCustomerBadge = (customerBadges || []).find((row) => row.is_active !== false);
   if (activeCustomerBadge) return "Badge già assegnato a un badge cliente attivo.";
 
   const { data: staff, error: staffError } = await supabase
@@ -78,7 +154,7 @@ async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string)
 
   if (staffError) throw new Error(`Errore controllo duplicati staff: ${staffError.message}`);
 
-  const activeStaff = (staff || []).find((row: any) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
+  const activeStaff = (staff || []).find((row) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
   if (activeStaff) return "Badge già assegnato a staff attivo.";
 
   return null;
@@ -142,6 +218,26 @@ async function getNextReceiptNumber(): Promise<ReceiptNumberPayload> {
   }
 }
 
+export async function GET() {
+  try {
+    const config = await getPlatinumConfig();
+
+    if (!config) {
+      return NextResponse.json(
+        { ok: false, error: "Nessuna sede operativa attiva disponibile per l’onboarding." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, ...config });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Errore configurazione onboarding Platinum." },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -157,15 +253,16 @@ export async function POST(req: Request) {
     const rawPlanId = String(body.subscription_plan_id || "").trim();
     const subscriptionPlanId = UUID_RE.test(rawPlanId) ? rawPlanId : null;
 
-    const subscriptionAmount = Number(body.subscription_amount || 0);
-    const subscriptionDurationDays = Number(
+    let subscriptionAmount = Number(body.subscription_amount || 0);
+    let subscriptionDurationDays = Number(
       body.subscription_duration_days || 0,
     );
-    const subscriptionName = String(
+    let subscriptionName = String(
       body.subscription_name || "Abbonamento",
     ).trim();
 
-    const membershipAmount = Number(body.membership_amount || 10);
+    let membershipAmount = Number(body.membership_amount || 10);
+    let membershipValidityDays = 365;
     const paymentMethod = String(body.payment_method || "cash").trim();
 
     const badgeInput = String(body.badge_code || body.controller_code || "").trim();
@@ -194,25 +291,9 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!membershipAmount || membershipAmount <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "Quota associativa obbligatoria non valida." },
-        { status: 400 },
-      );
-    }
-
     const now = new Date().toISOString();
     const today = new Date();
     const todayDate = dateOnly(today);
-    const membershipUntil = dateOnly(addDays(today, 365));
-    const totalAmount = membershipAmount + Math.max(subscriptionAmount, 0);
-
-    if (totalAmount <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "Incasso obbligatorio mancante." },
-        { status: 400 },
-      );
-    }
 
     if (badgeInput && !normalizedBadge) {
       return NextResponse.json(
@@ -244,12 +325,55 @@ export async function POST(req: Request) {
       );
     }
 
-    const [customerPaymentsHasBranch, paymentsHasBranch, receiptsHasBranch] =
+    const [customerPaymentsHasBranch, paymentsHasBranch, receiptsHasBranch, membershipFee] =
       await Promise.all([
         tableHasColumn(supabase, "customer_payments", "branch_id"),
         tableHasColumn(supabase, "payments", "branch_id"),
         tableHasColumn(supabase, "customer_receipts", "branch_id"),
+        getActiveMembershipFee(branchId),
       ]);
+
+    if (membershipFee) {
+      membershipAmount = membershipFee.price;
+      membershipValidityDays = membershipFee.validity_days || 365;
+    }
+
+    if (subscriptionPlanId) {
+      const { data: selectedPlan, error: selectedPlanError } = await supabase
+        .from("subscription_plans")
+        .select("id, name, price, promo_price, duration_days, is_active")
+        .eq("id", subscriptionPlanId)
+        .eq("branch_id", branchId)
+        .maybeSingle();
+
+      if (selectedPlanError || !selectedPlan || selectedPlan.is_active === false) {
+        return NextResponse.json(
+          { ok: false, error: "Piano abbonamento non valido per la sede selezionata." },
+          { status: 400 },
+        );
+      }
+
+      subscriptionName = selectedPlan.name || subscriptionName;
+      subscriptionAmount = Number(selectedPlan.promo_price || selectedPlan.price || 0);
+      subscriptionDurationDays = Number(selectedPlan.duration_days || 0);
+    }
+
+    if (!membershipAmount || membershipAmount <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "Quota associativa obbligatoria non valida." },
+        { status: 400 },
+      );
+    }
+
+    const membershipUntil = dateOnly(addDays(today, membershipValidityDays));
+    const totalAmount = membershipAmount + Math.max(subscriptionAmount, 0);
+
+    if (totalAmount <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "Incasso obbligatorio mancante." },
+        { status: 400 },
+      );
+    }
 
     const receiptNumber = await getNextReceiptNumber();
 
@@ -581,9 +705,9 @@ export async function POST(req: Request) {
       receipt_number: receiptNumber.receipt_number,
       next_url: `/customers/${customerId}/contract/print`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error?.message || "Errore onboarding Platinum." },
+      { ok: false, error: error instanceof Error ? error.message : "Errore onboarding Platinum." },
       { status: 500 },
     );
   }

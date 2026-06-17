@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import BGActionLink from "../../components/ui/BGActionLink";
 import BGButton from "../../components/ui/BGButton";
@@ -9,15 +9,50 @@ import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
+import type { DocumentStatus } from "../components/CustomerDocumentRows";
 import type { ScannerDocumentType } from "../components/documentScannerUtils";
 
-const plans = [
+const fallbackPlans = [
   { id: "", name: "Solo quota associativa", price: 0, duration: 0 },
-  { id: "mensile", name: "Mensile", price: 45, duration: 30 },
-  { id: "trimestrale", name: "Trimestrale", price: 120, duration: 90 },
-  { id: "semestrale", name: "Semestrale", price: 200, duration: 180 },
-  { id: "annuale", name: "Annuale", price: 350, duration: 365 },
 ];
+
+type PlatinumPlan = {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+};
+
+type OperationalBranch = {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+};
+
+type PendingDocument = {
+  file: File;
+  status?: DocumentStatus;
+  validFrom?: string;
+  validUntil?: string;
+  viewUrl?: string;
+};
+
+type PlatinumConfigResponse = {
+  ok?: boolean;
+  error?: string;
+  branch?: Partial<OperationalBranch>;
+  membership_fee?: {
+    price?: number;
+  };
+  plans?: Array<{
+    id?: string;
+    name?: string;
+    price?: number;
+    duration_days?: number;
+    duration?: number;
+  }>;
+};
 
 const paymentMethods = [
   { id: "cash", label: "Contanti" },
@@ -61,7 +96,16 @@ export default function NewCustomerPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [pendingDocuments, setPendingDocuments] = useState<Partial<Record<ScannerDocumentType, any>>>({});
+  const [configLoading, setConfigLoading] = useState(true);
+  const [plans, setPlans] = useState<PlatinumPlan[]>(fallbackPlans);
+  const [membershipAmount, setMembershipAmount] = useState(10);
+  const [operationalBranch, setOperationalBranch] = useState<OperationalBranch>({
+    id: "ffbd8d1a-35a8-4b3e-8219-e9a56533d30c",
+    name: "Body Energy",
+    city: "Palermo",
+    address: "Viale Amedeo D'Aosta 3",
+  });
+  const [pendingDocuments, setPendingDocuments] = useState<Partial<Record<ScannerDocumentType, PendingDocument>>>({});
 
   const [form, setForm] = useState({
     first_name: "",
@@ -102,28 +146,80 @@ export default function NewCustomerPage() {
 
   const selectedPlan = useMemo(() => {
     return plans.find((plan) => plan.id === form.subscription_plan) || plans[0];
-  }, [form.subscription_plan]);
+  }, [form.subscription_plan, plans]);
 
-  const membershipAmount = 10;
   const totalAmount = membershipAmount + selectedPlan.price;
   const badgePreview = useMemo(() => normalizeAccessCode(form.badge_code), [form.badge_code]);
-  const operationalBranch = {
-    id: "ffbd8d1a-35a8-4b3e-8219-e9a56533d30c",
-    name: "Body Energy",
-    city: "Palermo",
-    address: "Viale Amedeo D'Aosta 3",
-  };
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPlatinumConfig() {
+      setConfigLoading(true);
+
+      try {
+        const response = await fetch("/api/customers/create-platinum", {
+          cache: "no-store",
+        });
+        const result = (await response.json().catch(() => null)) as PlatinumConfigResponse | null;
+
+        if (!active) return;
+
+        if (!response.ok || !result?.ok) {
+          throw new Error(result?.error || "Configurazione Platinum non disponibile.");
+        }
+
+        const activePlans = Array.isArray(result.plans)
+          ? result.plans.map((plan) => ({
+              id: String(plan.id || ""),
+              name: String(plan.name || "Abbonamento"),
+              price: Number(plan.price || 0),
+              duration: Number(plan.duration_days || plan.duration || 0),
+            }))
+          : [];
+
+        setPlans([fallbackPlans[0], ...activePlans]);
+        setMembershipAmount(Number(result.membership_fee?.price || 10));
+
+        if (result.branch?.id) {
+          setOperationalBranch({
+            id: result.branch.id,
+            name: result.branch.name || "Sede operativa",
+            city: result.branch.city || "",
+            address: result.branch.address || "",
+          });
+        }
+
+        setForm((current) => ({
+          ...current,
+          subscription_plan: activePlans[0]?.id || "",
+        }));
+      } catch (error) {
+        if (active) {
+          setMessage(error instanceof Error ? error.message : "Configurazione Platinum non disponibile.");
+        }
+      } finally {
+        if (active) setConfigLoading(false);
+      }
+    }
+
+    loadPlatinumConfig();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function updatePendingDocument(type: ScannerDocumentType, doc: any) {
+  function updatePendingDocument(type: ScannerDocumentType, doc: PendingDocument) {
     setPendingDocuments((current) => ({ ...current, [type]: doc }));
   }
 
   async function uploadPendingDocuments(customerId: string) {
-    const entries = Object.entries(pendingDocuments) as [ScannerDocumentType, any][];
+    const entries = Object.entries(pendingDocuments) as [ScannerDocumentType, PendingDocument][];
     const failures: string[] = [];
     for (const [type, doc] of entries) {
       if (!doc?.file) continue;
@@ -736,10 +832,12 @@ export default function NewCustomerPage() {
 
           <div className="total">EUR {totalAmount}</div>
 
-          <BGButton type="submit" disabled={saving}>
+          <BGButton type="submit" disabled={saving || configLoading}>
             {saving
               ? "Creazione in corso..."
-              : "Crea cliente, QR e vai al contratto"}
+              : configLoading
+                ? "Caricamento configurazione..."
+                : "Crea cliente, QR e vai al contratto"}
           </BGButton>
 
           {message && (
