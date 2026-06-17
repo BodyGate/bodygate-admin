@@ -2,208 +2,81 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { BadgeCheck, BarChart3, Bell, CalendarDays, ChevronLeft, ChevronRight, CreditCard, DoorOpen, Dumbbell, Home, LogOut, Monitor, Receipt, Settings, Shield, Users, X } from "lucide-react";
 import { useCurrentPermissions } from "../hooks/useCurrentPermissions";
-import {
-  BadgeCheck,
-  BarChart3,
-  Bell,
-  CalendarDays,
-  CreditCard,
-  DoorOpen,
-  Dumbbell,
-  LayoutDashboard,
-  LogOut,
-  Monitor,
-  Receipt,
-  Settings,
-  Users,
-} from "lucide-react";
 
-type MenuItem = {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  permission?: string;
-};
+type MenuItem = { label: string; href: string; icon: React.ReactNode; permission?: string; soon?: boolean };
+type MenuGroup = { label: string; items: MenuItem[] };
 
-const mainMenu: MenuItem[] = [
-  { label: "Dashboard", href: "/", icon: <LayoutDashboard size={20} /> },
-  { label: "Clienti", href: "/customers", icon: <Users size={20} /> },
-  { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
-  { label: "Access Control", href: "/access-control", icon: <DoorOpen size={20} /> },
-  { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} /> },
-  { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} />, permission: "view_payments" },
-  { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} /> },
-  { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
-  { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
-  { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
-  { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} /> },
-  { label: "Sistema", href: "/system", icon: <Settings size={20} /> },
-  { label: "Impostazioni", href: "/settings", icon: <Settings size={20} /> },
+const menuGroups: MenuGroup[] = [
+  { label: "Operazioni", items: [
+    { label: "Command Center", href: "/", icon: <Home size={20} /> },
+    { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
+    { label: "Clienti", href: "/customers", icon: <Users size={20} /> },
+    { label: "Accessi", href: "/access-control", icon: <DoorOpen size={20} /> },
+  ] },
+  { label: "Commerciale", items: [
+    { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} />, permission: "view_payments" },
+    { label: "Abbonamenti", href: "/subscriptions", icon: <CalendarDays size={20} /> },
+    { label: "Corsi", href: "/training/programs", icon: <Dumbbell size={20} />, soon: true },
+  ] },
+  { label: "Team", items: [
+    { label: "Staff", href: "/system/staff", icon: <Shield size={20} /> },
+    { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
+  ] },
+  { label: "Controllo", items: [
+    { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
+    { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} /> },
+  ] },
+  { label: "Sistema", items: [
+    { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
+    { label: "Sistema", href: "/system", icon: <Settings size={20} /> },
+    { label: "Impostazioni", href: "/settings", icon: <Settings size={20} /> },
+    { label: "UI Kit", href: "/system/ui-kit", icon: <BadgeCheck size={20} /> },
+  ] },
 ];
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+function isActive(pathname: string, href: string) { return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`); }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void }) {
   const pathname = usePathname();
   const { loading, hasPermission } = useCurrentPermissions();
+  const [expanded, setExpanded] = useState(false);
 
-  return (
-    <aside
-      style={{
-        width: 88,
-        minWidth: 88,
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
-        padding: "18px 12px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 16,
-        background:
-          "radial-gradient(circle at top, rgba(239,68,68,0.14), transparent 38%), rgba(5,5,6,0.96)",
-        backdropFilter: "blur(18px)",
-      }}
-    >
-      <Link
-        href="/"
-        title="BodyGate"
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 20,
-          display: "grid",
-          placeItems: "center",
-          textDecoration: "none",
-          color: "#fff",
-          fontSize: 18,
-          fontWeight: 950,
-          background: "linear-gradient(135deg, #ef4444, #7f1d1d)",
-          boxShadow: "0 18px 38px rgba(239,68,68,0.24)",
-        }}
-      >
-        BG
-      </Link>
+  useEffect(() => {
+    const saved = window.localStorage.getItem("bodygate.sidebar.expanded");
+    if (saved) setExpanded(saved === "1");
+  }, []);
+  function toggleExpanded() {
+    setExpanded((value) => { window.localStorage.setItem("bodygate.sidebar.expanded", value ? "0" : "1"); return !value; });
+  }
 
-      <nav
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 8,
-          overflowY: "auto",
-        }}
-      >
-        {mainMenu.map((item) => {
-          const active = isActive(pathname, item.href);
-          const isProtected = Boolean(item.permission);
-          const disabled = isProtected && !loading && !hasPermission(item.permission!);
-          const title = disabled
-            ? `${item.label} · Protetto / Permessi non configurati`
-            : item.label;
-
-          if (disabled) {
-            return (
-              <button
-                key={item.href}
-                type="button"
-                title={title}
-                aria-label={title}
-                disabled
-                style={{
-                  width: 56,
-                  height: 52,
-                  borderRadius: 18,
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#71717a",
-                  background: "rgba(255,255,255,0.025)",
-                  border: "1px solid rgba(255,255,255,0.045)",
-                  cursor: "not-allowed",
-                  opacity: 0.58,
-                }}
-              >
-                {item.icon}
-              </button>
-            );
-          }
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={title}
-              aria-label={title}
-              style={{
-                width: 56,
-                height: 52,
-                borderRadius: 18,
-                display: "grid",
-                placeItems: "center",
-                color: active ? "#fff" : "#a1a1aa",
-                textDecoration: "none",
-                background: active
-                  ? "linear-gradient(135deg, rgba(239,68,68,0.95), rgba(127,29,29,0.75))"
-                  : "rgba(255,255,255,0.035)",
-                border: active
-                  ? "1px solid rgba(248,113,113,0.55)"
-                  : "1px solid rgba(255,255,255,0.055)",
-                boxShadow: active
-                  ? "0 16px 32px rgba(239,68,68,0.22)"
-                  : "none",
-              }}
-            >
-              {item.icon}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div style={{ marginTop: "auto", display: "grid", gap: 10 }}>
-        <div
-          title="Online"
-          style={{
-            width: 50,
-            height: 38,
-            borderRadius: 16,
-            display: "grid",
-            placeItems: "center",
-            color: "#86efac",
-            background: "rgba(34,197,94,0.08)",
-            border: "1px solid rgba(34,197,94,0.22)",
-            fontWeight: 950,
-          }}
-        >
-          ●
-        </div>
-
-        <button
-          title="Logout"
-          onClick={async () => {
-            await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
-            window.location.href = "/login";
-          }}
-          style={{
-            width: 50,
-            height: 42,
-            borderRadius: 16,
-            cursor: "pointer",
-            color: "#fecaca",
-            background: "rgba(239,68,68,0.11)",
-            border: "1px solid rgba(239,68,68,0.22)",
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <LogOut size={18} />
-        </button>
+  const sidebar = (
+    <aside className={`bg-sidebar ${expanded ? "bg-sidebar-expanded" : ""}`} aria-label="Navigazione principale">
+      <div className="bg-sidebar-brand-row">
+        <Link href="/" className="bg-sidebar-brand" aria-label="BodyGate Command Center">BG</Link>
+        <span className="bg-sidebar-brand-text">BodyGate</span>
+        <button type="button" className="bg-sidebar-close" onClick={onCloseMobile} aria-label="Chiudi navigazione"><X size={18} /></button>
       </div>
+      <button type="button" className="bg-sidebar-toggle" onClick={toggleExpanded} aria-label={expanded ? "Comprimi navigazione" : "Espandi navigazione"}>
+        {expanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}<span>{expanded ? "Comprimi" : "Espandi"}</span>
+      </button>
+      <nav className="bg-sidebar-nav">
+        {menuGroups.map((group) => <div className="bg-sidebar-group" key={group.label}>
+          <div className="bg-sidebar-group-label">{group.label}</div>
+          {group.items.map((item) => {
+            const active = isActive(pathname, item.href);
+            const disabled = item.soon || (Boolean(item.permission) && !loading && !hasPermission(item.permission!));
+            const title = item.soon ? `${item.label} · In preparazione` : disabled ? `${item.label} · Permesso richiesto` : item.label;
+            if (disabled) return <button key={item.href} type="button" disabled className="bg-sidebar-link bg-sidebar-link-disabled" title={title} aria-label={title}>{item.icon}<span>{item.label}</span><em>{item.soon ? "In preparazione" : "Protetto"}</em></button>;
+            return <Link key={item.href} href={item.href} className={`bg-sidebar-link ${active ? "bg-sidebar-link-active" : ""}`} aria-current={active ? "page" : undefined} title={title}>{item.icon}<span>{item.label}</span></Link>;
+          })}
+        </div>)}
+      </nav>
+      <button title="Logout" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }).catch(() => null); window.location.href = "/login"; }} className="bg-sidebar-logout"><LogOut size={18} /><span>Logout</span></button>
     </aside>
   );
+
+  return <>{sidebar}<div className={`bg-nav-scrim ${mobileOpen ? "bg-nav-scrim-open" : ""}`} onClick={onCloseMobile} /> <div className={`bg-nav-drawer ${mobileOpen ? "bg-nav-drawer-open" : ""}`}>{sidebar}</div></>;
 }

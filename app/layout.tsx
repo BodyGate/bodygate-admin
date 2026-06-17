@@ -26,7 +26,6 @@ export const viewport: Viewport = {
   themeColor: "#050505",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -36,15 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body
-        style={{
-          margin: 0,
-          background: "#050505",
-          color: "#fff",
-          fontFamily:
-            'Arial, Helvetica, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        }}
-      >
+      <body>
         <AppShell>{children}</AppShell>
       </body>
     </html>
