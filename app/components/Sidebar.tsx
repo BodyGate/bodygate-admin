@@ -39,7 +39,7 @@ const menuGroups: MenuGroup[] = [
 
 function isActive(pathname: string, href: string) { return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`); }
 
-export default function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void }) {
+export default function Sidebar({ mobileOpen = false, onCloseMobile, drawerRef }: { mobileOpen?: boolean; onCloseMobile?: () => void; drawerRef?: React.RefObject<HTMLDivElement | null> }) {
   const pathname = usePathname();
   const { loading, hasPermission } = useCurrentPermissions();
   const [expanded, setExpanded] = useState(false);
@@ -78,5 +78,5 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: { mobileO
     </aside>
   );
 
-  return <>{sidebar}<div className={`bg-nav-scrim ${mobileOpen ? "bg-nav-scrim-open" : ""}`} onClick={onCloseMobile} /> <div className={`bg-nav-drawer ${mobileOpen ? "bg-nav-drawer-open" : ""}`}>{sidebar}</div></>;
+  return <>{sidebar}<div className={`bg-nav-scrim ${mobileOpen ? "bg-nav-scrim-open" : ""}`} onClick={onCloseMobile} /> <div id="bodygate-mobile-nav" ref={drawerRef} className={`bg-nav-drawer ${mobileOpen ? "bg-nav-drawer-open" : ""}`} aria-hidden={!mobileOpen}>{sidebar}</div></>;
 }

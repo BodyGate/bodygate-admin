@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Menu, RefreshCw } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
@@ -48,7 +48,7 @@ function useSystemStatus() {
     fetch("/api/bridge/status", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) return "expired" as const;
+          if (response.status === 401 || response.status === 403) return "check" as const;
           return "warning" as const;
         }
         const data = await response.json().catch(() => null);
@@ -78,6 +78,8 @@ function useSystemStatus() {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
   const { status, updatedAt } = useSystemStatus();
 
   const isReceiptPage = pathname.startsWith("/customers/") && pathname.includes("/receipt/");
@@ -94,14 +96,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => setNavOpen(false), [pathname]);
   useEffect(() => {
     if (!navOpen) return;
+    const focusable = drawerRef.current?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNavOpen(false);
+      if (event.key === "Escape") {
+        setNavOpen(false);
+        menuButtonRef.current?.focus();
+      }
+      if (event.key === "Tab" && drawerRef.current) {
+        const nodes = Array.from(drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ));
+        if (!nodes.length) return;
+        const first = nodes[0];
+        const last = nodes[nodes.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
     };
     document.body.classList.add("bg-nav-lock");
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.classList.remove("bg-nav-lock");
       window.removeEventListener("keydown", onKeyDown);
+      menuButtonRef.current?.focus();
     };
   }, [navOpen]);
 
@@ -111,10 +131,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="bg-app-shell">
-      <Sidebar mobileOpen={navOpen} onCloseMobile={() => setNavOpen(false)} />
+      <Sidebar mobileOpen={navOpen} onCloseMobile={() => setNavOpen(false)} drawerRef={drawerRef} />
       <div className="bg-app-workspace">
         <header className="bg-app-topbar">
-          <button className="bg-mobile-menu" type="button" onClick={() => setNavOpen(true)} aria-label="Apri navigazione">
+          <button ref={menuButtonRef} className="bg-mobile-menu" type="button" onClick={() => setNavOpen(true)} aria-label="Apri navigazione" aria-expanded={navOpen} aria-controls="bodygate-mobile-nav">
             <Menu size={20} />
           </button>
           <div className="bg-app-title-block">
@@ -128,6 +148,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="bg-app-content">{children}</main>
+        <nav className="bg-mobile-service-nav" aria-label="Navigazione rapida mobile">
+          <a href="/">Home</a><a href="/customers">Clienti</a><a href="/reception">Reception</a><a href="/access-control">Accessi</a><button type="button" onClick={() => setNavOpen(true)}>Altro</button>
+        </nav>
       </div>
     </div>
   );

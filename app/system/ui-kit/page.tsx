@@ -9,6 +9,7 @@ import BGSelect from "../../components/ui/BGSelect";
 import BGStatCard from "../../components/ui/BGStatCard";
 import BGStatusBadge from "../../components/ui/BGStatusBadge";
 import BGTextarea from "../../components/ui/BGTextarea";
+import { BGChecklist, BGErrorState, BGOperationalRow, BGProgress, BGProgressSteps, BGReadinessPanel, BGSkeleton } from "../../components/ui/BGPrimitives";
 
 const swatches = [
   ["Canvas", "var(--bg-canvas)"],
@@ -94,12 +95,25 @@ export default function UIKitPage() {
 
       <BGCard>
         <h2>Pattern workflow</h2>
-        <ol className="bg-checklist-demo">
-          <li><BGStatusBadge tone="success">Completato</BGStatusBadge> Cliente creato</li>
-          <li><BGStatusBadge tone="info">Parziale</BGStatusBadge> Pagamento registrato, ricevuta da verificare</li>
-          <li><BGStatusBadge tone="warning">Da completare</BGStatusBadge> Certificato medico mancante</li>
-        </ol>
+        <BGProgress value={64} />
+        <BGProgressSteps steps={["Dati", "Documenti", "Pagamento", "Accesso", "Verifica"]} active={2} />
+        <BGChecklist items={[{ label: "Cliente creato", done: true }, { label: "Pagamento registrato", done: true }, { label: "Certificato medico da completare" }]} />
       </BGCard>
+
+      <BGContentGrid>
+        <BGCard>
+          <h2>Righe operative e readiness</h2>
+          <BGReadinessPanel>
+            <BGOperationalRow title="Abbonamento" meta="Attivo fino al 31/12" status={<BGStatusBadge tone="success">Pronto</BGStatusBadge>} />
+            <BGOperationalRow title="Certificato medico" meta="Manca validità" status={<BGStatusBadge tone="warning">Da completare</BGStatusBadge>} />
+          </BGReadinessPanel>
+        </BGCard>
+        <BGCard>
+          <h2>Loading ed error state</h2>
+          <BGSkeleton lines={4} />
+          <BGErrorState title="Operazione non completata" description="Riprova senza perdere i dati già inseriti." />
+        </BGCard>
+      </BGContentGrid>
     </div>
   );
 }

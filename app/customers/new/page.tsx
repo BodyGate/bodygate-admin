@@ -8,6 +8,7 @@ import BGPageHeader from "../../components/ui/BGPageHeader";
 import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
+import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import type { ScannerDocumentType } from "../components/documentScannerUtils";
 
@@ -61,6 +62,8 @@ export default function NewCustomerPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [partialResults, setPartialResults] = useState<Array<{ label: string; status: "completed" | "recoverable" | "pending" | "not_required" }>>([]);
+  const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false);
   const [pendingDocuments, setPendingDocuments] = useState<Partial<Record<ScannerDocumentType, any>>>({});
 
   const [form, setForm] = useState({
@@ -99,6 +102,17 @@ export default function NewCustomerPage() {
     marketing_consent: false,
     photo_video_consent: false,
   });
+
+  const hasUnsavedChanges = useMemo(() => Object.entries(form).some(([key, value]) => {
+    if (key === "country") return value !== "Italia";
+    if (key === "access_type") return value !== "qr_card";
+    if (key === "subscription_plan") return value !== "mensile";
+    if (key === "payment_method") return value !== "cash";
+    if (key === "privacy_consent") return value !== true;
+    if (typeof value === "boolean") return value;
+    return String(value || "").trim().length > 0;
+  }) || Object.keys(pendingDocuments).length > 0, [form, pendingDocuments]);
+  useUnsavedChanges(hasUnsavedChanges && !saving && !submittedSuccessfully);
 
   const selectedPlan = useMemo(() => {
     return plans.find((plan) => plan.id === form.subscription_plan) || plans[0];
@@ -143,7 +157,9 @@ export default function NewCustomerPage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (saving) return;
     setMessage("");
+    setPartialResults([]);
 
     if (!form.first_name.trim() || !form.last_name.trim()) {
       setMessage("Nome e cognome sono obbligatori.");
@@ -176,6 +192,7 @@ export default function NewCustomerPage() {
     }
 
     setSaving(true);
+    const outcomes: Array<{ label: string; status: "completed" | "recoverable" | "pending" | "not_required" }> = [];
 
     try {
       const result = await postJson("/api/customers/create-platinum", {
@@ -192,28 +209,38 @@ export default function NewCustomerPage() {
       });
 
       const customerId = result.customer_id;
+      outcomes.push({ label: "Cliente", status: "completed" });
+      outcomes.push({ label: "Quota associativa", status: membershipAmount > 0 ? "completed" : "not_required" });
+      outcomes.push({ label: "Abbonamento", status: selectedPlan.id ? "completed" : "not_required" });
+      outcomes.push({ label: "Pagamento", status: totalAmount > 0 ? "completed" : "not_required" });
+      outcomes.push({ label: "Ricevuta", status: totalAmount > 0 ? "completed" : "not_required" });
 
       if (form.access_type === "qr" || form.access_type === "qr_card") {
         try {
-          await postJson("/api/customers/create-mobile-pass", {
-            customer_id: customerId,
-          });
+          await postJson("/api/customers/create-mobile-pass", { customer_id: customerId });
+          outcomes.push({ label: "Mobile Pass", status: "completed" });
         } catch (error) {
-          console.warn("Mobile pass non generato:", error);
+          console.warn("[BodyGate onboarding] Mobile pass non generato", error);
+          outcomes.push({ label: "Mobile Pass", status: "recoverable" });
         }
 
         try {
-          await postJson("/api/dnake/create-user-qr", {
-            customer_id: customerId,
-          });
+          await postJson("/api/dnake/create-user-qr", { customer_id: customerId });
+          outcomes.push({ label: "QR DNake", status: "completed" });
         } catch (error) {
-          console.warn("QR DNake non generato:", error);
+          console.warn("[BodyGate onboarding] QR DNake non generato", error);
+          outcomes.push({ label: "QR DNake", status: "recoverable" });
         }
       }
 
       const documentFailures = await uploadPendingDocuments(customerId);
+      outcomes.push({ label: "Documenti", status: documentFailures.length ? "recoverable" : Object.keys(pendingDocuments).length ? "completed" : "pending" });
+      outcomes.push({ label: "Certificato", status: form.medical_certificate_end_date ? "completed" : "pending" });
+      outcomes.push({ label: "Contratto", status: "pending" });
+      setPartialResults(outcomes);
+      setSubmittedSuccessfully(true);
       if (documentFailures.length) {
-        setMessage(`Cliente creato, documenti da completare: ${documentFailures.join("; ")}`);
+        setMessage(`Cliente creato. Alcuni documenti sono recuperabili: ${documentFailures.join("; ")}`);
         setSaving(false);
         return;
       }
@@ -401,6 +428,19 @@ export default function NewCustomerPage() {
           }
         }
       `}</style>
+
+      {partialResults.length > 0 && (
+        <section className="bg-card">
+          <h2 style={{ margin: 0 }}>Risultato onboarding</h2>
+          <div className="bg-data-list">
+            {partialResults.map((item) => (
+              <div key={item.label} className="bg-operational-row">
+                <div><strong>{item.label}</strong><span>{item.status === "completed" ? "Completato" : item.status === "recoverable" ? "Fallito ma recuperabile" : item.status === "not_required" ? "Non richiesto" : "Da completare"}</span></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <BGPageHeader
         eyebrow="BodyGate Onboarding Platinum"

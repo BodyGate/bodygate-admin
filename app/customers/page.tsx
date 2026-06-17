@@ -7,7 +7,7 @@ export default function CustomersPage() {
     <main className="bg-page-shell">
       <BGPageHeader
         eyebrow="CRM BodyGate"
-        title="Customers"
+        title="Clienti"
         subtitle="Gestione clienti, badge, abbonamenti e autorizzazioni di accesso in una vista operativa premium."
         actions={<BGButton href="/customers/new">Nuovo cliente</BGButton>}
       />
