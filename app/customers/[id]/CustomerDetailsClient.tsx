@@ -4374,6 +4374,8 @@ export default function CustomerDetailsClient({
                   ...prev,
                   medical_certificate_url: document.view_url || prev.medical_certificate_url,
                   medical_certificate_status: document.status || prev.medical_certificate_status,
+                  medical_certificate_start_date: document.valid_from || prev.medical_certificate_start_date,
+                  medical_certificate_end_date: document.valid_until || prev.medical_certificate_end_date,
                 }));
               }
             }}

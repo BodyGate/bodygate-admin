@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import DocumentScannerDrawer from "./DocumentScannerDrawer";
+import DocumentScannerDrawer, { type ScannerConfirmMetadata, type ScannerOperationMode } from "./DocumentScannerDrawer";
 import type { ScannerDocumentType } from "./documentScannerUtils";
+import { computeMedicalCertificateStatus, formatDateIT, humanMedicalTime } from "./medicalCertificateUtils";
 
-export type DocumentStatus = "missing" | "uploaded" | "needs_dates" | "valid" | "expired" | "non_operational" | "error";
+export type DocumentStatus = "missing" | "uploaded" | "needs_dates" | "valid" | "expiring_soon" | "expired" | "pending" | "non_operational" | "error" | "replaced";
 
 type Row = { type: ScannerDocumentType; title: string; side?: string; optional?: boolean };
-type ExistingDocument = { id?: string; document_type?: string | null; title?: string | null; status?: string | null; created_at?: string | null; view_url?: string | null; public_url?: string | null; file_url?: string | null; url?: string | null; signed_at?: string | null };
+type ExistingDocument = { id?: string; document_type?: string | null; title?: string | null; status?: string | null; created_at?: string | null; updated_at?: string | null; view_url?: string | null; public_url?: string | null; file_url?: string | null; url?: string | null; signed_at?: string | null; valid_from?: string | null; valid_until?: string | null };
 type PendingDocument = { file: File; status?: DocumentStatus; validFrom?: string; validUntil?: string; viewUrl?: string };
 
 type Props = {
@@ -29,18 +30,13 @@ const rows: Row[] = [
   { type: "other", title: "Altro documento", optional: true },
 ];
 
-const labels: Record<DocumentStatus, string> = { missing: "Mancante", uploaded: "Caricato", needs_dates: "Da completare", valid: "Valido", expired: "Scaduto", non_operational: "Non operativo", error: "Errore" };
+const labels: Record<DocumentStatus, string> = { missing: "Non caricato", uploaded: "Caricato", needs_dates: "Date mancanti", valid: "Valido", expiring_soon: "In scadenza", expired: "Scaduto", pending: "Validità futura", non_operational: "Non operativo", error: "Errore", replaced: "Sostituito" };
 
 function certStatus(customer: any, pending?: PendingDocument): DocumentStatus {
   const start = pending?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start;
   const end = pending?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end;
   const hasFile = Boolean(pending?.file || customer?.medical_certificate_url);
-  if (!hasFile) return "non_operational";
-  if (!start || !end) return "needs_dates";
-  const today = new Date().toISOString().slice(0, 10);
-  if (end < today) return "expired";
-  if (start > today) return "non_operational";
-  return "valid";
+  return computeMedicalCertificateStatus({ hasFile, validFrom: start, validUntil: end });
 }
 
 function documentUrl(type: ScannerDocumentType, customer: any, doc?: ExistingDocument, pending?: PendingDocument) {
@@ -53,7 +49,7 @@ function documentUrl(type: ScannerDocumentType, customer: any, doc?: ExistingDoc
 export default function CustomerDocumentRows({ customerId, customer, pendingDocuments = {}, onPendingChange, onUploaded, compactTitle = "Documenti e certificato" }: Props) {
   const [docs, setDocs] = useState<ExistingDocument[]>([]);
   const inputNamespace = useId().replace(/:/g, "");
-  const [active, setActive] = useState<(Row & { initialFile?: File; initialMode?: "camera" | "file" }) | null>(null);
+  const [active, setActive] = useState<(Row & { initialFile?: File; initialMode?: "camera" | "file"; operationMode?: ScannerOperationMode }) | null>(null);
   const [busyType, setBusyType] = useState<string>("");
   const [error, setError] = useState("");
 
@@ -68,13 +64,13 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
 
   const byType = useMemo(() => {
     const map = new Map<string, ExistingDocument>();
-    docs.forEach((doc) => { if (doc.document_type && !map.has(doc.document_type)) map.set(doc.document_type, doc); });
+    docs.forEach((doc) => { if (doc.document_type && doc.status !== "replaced" && !map.has(doc.document_type)) map.set(doc.document_type, doc); });
     return map;
   }, [docs]);
 
-  function openScanner(row: Row, initialMode: "camera" | "file", initialFile?: File) {
+  function openScanner(row: Row, initialMode: "camera" | "file", initialFile?: File, operationMode: ScannerOperationMode = "create") {
     setError("");
-    setActive({ ...row, initialMode, initialFile });
+    setActive({ ...row, initialMode, initialFile, operationMode });
   }
 
   function handleNativeFileChange(row: Row, initialMode: "camera" | "file", file?: File) {
@@ -82,23 +78,33 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
     openScanner(row, initialMode, file);
   }
 
-  async function handleConfirm(file: File, metadata: any) {
+  async function handleConfirm(file: File | null, metadata: ScannerConfirmMetadata) {
     const type = metadata.documentType as ScannerDocumentType;
     if (!customerId) {
-      onPendingChange?.(type, { file, status: type === "medical_certificate" ? certStatus(customer, pendingDocuments.medical_certificate) : "uploaded", validFrom: pendingDocuments[type]?.validFrom, validUntil: pendingDocuments[type]?.validUntil, viewUrl: URL.createObjectURL(file) });
+      if (!file) throw new Error("File richiesto per il documento pending.");
+      onPendingChange?.(type, { file, status: type === "medical_certificate" ? computeMedicalCertificateStatus({ hasFile: true, validFrom: metadata.validFrom, validUntil: metadata.validUntil }) : "uploaded", validFrom: metadata.validFrom || pendingDocuments[type]?.validFrom, validUntil: metadata.validUntil || pendingDocuments[type]?.validUntil, viewUrl: URL.createObjectURL(file) });
       setActive(null);
       return;
     }
     setBusyType(type);
     setError("");
     const current = byType.get(type);
+    if (type === "medical_certificate" && metadata.operationMode === "dates_only") {
+      const response = await fetch(`/api/customers/${customerId}/medical-certificate`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ valid_from: metadata.validFrom, valid_until: metadata.validUntil }) });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "Aggiornamento validità non riuscito.");
+      onUploaded?.(result.document);
+      await loadDocs();
+      setActive(null); setBusyType(""); return;
+    }
+    if (!file) throw new Error("File documento mancante.");
     const form = new FormData();
     form.append("file", file);
     form.append("document_type", type);
     if (current?.id) form.append("replace_document_id", current.id);
     if (type === "medical_certificate") {
-      const validFrom = pendingDocuments.medical_certificate?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "";
-      const validUntil = pendingDocuments.medical_certificate?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "";
+      const validFrom = metadata.validFrom || "";
+      const validUntil = metadata.validUntil || "";
       form.append("valid_from", validFrom);
       form.append("valid_until", validUntil);
     }
@@ -125,8 +131,8 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
       .row { display:grid; grid-template-columns:minmax(190px,1.15fr) 118px minmax(150px,.9fr) auto; gap:9px; align-items:center; border:1px solid #222; border-radius:14px; padding:8px 10px; background:rgba(12,12,12,.86); }
       .row.optional { border-style:dashed; background:rgba(8,8,8,.56); padding:7px 10px; }
       .name { font-weight:850; font-size:14px; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .optional .name{font-weight:800;color:#d7d7d7}.sub { color:#9b9b9b; font-size:11px; margin-top:1px; }
-      .badge { justify-self:start; border-radius:999px; padding:6px 9px; font-size:11px; font-weight:900; background:#262626; color:#ddd; white-space:nowrap; } .valid,.uploaded{background:#052e18;color:#86efac}.expired,.non_operational,.error{background:#3b0711;color:#fda4af}.needs_dates{background:#422006;color:#fcd34d}
-      .detail { color:#bdbdbd; font-size:11.5px; line-height:1.25; } .muted-detail{color:#898989}.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}.native-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.buttonlike,button{border:1px solid #343434;background:#151515;color:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900;cursor:pointer;text-decoration:none;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:34px;min-width:74px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .15s ease,border-color .15s ease,transform .15s ease}.buttonlike:hover,button:hover:not(:disabled){background:#202020;border-color:#4a4a4a}.buttonlike:active,button:active:not(:disabled){transform:translateY(1px)}.buttonlike.primary{background:#e11d2e;border-color:#ef4444}.buttonlike.primary:hover{background:#f02b3d}.buttonlike.subtle{min-width:auto;color:#f1f1f1;background:#101010}.buttonlike.disabled,button:disabled{opacity:.42;cursor:not-allowed;pointer-events:none}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:960px){.row{grid-template-columns:minmax(0,1fr) auto}.detail{grid-column:1 / 2}.actions{grid-column:2 / 3;grid-row:1 / span 3;align-self:center;max-width:180px}.name{white-space:normal}}@media(max-width:640px){.row{grid-template-columns:1fr}.actions{grid-column:auto;grid-row:auto;justify-content:flex-start;max-width:none}.detail{grid-column:auto}}
+      .badge { justify-self:start; border-radius:999px; padding:6px 9px; font-size:11px; font-weight:900; background:#262626; color:#ddd; white-space:nowrap; } .valid,.uploaded{background:#052e18;color:#86efac}.expiring_soon{background:#7c2d12;color:#fed7aa}.pending{background:#0b2447;color:#bfdbfe}.expired,.non_operational,.error{background:#3b0711;color:#fda4af}.needs_dates{background:#422006;color:#fcd34d}.missing,.replaced{background:#262626;color:#ddd}
+      .detail { color:#bdbdbd; font-size:11.5px; line-height:1.25; } .muted-detail{color:#898989}.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}.native-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.buttonlike,button{border:1px solid #343434;background:#151515;color:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900;cursor:pointer;text-decoration:none;line-height:1;display:inline-flex;align-items:center;justify-content:center;min-height:34px;min-width:74px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .15s ease,border-color .15s ease,transform .15s ease}.buttonlike:hover,button:hover:not(:disabled){background:#202020;border-color:#4a4a4a}.buttonlike:active,button:active:not(:disabled){transform:translateY(1px)}.buttonlike.primary{background:#e11d2e;border-color:#ef4444}.buttonlike.primary:hover{background:#f02b3d}.buttonlike.subtle{min-width:auto;color:#f1f1f1;background:#101010}.buttonlike.disabled,button:disabled{opacity:.42;cursor:not-allowed;pointer-events:none}.history{border:1px solid #242424;border-radius:14px;padding:8px;background:#090909}.history summary{cursor:pointer;font-weight:900;color:#fff}.history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #1f1f1f;padding:8px 0}.history-row div{display:grid;gap:2px}.history-row span,.history-empty{color:#a3a3a3;font-size:12px}.errorline{color:#fb7185;font-weight:800;font-size:13px;padding:0 4px}@media(max-width:960px){.row{grid-template-columns:minmax(0,1fr) auto}.detail{grid-column:1 / 2}.actions{grid-column:2 / 3;grid-row:1 / span 3;align-self:center;max-width:180px}.name{white-space:normal}}@media(max-width:640px){.row{grid-template-columns:1fr}.actions{grid-column:auto;grid-row:auto;justify-content:flex-start;max-width:none}.detail{grid-column:auto}}
     `}</style>
     <div className="head"><div><b>{compactTitle}</b><br/><span>Scanner compatto per reception e tablet</span></div></div>
     {rows.map((row) => {
@@ -135,10 +141,10 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
       const fileInputId = `${inputNamespace}-${row.type}-file`;
       const disabled = busyType === row.type;
       const hasDocument = Boolean(url || doc || pendingDocuments[row.type]);
-      const validFrom = pendingDocuments.medical_certificate?.validFrom || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "";
-      const validUntil = pendingDocuments.medical_certificate?.validUntil || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "";
+      const validFrom = pendingDocuments.medical_certificate?.validFrom || doc?.valid_from || customer?.medical_certificate_start_date || customer?.medical_certificate_start || "";
+      const validUntil = pendingDocuments.medical_certificate?.validUntil || doc?.valid_until || customer?.medical_certificate_end_date || customer?.medical_certificate_end || "";
       const detail = row.type === "medical_certificate"
-        ? !validFrom || !validUntil ? "Date validità mancanti" : `${validFrom} → ${validUntil}`
+        ? !validFrom || !validUntil ? "Date validità mancanti" : `${formatDateIT(validFrom)} → ${formatDateIT(validUntil)} · ${humanMedicalTime(validFrom, validUntil)}`
         : doc?.created_at ? `Aggiornato ${new Date(doc.created_at).toLocaleDateString("it-IT")}` : pendingDocuments[row.type] ? "Pronto per salvataggio cliente" : row.optional ? "Aggiungi solo se necessario" : "Da acquisire";
       return <div className={`row${row.optional ? " optional" : ""}`} key={row.type}>
         <div><div className="name">{row.optional ? "+ Aggiungi altro documento" : `${row.title}${row.side ? ` · ${row.side}` : ""}`}</div><div className="sub">{critical ? "Bloccante accesso" : row.optional ? "Opzionale" : "Warning amministrativo"}</div></div>
@@ -147,7 +153,11 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
         <div className="actions">
           <input id={cameraInputId} className="native-file" type="file" accept="image/*" capture="environment" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "camera", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
           <input id={fileInputId} className="native-file" type="file" accept="image/*,.pdf" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "file", e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
-          {hasDocument ? <>
+          {row.type === "medical_certificate" && hasDocument ? <>
+            {url ? <button type="button" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>{status === "expired" ? "Visualizza precedente" : "Visualizza"}</button> : null}
+            <button type="button" onClick={() => openScanner(row, "file", undefined, "dates_only")} disabled={disabled}>{status === "needs_dates" ? "Completa validità" : "Modifica validità"}</button>
+            <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>{status === "expired" ? "Rinnova" : "Sostituisci"}</label>
+          </> : hasDocument ? <>
             {url ? <button type="button" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>Visualizza</button> : null}
             <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Sostituisci</label>
           </> : <>
@@ -157,7 +167,8 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
         </div>
       </div>;
     })}
+    <details className="history"><summary>Storico certificati</summary>{docs.filter((doc) => doc.document_type === "medical_certificate").length === 0 ? <div className="history-empty">Nessuno storico certificati disponibile.</div> : docs.filter((doc) => doc.document_type === "medical_certificate").map((doc) => { const url = documentUrl("medical_certificate", customer, doc); return <div className="history-row" key={doc.id || doc.created_at}><div><b>{formatDateIT(doc.valid_from)} → {formatDateIT(doc.valid_until)}</b><span>{labels[(doc.status as DocumentStatus) || "uploaded"] || doc.status || "Caricato"} · {doc.created_at ? new Date(doc.created_at).toLocaleDateString("it-IT") : "data non disponibile"}</span></div>{url ? <button type="button" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>Visualizza</button> : <span className="history-empty">Documento non disponibile</span>}</div>; })}</details>
     {error ? <div className="errorline">{error}</div> : null}
-    {active ? <DocumentScannerDrawer open title={`${active.title}${active.side ? ` — ${active.side}` : ""}`} documentType={active.type} initialFile={active.initialFile} initialMode={active.initialMode} onClose={() => setActive(null)} onConfirm={async (file, meta) => { try { await handleConfirm(file, meta); } catch (err: any) { setError(err?.message || "Errore upload documento"); setBusyType(""); throw err; } }} /> : null}
+    {active ? <DocumentScannerDrawer open title={`${active.title}${active.side ? ` — ${active.side}` : ""}`} documentType={active.type} initialFile={active.initialFile} initialMode={active.initialMode} operationMode={active.operationMode} initialValidFrom={active.type === "medical_certificate" ? (customer?.medical_certificate_start_date || customer?.medical_certificate_start || "") : undefined} initialValidUntil={active.type === "medical_certificate" ? (customer?.medical_certificate_end_date || customer?.medical_certificate_end || "") : undefined} onClose={() => setActive(null)} onConfirm={async (file, meta) => { try { await handleConfirm(file, meta); } catch (err: any) { setError(err?.message || "Errore upload documento"); setBusyType(""); throw err; } }} /> : null}
   </div>;
 }

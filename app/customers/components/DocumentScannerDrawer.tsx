@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { compressImageFile, createSafeScannerFileName, isImageFile, isPdfFile, rotateImageFile, validateScannerFile, type ScannerDocumentType } from "./documentScannerUtils";
+import { compressImageFile, createSafeScannerFileName, formatFileSize, isImageFile, isPdfFile, rotateImageFile, validateScannerFile, type ScannerDocumentType } from "./documentScannerUtils";
+import { addDaysISO, addOneYearISO, computeMedicalCertificateStatus, formatDateIT, humanMedicalTime, isISODate, todayLocalISO } from "./medicalCertificateUtils";
+
+export type ScannerOperationMode = "create" | "renew" | "replace" | "dates_only";
+export type ScannerConfirmMetadata = { originalName: string; size: number; mimeType: string; documentType: ScannerDocumentType; validFrom?: string; validUntil?: string; operationMode?: ScannerOperationMode };
 
 type Props = {
   open: boolean;
@@ -9,23 +13,39 @@ type Props = {
   documentType: ScannerDocumentType;
   initialFile?: File;
   initialMode?: "camera" | "file";
+  operationMode?: ScannerOperationMode;
+  initialValidFrom?: string;
+  initialValidUntil?: string;
   onClose: () => void;
-  onConfirm: (file: File, metadata: { originalName: string; size: number; mimeType: string; documentType: ScannerDocumentType }) => Promise<void> | void;
+  onConfirm: (file: File | null, metadata: ScannerConfirmMetadata) => Promise<void> | void;
 };
 
-export default function DocumentScannerDrawer({ open, title, documentType, initialFile, initialMode, onClose, onConfirm }: Props) {
+export default function DocumentScannerDrawer({ open, title, documentType, initialFile, initialMode, operationMode = "create", initialValidFrom, initialValidUntil, onClose, onConfirm }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const isMedical = documentType === "medical_certificate";
+  const datesOnly = isMedical && operationMode === "dates_only";
+  const [validFrom, setValidFrom] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [validUntilManual, setValidUntilManual] = useState(false);
+  const [confirmExpired, setConfirmExpired] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setError("");
     setSuccess(false);
     setFile(initialFile || null);
-  }, [open, initialFile, initialMode]);
+    if (documentType === "medical_certificate") {
+      const start = initialValidFrom || todayLocalISO();
+      setValidFrom(start);
+      setValidUntil(initialValidUntil || addOneYearISO(start));
+      setValidUntilManual(Boolean(initialValidUntil));
+      setConfirmExpired(false);
+    }
+  }, [open, initialFile, initialMode, documentType, initialValidFrom, initialValidUntil]);
 
   useEffect(() => {
     if (!file || !isImageFile(file)) {
@@ -64,14 +84,21 @@ export default function DocumentScannerDrawer({ open, title, documentType, initi
     }
   }
 
+  const fieldError = isMedical ? (!isISODate(validFrom) ? "Inserisci una data inizio valida." : !isISODate(validUntil) ? "Inserisci una data fine valida." : validUntil < validFrom ? "La data fine non può precedere la data inizio." : !datesOnly && !file ? "Acquisisci o carica il certificato medico." : "") : "";
+  const selectedStatus = isMedical ? computeMedicalCertificateStatus({ hasFile: true, validFrom, validUntil }) : "valid";
+
   async function confirm() {
-    if (!file || loading) return;
+    if (loading || (!file && !datesOnly) || fieldError) return;
+    if (isMedical && selectedStatus === "expired" && !confirmExpired) { setConfirmExpired(true); return; }
     setLoading(true);
     setError("");
     try {
-      const safeName = createSafeScannerFileName({ documentType, originalName: file.name, extension: isPdfFile(file) ? "pdf" : "jpg" });
-      const finalFile = isImageFile(file) ? await compressImageFile(file, { fileName: safeName }) : new File([file], safeName, { type: file.type || "application/pdf" });
-      await onConfirm(finalFile, { originalName: file.name, size: finalFile.size, mimeType: finalFile.type, documentType });
+      let finalFile: File | null = null;
+      if (file) {
+        const safeName = createSafeScannerFileName({ documentType, originalName: file.name, extension: isPdfFile(file) ? "pdf" : "jpg" });
+        finalFile = isImageFile(file) ? await compressImageFile(file, { fileName: safeName }) : new File([file], safeName, { type: file.type || "application/pdf" });
+      }
+      await onConfirm(finalFile, { originalName: file?.name || "validita-certificato", size: finalFile?.size || 0, mimeType: finalFile?.type || "", documentType, validFrom: isMedical ? validFrom : undefined, validUntil: isMedical ? validUntil : undefined, operationMode });
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message || "Conferma scansione non riuscita.");
@@ -98,13 +125,14 @@ export default function DocumentScannerDrawer({ open, title, documentType, initi
         img { width:100%; height:100%; max-height:420px; object-fit:contain; border-radius:16px; }
         .empty, .pdf { text-align:center; color:#b8b8b8; display:grid; gap:8px; } .pdf b { color:#fff; font-size:28px; }
         .actions { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px; } .actions .wide { grid-column:1 / -1; }
-        .error { color:#fb7185; font-weight:800; font-size:13px; } .success { color:#86efac; font-weight:800; font-size:13px; }
+        .validity{border:1px solid #2b2b2b;border-radius:18px;padding:12px;display:grid;gap:10px;background:#0b0b0b}.validity label{display:grid;gap:6px;color:#ddd;font-size:12px;font-weight:900}.validity input{color-scheme:dark;background:#121212;border:1px solid #383838;border-radius:12px;color:#fff;padding:10px;font-weight:800}.quick{display:flex;gap:8px;flex-wrap:wrap}.summary{border-radius:14px;padding:10px;font-size:12px;line-height:1.45;background:#111827;color:#bfdbfe}.summary.valid,.summary.expiring_soon{background:#052e18;color:#bbf7d0}.summary.expired{background:#3b0711;color:#fecdd3}.summary.pending{background:#0b2447;color:#bfdbfe}.warning{color:#fbbf24;font-weight:900;font-size:13px}.error { color:#fb7185; font-weight:800; font-size:13px; } .success { color:#86efac; font-weight:800; font-size:13px; }
       `}</style>
       <div className="drawer">
-        <div className="top"><div><h2>{title}</h2><p>Scanner documentale BodyGate: verifica l’anteprima e conferma.</p></div><button className="ghost" type="button" onClick={onClose}>Chiudi</button></div>
+        <div className="top"><div><h2>{isMedical ? (operationMode === "dates_only" ? "Modifica validità certificato" : operationMode === "renew" ? "Rinnova certificato medico" : "Nuovo certificato medico") : title}</h2><p>{isMedical ? "Acquisisci il documento e definisci il periodo di validità." : "Scanner documentale BodyGate: verifica l’anteprima e conferma."}</p></div><button className="ghost" type="button" onClick={onClose}>Chiudi</button></div>
         <div className="stage">
-          {preview ? <img src={preview} alt="Anteprima scansione" /> : file && isPdfFile(file) ? <div className="pdf"><b>PDF</b><span>Documento pronto per la conferma</span></div> : <div className="empty"><b>Nessuna scansione</b><span>Usa la camera o carica un file.</span></div>}
+          {preview ? <img src={preview} alt="Anteprima scansione" /> : file && isPdfFile(file) ? <div className="pdf"><b>PDF</b><span>{file.name} · {formatFileSize(file.size)}</span></div> : datesOnly ? <div className="empty"><b>Documento già presente</b><span>Modifica solo le date, senza ricaricare il file.</span></div> : <div className="empty"><b>Nessuna scansione</b><span>Usa la camera o carica un file.</span></div>}
         </div>
+        {isMedical ? <div className="validity"><label>Inizio validità<input type="date" value={validFrom} onChange={(e) => { const next = e.currentTarget.value; setValidFrom(next); if (!validUntilManual) setValidUntil(addOneYearISO(next)); setConfirmExpired(false); }} /></label><label>Fine validità<input type="date" value={validUntil} onChange={(e) => { setValidUntil(e.currentTarget.value); setValidUntilManual(true); setConfirmExpired(false); }} /></label><div className="quick"><button type="button" onClick={() => { const t = todayLocalISO(); setValidFrom(t); if (!validUntilManual) setValidUntil(addOneYearISO(t)); }}>Oggi</button><button type="button" onClick={() => { setValidUntil(addOneYearISO(validFrom)); setValidUntilManual(true); }}>+1 anno</button><button type="button" onClick={() => { setValidUntil(addDaysISO(validFrom, 365)); setValidUntilManual(true); }}>+365 giorni</button></div><div className={`summary ${selectedStatus}`}>Il certificato sarà valido dal {formatDateIT(validFrom, true)} al {formatDateIT(validUntil, true)}.<br />{selectedStatus === "pending" ? `Certificato salvato, operativo dal ${formatDateIT(validFrom)}.` : selectedStatus === "expired" ? "Il periodo selezionato è già terminato. Il cliente resterà non valido." : "Il cliente risulterà valido sotto il profilo medico."}<br /><strong>{humanMedicalTime(validFrom, validUntil)}</strong></div>{fieldError ? <div className="error">{fieldError}</div> : null}{confirmExpired ? <div className="warning">Conferma consapevole: premi di nuovo Salva per registrare un periodo già scaduto.</div> : null}</div> : null}
         <div className="actions">
           <label className={`file-action primary-action${loading ? " disabled" : ""}`} htmlFor="scanner-camera-input" aria-disabled={loading}>
             <span>Scatta foto</span>
@@ -116,7 +144,7 @@ export default function DocumentScannerDrawer({ open, title, documentType, initi
           <input id="scanner-file-input" className="file-input" type="file" accept="image/*,.pdf" disabled={loading} onChange={(e) => { pick(e.currentTarget.files?.[0]); e.currentTarget.value = ""; }} />
           <button type="button" onClick={() => setFile(null)} disabled={!file || loading}>Ripeti</button>
           <button type="button" onClick={rotate} disabled={!file || !isImageFile(file) || loading}>Ruota</button>
-          <button className="primary wide" type="button" onClick={confirm} disabled={!file || loading}>{loading ? "Elaborazione..." : "Conferma scansione"}</button>
+          <button className="primary wide" type="button" onClick={confirm} disabled={Boolean(fieldError) || (!file && !datesOnly) || loading}>{loading ? "Elaborazione..." : isMedical ? "Salva certificato" : "Conferma scansione"}</button>
           {error ? <div className="error wide">{error}</div> : null}{success ? <div className="success wide">Scansione confermata.</div> : null}
         </div>
       </div>
