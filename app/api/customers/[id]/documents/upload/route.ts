@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { tableHasColumn } from "../../../../../lib/server/defaultBranch";
 import { buildCustomerDocumentStoragePath, createSafeScannerFileName, type ScannerDocumentType } from "../../../../../customers/components/documentScannerUtils";
+import { formatDateIT, isISODate, persistedMedicalCertificateStatus } from "../../../../../customers/components/medicalCertificateUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,7 @@ function titleFor(type: ScannerDocumentType) {
   return ({ customer_photo: "Foto cliente", identity_front: "Documento identità — fronte", identity_back: "Documento identità — retro", health_card_front: "Tessera sanitaria — fronte", health_card_back: "Tessera sanitaria — retro", medical_certificate: "Certificato medico", privacy: "Privacy", waiver: "Liberatoria", other: "Altro documento" } as Record<ScannerDocumentType, string>)[type];
 }
 function bucketFor(type: ScannerDocumentType) { return type === "customer_photo" ? "customer-photos" : type === "medical_certificate" ? "medical-certificates" : "documents"; }
-function statusForCertificate(start: string | null, end: string | null) {
-  if (!start || !end) return "needs_dates";
-  const today = new Date().toISOString().slice(0, 10);
-  if (end < today) return "expired";
-  if (start > today) return "pending";
-  return "valid";
-}
+function statusForCertificate(start: string | null, end: string | null) { return persistedMedicalCertificateStatus({ hasFile: true, validFrom: start, validUntil: end }); }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -48,8 +43,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const validFrom = String(form.get("valid_from") || "").trim() || null;
     const validUntil = String(form.get("valid_until") || "").trim() || null;
-    if (type === "medical_certificate" && validFrom && validUntil && validUntil < validFrom) {
-      return NextResponse.json({ ok: false, error: "La data fine certificato deve essere successiva alla data inizio." }, { status: 400 });
+    if (type === "medical_certificate") {
+      if (!validFrom || !validUntil) return NextResponse.json({ ok: false, error: "Inserisci inizio e fine validità certificato." }, { status: 400 });
+      if (!isISODate(validFrom) || !isISODate(validUntil)) return NextResponse.json({ ok: false, error: "Formato date certificato non valido." }, { status: 400 });
+      if (validUntil < validFrom) return NextResponse.json({ ok: false, error: "La data fine certificato deve essere successiva alla data inizio." }, { status: 400 });
     }
 
     const bucket = bucketFor(type);
@@ -86,9 +83,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (type === "customer_photo") await supabase.from("customers").update({ photo_url: publicUrl }).eq("id", id);
     if (type === "medical_certificate") {
       await supabase.from("customers").update({ medical_certificate_url: publicUrl, medical_certificate_start_date: validFrom, medical_certificate_end_date: validUntil, medical_certificate_status: documentStatus }).eq("id", id);
+      await supabase.from("customer_timeline").insert({ customer_id: id, type: "medical_certificate", title: replaceDocumentId ? "Certificato medico rinnovato" : "Certificato medico caricato", description: `Validità ${formatDateIT(validFrom)} → ${formatDateIT(validUntil)}.`, created_at: new Date().toISOString() });
     }
 
-    return NextResponse.json({ ok: true, document: { id: document.id, customer_id: id, document_type: type, title: titleFor(type), status: documentStatus, created_at: document.created_at || new Date().toISOString(), view_url: publicUrl } });
+    return NextResponse.json({ ok: true, document: { id: document.id, customer_id: id, document_type: type, title: titleFor(type), status: documentStatus, valid_from: validFrom, valid_until: validUntil, created_at: document.created_at || new Date().toISOString(), view_url: publicUrl } });
   } catch (error: any) {
     return NextResponse.json({ ok: false, error: error?.message || "Errore upload documento." }, { status: 500 });
   }
