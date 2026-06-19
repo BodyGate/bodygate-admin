@@ -1430,7 +1430,6 @@ export default function CustomerDetailsClient({
     !certificateValid ? "certificato medico non valido" : null,
     !activeMembership ? "quota associativa non valida" : null,
     !activeSubscription ? "abbonamento non valido" : null,
-    !documentsReady ? "contratto/documenti mancanti" : null,
     activeBlock ? `blocco attivo: ${activeBlock.reason || "senza motivo"}` : null,
   ].filter(Boolean) as string[];
 
@@ -1507,7 +1506,6 @@ export default function CustomerDetailsClient({
     { label: "Certificato valido", ok: !!certificateValid },
     { label: "Quota valida", ok: !!activeMembership },
     { label: "Abbonamento valido", ok: !!activeSubscription },
-    { label: "Contratto/documenti", ok: documentsReady },
     { label: activeBlock ? `Blocco: ${activeBlock.reason || "attivo"}` : "Nessun blocco", ok: !activeBlock },
   ];
 
@@ -1520,7 +1518,6 @@ export default function CustomerDetailsClient({
     !activeMembership ? "Quota associativa da verificare" : null,
     branchMissing ? "Cliente non associato a una sede operativa" : null,
     !operativeCredentialsReady ? "Credenziali operative mancanti" : null,
-    !documentsReady ? "Contratto/documenti mancanti" : null,
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
     customer?.is_active === false ? "Cliente disattivato" : null,
   ].filter(Boolean) as string[];
