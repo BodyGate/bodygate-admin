@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     if (paymentIds.length > 0) {
       const { data: receiptsData, error: receiptsError } = await supabaseAdmin
         .from("customer_receipts")
-        .select("id, payment_id, receipt_number")
+        .select("id, payment_id, receipt_number, receipt_components")
         .in("payment_id", paymentIds);
 
       if (!receiptsError && receiptsData) {
@@ -75,6 +75,7 @@ export async function GET(req: Request) {
         ...payment,
         receipt_id: receipt?.id || null,
         receipt_number: receipt?.receipt_number || null,
+        receipt_components: receipt?.receipt_components || null,
       };
     });
 

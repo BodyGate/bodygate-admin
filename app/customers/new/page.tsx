@@ -43,6 +43,11 @@ type PlatinumConfigResponse = {
   membership_fee?: {
     price?: number;
   };
+  badge_fee?: {
+    name?: string;
+    price?: number;
+    is_active?: boolean;
+  };
   plans?: Array<{
     id?: string;
     name?: string;
@@ -97,6 +102,7 @@ export default function NewCustomerPage() {
   const [configLoading, setConfigLoading] = useState(true);
   const [plans, setPlans] = useState<PlatinumPlan[]>(fallbackPlans);
   const [membershipAmount, setMembershipAmount] = useState(10);
+  const [badgeFee, setBadgeFee] = useState({ name: "Badge RFID", price: 5, isActive: true });
   const [operationalBranch, setOperationalBranch] = useState<OperationalBranch>({
     id: "ffbd8d1a-35a8-4b3e-8219-e9a56533d30c",
     name: "Body Energy",
@@ -141,6 +147,8 @@ export default function NewCustomerPage() {
     privacy_consent: true,
     marketing_consent: false,
     photo_video_consent: false,
+    badge_charge_mode: "not_included",
+    badge_complimentary_reason: "",
   });
 
   const selectedPlan = useMemo(() => {
@@ -148,7 +156,8 @@ export default function NewCustomerPage() {
   }, [form.subscription_plan, plans]);
 
   const withSubscription = form.subscription_choice === "with_subscription";
-  const totalAmount = membershipAmount + (withSubscription ? selectedPlan.price : 0);
+  const badgeAmount = form.badge_charge_mode === "charged" && badgeFee.isActive ? badgeFee.price : 0;
+  const totalAmount = membershipAmount + (withSubscription ? selectedPlan.price : 0) + badgeAmount;
   const badgePreview = useMemo(() => normalizeAccessCode(form.badge_code), [form.badge_code]);
 
   useEffect(() => {
@@ -180,6 +189,11 @@ export default function NewCustomerPage() {
 
         setPlans(activePlans);
         setMembershipAmount(Number(result.membership_fee?.price || 10));
+        setBadgeFee({
+          name: result.badge_fee?.name || "Badge RFID",
+          price: Number(result.badge_fee?.price || 5),
+          isActive: result.badge_fee?.is_active !== false,
+        });
 
         if (result.branch?.id) {
           setOperationalBranch({
@@ -213,6 +227,15 @@ export default function NewCustomerPage() {
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
   }
+
+  useEffect(() => {
+    setForm((current) => {
+      const canDeliverBadge = (current.access_type === "card" || current.access_type === "qr_card") && Boolean(current.badge_code.trim());
+      if (!canDeliverBadge && current.badge_charge_mode !== "not_included") return { ...current, badge_charge_mode: "not_included" };
+      if (canDeliverBadge && current.badge_charge_mode === "not_included") return { ...current, badge_charge_mode: "charged" };
+      return current;
+    });
+  }, [form.access_type, form.badge_code]);
 
   function updatePendingDocument(type: ScannerDocumentType, doc: PendingDocument) {
     setPendingDocuments((current) => ({ ...current, [type]: doc }));
@@ -276,6 +299,11 @@ export default function NewCustomerPage() {
       return;
     }
 
+    if (form.badge_charge_mode === "complimentary" && !form.badge_complimentary_reason.trim()) {
+      setMessage("Per omaggiare il badge RFID devi indicare il motivo operatore.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -288,6 +316,8 @@ export default function NewCustomerPage() {
         payment_method: form.payment_method,
         customer_tags: [],
         branch_id: operationalBranch.id,
+        badge_charge_mode: form.badge_charge_mode,
+        badge_complimentary_reason: form.badge_complimentary_reason,
       });
 
       const customerId = result.customer_id;
@@ -472,6 +502,27 @@ export default function NewCustomerPage() {
           color: #d4d4d8;
           font-weight: 800;
         }
+
+        .badge-charge-card {
+          grid-column: 1 / -1;
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          border-radius: 22px;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(255,255,255,0.04));
+          display: grid;
+          gap: 12px;
+        }
+        .badge-charge-card button {
+          border: 1px solid rgba(255,255,255,0.16);
+          border-radius: 999px;
+          padding: 10px 14px;
+          background: rgba(255,255,255,0.08);
+          color: white;
+          font-weight: 950;
+          cursor: pointer;
+        }
+        .badge-charge-card button.active { background: #ef4444; border-color: #fca5a5; }
+        .hint { color: #a1a1aa; font-size: 13px; font-weight: 800; }
 
         .message {
           margin-top: 14px;
@@ -771,6 +822,25 @@ export default function NewCustomerPage() {
               {form.subscription_choice === "membership_only" ? (
                 <p className="hint">Solo quota associativa: non verrà creato alcun abbonamento e il cliente non potrà accedere finché non avrà un abbonamento valido.</p>
               ) : null}
+
+              <div className="badge-charge-card">
+                <div className="card-title">Badge in ricevuta</div>
+                <div className="hint">Aggiungi badge alla ricevuta — {new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(badgeFee.price)}</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {[
+                    ["charged", `Addebitato ${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(badgeFee.price)}`],
+                    ["complimentary", "Omaggiato €0,00"],
+                    ["not_included", "Non consegnato"],
+                  ].map(([mode, label]) => (
+                    <button key={mode} type="button" className={form.badge_charge_mode === mode ? "active" : ""} onClick={() => update("badge_charge_mode", mode)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {form.badge_charge_mode === "complimentary" ? (
+                  <Field label="Motivo omaggio badge *" value={form.badge_complimentary_reason} onChange={(v) => update("badge_complimentary_reason", v)} />
+                ) : null}
+              </div>
               <Select
                 label="Metodo pagamento"
                 value={form.payment_method}
@@ -833,8 +903,13 @@ export default function NewCustomerPage() {
           </div>
 
           <div className="line">
-            <span>Importo abbonamento</span>
+            <span>{withSubscription ? `Abbonamento ${selectedPlan.name}` : "Abbonamento"}</span>
             <strong>{withSubscription ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(selectedPlan.price) : "—"}</strong>
+          </div>
+
+          <div className="line">
+            <span>{badgeFee.name}</span>
+            <strong>{form.badge_charge_mode === "charged" ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(badgeAmount) : form.badge_charge_mode === "complimentary" ? "Omaggiato €0,00" : "Non consegnato"}</strong>
           </div>
 
           <div className="line">
