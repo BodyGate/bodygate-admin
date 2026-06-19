@@ -574,7 +574,7 @@ namespace BodyGateAccessBridge
                 string openUrl = "http://" + ControllerIp + "/cdor.cgi?open=0";
 
                 using HttpRequestMessage request = new HttpRequestMessage(
-                    HttpMethod.Post,
+                    HttpMethod.Get,
                     openUrl
                 );
 
