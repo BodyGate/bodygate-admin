@@ -12,9 +12,7 @@ import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import type { DocumentStatus } from "../components/CustomerDocumentRows";
 import type { ScannerDocumentType } from "../components/documentScannerUtils";
 
-const fallbackPlans = [
-  { id: "", name: "Solo quota associativa", price: 0, duration: 0 },
-];
+const fallbackPlans: PlatinumPlan[] = [];
 
 type PlatinumPlan = {
   id: string;
@@ -137,7 +135,8 @@ export default function NewCustomerPage() {
     medical_certificate_end_date: "",
     access_type: "qr_card",
     badge_code: "",
-    subscription_plan: "mensile",
+    subscription_choice: "with_subscription",
+    subscription_plan: "",
     payment_method: "cash",
     privacy_consent: true,
     marketing_consent: false,
@@ -145,10 +144,11 @@ export default function NewCustomerPage() {
   });
 
   const selectedPlan = useMemo(() => {
-    return plans.find((plan) => plan.id === form.subscription_plan) || plans[0];
+    return plans.find((plan) => plan.id === form.subscription_plan) || plans[0] || { id: "", name: "", price: 0, duration: 0 };
   }, [form.subscription_plan, plans]);
 
-  const totalAmount = membershipAmount + selectedPlan.price;
+  const withSubscription = form.subscription_choice === "with_subscription";
+  const totalAmount = membershipAmount + (withSubscription ? selectedPlan.price : 0);
   const badgePreview = useMemo(() => normalizeAccessCode(form.badge_code), [form.badge_code]);
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function NewCustomerPage() {
             }))
           : [];
 
-        setPlans([fallbackPlans[0], ...activePlans]);
+        setPlans(activePlans);
         setMembershipAmount(Number(result.membership_fee?.price || 10));
 
         if (result.branch?.id) {
@@ -256,6 +256,11 @@ export default function NewCustomerPage() {
       return;
     }
 
+    if (withSubscription && !selectedPlan.id) {
+      setMessage("Seleziona un piano ufficiale per creare un abbonamento oppure scegli Solo quota associativa.");
+      return;
+    }
+
     if (!form.privacy_consent) {
       setMessage("Il consenso privacy è obbligatorio.");
       return;
@@ -278,10 +283,8 @@ export default function NewCustomerPage() {
         ...form,
         fiscal_code: form.fiscal_code.toUpperCase(),
         membership_amount: membershipAmount,
-        subscription_plan_id: selectedPlan.id || null,
-        subscription_name: selectedPlan.name,
-        subscription_amount: selectedPlan.price,
-        subscription_duration_days: selectedPlan.duration,
+        subscription_choice: withSubscription ? "with_subscription" : "membership_only",
+        subscription_plan_id: withSubscription ? selectedPlan.id : null,
         payment_method: form.payment_method,
         customer_tags: [],
         branch_id: operationalBranch.id,
@@ -289,27 +292,33 @@ export default function NewCustomerPage() {
 
       const customerId = result.customer_id;
 
+      const provisioning: string[] = [];
+      const provisioningWarnings: string[] = [];
       if (form.access_type === "qr" || form.access_type === "qr_card") {
         try {
-          await postJson("/api/customers/create-mobile-pass", {
-            customer_id: customerId,
-          });
+          await postJson("/api/customers/create-mobile-pass", { customer_id: customerId });
+          provisioning.push("Mobile Pass creato");
         } catch (error) {
-          console.warn("Mobile pass non generato:", error);
+          provisioningWarnings.push(`Mobile Pass non generato: ${error instanceof Error ? error.message : "errore imprevisto"}`);
         }
 
         try {
-          await postJson("/api/dnake/create-user-qr", {
-            customer_id: customerId,
-          });
+          await postJson("/api/dnake/create-user-qr", { customer_id: customerId });
+          provisioning.push("QR DNake creato");
         } catch (error) {
-          console.warn("QR DNake non generato:", error);
+          provisioningWarnings.push(`QR DNake non generato: ${error instanceof Error ? error.message : "errore imprevisto"}`);
         }
       }
 
       const documentFailures = await uploadPendingDocuments(customerId);
       if (documentFailures.length) {
-        setMessage(`Cliente creato, documenti da completare: ${documentFailures.join("; ")}`);
+        setMessage(`Cliente creato. ${provisioning.join(" · ")} ${provisioningWarnings.join(" · ")} Documenti da completare: ${documentFailures.join("; ")}. Apri la scheda cliente o vai al contratto quando lo stato è chiaro.`);
+        setSaving(false);
+        return;
+      }
+
+      if (provisioningWarnings.length) {
+        setMessage(`Cliente creato con riepilogo: quota creata · ${withSubscription ? "abbonamento creato · " : "solo quota associativa · "}pagamento creato · ricevuta creata · ${form.badge_code ? "badge creato · " : ""}${provisioning.join(" · ")} · contratto da firmare. Warning: ${provisioningWarnings.join(" · ")}. Azioni: riprova dalla scheda cliente oppure vai al contratto.`);
         setSaving(false);
         return;
       }
@@ -741,17 +750,27 @@ export default function NewCustomerPage() {
             <div className="card-title">6. Piano e pagamento</div>
             <div className="grid bg-form-grid">
               <Select
-                label="Abbonamento"
+                label="Tipo onboarding"
+                value={form.subscription_choice}
+                onChange={(v) => update("subscription_choice", v)}
+                options={["with_subscription", "membership_only"]}
+                labels={{ with_subscription: "Quota + abbonamento", membership_only: "Solo quota associativa" }}
+              />
+              <Select
+                label="Piano abbonamento"
                 value={form.subscription_plan}
                 onChange={(v) => update("subscription_plan", v)}
                 options={plans.map((p) => p.id)}
                 labels={Object.fromEntries(
                   plans.map((p) => [
                     p.id,
-                    `${p.name}${p.price ? ` - EUR ${p.price}` : ""}`,
+                    `${p.name}${p.price ? ` - ${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(p.price)}` : ""}`,
                   ]),
                 )}
               />
+              {form.subscription_choice === "membership_only" ? (
+                <p className="hint">Solo quota associativa: non verrà creato alcun abbonamento e il cliente non potrà accedere finché non avrà un abbonamento valido.</p>
+              ) : null}
               <Select
                 label="Metodo pagamento"
                 value={form.payment_method}
@@ -805,17 +824,17 @@ export default function NewCustomerPage() {
 
           <div className="line">
             <span>Quota associativa</span>
-            <strong>EUR {membershipAmount}</strong>
+            <strong>{new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(membershipAmount)}</strong>
           </div>
 
           <div className="line">
             <span>Abbonamento</span>
-            <strong>{selectedPlan.name}</strong>
+            <strong>{withSubscription ? selectedPlan.name : "Solo quota associativa"}</strong>
           </div>
 
           <div className="line">
             <span>Importo abbonamento</span>
-            <strong>EUR {selectedPlan.price}</strong>
+            <strong>{withSubscription ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(selectedPlan.price) : "—"}</strong>
           </div>
 
           <div className="line">
@@ -830,14 +849,16 @@ export default function NewCustomerPage() {
             </strong>
           </div>
 
-          <div className="total">EUR {totalAmount}</div>
+          <div className="total">{new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(totalAmount)}</div>
 
           <BGButton type="submit" disabled={saving || configLoading}>
             {saving
               ? "Creazione in corso..."
               : configLoading
                 ? "Caricamento configurazione..."
-                : "Crea cliente, QR e vai al contratto"}
+                : (form.access_type === "qr" || form.access_type === "qr_card")
+                  ? "Crea cliente, configura accesso e vai al contratto"
+                  : "Crea cliente e vai al contratto"}
           </BGButton>
 
           {message && (

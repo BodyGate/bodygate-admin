@@ -8,6 +8,9 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
+const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set(["Mensile","Trimestrale","Semestrale","Annuale","Annuale ridotto Lun Mer Ven","Annuale ridotto Mar Gio Sab","Mensile Ridotto Lunedi-Mercoledi-Venerdi","Mensile Ridotto Martedi-Giovedi-Sabato","Pilates"]);
+function isOfficialPlanName(name: unknown) { return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(String(name || "").trim()); }
+
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -198,6 +201,14 @@ export async function POST(req: Request) {
         },
         { status: 404 },
       );
+    }
+
+    if (!isOfficialPlanName(plan.name)) {
+      return NextResponse.json({ ok: false, error: "Piano non ammesso per BodyGate." }, { status: 400 });
+    }
+
+    if (customer.branch_id && plan.branch_id && customer.branch_id !== plan.branch_id) {
+      return NextResponse.json({ ok: false, error: "Il piano selezionato appartiene a un’altra sede." }, { status: 400 });
     }
 
     if (plan.is_active === false) {

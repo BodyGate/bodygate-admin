@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     const { data: subscription, error: subscriptionError } =
       await supabaseAdmin
         .from("customer_subscriptions")
-        .select("*, subscription_plans(name)")
+        .select("*, subscription_plans(name, branch_id)")
         .eq("id", subscriptionId)
         .eq("customer_id", customerId)
         .maybeSingle();
@@ -233,7 +233,7 @@ export async function POST(req: Request) {
 
     const { data: plan, error: planError } = await supabaseAdmin
       .from("subscription_plans")
-      .select("id, name, is_active")
+      .select("id, name, is_active, branch_id")
       .eq("id", planId)
       .maybeSingle();
 
@@ -253,6 +253,11 @@ export async function POST(req: Request) {
         { ok: false, error: "Piano non ammesso per la rettifica" },
         { status: 400 },
       );
+    }
+
+    const subscriptionBranchId = subscription.branch_id || subscription.subscription_plans?.branch_id || null;
+    if (subscriptionBranchId && plan.branch_id && subscriptionBranchId !== plan.branch_id) {
+      return NextResponse.json({ ok: false, error: "Il piano selezionato appartiene a un’altra sede." }, { status: 400 });
     }
 
     if (plan.is_active === false) {

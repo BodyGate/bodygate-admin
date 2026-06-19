@@ -23,6 +23,22 @@ type PlatinumPlan = {
   duration_days: number;
 };
 
+const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
+  "Mensile",
+  "Trimestrale",
+  "Semestrale",
+  "Annuale",
+  "Annuale ridotto Lun Mer Ven",
+  "Annuale ridotto Mar Gio Sab",
+  "Mensile Ridotto Lunedi-Mercoledi-Venerdi",
+  "Mensile Ridotto Martedi-Giovedi-Sabato",
+  "Pilates",
+]);
+
+function isOfficialPlanName(name: unknown) {
+  return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(String(name || "").trim());
+}
+
 type SubscriptionPlanRow = {
   id: string;
   name: string | null;
@@ -68,7 +84,7 @@ async function getActiveSubscriptionPlans(branchId: string): Promise<PlatinumPla
     return [];
   }
 
-  return ((data || []) as SubscriptionPlanRow[]).map((plan) => ({
+  return ((data || []) as SubscriptionPlanRow[]).filter((plan) => isOfficialPlanName(plan.name)).map((plan) => ({
     id: plan.id,
     name: plan.name || "Abbonamento",
     price: Number(plan.promo_price || plan.price || 0),
@@ -250,13 +266,15 @@ export async function POST(req: Request) {
       .trim()
       .toUpperCase();
 
+    const subscriptionChoice = String(body.subscription_choice || body.subscription_mode || "with_subscription").trim();
+    if (subscriptionChoice !== "membership_only" && subscriptionChoice !== "with_subscription") {
+      return NextResponse.json({ ok: false, error: "Scelta abbonamento non valida." }, { status: 400 });
+    }
     const rawPlanId = String(body.subscription_plan_id || "").trim();
     const subscriptionPlanId = UUID_RE.test(rawPlanId) ? rawPlanId : null;
 
-    let subscriptionAmount = Number(body.subscription_amount || 0);
-    let subscriptionDurationDays = Number(
-      body.subscription_duration_days || 0,
-    );
+    let subscriptionAmount = 0;
+    let subscriptionDurationDays = 0;
     let subscriptionName = String(
       body.subscription_name || "Abbonamento",
     ).trim();
@@ -338,15 +356,22 @@ export async function POST(req: Request) {
       membershipValidityDays = membershipFee.validity_days || 365;
     }
 
-    if (subscriptionPlanId) {
+    if (subscriptionChoice === "with_subscription" && !subscriptionPlanId) {
+      return NextResponse.json(
+        { ok: false, error: "Seleziona un piano abbonamento valido." },
+        { status: 400 },
+      );
+    }
+
+    if (subscriptionChoice === "with_subscription" && subscriptionPlanId) {
       const { data: selectedPlan, error: selectedPlanError } = await supabase
         .from("subscription_plans")
-        .select("id, name, price, promo_price, duration_days, is_active")
+        .select("id, name, price, promo_price, duration_days, is_active, branch_id")
         .eq("id", subscriptionPlanId)
         .eq("branch_id", branchId)
         .maybeSingle();
 
-      if (selectedPlanError || !selectedPlan || selectedPlan.is_active === false) {
+      if (selectedPlanError || !selectedPlan || selectedPlan.is_active === false || selectedPlan.branch_id !== branchId || !isOfficialPlanName(selectedPlan.name)) {
         return NextResponse.json(
           { ok: false, error: "Piano abbonamento non valido per la sede selezionata." },
           { status: 400 },
@@ -374,8 +399,6 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-
-    const receiptNumber = await getNextReceiptNumber();
 
     const { data: customer, error: customerError } = await supabase
       .from("customers")
@@ -580,19 +603,7 @@ export async function POST(req: Request) {
       created_by: "admin@bodygate.it",
     });
 
-    await supabase.from("accounting_entries").insert({
-      branch_id: customerBranchId,
-      customer_id: customerId,
-      direction: "income",
-      category: "onboarding",
-      description,
-      amount: totalAmount,
-      payment_method: paymentMethod,
-      entry_date: todayDate,
-      source: "customer_onboarding",
-      source_id: payment.id,
-      operator_name: "BodyGate",
-    });
+    const receiptNumber = await getNextReceiptNumber();
 
     const { error: receiptError } = await supabase
       .from("customer_receipts")
@@ -703,6 +714,8 @@ export async function POST(req: Request) {
       subscription_id: subscriptionId,
       branch_id: customerBranchId,
       receipt_number: receiptNumber.receipt_number,
+      steps: { customer: true, membership_fee: true, subscription: Boolean(subscriptionId), payment: true, receipt: true, badge: Boolean(badgeCode || controllerCode), contract_pending: true },
+      technical_note: "Il flusso onboarding è multi-step e non ancora una transazione PostgreSQL atomica.",
       next_url: `/customers/${customerId}/contract/print`,
     });
   } catch (error: unknown) {
