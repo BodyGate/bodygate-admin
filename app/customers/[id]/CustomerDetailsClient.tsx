@@ -17,6 +17,7 @@ import BGSectionHeader from "../../components/ui/BGSectionHeader";
 import BGStatusBadge from "../../components/ui/BGStatusBadge";
 import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
+import { safeRandomId } from "../../lib/safeRandomId";
 
 type Customer = any;
 type Plan = any;
@@ -121,6 +122,7 @@ export default function CustomerDetailsClient({
   const [renewalAmount, setRenewalAmount] = useState("");
   const [renewalNotes, setRenewalNotes] = useState("");
   const [renewalSaving, setRenewalSaving] = useState(false);
+  const [renewalOperationId, setRenewalOperationId] = useState("");
 
   const [newNote, setNewNote] = useState("");
   const [blockReason, setBlockReason] = useState("");
@@ -774,6 +776,7 @@ export default function CustomerDetailsClient({
     );
     setRenewalAmount(amount.toFixed(2));
     setRenewalNotes("");
+    setRenewalOperationId(safeRandomId("renewal"));
     setRenewalOpen(true);
   }
 
@@ -926,6 +929,9 @@ export default function CustomerDetailsClient({
       return;
     }
 
+    const operationId = renewalOperationId || safeRandomId("renewal");
+    if (!renewalOperationId) setRenewalOperationId(operationId);
+
     setRenewalSaving(true);
 
     try {
@@ -933,8 +939,10 @@ export default function CustomerDetailsClient({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": operationId,
         },
         body: JSON.stringify({
+          operation_id: operationId,
           customer_id: customer.id,
           plan_id: renewalPlanId,
           payment_method: selectedPaymentMethod,
@@ -953,6 +961,7 @@ export default function CustomerDetailsClient({
       }
 
       setRenewalOpen(false);
+      setRenewalOperationId("");
 
       const successMessage =
         `Rinnovo completato.\n\n` +
@@ -4035,7 +4044,10 @@ export default function CustomerDetailsClient({
                   <div className="actions" style={{ marginTop: 16 }}>
                     <BGButton
                       variant="secondary"
-                      onClick={() => setRenewalOpen(false)}
+                      onClick={() => {
+                        setRenewalOpen(false);
+                        setRenewalOperationId("");
+                      }}
                       disabled={renewalSaving}
                     >
                       Annulla
