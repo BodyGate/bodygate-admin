@@ -4377,6 +4377,7 @@ export default function CustomerDetailsClient({
                   medical_certificate_start_date: document.valid_from || prev.medical_certificate_start_date,
                   medical_certificate_end_date: document.valid_until || prev.medical_certificate_end_date,
                 }));
+                void loadAll();
               }
             }}
           />
@@ -4389,7 +4390,11 @@ export default function CustomerDetailsClient({
               <InfoMini
                 label="Certificato"
                 value={
-                  customer.medical_certificate_url ? "Caricato" : "Non caricato"
+                  customer.medical_certificate_url
+                    ? "Caricato"
+                    : customer.medical_certificate_start_date || customer.medical_certificate_start || customer.medical_certificate_end_date || customer.medical_certificate_end
+                      ? "Documento da completare"
+                      : "Non caricato"
                 }
                 tone={customer.medical_certificate_url ? "success" : "danger"}
               />
