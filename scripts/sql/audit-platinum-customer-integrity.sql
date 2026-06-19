@@ -106,3 +106,35 @@ left join customer_receipts cr on cr.payment_id = cp.id and cr.receipt_number = 
 left join customer_subscriptions cs on cs.id = cr.subscription_id
 left join lateral (select f.* from customer_membership_fees f where f.customer_id = c.id order by f.created_at desc nulls last limit 1) cmf on true
 where c.id = '09e5a6d2-da98-4ebc-b3fd-f1589b9ee120';
+
+-- 18. Audit badge RFID onboarding legacy / differenze compatibili €5 (READ ONLY)
+select
+  cp.customer_id,
+  cp.id as customer_payment_id,
+  cp.amount as customer_payment_amount,
+  p.id as payment_id,
+  p.amount as payment_amount,
+  cr.id as receipt_id,
+  cr.receipt_number,
+  cr.amount as receipt_amount,
+  cr.receipt_components,
+  case
+    when cr.receipt_components is null and lower(coalesce(cp.description, cr.description, '')) like '%badge%' then 'badge_in_description_without_components'
+    when abs(coalesce(cp.amount, 0) - coalesce(cr.amount, 0)) = 5 then 'customer_payment_receipt_delta_5_inferred_badge_candidate'
+    when abs(coalesce(p.amount, 0) - coalesce(cr.amount, 0)) = 5 then 'payment_receipt_delta_5_inferred_badge_candidate'
+    else 'manual_review'
+  end as audit_reason
+from customer_payments cp
+left join customer_receipts cr on cr.payment_id = cp.id
+left join payments p on p.customer_id = cp.customer_id
+  and date(p.paid_at) = date(cp.paid_at)
+  and (p.payment_type = cp.type or p.description = cp.description)
+where cp.type = 'onboarding'
+  and (
+    (cr.receipt_components is null and lower(coalesce(cp.description, cr.description, '')) like '%badge%')
+    or abs(coalesce(cp.amount, 0) - coalesce(cr.amount, 0)) = 5
+    or abs(coalesce(p.amount, 0) - coalesce(cr.amount, 0)) = 5
+    or coalesce(cp.amount, 0) <> coalesce(cr.amount, cp.amount, 0)
+    or coalesce(p.amount, cp.amount, 0) <> coalesce(cp.amount, 0)
+  )
+order by coalesce(cp.paid_at, cp.created_at) desc;

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDefaultBadgeFee, normalizeBadgeChargeMode } from "../../../lib/server/badgeFee";
+import { tableHasColumn } from "../../../lib/server/defaultBranch";
 
 export const dynamic = "force-dynamic";
 
@@ -152,6 +154,9 @@ export async function POST(req: Request) {
       body.start_date || body.startDate || "",
     ).trim();
     const requestedAmount = parseAmount(body.amount);
+    const badgeChargeMode = normalizeBadgeChargeMode(body.badge_charge_mode);
+    const badgeComplimentaryReason = String(body.badge_complimentary_reason || "").trim();
+    const newBadgeDelivered = Boolean(body.new_badge_delivered || body.badge_delivered || body.badge_code || body.controller_code);
 
     if (!customerId) {
       return NextResponse.json(
@@ -222,10 +227,22 @@ export async function POST(req: Request) {
     }
 
     const standardAmount = Number(plan.promo_price || plan.price || 0);
-    const amount =
+    const subscriptionAmount =
       requestedAmount !== null && requestedAmount > 0
         ? requestedAmount
         : standardAmount;
+    const badgeFeeConfig = getDefaultBadgeFee();
+
+    if (badgeChargeMode === "charged" && !newBadgeDelivered) {
+      return NextResponse.json({ ok: false, error: "Per addebitare il Badge RFID sul rinnovo conferma la consegna di una nuova card." }, { status: 400 });
+    }
+
+    if (badgeChargeMode === "complimentary" && !badgeComplimentaryReason) {
+      return NextResponse.json({ ok: false, error: "Per omaggiare il Badge RFID è obbligatorio indicare il motivo operatore." }, { status: 400 });
+    }
+
+    const badgeFee = badgeChargeMode === "charged" && badgeFeeConfig.is_active ? badgeFeeConfig.price : 0;
+    const amount = subscriptionAmount + badgeFee;
 
     const durationDays = Number(plan.duration_days || 0);
 
@@ -268,7 +285,12 @@ export async function POST(req: Request) {
     const customerName =
       `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
 
-    const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})`;
+    const receiptComponents = [
+      { code: "subscription", label: `Abbonamento ${plan.name}`, amount: subscriptionAmount },
+      ...(badgeChargeMode !== "not_included" ? [{ code: "rfid_badge", label: "Badge RFID", amount: badgeFee }] : []),
+    ];
+    const paymentDescription = `Rinnovo abbonamento ${plan.name} (${startsAt} - ${endsAt})${badgeChargeMode !== "not_included" ? ` + Badge RFID €${badgeFee.toFixed(2).replace(".", ",")}` : ""}`;
+    const receiptsHasComponents = await tableHasColumn(supabaseAdmin, "customer_receipts", "receipt_components");
 
     const receiptNumber = await getNextReceiptNumber();
 
@@ -295,7 +317,7 @@ export async function POST(req: Request) {
         customer_id: customerId,
         branch_id: branchId,
         plan_id: plan.id,
-        amount,
+        amount: subscriptionAmount,
         starts_at: startsAt,
         ends_at: endsAt,
         is_active: true,
@@ -376,7 +398,7 @@ export async function POST(req: Request) {
       customer_id: customerId,
       type: "subscription",
       title: "Abbonamento rinnovato",
-      description: `${plan.name} €${amount.toFixed(
+      description: `${plan.name} €${subscriptionAmount.toFixed(
         2,
       )} valido dal ${startsAt} al ${endsAt}`,
       created_at: now,
@@ -399,6 +421,7 @@ export async function POST(req: Request) {
         customer_copy_label: "COPIA CLIENTE",
         gym_copy_label: "COPIA PALESTRA",
         issued_at: now,
+        ...(receiptsHasComponents ? { receipt_components: receiptComponents } : {}),
       })
       .select("*")
       .single();

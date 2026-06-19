@@ -35,6 +35,12 @@ function customerName(customer: any) {
   return `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim() || "Cliente";
 }
 
+function receiptComponents(receipt: any) {
+  return Array.isArray(receipt?.receipt_components)
+    ? receipt.receipt_components.filter((component: any) => component && component.label)
+    : [];
+}
+
 function paymentMethodLabel(method?: string | null) {
   if (method === "cash") return "Contanti";
   if (method === "pos") return "POS";
@@ -117,6 +123,7 @@ function ReceiptCopy({
   plan: any;
 }) {
   const name = customerName(customer);
+  const components = receiptComponents(receipt);
 
   return (
     <section className="receipt-copy">
@@ -169,27 +176,51 @@ function ReceiptCopy({
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>
-              <strong>{plan?.name || payment?.description || receipt.description || "Abbonamento"}</strong>
-              <br />
-              <span className="muted">
-                {receipt.description || payment?.description || "Rinnovo abbonamento"}
-              </span>
-            </td>
-            <td>
-              {subscription ? (
-                <>
-                  {formatDate(subscription.starts_at)}
+          {components.length ? (
+            components.map((component: any) => (
+              <tr key={component.code || component.label}>
+                <td>
+                  <strong>{component.label}</strong>
                   <br />
-                  {formatDate(subscription.ends_at)}
-                </>
-              ) : (
-                "-"
-              )}
-            </td>
-            <td className="right amount">{formatEuro(receipt.amount)}</td>
-          </tr>
+                  <span className="muted">{receipt.description || payment?.description || "Ricevuta cliente"}</span>
+                </td>
+                <td>
+                  {component.code === "subscription" && subscription ? (
+                    <>
+                      {formatDate(subscription.starts_at)}
+                      <br />
+                      {formatDate(subscription.ends_at)}
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td className="right amount">{formatEuro(component.amount)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td>
+                <strong>{plan?.name || payment?.description || receipt.description || "Abbonamento"}</strong>
+                <br />
+                <span className="muted">
+                  {receipt.description || payment?.description || "Rinnovo abbonamento"}
+                </span>
+              </td>
+              <td>
+                {subscription ? (
+                  <>
+                    {formatDate(subscription.starts_at)}
+                    <br />
+                    {formatDate(subscription.ends_at)}
+                  </>
+                ) : (
+                  "-"
+                )}
+              </td>
+              <td className="right amount">{formatEuro(receipt.amount)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
