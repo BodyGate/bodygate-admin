@@ -11,15 +11,14 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  async function login(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function doLogin() {
     setLoading(true);
     setMessage("");
 
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -31,13 +30,13 @@ export default function LoginForm() {
 
       const result = await response.json();
 
-      if (!result.ok) {
+      if (!response.ok || !result.ok) {
         setMessage(result.message || "Login non riuscito.");
         setLoading(false);
         return;
       }
 
-      router.push("/");
+      router.replace("/");
       router.refresh();
     } catch {
       setMessage("Errore durante il login.");
@@ -46,7 +45,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={login} style={formStyle}>
+    <div style={formStyle}>
       <div>
         <div style={brandStyle}>BodyGate</div>
 
@@ -80,10 +79,10 @@ export default function LoginForm() {
 
       {message && <div style={messageStyle}>{message}</div>}
 
-      <button type="submit" disabled={loading} style={buttonStyle}>
+      <button type="button" onClick={doLogin} disabled={loading} style={buttonStyle}>
         {loading ? "Accesso..." : "Accedi"}
       </button>
-    </form>
+    </div>
   );
 }
 
