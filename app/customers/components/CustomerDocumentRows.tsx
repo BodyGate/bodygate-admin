@@ -156,7 +156,7 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
           <input id={cameraInputId} className="native-file" type="file" accept="image/*" capture="environment" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "camera", e.currentTarget.files?.[0], row.type === "medical_certificate" && hasDocument ? (status === "expired" ? "renew" : "replace") : "create", validFrom, validUntil); e.currentTarget.value = ""; }} />
           <input id={fileInputId} className="native-file" type="file" accept="image/*,.pdf" disabled={disabled} onChange={(e) => { handleNativeFileChange(row, "file", e.currentTarget.files?.[0], row.type === "medical_certificate" && hasDocument ? (status === "expired" ? "renew" : "replace") : "create", validFrom, validUntil); e.currentTarget.value = ""; }} />
           {row.type === "medical_certificate" && hasLegacyMedicalDatesOnly ? <>
-            <label className={`buttonlike primary${disabled ? " disabled" : ""}`} htmlFor={disabled ? undefined : fileInputId} aria-disabled={disabled}>Completa certificato</label>
+            <button type="button" className="buttonlike primary" onClick={() => openScanner(row, "file", undefined, "create", validFrom, validUntil)} disabled={disabled}>Completa certificato</button>
           </> : row.type === "medical_certificate" && hasDocument ? <>
             {url ? <button type="button" onClick={() => window.open(url, "_blank", "noopener,noreferrer")}>{status === "expired" ? "Visualizza precedente" : "Visualizza"}</button> : null}
             <button type="button" onClick={() => openScanner(row, "file", undefined, "dates_only", validFrom, validUntil)} disabled={disabled}>{status === "needs_dates" ? "Completa validità" : "Modifica validità"}</button>
