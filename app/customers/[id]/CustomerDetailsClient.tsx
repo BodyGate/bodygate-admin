@@ -20,7 +20,12 @@ import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 
 type Customer = any;
 type Plan = any;
-type Branch = { id: string; name?: string | null; address?: string | null; city?: string | null };
+type Branch = {
+  id: string;
+  name?: string | null;
+  address?: string | null;
+  city?: string | null;
+};
 
 const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
   "Mensile",
@@ -91,7 +96,8 @@ export default function CustomerDetailsClient({
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
   const [membershipAmount, setMembershipAmount] = useState("10.00");
-  const [membershipPaymentMethod, setMembershipPaymentMethod] = useState("cash");
+  const [membershipPaymentMethod, setMembershipPaymentMethod] =
+    useState("cash");
   const [membershipValidFrom, setMembershipValidFrom] = useState(() =>
     formatLocalDate(new Date()),
   );
@@ -361,14 +367,16 @@ export default function CustomerDetailsClient({
           ? {
               ...prev,
               badge_code: result.customer?.badge_code || normalizedBadge,
-              controller_code: result.customer?.controller_code || prev.controller_code,
+              controller_code:
+                result.customer?.controller_code || prev.controller_code,
             }
           : prev,
       );
       setEditForm((prev: any) => ({
         ...prev,
         badge_code: result.customer?.badge_code || normalizedBadge,
-        controller_code: result.customer?.controller_code || prev.controller_code,
+        controller_code:
+          result.customer?.controller_code || prev.controller_code,
       }));
       setBadgePanelOpen(false);
       setBadgeFeedback({
@@ -426,9 +434,13 @@ export default function CustomerDetailsClient({
 
       setCustomer(customerData);
 
-      const overviewResponse = await fetch(`/api/customers/operational-overview?customer_id=${encodeURIComponent(customerId)}`, { cache: "no-store" });
+      const overviewResponse = await fetch(
+        `/api/customers/operational-overview?customer_id=${encodeURIComponent(customerId)}`,
+        { cache: "no-store" },
+      );
       const overviewJson = await overviewResponse.json().catch(() => null);
-      const overviewBranch = overviewResponse.ok && overviewJson?.ok ? overviewJson.branch : null;
+      const overviewBranch =
+        overviewResponse.ok && overviewJson?.ok ? overviewJson.branch : null;
       if (overviewResponse.ok && overviewJson?.ok) {
         setOperationalOverview(overviewJson);
         setMobilePassRecord(overviewJson.mobile_pass || null);
@@ -572,7 +584,9 @@ export default function CustomerDetailsClient({
     medicalCertificateEnd && medicalCertificateEnd >= today;
 
   const branchMissing = !customer?.branch_id;
-  const branchResolved = Boolean(operationalOverview?.branch_status?.branchResolved ?? customerBranch);
+  const branchResolved = Boolean(
+    operationalOverview?.branch_status?.branchResolved ?? customerBranch,
+  );
   const branchLabel = customerBranch
     ? `${customerBranch.name || "Sede operativa"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}`
     : branchMissing
@@ -609,14 +623,24 @@ export default function CustomerDetailsClient({
     return accessCredentials.filter((item) => item.type === "qr");
   }, [accessCredentials]);
 
-  const badgeDraftPreview = useMemo(() => normalizeAccessCode(badgeDraft), [badgeDraft]);
+  const badgeDraftPreview = useMemo(
+    () => normalizeAccessCode(badgeDraft),
+    [badgeDraft],
+  );
 
   const primaryCardCredential = useMemo(() => {
-    return cardCredentials.find((item) => item.status === "active") || cardCredentials[0] || null;
+    return (
+      cardCredentials.find((item) => item.status === "active") ||
+      cardCredentials[0] ||
+      null
+    );
   }, [cardCredentials]);
 
-  const cardBridgeCode = customer?.controller_code || primaryCardCredential?.controller_code || null;
-  const cardOperative = Boolean((customer?.badge_code || primaryCardCredential?.code) && cardBridgeCode);
+  const cardBridgeCode =
+    customer?.controller_code || primaryCardCredential?.controller_code || null;
+  const cardOperative = Boolean(
+    (customer?.badge_code || primaryCardCredential?.code) && cardBridgeCode,
+  );
 
   const activeDnakeQr = useMemo(() => {
     return (
@@ -628,7 +652,7 @@ export default function CustomerDetailsClient({
 
   const qrOperative = Boolean(
     activeDnakeQr?.qr_status === "active" &&
-      (activeDnakeQr?.controller_code || activeDnakeQr?.qr_payload),
+    (activeDnakeQr?.controller_code || activeDnakeQr?.qr_payload),
   );
 
   const operativeCredentialsReady = cardOperative || qrOperative;
@@ -662,7 +686,10 @@ export default function CustomerDetailsClient({
   }
 
   function formatCurrency(value: unknown) {
-    return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value || 0));
+    return new Intl.NumberFormat("it-IT", {
+      style: "currency",
+      currency: "EUR",
+    }).format(Number(value || 0));
   }
 
   function getSuggestedRenewalStartDate() {
@@ -796,7 +823,9 @@ export default function CustomerDetailsClient({
     }
 
     if (membershipValidUntil < membershipValidFrom) {
-      alert("La data fine quota deve essere successiva o uguale alla data inizio.");
+      alert(
+        "La data fine quota deve essere successiva o uguale alla data inizio.",
+      );
       return;
     }
 
@@ -1453,7 +1482,8 @@ export default function CustomerDetailsClient({
   const documentsReady = Boolean(contractUrl);
 
   const overviewAccessBlocks = operationalOverview?.access_block_reasons || [];
-  const overviewAdminWarnings = operationalOverview?.administrative_warnings || [];
+  const overviewAdminWarnings =
+    operationalOverview?.administrative_warnings || [];
   const overviewDataWarnings = operationalOverview?.data_quality_warnings || [];
 
   const localAccessBlockReasons = [
@@ -1463,10 +1493,16 @@ export default function CustomerDetailsClient({
     !certificateValid ? "certificato medico non valido" : null,
     !activeMembership ? "quota associativa non valida" : null,
     !activeSubscription ? "abbonamento non valido" : null,
-    activeBlock ? `blocco attivo: ${activeBlock.reason || "senza motivo"}` : null,
+    activeBlock
+      ? `blocco attivo: ${activeBlock.reason || "senza motivo"}`
+      : null,
   ].filter(Boolean) as string[];
 
-  const accessAllowed = (overviewAccessBlocks.length || operationalOverview ? overviewAccessBlocks : localAccessBlockReasons).length === 0;
+  const accessAllowed =
+    (overviewAccessBlocks.length || operationalOverview
+      ? overviewAccessBlocks
+      : localAccessBlockReasons
+    ).length === 0;
   const shortPlans = plans.slice(0, 6);
 
   const activeSubscriptionStart = String(
@@ -1480,18 +1516,33 @@ export default function CustomerDetailsClient({
     plannedSubscription?.starts_at || "",
   ).slice(0, 10);
   const subscriptionSummary = operationalOverview?.subscription_summary;
-  const currentPlanName = subscriptionSummary?.displayName ||
+  const currentPlanName =
+    subscriptionSummary?.displayName ||
     activeSubscription?.subscription_plans?.name ||
     plannedSubscription?.subscription_plans?.name ||
-    (activeSubscription ? "Abbonamento attivo" : plannedSubscription ? "Piano pianificato" : "Nessun abbonamento attivo");
+    (activeSubscription
+      ? "Abbonamento attivo"
+      : plannedSubscription
+        ? "Piano pianificato"
+        : "Nessun abbonamento attivo");
   const latestRenewal = operationalOverview?.latest_renewal || null;
+  const latestOnboardingPayment =
+    operationalOverview?.latest_onboarding_payment || null;
+  const onboardingMismatch =
+    latestOnboardingPayment?.reconciliation_status === "mismatch";
   const lastRenewal = latestRenewal?.subscription || null;
-  const lastRenewalAmount = latestRenewal?.payment?.amount != null
+  const lastRenewalAmount =
+    latestRenewal?.payment?.amount != null
       ? `${formatCurrency(latestRenewal.payment.amount)} · ${paymentMethodLabel(latestRenewal.payment.payment_method)}`
       : activeSubscription?.amount != null
-        ? formatCurrency(activeSubscription.amount)
+        ? `${formatCurrency(activeSubscription.amount)} · ${paymentMethodLabel(activeSubscription.payment_method)}`
         : "-";
-  const renewalKpiLabel = latestRenewal?.payment ? "Ultimo rinnovo" : "Importo abbonamento";
+  const renewalKpiLabel = latestRenewal?.payment
+    ? "Ultimo rinnovo"
+    : "Importo abbonamento";
+  const onboardingPaymentDate =
+    latestOnboardingPayment?.customer_payment?.paid_at ||
+    latestOnboardingPayment?.customer_payment?.created_at;
   const lastAccess = accessLogs[0] || null;
 
   const daysRemaining = activeSubscriptionEnd
@@ -1502,13 +1553,15 @@ export default function CustomerDetailsClient({
       )
     : null;
 
-  const subscriptionStatus = subscriptionSummary?.status || (activeSubscription
-    ? daysRemaining !== null && daysRemaining <= 7
-      ? "In scadenza"
-      : "Attivo"
-    : plannedSubscription
-      ? "Pianificato"
-      : "Da rinnovare");
+  const subscriptionStatus =
+    subscriptionSummary?.status ||
+    (activeSubscription
+      ? daysRemaining !== null && daysRemaining <= 7
+        ? "In scadenza"
+        : "Attivo"
+      : plannedSubscription
+        ? "Pianificato"
+        : "Da rinnovare");
 
   const subscriptionTone: StatusTone = activeSubscription
     ? daysRemaining !== null && daysRemaining <= 7
@@ -1533,8 +1586,12 @@ export default function CustomerDetailsClient({
   const badgeDisplay =
     customer.badge_code || customer.controller_code || "Non assegnato";
   const mobilePassStatus = mobilePassRecord
-    ? (String(mobilePassRecord.status || "active").toLowerCase() === "active" ? "Attivo" : String(mobilePassRecord.status || "Esistente"))
-    : mobilePassUrl ? "Link creato" : "Non generato";
+    ? String(mobilePassRecord.status || "active").toLowerCase() === "active"
+      ? "Attivo"
+      : String(mobilePassRecord.status || "Esistente")
+    : mobilePassUrl
+      ? "Link creato"
+      : "Non generato";
   const accessDecisionChecks = [
     { label: "Cliente attivo", ok: customer?.is_active !== false },
     { label: "Sede operativa", ok: !branchMissing },
@@ -1542,7 +1599,12 @@ export default function CustomerDetailsClient({
     { label: "Certificato valido", ok: !!certificateValid },
     { label: "Quota valida", ok: !!activeMembership },
     { label: "Abbonamento valido", ok: !!activeSubscription },
-    { label: activeBlock ? `Blocco: ${activeBlock.reason || "attivo"}` : "Nessun blocco", ok: !activeBlock },
+    {
+      label: activeBlock
+        ? `Blocco: ${activeBlock.reason || "attivo"}`
+        : "Nessun blocco",
+      ok: !activeBlock,
+    },
   ];
 
   const fallbackCustomerAlerts = [
@@ -1557,9 +1619,16 @@ export default function CustomerDetailsClient({
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
     customer?.is_active === false ? "Cliente disattivato" : null,
   ].filter(Boolean) as string[];
-  const accessBlockReasons = overviewAccessBlocks.length || operationalOverview ? overviewAccessBlocks : localAccessBlockReasons;
-  const administrativeWarnings = operationalOverview ? [...overviewAdminWarnings, ...overviewDataWarnings] : [];
-  const customerAlerts = operationalOverview ? [...accessBlockReasons, ...administrativeWarnings] : fallbackCustomerAlerts;
+  const accessBlockReasons =
+    overviewAccessBlocks.length || operationalOverview
+      ? overviewAccessBlocks
+      : localAccessBlockReasons;
+  const administrativeWarnings = operationalOverview
+    ? [...overviewAdminWarnings, ...overviewDataWarnings]
+    : [];
+  const customerAlerts = operationalOverview
+    ? [...accessBlockReasons, ...administrativeWarnings]
+    : fallbackCustomerAlerts;
 
   const compactProfileInfo = [
     { label: "Sede operativa", value: branchLabel },
@@ -3038,10 +3107,81 @@ export default function CustomerDetailsClient({
                 </div>
               </div>
 
-              {accessBlockReasons.length > 0 || administrativeWarnings.length > 0 ? (
+              {latestOnboardingPayment ? (
+                <div className="alert-stack" style={{ marginTop: 12 }}>
+                  <div
+                    className="alert-chip"
+                    style={{
+                      borderColor: "rgba(59, 130, 246, .30)",
+                      background: "rgba(30, 64, 175, .20)",
+                      color: "#bfdbfe",
+                    }}
+                  >
+                    Incasso onboarding · {formatDateIT(onboardingPaymentDate)} ·{" "}
+                    {formatCurrency(
+                      latestOnboardingPayment.receipt?.amount ??
+                        latestOnboardingPayment.customer_payment?.amount,
+                    )}{" "}
+                    ·{" "}
+                    {paymentMethodLabel(
+                      latestOnboardingPayment.customer_payment?.payment_method,
+                    )}
+                  </div>
+                  {onboardingMismatch ? (
+                    <div
+                      className="alert-chip"
+                      style={{
+                        display: "block",
+                        borderColor: "rgba(245, 158, 11, .45)",
+                        background: "rgba(146, 64, 14, .30)",
+                        color: "#fde68a",
+                      }}
+                    >
+                      <strong>Disallineamento economico onboarding</strong>
+                      <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+                        Pagamento cliente:{" "}
+                        {formatCurrency(
+                          latestOnboardingPayment.customer_payment?.amount,
+                        )}
+                        <br />
+                        Registro pagamenti:{" "}
+                        {formatCurrency(
+                          latestOnboardingPayment.payment?.amount,
+                        )}
+                        <br />
+                        Ricevuta{" "}
+                        {latestOnboardingPayment.receipt?.receipt_number || "-"}
+                        :{" "}
+                        {formatCurrency(
+                          latestOnboardingPayment.receipt?.amount,
+                        )}
+                        <br />
+                        Componenti attesi:{" "}
+                        {formatCurrency(latestOnboardingPayment.expected_total)}
+                        <br />
+                        Differenza da verificare:{" "}
+                        {formatCurrency(
+                          latestOnboardingPayment.discrepancy_amount,
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {accessBlockReasons.length > 0 ||
+              administrativeWarnings.length > 0 ? (
                 <div className="alert-stack">
-                  {accessBlockReasons.length === 0 && administrativeWarnings.length > 0 ? (
-                    <div className="alert-chip" style={{ borderColor: "rgba(245, 158, 11, .35)", background: "rgba(146, 64, 14, .24)", color: "#fde68a" }}>
+                  {accessBlockReasons.length === 0 &&
+                  administrativeWarnings.length > 0 ? (
+                    <div
+                      className="alert-chip"
+                      style={{
+                        borderColor: "rgba(245, 158, 11, .35)",
+                        background: "rgba(146, 64, 14, .24)",
+                        color: "#fde68a",
+                      }}
+                    >
                       Accesso consentito con avvisi amministrativi
                     </div>
                   ) : null}
@@ -3060,8 +3200,8 @@ export default function CustomerDetailsClient({
                     color: "#bbf7d0",
                   }}
                 >
-                  Nessun alert operativo: cliente regolare per sede, abbonamento,
-                  quota, certificato e blocchi.
+                  Nessun alert operativo: cliente regolare per sede,
+                  abbonamento, quota, certificato e blocchi.
                 </div>
               )}
             </div>
@@ -3120,7 +3260,13 @@ export default function CustomerDetailsClient({
                   <InfoMini
                     label="QR DNake"
                     value={qrOperative ? "Operativo" : "Non generato"}
-                    tone={qrOperative ? "success" : cardOperative ? "neutral" : "danger"}
+                    tone={
+                      qrOperative
+                        ? "success"
+                        : cardOperative
+                          ? "neutral"
+                          : "danger"
+                    }
                   />
                   <InfoMini
                     label="Mobile Pass"
@@ -3255,7 +3401,12 @@ export default function CustomerDetailsClient({
                 status={branchMissing ? "Mancante" : "Associata"}
                 tone={branchMissing ? "danger" : "success"}
                 value={branchLabel}
-                note={branchMissing ? "Correggere l’anagrafica prima di considerare l’accesso operativo." : branchAddressLabel || "Sede assegnata: dettagli non disponibili"}
+                note={
+                  branchMissing
+                    ? "Correggere l’anagrafica prima di considerare l’accesso operativo."
+                    : branchAddressLabel ||
+                      "Sede assegnata: dettagli non disponibili"
+                }
                 action="Apri profilo"
                 onAction={() => setActiveSection("profile")}
               />
@@ -3502,7 +3653,14 @@ export default function CustomerDetailsClient({
                   />
                 </EditField>
                 <EditField label="Codice bridge calcolato">
-                  <input value={normalizeAccessCode(editForm.badge_code).controllerCode || editForm.controller_code || "Non derivabile"} readOnly />
+                  <input
+                    value={
+                      normalizeAccessCode(editForm.badge_code).controllerCode ||
+                      editForm.controller_code ||
+                      "Non derivabile"
+                    }
+                    readOnly
+                  />
                 </EditField>
                 <EditField label="Stato cliente">
                   <div className="checkbox-field">
@@ -3564,7 +3722,9 @@ export default function CustomerDetailsClient({
                   <EditField label="Metodo pagamento">
                     <select
                       value={membershipPaymentMethod}
-                      onChange={(e) => setMembershipPaymentMethod(e.target.value)}
+                      onChange={(e) =>
+                        setMembershipPaymentMethod(e.target.value)
+                      }
                     >
                       <option value="cash">Contanti</option>
                       <option value="pos">POS</option>
@@ -3613,8 +3773,8 @@ export default function CustomerDetailsClient({
                   </div>
                   <div className="small-muted" style={{ marginTop: 10 }}>
                     Alla conferma BodyGate creerà customer_payments, payments,
-                    customer_receipts numerata e timeline cliente. Nessuna
-                    prima nota o cash movement viene generato.
+                    customer_receipts numerata e timeline cliente. Nessuna prima
+                    nota o cash movement viene generato.
                   </div>
                 </div>
 
@@ -3633,7 +3793,9 @@ export default function CustomerDetailsClient({
                       <div className="actions" style={{ marginTop: 10 }}>
                         <BGButton
                           variant="secondary"
-                          onClick={() => window.open(membershipReceiptUrl, "_blank")}
+                          onClick={() =>
+                            window.open(membershipReceiptUrl, "_blank")
+                          }
                         >
                           Apri ricevuta generata
                         </BGButton>
@@ -4153,9 +4315,13 @@ export default function CustomerDetailsClient({
                     <div>
                       <div className="small-muted">Codice badge/card</div>
                       <div className="badge-card-code">
-                        {customer.badge_code || primaryCardCredential?.code || "-"}
+                        {customer.badge_code ||
+                          primaryCardCredential?.code ||
+                          "-"}
                       </div>
-                      <div className="small-muted">Codice bridge: {cardBridgeCode || "mancante"}</div>
+                      <div className="small-muted">
+                        Codice bridge: {cardBridgeCode || "mancante"}
+                      </div>
                     </div>
                     <BGStatusBadge tone={cardOperative ? "success" : "warning"}>
                       {cardOperative ? "Attivo" : "Credenziale non operativa"}
@@ -4173,9 +4339,19 @@ export default function CustomerDetailsClient({
                   ) : null}
                   <div className="actions">
                     <BGButton variant="secondary" onClick={openBadgePanel}>
-                      {cardOperative ? "Modifica badge" : "Rigenera codice bridge"}
+                      {cardOperative
+                        ? "Modifica badge"
+                        : "Rigenera codice bridge"}
                     </BGButton>
-                    <BGButton variant="ghost" onClick={() => window.open(`/access-control/debug?code=${encodeURIComponent(customer.badge_code || cardBridgeCode || "")}`, "_blank")}>
+                    <BGButton
+                      variant="ghost"
+                      onClick={() =>
+                        window.open(
+                          `/access-control/debug?code=${encodeURIComponent(customer.badge_code || cardBridgeCode || "")}`,
+                          "_blank",
+                        )
+                      }
+                    >
                       Verifica nel Debug Center
                     </BGButton>
                   </div>
@@ -4210,7 +4386,10 @@ export default function CustomerDetailsClient({
                       placeholder="Es. 51006b659d"
                     />
                     {badgeDraft.trim() ? (
-                      <small>Codice bridge calcolato: {badgeDraftPreview.controllerCode || "Non derivabile"}</small>
+                      <small>
+                        Codice bridge calcolato:{" "}
+                        {badgeDraftPreview.controllerCode || "Non derivabile"}
+                      </small>
                     ) : null}
                   </div>
                   <div className="actions">
@@ -4261,8 +4440,16 @@ export default function CustomerDetailsClient({
                     />
                     <InfoMini
                       label="Codice bridge QR"
-                      value={qrCredentials.find((item) => item.status === "active")?.controller_code || "-"}
-                      tone={qrCredentials.find((item) => item.status === "active")?.controller_code ? "success" : "danger"}
+                      value={
+                        qrCredentials.find((item) => item.status === "active")
+                          ?.controller_code || "-"
+                      }
+                      tone={
+                        qrCredentials.find((item) => item.status === "active")
+                          ?.controller_code
+                          ? "success"
+                          : "danger"
+                      }
                     />
                   </div>
                   <div className="actions">
@@ -4303,8 +4490,10 @@ export default function CustomerDetailsClient({
                 title="Mobile Pass cliente"
                 description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente."
               />
-                {mobilePassRecord ? (
-                <div className="mobile-pass-url">Mobile Pass esistente nel database · {mobilePassStatus}</div>
+              {mobilePassRecord ? (
+                <div className="mobile-pass-url">
+                  Mobile Pass esistente nel database · {mobilePassStatus}
+                </div>
               ) : mobilePassUrl ? (
                 <div className="mobile-pass-url">{mobilePassUrl}</div>
               ) : null}
@@ -4409,16 +4598,26 @@ export default function CustomerDetailsClient({
             customerId={customer.id}
             customer={customer}
             onUploaded={(document) => {
-              if (document.document_type === "customer_photo" && document.view_url) {
-                setCustomer((prev: any) => ({ ...prev, photo_url: document.view_url }));
+              if (
+                document.document_type === "customer_photo" &&
+                document.view_url
+              ) {
+                setCustomer((prev: any) => ({
+                  ...prev,
+                  photo_url: document.view_url,
+                }));
               }
               if (document.document_type === "medical_certificate") {
                 setCustomer((prev: any) => ({
                   ...prev,
-                  medical_certificate_url: document.view_url || prev.medical_certificate_url,
-                  medical_certificate_status: document.status || prev.medical_certificate_status,
-                  medical_certificate_start_date: document.valid_from || prev.medical_certificate_start_date,
-                  medical_certificate_end_date: document.valid_until || prev.medical_certificate_end_date,
+                  medical_certificate_url:
+                    document.view_url || prev.medical_certificate_url,
+                  medical_certificate_status:
+                    document.status || prev.medical_certificate_status,
+                  medical_certificate_start_date:
+                    document.valid_from || prev.medical_certificate_start_date,
+                  medical_certificate_end_date:
+                    document.valid_until || prev.medical_certificate_end_date,
                 }));
                 void loadAll();
               }
@@ -4435,7 +4634,10 @@ export default function CustomerDetailsClient({
                 value={
                   customer.medical_certificate_url
                     ? "Caricato"
-                    : customer.medical_certificate_start_date || customer.medical_certificate_start || customer.medical_certificate_end_date || customer.medical_certificate_end
+                    : customer.medical_certificate_start_date ||
+                        customer.medical_certificate_start ||
+                        customer.medical_certificate_end_date ||
+                        customer.medical_certificate_end
                       ? "Documento da completare"
                       : "Non caricato"
                 }

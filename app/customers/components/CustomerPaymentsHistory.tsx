@@ -62,8 +62,11 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
   });
 
   const [saving, setSaving] = useState(false);
+  const [receiptLinkedBlock, setReceiptLinkedBlock] = useState<any>(null);
 
-  const [cancellingPayment, setCancellingPayment] = useState<Payment | null>(null);
+  const [cancellingPayment, setCancellingPayment] = useState<Payment | null>(
+    null,
+  );
   const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         {
           method: "GET",
           cache: "no-store",
-        }
+        },
       );
 
       const result = await response.json().catch(() => null);
@@ -99,7 +102,11 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
     } catch (error: unknown) {
       console.error("Errore pagamenti:", error);
       setPayments([]);
-      setLoadError(error instanceof Error ? error.message : "Errore imprevisto durante il caricamento.");
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Errore imprevisto durante il caricamento.",
+      );
     } finally {
       setLoading(false);
     }
@@ -107,12 +114,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
   const activePayments = useMemo(
     () => payments.filter((p) => p.status !== "cancelled"),
-    [payments]
+    [payments],
   );
 
   const cancelledPayments = useMemo(
     () => payments.filter((p) => p.status === "cancelled"),
-    [payments]
+    [payments],
   );
 
   const totalPaid = useMemo(() => {
@@ -176,7 +183,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           amount,
           payment_method: editForm.payment_method,
           description: editForm.description,
-          paid_at: editForm.paid_at ? new Date(editForm.paid_at).toISOString() : null,
+          paid_at: editForm.paid_at
+            ? new Date(editForm.paid_at).toISOString()
+            : null,
           status: editForm.status,
           correction_reason: editForm.correction_reason,
         }),
@@ -186,7 +195,21 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
       if (!response.ok || !result?.ok) {
         console.error("update-payment error", result);
-        alert(result?.error || result?.detail?.message || "Errore modifica pagamento.");
+        if (
+          response.status === 409 &&
+          result?.code === "LINKED_RECEIPT_PAYMENT_REQUIRES_CORRECTION"
+        ) {
+          setReceiptLinkedBlock({
+            payment: editingPayment,
+            receipt: result.receipt,
+          });
+          return;
+        }
+        alert(
+          result?.error ||
+            result?.detail?.message ||
+            "Errore modifica pagamento.",
+        );
         return;
       }
 
@@ -233,7 +256,11 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
       if (!response.ok || !result?.ok) {
         console.error("cancel-payment error", result);
-        alert(result?.error || result?.detail?.message || "Errore annullamento pagamento.");
+        alert(
+          result?.error ||
+            result?.detail?.message ||
+            "Errore annullamento pagamento.",
+        );
         return;
       }
 
@@ -310,7 +337,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
       return;
     }
 
-    window.open(`/customers/${customerId}/receipt/${payment.receipt_id}`, "_blank");
+    window.open(
+      `/customers/${customerId}/receipt/${payment.receipt_id}`,
+      "_blank",
+    );
   }
 
   return (
@@ -320,9 +350,13 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           position: relative;
           overflow: hidden;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.16), transparent 34%),
+            radial-gradient(
+              circle at top left,
+              rgba(239, 68, 68, 0.16),
+              transparent 34%
+            ),
             linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(9, 9, 9, 0.98));
-          border: 1px solid rgba(255, 255, 255, 0.10);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 26px;
           padding: 24px;
           color: white;
@@ -334,7 +368,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: linear-gradient(90deg, rgba(239, 68, 68, 0.16), transparent 28%, transparent);
+          background: linear-gradient(
+            90deg,
+            rgba(239, 68, 68, 0.16),
+            transparent 28%,
+            transparent
+          );
           opacity: 0.28;
         }
 
@@ -382,7 +421,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .total-box {
-          border: 1px solid rgba(255, 255, 255, 0.10);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(0, 0, 0, 0.36);
           border-radius: 18px;
           padding: 14px 16px;
@@ -413,7 +452,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .count-pill {
-          border: 1px solid rgba(255, 255, 255, 0.10);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(255, 255, 255, 0.05);
           border-radius: 999px;
           padding: 9px 12px;
@@ -472,7 +511,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .pill {
-          border: 1px solid rgba(255, 255, 255, 0.10);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           background: rgba(255, 255, 255, 0.04);
           border-radius: 999px;
           padding: 7px 10px;
@@ -487,19 +526,19 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         .pill.good {
           color: #86efac;
           border-color: rgba(34, 197, 94, 0.28);
-          background: rgba(34, 197, 94, 0.10);
+          background: rgba(34, 197, 94, 0.1);
         }
 
         .pill.warning {
           color: #fde68a;
-          border-color: rgba(245, 158, 11, 0.30);
-          background: rgba(245, 158, 11, 0.10);
+          border-color: rgba(245, 158, 11, 0.3);
+          background: rgba(245, 158, 11, 0.1);
         }
 
         .pill.cancelled {
           color: #fca5a5;
           border-color: rgba(239, 68, 68, 0.35);
-          background: rgba(239, 68, 68, 0.10);
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .payment-side {
@@ -654,6 +693,31 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           flex-wrap: wrap;
         }
 
+        .receipt-linked-panel {
+          border: 1px solid rgba(245, 158, 11, 0.42);
+          background: linear-gradient(
+            180deg,
+            rgba(120, 53, 15, 0.92),
+            rgba(69, 26, 3, 0.92)
+          );
+          color: #fef3c7;
+          border-radius: 22px;
+          padding: 18px;
+          margin-bottom: 16px;
+          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+        }
+
+        .receipt-linked-panel h3 {
+          margin: 0 0 8px;
+          font-size: 20px;
+        }
+
+        .receipt-linked-panel p {
+          margin: 0 0 14px;
+          color: #fde68a;
+          line-height: 1.5;
+        }
+
         .warning-box {
           border: 1px solid rgba(239, 68, 68, 0.28);
           background: rgba(239, 68, 68, 0.08);
@@ -697,7 +761,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           <div className="eyebrow">Area amministrativa</div>
           <h2>Pagamenti cliente</h2>
           <div className="subtitle">
-            Storico reale da customer_payments, rettifiche controllate, annullamenti tracciati e ricevute.
+            Storico reale da customer_payments, rettifiche controllate,
+            annullamenti tracciati e ricevute.
           </div>
         </div>
 
@@ -721,12 +786,59 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         </div>
       </div>
 
+      {receiptLinkedBlock ? (
+        <div className="receipt-linked-panel">
+          <h3>Pagamento collegato a ricevuta</h3>
+          <p>
+            Questo pagamento è associato alla ricevuta{" "}
+            {receiptLinkedBlock.receipt?.receipt_number || "collegata"}.
+            L’importo non può essere modificato direttamente perché creerebbe un
+            disallineamento documentale.
+          </p>
+          <div className="actions" style={{ justifyContent: "flex-start" }}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setReceiptLinkedBlock(null)}
+            >
+              Chiudi
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() =>
+                window.open(
+                  `/customers/${customerId}/receipt/${receiptLinkedBlock.receipt?.id}`,
+                  "_blank",
+                )
+              }
+            >
+              Apri ricevuta
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                receiptLinkedBlock.payment &&
+                openEdit(receiptLinkedBlock.payment)
+              }
+            >
+              Visualizza dettagli pagamento
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="tools-row">
         <span className="count-pill">
           {payments.length} movimenti trovati per questo cliente
         </span>
 
-        <button type="button" className="ghost" onClick={loadPayments} disabled={loading}>
+        <button
+          type="button"
+          className="ghost"
+          onClick={loadPayments}
+          disabled={loading}
+        >
           {loading ? "Aggiorno..." : "Aggiorna"}
         </button>
       </div>
@@ -737,14 +849,15 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         <div className="error-state">
           {loadError}
           <br />
-          Se il pagamento esiste in Supabase ma non compare qui, controlla la route server
+          Se il pagamento esiste in Supabase ma non compare qui, controlla la
+          route server
           <strong> /api/customers/list-payments</strong>.
         </div>
       ) : payments.length === 0 ? (
         <div className="empty-state">
           Nessun pagamento registrato per questo cliente.
-          <br />
-          I rinnovi futuri devono sempre generare anche un record in customer_payments.
+          <br />I rinnovi futuri devono sempre generare anche un record in
+          customer_payments.
         </div>
       ) : (
         payments.map((payment) => {
@@ -757,7 +870,9 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
             >
               <div>
                 <div className="payment-title-line">
-                  <div className="payment-title">{formatType(payment.type)}</div>
+                  <div className="payment-title">
+                    {formatType(payment.type)}
+                  </div>
 
                   <span className={`pill ${cancelled ? "cancelled" : "good"}`}>
                     {cancelled ? "Annullato" : payment.status || "Pagato"}
@@ -775,8 +890,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
                 </div>
 
                 <div className="payment-meta">
-                  <span className="pill">{formatMethod(payment.payment_method)}</span>
-                  <span className="pill">{formatDate(payment.paid_at || payment.created_at)}</span>
+                  <span className="pill">
+                    {formatMethod(payment.payment_method)}
+                  </span>
+                  <span className="pill">
+                    {formatDate(payment.paid_at || payment.created_at)}
+                  </span>
                   <span className="pill">ID {payment.id.slice(0, 8)}</span>
                 </div>
 
@@ -788,7 +907,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
                 {payment.cancellation_reason ? (
                   <div className="payment-description">
-                    <strong>Motivo annullamento:</strong> {payment.cancellation_reason}
+                    <strong>Motivo annullamento:</strong>{" "}
+                    {payment.cancellation_reason}
                   </div>
                 ) : null}
               </div>
@@ -837,8 +957,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
             <h3>Modifica pagamento</h3>
 
             <div className="warning-box">
-              La modifica è una rettifica amministrativa. Inserisci sempre un motivo chiaro:
-              resterà visibile nello storico cliente.
+              La modifica è una rettifica amministrativa. Inserisci sempre un
+              motivo chiaro: resterà visibile nello storico cliente.
             </div>
 
             <div className="form-grid">
@@ -860,7 +980,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
                 <select
                   value={editForm.payment_method}
                   onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, payment_method: e.target.value }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      payment_method: e.target.value,
+                    }))
                   }
                 >
                   <option value="cash">Contanti</option>
@@ -878,7 +1001,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
                   type="datetime-local"
                   value={editForm.paid_at}
                   onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, paid_at: e.target.value }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      paid_at: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -901,7 +1027,10 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
                 <input
                   value={editForm.description}
                   onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, description: e.target.value }))
+                    setEditForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -939,7 +1068,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
             <h3>Annulla pagamento</h3>
 
             <div className="warning-box">
-              Il pagamento non verrà cancellato. Verrà marcato come annullato e resterà nello storico.
+              Il pagamento non verrà cancellato. Verrà marcato come annullato e
+              resterà nello storico.
             </div>
 
             <div className="field">
