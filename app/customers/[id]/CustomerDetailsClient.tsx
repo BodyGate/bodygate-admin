@@ -82,6 +82,8 @@ export default function CustomerDetailsClient({
   const [qrGenerating, setQrGenerating] = useState(false);
   const [mobilePassLoading, setMobilePassLoading] = useState(false);
   const [mobilePassUrl, setMobilePassUrl] = useState("");
+  const [mobilePassRecord, setMobilePassRecord] = useState<any>(null);
+  const [operationalOverview, setOperationalOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeSection, setActiveSection] = useState<SectionKey>("overview");
@@ -424,13 +426,25 @@ export default function CustomerDetailsClient({
 
       setCustomer(customerData);
 
+      const overviewResponse = await fetch(`/api/customers/operational-overview?customer_id=${encodeURIComponent(customerId)}`, { cache: "no-store" });
+      const overviewJson = await overviewResponse.json().catch(() => null);
+      const overviewBranch = overviewResponse.ok && overviewJson?.ok ? overviewJson.branch : null;
+      if (overviewResponse.ok && overviewJson?.ok) {
+        setOperationalOverview(overviewJson);
+        setMobilePassRecord(overviewJson.mobile_pass || null);
+        setCustomerBranch(overviewBranch || null);
+      } else {
+        setOperationalOverview(null);
+        setMobilePassRecord(null);
+      }
+
       if (customerData.branch_id) {
         const { data: branchData } = await supabase
           .from("branches")
           .select("id, name, address, city")
           .eq("id", customerData.branch_id)
           .maybeSingle();
-        setCustomerBranch(branchData || null);
+        if (!overviewBranch) setCustomerBranch(branchData || null);
       } else {
         setCustomerBranch(null);
       }
@@ -508,6 +522,13 @@ export default function CustomerDetailsClient({
         .order("created_at", { ascending: false });
 
       setDnakeUsers(dnakeList || []);
+
+      const { data: mobilePasses } = await supabase
+        .from("customer_mobile_passes")
+        .select("*")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+      if (!mobilePassRecord) setMobilePassRecord(mobilePasses?.[0] || null);
     } catch (error) {
       console.error(error);
       setErrorMessage("Errore imprevisto durante il caricamento.");
@@ -551,18 +572,22 @@ export default function CustomerDetailsClient({
     medicalCertificateEnd && medicalCertificateEnd >= today;
 
   const branchMissing = !customer?.branch_id;
+  const branchResolved = Boolean(operationalOverview?.branch_status?.branchResolved ?? customerBranch);
   const branchLabel = customerBranch
     ? `${customerBranch.name || "Sede operativa"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}`
     : branchMissing
       ? "Cliente non associato a una sede operativa"
-      : customer?.branch_id || "-";
+      : "Sede assegnata — dettagli non disponibili";
+  const branchAddressLabel = customerBranch
+    ? [customerBranch.address, customerBranch.city].filter(Boolean).join(", ")
+    : "";
 
   const customerInfo = [
-    { label: "Sede operativa", value: customerBranch ? `${customerBranch.name || "Sede"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}` : customer?.branch_id ? customer.branch_id : "Sede mancante" },
+    { label: "Sede operativa", value: branchLabel },
     { label: "Telefono", value: customer?.phone || "-" },
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
-    { label: "Data nascita", value: customer?.birth_date || "-" },
+    { label: "Data nascita", value: formatDateIT(customer?.birth_date) },
     { label: "Sesso", value: customer?.gender || "-" },
     { label: "Indirizzo", value: customer?.address || "-" },
     { label: "Città", value: customer?.city || "-" },
@@ -634,6 +659,10 @@ export default function CustomerDetailsClient({
     if (Number.isNaN(date.getTime())) return "-";
 
     return date.toLocaleDateString("it-IT");
+  }
+
+  function formatCurrency(value: unknown) {
+    return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value || 0));
   }
 
   function getSuggestedRenewalStartDate() {
@@ -1423,7 +1452,11 @@ export default function CustomerDetailsClient({
 
   const documentsReady = Boolean(contractUrl);
 
-  const accessBlockReasons = [
+  const overviewAccessBlocks = operationalOverview?.access_block_reasons || [];
+  const overviewAdminWarnings = operationalOverview?.administrative_warnings || [];
+  const overviewDataWarnings = operationalOverview?.data_quality_warnings || [];
+
+  const localAccessBlockReasons = [
     customer?.is_active === false ? "cliente non attivo" : null,
     branchMissing ? "sede operativa mancante" : null,
     !operativeCredentialsReady ? "credenziali operative mancanti" : null,
@@ -1433,7 +1466,7 @@ export default function CustomerDetailsClient({
     activeBlock ? `blocco attivo: ${activeBlock.reason || "senza motivo"}` : null,
   ].filter(Boolean) as string[];
 
-  const accessAllowed = accessBlockReasons.length === 0;
+  const accessAllowed = (overviewAccessBlocks.length || operationalOverview ? overviewAccessBlocks : localAccessBlockReasons).length === 0;
   const shortPlans = plans.slice(0, 6);
 
   const activeSubscriptionStart = String(
@@ -1446,15 +1479,19 @@ export default function CustomerDetailsClient({
   const plannedSubscriptionStart = String(
     plannedSubscription?.starts_at || "",
   ).slice(0, 10);
-  const currentPlanName =
+  const subscriptionSummary = operationalOverview?.subscription_summary;
+  const currentPlanName = subscriptionSummary?.displayName ||
     activeSubscription?.subscription_plans?.name ||
     plannedSubscription?.subscription_plans?.name ||
-    "Nessun piano attivo";
-  const lastRenewal = subscriptions[0] || null;
-  const lastRenewalAmount =
-    lastRenewal?.amount != null
-      ? `€ ${Number(lastRenewal.amount || 0).toFixed(2)}`
-      : "-";
+    (activeSubscription ? "Abbonamento attivo" : plannedSubscription ? "Piano pianificato" : "Nessun abbonamento attivo");
+  const latestRenewal = operationalOverview?.latest_renewal || null;
+  const lastRenewal = latestRenewal?.subscription || null;
+  const lastRenewalAmount = latestRenewal?.payment?.amount != null
+      ? `${formatCurrency(latestRenewal.payment.amount)} · ${paymentMethodLabel(latestRenewal.payment.payment_method)}`
+      : activeSubscription?.amount != null
+        ? formatCurrency(activeSubscription.amount)
+        : "-";
+  const renewalKpiLabel = latestRenewal?.payment ? "Ultimo rinnovo" : "Importo abbonamento";
   const lastAccess = accessLogs[0] || null;
 
   const daysRemaining = activeSubscriptionEnd
@@ -1465,15 +1502,13 @@ export default function CustomerDetailsClient({
       )
     : null;
 
-  const subscriptionStatus = activeSubscription
+  const subscriptionStatus = subscriptionSummary?.status || (activeSubscription
     ? daysRemaining !== null && daysRemaining <= 7
       ? "In scadenza"
       : "Attivo"
     : plannedSubscription
       ? "Pianificato"
-      : subscriptions.length > 0
-        ? "Scaduto"
-        : "Nessuno";
+      : "Da rinnovare");
 
   const subscriptionTone: StatusTone = activeSubscription
     ? daysRemaining !== null && daysRemaining <= 7
@@ -1497,8 +1532,9 @@ export default function CustomerDetailsClient({
 
   const badgeDisplay =
     customer.badge_code || customer.controller_code || "Non assegnato";
-  const mobilePassStatus = mobilePassUrl ? "Link creato" : "Pronto da generare";
-
+  const mobilePassStatus = mobilePassRecord
+    ? (String(mobilePassRecord.status || "active").toLowerCase() === "active" ? "Attivo" : String(mobilePassRecord.status || "Esistente"))
+    : mobilePassUrl ? "Link creato" : "Non generato";
   const accessDecisionChecks = [
     { label: "Cliente attivo", ok: customer?.is_active !== false },
     { label: "Sede operativa", ok: !branchMissing },
@@ -1509,7 +1545,7 @@ export default function CustomerDetailsClient({
     { label: activeBlock ? `Blocco: ${activeBlock.reason || "attivo"}` : "Nessun blocco", ok: !activeBlock },
   ];
 
-  const customerAlerts = [
+  const fallbackCustomerAlerts = [
     !activeSubscription ? "Abbonamento non attivo" : null,
     activeSubscription && daysRemaining !== null && daysRemaining <= 7
       ? `Abbonamento in scadenza tra ${Math.max(daysRemaining, 0)} giorni`
@@ -1521,13 +1557,16 @@ export default function CustomerDetailsClient({
     activeBlock ? `Blocco attivo: ${activeBlock.reason}` : null,
     customer?.is_active === false ? "Cliente disattivato" : null,
   ].filter(Boolean) as string[];
+  const accessBlockReasons = overviewAccessBlocks.length || operationalOverview ? overviewAccessBlocks : localAccessBlockReasons;
+  const administrativeWarnings = operationalOverview ? [...overviewAdminWarnings, ...overviewDataWarnings] : [];
+  const customerAlerts = operationalOverview ? [...accessBlockReasons, ...administrativeWarnings] : fallbackCustomerAlerts;
 
   const compactProfileInfo = [
-    { label: "Sede operativa", value: customerBranch ? `${customerBranch.name || "Sede"}${customerBranch.city ? ` — ${customerBranch.city}` : ""}` : customer?.branch_id ? customer.branch_id : "Sede mancante" },
+    { label: "Sede operativa", value: branchLabel },
     { label: "Telefono", value: customer?.phone || "-" },
     { label: "Email", value: customer?.email || "-" },
     { label: "Codice fiscale", value: customer?.fiscal_code || "-" },
-    { label: "Data nascita", value: customer?.birth_date || "-" },
+    { label: "Data nascita", value: formatDateIT(customer?.birth_date) },
     {
       label: "Indirizzo",
       value:
@@ -2915,7 +2954,7 @@ export default function CustomerDetailsClient({
                     Sede operativa: {branchLabel}.<br />
                     Stato immediato per reception:{" "}
                     {subscriptionStatus.toLowerCase()} · accesso{" "}
-                    {accessAllowed ? "consentito" : "da verificare"}
+                    {accessAllowed ? "consentito" : "negato"}
                   </div>
                 </div>
                 <BGStatusBadge tone={subscriptionTone}>
@@ -2994,13 +3033,18 @@ export default function CustomerDetailsClient({
                   <strong>{membershipStatusLabel}</strong>
                 </div>
                 <div className="situation-kpi">
-                  <span>Ultimo rinnovo</span>
+                  <span>{renewalKpiLabel}</span>
                   <strong>{lastRenewalAmount}</strong>
                 </div>
               </div>
 
-              {customerAlerts.length > 0 ? (
+              {accessBlockReasons.length > 0 || administrativeWarnings.length > 0 ? (
                 <div className="alert-stack">
+                  {accessBlockReasons.length === 0 && administrativeWarnings.length > 0 ? (
+                    <div className="alert-chip" style={{ borderColor: "rgba(245, 158, 11, .35)", background: "rgba(146, 64, 14, .24)", color: "#fde68a" }}>
+                      Accesso consentito con avvisi amministrativi
+                    </div>
+                  ) : null}
                   {customerAlerts.map((alert) => (
                     <div className="alert-chip" key={alert}>
                       {alert}
@@ -3075,8 +3119,8 @@ export default function CustomerDetailsClient({
                   />
                   <InfoMini
                     label="QR DNake"
-                    value={activeDnakeQr ? "Attivo" : "Non generato"}
-                    tone={activeDnakeQr ? "success" : "danger"}
+                    value={qrOperative ? "Operativo" : "Non generato"}
+                    tone={qrOperative ? "success" : cardOperative ? "neutral" : "danger"}
                   />
                   <InfoMini
                     label="Mobile Pass"
@@ -3211,7 +3255,7 @@ export default function CustomerDetailsClient({
                 status={branchMissing ? "Mancante" : "Associata"}
                 tone={branchMissing ? "danger" : "success"}
                 value={branchLabel}
-                note={branchMissing ? "Correggere l’anagrafica prima di considerare l’accesso operativo." : customerBranch?.address || "Sede cliente valorizzata"}
+                note={branchMissing ? "Correggere l’anagrafica prima di considerare l’accesso operativo." : branchAddressLabel || "Sede assegnata: dettagli non disponibili"}
                 action="Apri profilo"
                 onAction={() => setActiveSection("profile")}
               />
@@ -3858,7 +3902,7 @@ export default function CustomerDetailsClient({
                   label="Abbonamento attuale"
                   value={
                     activeSubscription
-                      ? `${activeSubscription.subscription_plans?.name || "Attivo"} · fino al ${activeSubscription.ends_at}`
+                      ? `${currentPlanName} · fino al ${formatDateIT(activeSubscription.ends_at)}`
                       : "Nessun abbonamento attivo"
                   }
                   tone={activeSubscription ? "success" : "danger"}
@@ -3868,7 +3912,7 @@ export default function CustomerDetailsClient({
                   label="Prossimo rinnovo"
                   value={
                     plannedSubscription
-                      ? `${plannedSubscription.subscription_plans?.name || "Pianificato"} · dal ${plannedSubscription.starts_at}`
+                      ? `${currentPlanName} · dal ${formatDateIT(plannedSubscription.starts_at)}`
                       : "Nessun rinnovo pianificato"
                   }
                   tone={plannedSubscription ? "success" : "neutral"}
@@ -4259,7 +4303,9 @@ export default function CustomerDetailsClient({
                 title="Mobile Pass cliente"
                 description="Crea il link personale e invialo su WhatsApp senza cambiare la logica esistente."
               />
-              {mobilePassUrl ? (
+                {mobilePassRecord ? (
+                <div className="mobile-pass-url">Mobile Pass esistente nel database · {mobilePassStatus}</div>
+              ) : mobilePassUrl ? (
                 <div className="mobile-pass-url">{mobilePassUrl}</div>
               ) : null}
               <div className="actions">
