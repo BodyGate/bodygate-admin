@@ -263,13 +263,13 @@ export default function CustomersTable() {
         .crm3-shell {
           display: flex;
           flex-direction: column;
-          gap: 18px;
+          gap: 14px;
         }
 
         .crm3-hero {
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 30px;
-          padding: 24px;
+          border-radius: 22px;
+          padding: 16px 18px;
           background:
             radial-gradient(
               circle at top left,
@@ -289,7 +289,7 @@ export default function CustomersTable() {
           display: flex;
           justify-content: space-between;
           gap: 20px;
-          align-items: flex-end;
+          align-items: center;
         }
 
         .crm3-eyebrow {
@@ -303,16 +303,16 @@ export default function CustomersTable() {
 
         .crm3-title {
           margin: 0;
-          font-size: clamp(34px, 5vw, 54px);
+          font-size: clamp(28px, 3vw, 34px);
           line-height: 0.92;
           letter-spacing: -0.06em;
           font-weight: 950;
         }
 
         .crm3-subtitle {
-          margin-top: 12px;
+          margin-top: 6px;
           color: #a1a1aa;
-          font-size: 14px;
+          font-size: 13px;
           max-width: 720px;
           line-height: 1.55;
         }
@@ -334,7 +334,7 @@ export default function CustomersTable() {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
-          margin-top: 18px;
+          margin-top: 12px;
         }
 
         .crm3-filter-btn {
@@ -362,21 +362,38 @@ export default function CustomersTable() {
         .crm3-metrics {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 12px;
+          gap: 10px;
           align-items: stretch;
+        }
+
+        .crm3-metrics :global(.bg-stat) {
+          min-height: 88px;
+          padding: 13px 15px;
+          border-radius: 18px;
+        }
+
+        .crm3-metrics :global(.bg-stat-label) {
+          font-size: 11px;
+          letter-spacing: 0.08em;
+        }
+
+        .crm3-metrics :global(.bg-stat-value) {
+          margin-top: 7px;
+          font-size: clamp(26px, 2.4vw, 34px);
+          line-height: 1;
         }
 
         .crm3-workspace {
           display: grid;
-          grid-template-columns: 390px minmax(0, 1fr);
-          gap: 18px;
-          min-height: 690px;
+          grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+          gap: 14px;
+          min-height: 560px;
         }
 
         .crm3-list-panel,
         .crm3-detail-panel {
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 28px;
+          border-radius: 22px;
           background:
             linear-gradient(
               145deg,
