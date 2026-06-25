@@ -27,10 +27,10 @@ namespace BodyGateAccessBridge
         private static readonly string DnakeDbUrl = "http://192.168.1.179/data/unlock_sql.db";
 
         private static readonly string BodyGateCheckUrl =
-            "http://localhost:3000/api/access/check";
+            "http://127.0.0.1:3000/api/access/check";
 
         private static readonly string BodyGateLogUrl =
-            "http://localhost:3000/api/access/log";
+            "http://127.0.0.1:3000/api/access/log";
 
         private static readonly int PollIntervalMs = 200;
         private static readonly int BadgeCooldownSeconds = 3;
