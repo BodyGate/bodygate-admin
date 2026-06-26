@@ -1329,3 +1329,26 @@
     width: 100%;
   }
 }
+
+
+/* BodyGate AppShell mobile header */
+@media (max-width: 480px) {
+  .bodygate-shell-header {
+    min-width: 0;
+    gap: 10px;
+    padding-inline: 16px !important;
+  }
+
+  .bodygate-shell-header > div:first-child {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .bodygate-shell-header > div:last-child {
+    width: 38px;
+    min-width: 38px;
+    padding: 10px !important;
+    gap: 0 !important;
+    font-size: 0 !important;
+  }
+}

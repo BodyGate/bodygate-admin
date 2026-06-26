@@ -62,3 +62,6 @@ temp/
 # Windows
 Thumbs.db
 desktop.ini
+playwright/.auth/
+test-results/
+playwright-report/
