@@ -21,10 +21,10 @@ namespace BodyGateAccessBridge
         private static readonly string ControllerPassword = "888888";
         private static readonly byte DoorIndex = 0;
 
-        private static readonly string DnakeIp = "192.168.1.179";
+        private static readonly string DnakeIp = "192.168.1.22";
         private static readonly string DnakeUser = "admin";
         private static readonly string DnakePassword = "888888";
-        private static readonly string DnakeDbUrl = "http://192.168.1.179/data/unlock_sql.db";
+        private static readonly string DnakeDbUrl = "http://192.168.1.22/data/unlock_sql.db";
 
         private static readonly string BodyGateCheckUrl =
             "http://127.0.0.1:3000/api/access/check";
