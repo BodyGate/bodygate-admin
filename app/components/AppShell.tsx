@@ -69,6 +69,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <header
+          className="bodygate-shell-header"
           style={{
             height: 76,
             display: "flex",
