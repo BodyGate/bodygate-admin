@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "./app/lib/auth/session";
 
 const publicPaths = [
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/auth/me",
 
   // Mobile Pass pubblico
   "/mobile",
   "/staff-mobile",
-"/api/staff-mobile/send",
+  "/api/staff-mobile/send",
 
   // API Mobile Pass
   "/api/customers/create-mobile-pass",
@@ -26,7 +31,80 @@ function isPathMatch(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-export function middleware(request: NextRequest) {
+function clearLegacySession(response: NextResponse) {
+  response.cookies.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+
+  response.cookies.set("bodygate_role", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+
+  return response;
+}
+
+function unauthorized(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return clearLegacySession(
+      NextResponse.json(
+        {
+          ok: false,
+          error: "Unauthorized",
+        },
+        { status: 401 }
+      )
+    );
+  }
+
+  return clearLegacySession(
+    NextResponse.redirect(new URL("/login", request.url))
+  );
+}
+
+async function isActiveAppUser(userId: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return false;
+  }
+
+  const endpoint = new URL("/rest/v1/app_users", supabaseUrl);
+  endpoint.searchParams.set("id", `eq.${userId}`);
+  endpoint.searchParams.set("active", "eq.true");
+  endpoint.searchParams.set("select", "id");
+  endpoint.searchParams.set("limit", "1");
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) return false;
+
+    const rows = (await response.json()) as Array<{ id: string }>;
+
+    return rows.length === 1;
+  } catch (error) {
+    console.error("Verifica sessione BodyGate non disponibile:", error);
+    return false;
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath = publicPaths.some((path) =>
@@ -45,21 +123,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get("bodygate_session")?.value;
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const claims = await verifySessionToken(token);
 
-  if (!session) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Unauthorized",
-        },
-        { status: 401 }
-      );
-    }
+  if (!claims) {
+    return unauthorized(request);
+  }
 
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+  const activeUser = await isActiveAppUser(claims.userId);
+
+  if (!activeUser) {
+    return unauthorized(request);
   }
 
   return NextResponse.next();

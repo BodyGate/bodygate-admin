@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { safeRandomId } from "../lib/safeRandomId";
-import { supabase } from "../lib/supabaseClient";
+import { useCallback, useEffect, useState } from "react";
 
 const ADMIN_ROLE_KEYS = new Set([
   "admin",
@@ -13,6 +11,14 @@ const ADMIN_ROLE_KEYS = new Set([
   "amministrazione",
   "amministratore",
 ]);
+
+type CurrentAuthResponse = {
+  ok: boolean;
+  role_key?: string | null;
+  staff_name?: string | null;
+  permissions?: string[];
+  is_admin?: boolean;
+};
 
 function normalizeRoleKey(roleKey?: string | null) {
   return roleKey?.toLowerCase().trim() || null;
@@ -27,170 +33,95 @@ export function useCurrentPermissions() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [roleKey, setRoleKey] = useState<string | null>(null);
   const [staffName, setStaffName] = useState<string | null>(null);
+  const [serverIsAdmin, setServerIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  function readCookie(name: string) {
-    if (typeof document === "undefined") return null;
-    const cookie = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`));
-    return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
-  }
-
-  async function loadPermissions() {
-    setLoading(true);
-
-    try {
-      const sessionUserId = readCookie("bodygate_session");
-
-      if (!sessionUserId) {
-        setPermissions([]);
-        setRoleKey(null);
-        setStaffName(null);
-        setLoading(false);
-        return;
-      }
-
-      const { data: appUser } = await supabase
-        .from("app_users")
-        .select("id, email, role, active")
-        .eq("id", sessionUserId)
-        .eq("active", true)
-        .maybeSingle();
-
-      if (!appUser?.email) {
-        setPermissions([]);
-        setRoleKey(null);
-        setStaffName(null);
-        setLoading(false);
-        return;
-      }
-
-      const { data: staffUser } = await supabase
-        .from("staff_users")
-        .select(`
-        id,
-        full_name,
-        email,
-        is_active,
-        staff_roles (
-          id,
-          role_key,
-          role_name
-        )
-      `)
-        .eq("email", appUser.email)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      const appRoleKey = appUser.role || null;
-
-      if (isAdminRole(appRoleKey)) {
-        setPermissions([]);
-        setRoleKey(appRoleKey);
-        setStaffName(staffUser?.full_name || appUser.email);
-        setLoading(false);
-        return;
-      }
-
-      if (!staffUser || !staffUser.staff_roles) {
-        setPermissions([]);
-        setRoleKey(appRoleKey);
-        setStaffName(appUser.email);
-        setLoading(false);
-        return;
-      }
-
-      const role: any = Array.isArray(staffUser.staff_roles)
-        ? staffUser.staff_roles[0]
-        : staffUser.staff_roles;
-      const resolvedRoleKey = role?.role_key || appRoleKey;
-
-      if (!role?.id) {
-        setPermissions([]);
-        setRoleKey(resolvedRoleKey);
-        setStaffName(staffUser.full_name || appUser.email);
-        setLoading(false);
-        return;
-      }
-
-      setRoleKey(resolvedRoleKey);
-      setStaffName(staffUser.full_name || appUser.email);
-
-      const { data: rolePermissions } = await supabase
-        .from("staff_role_permissions")
-        .select(`
-        staff_permissions (
-          permission_key
-        )
-      `)
-        .eq("role_id", role.id);
-
-      const keys =
-        rolePermissions
-          ?.map((item: any) => {
-            const permission = Array.isArray(item.staff_permissions)
-              ? item.staff_permissions[0]
-              : item.staff_permissions;
-
-            return permission?.permission_key;
-          })
-          .filter(Boolean) || [];
-
-      setPermissions(keys);
-    } catch (error) {
-      console.error("Errore caricamento permessi:", error);
-      setPermissions([]);
-      setRoleKey(null);
-      setStaffName(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadPermissions();
-
-    const channelName = safeRandomId("current-permissions-live");
-
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    try {
-      channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "staff_role_permissions",
-          },
-          loadPermissions
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "staff_users",
-          },
-          loadPermissions
-        )
-        .subscribe();
-    } catch (error) {
-      console.error("Errore setup realtime permessi:", error);
-      // Il caricamento iniziale è gestito da loadPermissions(): un errore nel
-      // setup realtime non deve interromperlo né lasciare la UI in attesa.
-    }
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
+  const resetPermissions = useCallback(() => {
+    setPermissions([]);
+    setRoleKey(null);
+    setStaffName(null);
+    setServerIsAdmin(false);
   }, []);
 
-  const isAdmin = isAdminRole(roleKey);
+  const loadPermissions = useCallback(
+    async (showLoading = false) => {
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          resetPermissions();
+
+          if (
+            response.status === 401 &&
+            typeof window !== "undefined" &&
+            window.location.pathname !== "/login"
+          ) {
+            window.location.assign("/login");
+          }
+
+          return;
+        }
+
+        const result = (await response.json()) as CurrentAuthResponse;
+
+        if (!result.ok) {
+          resetPermissions();
+          return;
+        }
+
+        setPermissions(
+          Array.isArray(result.permissions) ? result.permissions : []
+        );
+        setRoleKey(result.role_key || null);
+        setStaffName(result.staff_name || null);
+        setServerIsAdmin(Boolean(result.is_admin));
+      } catch (error) {
+        console.error("Errore caricamento permessi:", error);
+        resetPermissions();
+      } finally {
+        setLoading(false);
+      }
+    },
+    [resetPermissions]
+  );
+
+  useEffect(() => {
+    void loadPermissions(true);
+
+    const handleFocus = () => {
+      void loadPermissions();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadPermissions();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [loadPermissions]);
+
+  const isAdmin = serverIsAdmin || isAdminRole(roleKey);
 
   function hasPermission(permissionKey: string) {
     if (isAdmin) return true;
