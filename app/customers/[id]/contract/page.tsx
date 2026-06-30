@@ -63,6 +63,22 @@ export default async function ContractPage({ params }: Props) {
     documentId = newDocument?.id;
   }
 
+  const [{ data: activeSubscription }, { data: membershipFee }] = await Promise.all([
+    supabase
+      .from("customer_subscriptions")
+      .select("*, subscription_plans(name, price, promo_price, duration_days)")
+      .eq("customer_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("customer_membership_fees")
+      .select("*")
+      .eq("customer_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
   const customerName =
     customer.full_name ||
     `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
@@ -105,7 +121,11 @@ export default async function ContractPage({ params }: Props) {
         )}
       </div>
 
-      <CustomerContract customer={customer} />
+      <CustomerContract
+        customer={customer}
+        subscription={activeSubscription || null}
+        membershipFee={membershipFee || null}
+      />
     </main>
   );
 }

@@ -20,7 +20,7 @@ export async function getDefaultOperationalBranch(
 ): Promise<OperationalBranch | null> {
   const { data, error } = await supabase
     .from("branches")
-    .select("id, name, address, city, is_active, active, status")
+    .select("id, name, address, city, is_active")
     .order("created_at", { ascending: true });
 
   if (error) {

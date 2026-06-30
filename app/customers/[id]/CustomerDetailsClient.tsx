@@ -899,6 +899,15 @@ export default function CustomerDetailsClient({
       } else {
         alert(successMessage);
       }
+
+      if (result.contract_warning) {
+        alert(`Quota registrata, ma il contratto non e stato pre-generato: ${result.contract_warning}`);
+      }
+
+      if (result.contract_url) {
+        window.location.assign(result.contract_url);
+        return;
+      }
     } catch (error) {
       console.error(error);
       alert("Errore imprevisto durante la registrazione quota associativa.");
