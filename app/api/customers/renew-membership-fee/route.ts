@@ -364,6 +364,22 @@ export async function POST(req: Request) {
       created_at: now,
     });
 
+    const { data: contractDocument, error: contractError } =
+      await supabaseAdmin
+        .from("customer_documents")
+        .insert({
+          customer_id: customerId,
+          document_type: "contract",
+          title: `Contratto associativo Body Energy ASD ${validFrom} - ${validUntil}`,
+          status: "generated",
+        })
+        .select("id")
+        .single();
+
+    if (contractError) {
+      console.error("annual contract creation failed", contractError);
+    }
+
     return NextResponse.json({
       ok: true,
       membership_fee: membershipFee,
@@ -372,6 +388,10 @@ export async function POST(req: Request) {
       receipt,
       receipt_url: `/customers/${customerId}/receipt/${receipt.id}`,
       print_url: `/customers/${customerId}/receipt/${receipt.id}?print=1`,
+      contract_document_id: contractDocument?.id || null,
+      contract_url: `/customers/${customerId}/contract`,
+      contract_created: Boolean(contractDocument?.id),
+      contract_warning: contractError?.message || null,
       cash_movement_created: false,
       accounting_entry_created: false,
     });
