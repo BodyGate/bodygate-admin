@@ -6,6 +6,7 @@ begin;
 
 create extension if not exists btree_gist;
 
+-- Estende il registro atomico condiviso senza aggiungere colonne modulo-specifiche.
 alter table public.bodygate_atomic_operations
   drop constraint if exists bodygate_atomic_operations_type_check;
 
@@ -142,6 +143,9 @@ alter table public.course_sessions
 create index course_sessions_branch_start_idx
   on public.course_sessions (branch_id, starts_at, status);
 
+create index course_sessions_course_start_idx
+  on public.course_sessions (course_type_id, starts_at, status);
+
 create table public.course_bookings (
   id uuid primary key default gen_random_uuid(),
   branch_id uuid not null references public.branches(id) on delete restrict,
@@ -197,6 +201,10 @@ create table public.course_activity_log (
 create index course_activity_log_branch_created_idx
   on public.course_activity_log (branch_id, created_at desc);
 
+create index course_activity_log_session_idx
+  on public.course_activity_log (session_id, created_at desc)
+  where session_id is not null;
+
 create or replace function public.bodygate_courses_touch_updated_at_v1()
 returns trigger
 language plpgsql
@@ -249,6 +257,7 @@ grant select, insert, update on table public.course_sessions to service_role;
 grant select, insert, update on table public.course_bookings to service_role;
 grant select, insert on table public.course_activity_log to service_role;
 
+-- Helper idempotenza interno al modulo.
 create or replace function public.bodygate_courses_claim_operation_v1(
   p_operation_type text,
   p_idempotency_key text,
@@ -370,6 +379,8 @@ begin
   v_operation_id := (v_claim->>'operation_id')::uuid;
 
   v_branch_id := nullif(trim(p_payload->>'branch_id'),'')::uuid;
+  if v_branch_id is null then raise exception 'BODYGATE_VALIDATION_BRANCH_REQUIRED'; end if;
+
   perform 1 from public.branches where id=v_branch_id and coalesce(is_active,true);
   if not found then raise exception 'BODYGATE_BRANCH_NOT_ACTIVE'; end if;
 
@@ -446,6 +457,203 @@ begin
   values (v_branch_id,'course_room_created',jsonb_build_object('room_id',v_row.id,'name',v_row.name));
 
   v_response := jsonb_build_object('ok',true,'course_room_id',v_row.id,'course_room',to_jsonb(v_row));
+  return public.bodygate_courses_complete_operation_v1(v_operation_id,v_response);
+end;
+$function$;
+
+create or replace function public.create_course_schedule_atomic_v1(
+  p_idempotency_key text,
+  p_request_hash text,
+  p_payload jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_claim jsonb;
+  v_operation_id uuid;
+  v_branch_id uuid;
+  v_course_type public.course_types%rowtype;
+  v_room public.course_rooms%rowtype;
+  v_instructor public.staff_users%rowtype;
+  v_row public.course_schedules%rowtype;
+  v_weekday integer;
+  v_start time;
+  v_duration integer;
+  v_capacity integer;
+  v_response jsonb;
+begin
+  v_claim := public.bodygate_courses_claim_operation_v1(
+    'course_schedule_create', p_idempotency_key, p_request_hash, null
+  );
+  if (v_claim->>'replayed')::boolean then return v_claim->'response'; end if;
+  v_operation_id := (v_claim->>'operation_id')::uuid;
+
+  v_branch_id := nullif(trim(p_payload->>'branch_id'),'')::uuid;
+  v_weekday := (p_payload->>'weekday')::integer;
+  v_start := (p_payload->>'start_time')::time;
+  v_duration := (p_payload->>'duration_minutes')::integer;
+  v_capacity := (p_payload->>'capacity')::integer;
+
+  select * into v_course_type
+  from public.course_types
+  where id=(p_payload->>'course_type_id')::uuid
+    and branch_id=v_branch_id and is_active;
+  if not found then raise exception 'BODYGATE_COURSE_TYPE_NOT_ACTIVE'; end if;
+
+  select * into v_room
+  from public.course_rooms
+  where id=(p_payload->>'room_id')::uuid
+    and branch_id=v_branch_id and is_active;
+  if not found then raise exception 'BODYGATE_COURSE_ROOM_NOT_ACTIVE'; end if;
+
+  if v_capacity > v_room.capacity then
+    raise exception 'BODYGATE_COURSE_CAPACITY_EXCEEDS_ROOM';
+  end if;
+
+  if nullif(trim(p_payload->>'instructor_staff_user_id'),'') is not null then
+    select * into v_instructor
+    from public.staff_users
+    where id=(p_payload->>'instructor_staff_user_id')::uuid
+      and coalesce(is_active,true);
+    if not found then raise exception 'BODYGATE_COURSE_INSTRUCTOR_NOT_ACTIVE'; end if;
+  end if;
+
+  if exists (
+    select 1 from public.course_schedules s
+    where s.branch_id=v_branch_id
+      and s.room_id=v_room.id
+      and s.weekday=v_weekday
+      and s.status in ('draft','active','paused')
+      and s.start_time < (v_start + make_interval(mins=>v_duration))::time
+      and (s.start_time + make_interval(mins=>s.duration_minutes))::time > v_start
+      and daterange(s.valid_from,coalesce(s.valid_until,'infinity'::date),'[]')
+          && daterange((p_payload->>'valid_from')::date,coalesce((p_payload->>'valid_until')::date,'infinity'::date),'[]')
+  ) then
+    raise exception 'BODYGATE_COURSE_ROOM_SCHEDULE_CONFLICT';
+  end if;
+
+  if v_instructor.id is not null and exists (
+    select 1 from public.course_schedules s
+    where s.instructor_staff_user_id=v_instructor.id
+      and s.weekday=v_weekday
+      and s.status in ('draft','active','paused')
+      and s.start_time < (v_start + make_interval(mins=>v_duration))::time
+      and (s.start_time + make_interval(mins=>s.duration_minutes))::time > v_start
+      and daterange(s.valid_from,coalesce(s.valid_until,'infinity'::date),'[]')
+          && daterange((p_payload->>'valid_from')::date,coalesce((p_payload->>'valid_until')::date,'infinity'::date),'[]')
+  ) then
+    raise exception 'BODYGATE_COURSE_INSTRUCTOR_SCHEDULE_CONFLICT';
+  end if;
+
+  insert into public.course_schedules (
+    branch_id,course_type_id,room_id,instructor_staff_user_id,
+    weekday,start_time,duration_minutes,capacity,
+    valid_from,valid_until,generation_horizon_days,status
+  ) values (
+    v_branch_id,v_course_type.id,v_room.id,v_instructor.id,
+    v_weekday,v_start,v_duration,v_capacity,
+    (p_payload->>'valid_from')::date,
+    nullif(trim(p_payload->>'valid_until'),'')::date,
+    coalesce((p_payload->>'generation_horizon_days')::integer,60),
+    coalesce(nullif(trim(p_payload->>'status'),''),'draft')
+  )
+  returning * into v_row;
+
+  insert into public.course_activity_log(
+    branch_id,course_type_id,schedule_id,staff_user_id,event_type,payload
+  ) values (
+    v_branch_id,v_course_type.id,v_row.id,v_instructor.id,'course_schedule_created',to_jsonb(v_row)
+  );
+
+  v_response := jsonb_build_object('ok',true,'course_schedule_id',v_row.id,'course_schedule',to_jsonb(v_row));
+  return public.bodygate_courses_complete_operation_v1(v_operation_id,v_response);
+end;
+$function$;
+
+create or replace function public.generate_course_sessions_atomic_v1(
+  p_idempotency_key text,
+  p_request_hash text,
+  p_schedule_id uuid,
+  p_date_from date,
+  p_date_to date
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_claim jsonb;
+  v_operation_id uuid;
+  v_schedule public.course_schedules%rowtype;
+  v_day date;
+  v_starts timestamptz;
+  v_ends timestamptz;
+  v_created integer := 0;
+  v_existing integer := 0;
+  v_row_id uuid;
+  v_response jsonb;
+begin
+  v_claim := public.bodygate_courses_claim_operation_v1(
+    'course_sessions_generate', p_idempotency_key, p_request_hash, null
+  );
+  if (v_claim->>'replayed')::boolean then return v_claim->'response'; end if;
+  v_operation_id := (v_claim->>'operation_id')::uuid;
+
+  select * into v_schedule
+  from public.course_schedules
+  where id=p_schedule_id
+  for update;
+
+  if not found then raise exception 'BODYGATE_COURSE_SCHEDULE_NOT_FOUND'; end if;
+  if v_schedule.status <> 'active' then raise exception 'BODYGATE_COURSE_SCHEDULE_NOT_ACTIVE'; end if;
+  if p_date_from is null or p_date_to is null or p_date_to < p_date_from then
+    raise exception 'BODYGATE_VALIDATION_DATE_RANGE';
+  end if;
+  if p_date_to - p_date_from > 366 then raise exception 'BODYGATE_COURSE_GENERATION_RANGE_TOO_LARGE'; end if;
+
+  for v_day in
+    select d::date
+    from generate_series(p_date_from,p_date_to,interval '1 day') d
+    where extract(isodow from d)::integer=v_schedule.weekday
+      and d::date >= v_schedule.valid_from
+      and (v_schedule.valid_until is null or d::date <= v_schedule.valid_until)
+  loop
+    v_starts := (v_day + v_schedule.start_time) at time zone 'Europe/Rome';
+    v_ends := v_starts + make_interval(mins=>v_schedule.duration_minutes);
+    v_row_id := null;
+
+    insert into public.course_sessions(
+      branch_id,course_type_id,schedule_id,room_id,instructor_staff_user_id,
+      starts_at,ends_at,capacity,status
+    ) values (
+      v_schedule.branch_id,v_schedule.course_type_id,v_schedule.id,v_schedule.room_id,
+      v_schedule.instructor_staff_user_id,v_starts,v_ends,v_schedule.capacity,'open'
+    )
+    on conflict (schedule_id,starts_at) do nothing
+    returning id into v_row_id;
+
+    if v_row_id is null then
+      v_existing := v_existing + 1;
+    else
+      v_created := v_created + 1;
+      insert into public.course_activity_log(
+        branch_id,course_type_id,schedule_id,session_id,staff_user_id,event_type,payload
+      ) values (
+        v_schedule.branch_id,v_schedule.course_type_id,v_schedule.id,v_row_id,
+        v_schedule.instructor_staff_user_id,'course_session_generated',
+        jsonb_build_object('starts_at',v_starts,'ends_at',v_ends)
+      );
+    end if;
+  end loop;
+
+  v_response := jsonb_build_object(
+    'ok',true,'schedule_id',p_schedule_id,'created_count',v_created,'existing_count',v_existing,
+    'date_from',p_date_from,'date_to',p_date_to
+  );
   return public.bodygate_courses_complete_operation_v1(v_operation_id,v_response);
 end;
 $function$;
@@ -763,20 +971,142 @@ begin
 end;
 $function$;
 
+create or replace function public.complete_course_session_atomic_v1(
+  p_idempotency_key text,
+  p_request_hash text,
+  p_session_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_session public.course_sessions%rowtype;
+  v_claim jsonb;
+  v_operation_id uuid;
+  v_no_show_count integer;
+  v_response jsonb;
+begin
+  v_claim := public.bodygate_courses_claim_operation_v1(
+    'course_session_complete',p_idempotency_key,p_request_hash,null
+  );
+  if (v_claim->>'replayed')::boolean then return v_claim->'response'; end if;
+  v_operation_id := (v_claim->>'operation_id')::uuid;
+
+  select * into v_session from public.course_sessions where id=p_session_id for update;
+  if not found then raise exception 'BODYGATE_COURSE_SESSION_NOT_FOUND'; end if;
+  if v_session.status='completed' then raise exception 'BODYGATE_COURSE_SESSION_ALREADY_COMPLETED'; end if;
+  if v_session.status='cancelled' then raise exception 'BODYGATE_COURSE_SESSION_CANCELLED'; end if;
+
+  update public.course_bookings
+  set status='no_show',completed_at=clock_timestamp()
+  where session_id=p_session_id and status='confirmed';
+  get diagnostics v_no_show_count = row_count;
+
+  insert into public.customer_timeline(customer_id,type,title,description)
+  select customer_id,'course_no_show','Assenza corso registrata','Sessione ' || p_session_id::text
+  from public.course_bookings
+  where session_id=p_session_id and status='no_show' and completed_at >= transaction_timestamp();
+
+  update public.course_sessions
+  set status='completed'
+  where id=p_session_id
+  returning * into v_session;
+
+  insert into public.course_activity_log(
+    branch_id,course_type_id,session_id,event_type,payload
+  ) values (
+    v_session.branch_id,v_session.course_type_id,v_session.id,'course_session_completed',
+    jsonb_build_object('no_show_count',v_no_show_count)
+  );
+
+  v_response := jsonb_build_object('ok',true,'session_id',p_session_id,'status','completed','no_show_count',v_no_show_count);
+  return public.bodygate_courses_complete_operation_v1(v_operation_id,v_response);
+end;
+$function$;
+
+create or replace function public.cancel_course_session_atomic_v1(
+  p_idempotency_key text,
+  p_request_hash text,
+  p_session_id uuid,
+  p_reason text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_session public.course_sessions%rowtype;
+  v_claim jsonb;
+  v_operation_id uuid;
+  v_cancelled_count integer;
+  v_response jsonb;
+begin
+  v_claim := public.bodygate_courses_claim_operation_v1(
+    'course_session_cancel',p_idempotency_key,p_request_hash,null
+  );
+  if (v_claim->>'replayed')::boolean then return v_claim->'response'; end if;
+  v_operation_id := (v_claim->>'operation_id')::uuid;
+
+  select * into v_session from public.course_sessions where id=p_session_id for update;
+  if not found then raise exception 'BODYGATE_COURSE_SESSION_NOT_FOUND'; end if;
+  if v_session.status='cancelled' then raise exception 'BODYGATE_COURSE_SESSION_ALREADY_CANCELLED'; end if;
+  if v_session.status='completed' then raise exception 'BODYGATE_COURSE_SESSION_ALREADY_COMPLETED'; end if;
+
+  update public.course_bookings
+  set status='cancelled',waitlist_position=null,cancelled_at=clock_timestamp(),
+      cancellation_reason=coalesce(nullif(trim(p_reason),''),'Lezione annullata')
+  where session_id=p_session_id and status in ('confirmed','waitlisted');
+  get diagnostics v_cancelled_count = row_count;
+
+  insert into public.customer_timeline(customer_id,type,title,description)
+  select customer_id,'course_session_cancelled','Lezione annullata',
+         coalesce(nullif(trim(p_reason),''),'Lezione annullata') || ' · Sessione ' || p_session_id::text
+  from public.course_bookings
+  where session_id=p_session_id and cancelled_at >= transaction_timestamp();
+
+  update public.course_sessions
+  set status='cancelled',notes=concat_ws(E'\n',notes,'Annullata: ' || coalesce(nullif(trim(p_reason),''),'motivo non specificato'))
+  where id=p_session_id
+  returning * into v_session;
+
+  insert into public.course_activity_log(
+    branch_id,course_type_id,session_id,event_type,payload
+  ) values (
+    v_session.branch_id,v_session.course_type_id,v_session.id,'course_session_cancelled',
+    jsonb_build_object('reason',p_reason,'cancelled_bookings',v_cancelled_count)
+  );
+
+  v_response := jsonb_build_object('ok',true,'session_id',p_session_id,'status','cancelled','cancelled_bookings',v_cancelled_count);
+  return public.bodygate_courses_complete_operation_v1(v_operation_id,v_response);
+end;
+$function$;
+
 revoke all on function public.bodygate_courses_touch_updated_at_v1() from public, anon, authenticated;
 revoke all on function public.bodygate_courses_claim_operation_v1(text,text,text,uuid) from public, anon, authenticated;
 revoke all on function public.bodygate_courses_complete_operation_v1(uuid,jsonb) from public, anon, authenticated;
+
 revoke all on function public.create_course_type_atomic_v1(text,text,jsonb) from public, anon, authenticated;
 revoke all on function public.create_course_room_atomic_v1(text,text,jsonb) from public, anon, authenticated;
+revoke all on function public.create_course_schedule_atomic_v1(text,text,jsonb) from public, anon, authenticated;
+revoke all on function public.generate_course_sessions_atomic_v1(text,text,uuid,date,date) from public, anon, authenticated;
 revoke all on function public.book_course_session_atomic_v1(text,text,uuid,uuid,text) from public, anon, authenticated;
 revoke all on function public.cancel_course_booking_atomic_v1(text,text,uuid,text) from public, anon, authenticated;
 revoke all on function public.check_in_course_booking_atomic_v1(text,text,uuid) from public, anon, authenticated;
+revoke all on function public.complete_course_session_atomic_v1(text,text,uuid) from public, anon, authenticated;
+revoke all on function public.cancel_course_session_atomic_v1(text,text,uuid,text) from public, anon, authenticated;
 
 grant execute on function public.create_course_type_atomic_v1(text,text,jsonb) to service_role;
 grant execute on function public.create_course_room_atomic_v1(text,text,jsonb) to service_role;
+grant execute on function public.create_course_schedule_atomic_v1(text,text,jsonb) to service_role;
+grant execute on function public.generate_course_sessions_atomic_v1(text,text,uuid,date,date) to service_role;
 grant execute on function public.book_course_session_atomic_v1(text,text,uuid,uuid,text) to service_role;
 grant execute on function public.cancel_course_booking_atomic_v1(text,text,uuid,text) to service_role;
 grant execute on function public.check_in_course_booking_atomic_v1(text,text,uuid) to service_role;
+grant execute on function public.complete_course_session_atomic_v1(text,text,uuid) to service_role;
+grant execute on function public.cancel_course_session_atomic_v1(text,text,uuid,text) to service_role;
 
 comment on table public.course_types is 'Catalogo attività corsi BodyGate per sede.';
 comment on table public.course_rooms is 'Sale fisiche corsi BodyGate per sede.';
