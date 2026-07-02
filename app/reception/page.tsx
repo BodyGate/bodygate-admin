@@ -15,6 +15,17 @@ export default function ReceptionPage() {
           max-width: 100%;
         }
 
+        .reception-page-shell main > div {
+          align-items: start !important;
+        }
+
+        .reception-page-shell .reception-panel {
+          align-self: start !important;
+          height: auto !important;
+          min-height: 0 !important;
+          padding: 20px !important;
+        }
+
         .reception-page-shell .reception-panel h2,
         .reception-page-shell .reception-panel p,
         .reception-page-shell .reception-panel strong,
@@ -45,7 +56,7 @@ export default function ReceptionPage() {
           }
 
           .reception-page-shell .reception-panel {
-            padding: 18px !important;
+            padding: 16px !important;
           }
         }
       `}</style>
