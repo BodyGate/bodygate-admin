@@ -10,7 +10,9 @@ export default function TrainingLayout({
     <div
       style={{
         display: "flex",
-        minHeight: "100vh",
+        width: "100%",
+        minWidth: 0,
+        minHeight: "calc(100vh - 76px)",
         background: "#020617",
       }}
     >
@@ -19,7 +21,10 @@ export default function TrainingLayout({
       <main
         style={{
           flex: 1,
-          overflow: "auto",
+          width: "100%",
+          minWidth: 0,
+          overflowX: "hidden",
+          overflowY: "auto",
           background:
             "radial-gradient(circle at top, rgba(37,99,235,0.15), transparent 35%), #020617",
         }}
