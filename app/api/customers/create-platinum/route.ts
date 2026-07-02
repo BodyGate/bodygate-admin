@@ -1,27 +1,39 @@
-import { NextResponse } from "next/server";
+import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { credentialLookupCodes, normalizeRfidCode } from "../../../utils/rfid";
+import { NextResponse } from "next/server";
 import {
-  getDefaultOperationalBranch,
-  tableHasColumn,
-} from "../../../lib/server/defaultBranch";
-import { getDefaultBadgeFee, normalizeBadgeChargeMode } from "../../../lib/server/badgeFee";
+  credentialLookupCodes,
+  normalizeRfidCode,
+} from "../../../utils/rfid";
+import { getDefaultOperationalBranch } from "../../../lib/server/defaultBranch";
+import {
+  getDefaultBadgeFee,
+  normalizeBadgeChargeMode,
+} from "../../../lib/server/badgeFee";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9:_-]{16,180}$/;
 
 type PlatinumPlan = {
   id: string;
   name: string;
   price: number;
   duration_days: number;
+};
+
+type SubscriptionPlanRow = {
+  id: string;
+  name: string | null;
+  price: number | null;
+  promo_price: number | null;
+  duration_days: number | null;
 };
 
 const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
@@ -36,20 +48,30 @@ const OFFICIAL_SUBSCRIPTION_PLAN_NAMES = new Set([
   "Pilates",
 ]);
 
-function isOfficialPlanName(name: unknown) {
-  return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(String(name || "").trim());
+function admin() {
+  if (!supabaseUrl || !serviceRoleKey) return null;
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
-type SubscriptionPlanRow = {
-  id: string;
-  name: string | null;
-  price: number | null;
-  promo_price: number | null;
-  duration_days: number | null;
-};
+function isOfficialPlanName(name: unknown) {
+  return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(
+    String(name || "").trim(),
+  );
+}
 
-async function getActiveMembershipFee(branchId: string) {
-  const { data, error } = await supabase
+type AdminClient = NonNullable<ReturnType<typeof admin>>;
+
+async function getActiveMembershipFee(
+  db: AdminClient,
+  branchId: string,
+) {
+  const { data, error } = await db
     .from("membership_fee_settings")
     .select("name, price, validity_days, is_active")
     .eq("branch_id", branchId)
@@ -64,17 +86,28 @@ async function getActiveMembershipFee(branchId: string) {
 
   if (!data) return null;
 
+  const membershipFee = data as {
+    name: string | null;
+    price: number | null;
+    validity_days: number | null;
+  };
+
   return {
-    name: data.name || "Quota associativa",
-    price: Number(data.price || 0),
-    validity_days: Number(data.validity_days || 365),
+    name: membershipFee.name || "Quota associativa",
+    price: Number(membershipFee.price || 0),
+    validity_days: Number(membershipFee.validity_days || 365),
   };
 }
 
-async function getActiveSubscriptionPlans(branchId: string): Promise<PlatinumPlan[]> {
-  const { data, error } = await supabase
+async function getActiveSubscriptionPlans(
+  db: AdminClient,
+  branchId: string,
+): Promise<PlatinumPlan[]> {
+  const { data, error } = await db
     .from("subscription_plans")
-    .select("id, name, price, promo_price, duration_days, sort_order, is_active")
+    .select(
+      "id, name, price, promo_price, duration_days, sort_order, is_active",
+    )
     .eq("branch_id", branchId)
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
@@ -85,21 +118,26 @@ async function getActiveSubscriptionPlans(branchId: string): Promise<PlatinumPla
     return [];
   }
 
-  return ((data || []) as SubscriptionPlanRow[]).filter((plan) => isOfficialPlanName(plan.name)).map((plan) => ({
-    id: plan.id,
-    name: plan.name || "Abbonamento",
-    price: Number(plan.promo_price || plan.price || 0),
-    duration_days: Number(plan.duration_days || 0),
-  }));
+  return ((data || []) as SubscriptionPlanRow[])
+    .filter((plan) => isOfficialPlanName(plan.name))
+    .map((plan) => ({
+      id: plan.id,
+      name: plan.name || "Abbonamento",
+      price: Number(plan.promo_price || plan.price || 0),
+      duration_days: Number(plan.duration_days || 0),
+    }));
 }
 
-async function getPlatinumConfig() {
-  const branch = await getDefaultOperationalBranch(supabase);
+async function getPlatinumConfig(
+  db: AdminClient,
+) {
+  const branch = await getDefaultOperationalBranch(db);
+
   if (!branch?.id) return null;
 
   const [membershipFee, plans] = await Promise.all([
-    getActiveMembershipFee(branch.id),
-    getActiveSubscriptionPlans(branch.id),
+    getActiveMembershipFee(db, branch.id),
+    getActiveSubscriptionPlans(db, branch.id),
   ]);
 
   return {
@@ -114,183 +152,242 @@ async function getPlatinumConfig() {
   };
 }
 
+function normalizePaymentMethod(value: unknown) {
+  const method = String(value || "cash").trim().toLowerCase();
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function dateOnly(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-async function findActiveBadgeDuplicate(rawCode: string, controllerCode: string) {
-  const lookupCodes = credentialLookupCodes(rawCode || controllerCode);
-  const credentialFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
-  const customerFilter = lookupCodes.map((code) => `badge_code.eq.${code},controller_code.eq.${code}`).join(",");
-  const badgeFilter = lookupCodes.map((code) => `badge_code.eq.${code}`).join(",");
-  const { data: customers, error: customersError } = await supabase
-    .from("customers")
-    .select("id, first_name, last_name, badge_code, controller_code, is_active, active, status")
-    .or(customerFilter)
-    .or("is_active.eq.true,active.eq.true,status.eq.active,status.eq.onboarding");
-
-  if (customersError) throw new Error(`Errore controllo duplicati clienti: ${customersError.message}`);
-
-  if (customers?.length) {
-    const owner = customers[0];
-    const name = `${owner.first_name || ""} ${owner.last_name || ""}`.trim() || owner.id;
-    return `Badge già assegnato a cliente attivo: ${name}.`;
-  }
-
-  const { data: credentials, error: credentialsError } = await supabase
-    .from("access_credentials")
-    .select("id, customer_id, code, controller_code, status, is_active")
-    .or(credentialFilter);
-
-  if (credentialsError) throw new Error(`Errore controllo duplicati credenziali clienti: ${credentialsError.message}`);
-
-  const activeCredential = (credentials || []).find((row) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
-  if (activeCredential) return "Badge già assegnato a una credenziale cliente attiva.";
-
-  const { data: customerBadges, error: customerBadgesError } = await supabase
-    .from("customer_badges")
-    .select("id, customer_id, badge_code, is_active")
-    .or(badgeFilter);
-
-  if (customerBadgesError) throw new Error(`Errore controllo duplicati badge clienti: ${customerBadgesError.message}`);
-
-  const activeCustomerBadge = (customerBadges || []).find((row) => row.is_active !== false);
-  if (activeCustomerBadge) return "Badge già assegnato a un badge cliente attivo.";
-
-  const { data: staff, error: staffError } = await supabase
-    .from("staff_access_credentials")
-    .select("id, staff_user_id, code, controller_code, status, is_active")
-    .or(credentialFilter)
-    .limit(1);
-
-  if (staffError) throw new Error(`Errore controllo duplicati staff: ${staffError.message}`);
-
-  const activeStaff = (staff || []).find((row) => row.is_active === true || String(row.status || "").toLowerCase() === "active");
-  if (activeStaff) return "Badge già assegnato a staff attivo.";
+  if (method === "cash") return "cash";
+  if (method === "pos") return "pos";
+  if (method === "bank_transfer") return "bank_transfer";
 
   return null;
 }
 
-type ReceiptNumberPayload = {
-  receipt_year: number;
-  receipt_sequence: number;
-  receipt_number: string;
-};
+function normalizeOptionalDate(value: unknown) {
+  const date = String(value || "").trim();
 
-function parseReceiptNumberPayload(data: unknown): ReceiptNumberPayload | null {
-  const payload =
-    typeof data === "string" ? (JSON.parse(data) as unknown) : data;
+  if (!date) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
 
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
+  const parsed = new Date(`${date}T00:00:00`);
 
-  const receiptData = payload as Partial<ReceiptNumberPayload>;
-
-  if (
-    typeof receiptData.receipt_year !== "number" ||
-    typeof receiptData.receipt_sequence !== "number" ||
-    typeof receiptData.receipt_number !== "string" ||
-    !receiptData.receipt_number
-  ) {
-    return null;
-  }
-
-  return {
-    receipt_year: receiptData.receipt_year,
-    receipt_sequence: receiptData.receipt_sequence,
-    receipt_number: receiptData.receipt_number,
-  };
+  return Number.isNaN(parsed.getTime()) ? null : date;
 }
 
-async function getNextReceiptNumber(): Promise<ReceiptNumberPayload> {
-  const { data, error } = await supabase.rpc("next_bodygate_receipt_number_v2");
+function getIdempotencyKey(
+  req: Request,
+  body: Record<string, unknown>,
+) {
+  const supplied = String(
+    req.headers.get("idempotency-key") ||
+      body.idempotency_key ||
+      body.operation_id ||
+      "",
+  ).trim();
 
-  if (error || !data) {
-    console.error("next_bodygate_receipt_number_v2 error", error);
-    throw new Error(
-      "Impossibile generare numero ricevuta progressivo annuale.",
+  const key = supplied || `server-${randomUUID()}`;
+
+  return IDEMPOTENCY_KEY_RE.test(key) ? key : null;
+}
+
+function requestHash(payload: Record<string, unknown>) {
+  return createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+}
+
+function rpcErrorResponse(error: {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+}) {
+  const message = String(error.message || "");
+  const code = String(error.code || "");
+
+  if (
+    message.includes("BODYGATE_IDEMPOTENCY_PAYLOAD_MISMATCH") ||
+    message.includes("BODYGATE_IDEMPOTENCY_OPERATION_INCOMPLETE")
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "IDEMPOTENCY_CONFLICT",
+        error:
+          "La stessa operazione Ã¨ giÃ  stata inviata con dati differenti o non Ã¨ ancora conclusa. Aggiorna la pagina prima di riprovare.",
+      },
+      { status: 409 },
     );
   }
 
-  try {
-    const receiptNumber = parseReceiptNumberPayload(data);
+  if (message.includes("BODYGATE_DUPLICATE_CUSTOMER_FISCAL_CODE")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "DUPLICATE_CUSTOMER",
+        error:
+          "Esiste giÃ  un cliente con lo stesso codice fiscale. Apri la scheda esistente invece di creare un duplicato.",
+      },
+      { status: 409 },
+    );
+  }
+  const duplicateBadgeMessages: Record<string, string> = {
+    BODYGATE_DUPLICATE_BADGE_CUSTOMER:
+      "Badge giÃ  assegnato a un cliente attivo.",
+    BODYGATE_DUPLICATE_BADGE_CREDENTIAL:
+      "Badge giÃ  assegnato a una credenziale cliente attiva.",
+    BODYGATE_DUPLICATE_BADGE_CUSTOMER_BADGE:
+      "Badge giÃ  presente nellâ€™archivio badge clienti.",
+    BODYGATE_DUPLICATE_BADGE_STAFF:
+      "Badge giÃ  assegnato a un membro dello staff.",
+  };
 
-    if (!receiptNumber) {
-      throw new Error("Payload RPC non valido.");
+  for (const [errorCode, errorMessage] of Object.entries(
+    duplicateBadgeMessages,
+  )) {
+    if (message.includes(errorCode)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "DUPLICATE_BADGE",
+          error: errorMessage,
+        },
+        { status: 409 },
+      );
     }
+  }
 
-    return receiptNumber;
-  } catch (error) {
-    console.error("next_bodygate_receipt_number_v2 payload error", error);
-    throw new Error(
-      "Impossibile generare numero ricevuta progressivo annuale.",
+  if (message.includes("BODYGATE_NOT_FOUND_BRANCH")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "BRANCH_NOT_FOUND",
+        error: "Sede operativa non trovata.",
+      },
+      { status: 404 },
     );
   }
+
+  if (message.includes("BODYGATE_NOT_FOUND_PLAN")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "PLAN_NOT_FOUND",
+        error: "Piano abbonamento non trovato.",
+      },
+      { status: 404 },
+    );
+  }
+
+  if (message.includes("BODYGATE_VALIDATION_")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "INVALID_ONBOARDING_REQUEST",
+        error:
+          "Dati onboarding non validi. Controlla anagrafica, piano, pagamento e badge.",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    code === "PGRST202" ||
+    message.includes("create_platinum_atomic_v1")
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "ATOMIC_ONBOARDING_MIGRATION_REQUIRED",
+        error:
+          "Lâ€™onboarding atomico non Ã¨ ancora attivo nel database. Applica la migration Atomic Operations 0.4.",
+      },
+      { status: 503 },
+    );
+  }
+
+  console.error("create_platinum_atomic_v1 error", error);
+
+  return NextResponse.json(
+    {
+      ok: false,
+      code: "ATOMIC_ONBOARDING_FAILED",
+      error:
+        "Il cliente non Ã¨ stato creato. La transazione Ã¨ stata annullata e nessun dato parziale deve essere considerato valido.",
+    },
+    { status: 500 },
+  );
 }
 
 export async function GET() {
+  const db = admin();
+
+  if (!db) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Configurazione Supabase server mancante.",
+      },
+      { status: 500 },
+    );
+  }
+
   try {
-    const config = await getPlatinumConfig();
+    const config = await getPlatinumConfig(db);
 
     if (!config) {
       return NextResponse.json(
-        { ok: false, error: "Nessuna sede operativa attiva disponibile per l’onboarding." },
+        {
+          ok: false,
+          error:
+            "Nessuna sede operativa attiva disponibile per lâ€™onboarding.",
+        },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ ok: true, ...config });
+    return NextResponse.json(
+      { ok: true, ...config },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
   } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Errore configurazione onboarding Platinum." },
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Errore configurazione onboarding Platinum.",
+      },
       { status: 500 },
     );
   }
 }
 
 export async function POST(req: Request) {
+  const db = admin();
+
+  if (!db) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Configurazione Supabase server mancante.",
+      },
+      { status: 500 },
+    );
+  }
+
   try {
-    const body = await req.json();
+    const body = (await req.json()) as Record<string, unknown>;
 
     const firstName = String(body.first_name || "").trim();
     const lastName = String(body.last_name || "").trim();
     const phone = String(body.phone || "").trim();
-    const email = String(body.email || "").trim();
     const fiscalCode = String(body.fiscal_code || "")
       .trim()
       .toUpperCase();
-
-    const subscriptionChoice = String(body.subscription_choice || body.subscription_mode || "with_subscription").trim();
-    if (subscriptionChoice !== "membership_only" && subscriptionChoice !== "with_subscription") {
-      return NextResponse.json({ ok: false, error: "Scelta abbonamento non valida." }, { status: 400 });
-    }
-    const rawPlanId = String(body.subscription_plan_id || "").trim();
-    const subscriptionPlanId = UUID_RE.test(rawPlanId) ? rawPlanId : null;
-
-    let subscriptionAmount = 0;
-    let subscriptionDurationDays = 0;
-    let subscriptionName = String(
-      body.subscription_name || "Abbonamento",
-    ).trim();
-
-    let membershipAmount = Number(body.membership_amount || 10);
-    let membershipValidityDays = 365;
-    const paymentMethod = String(body.payment_method || "cash").trim();
-
-    const badgeInput = String(body.badge_code || body.controller_code || "").trim();
-    const normalizedBadge = normalizeRfidCode(badgeInput);
-    const badgeCode = normalizedBadge?.rawCode || "";
-    const controllerCode = normalizedBadge?.controllerCode || "";
-    const badgeChargeMode = normalizeBadgeChargeMode(body.badge_charge_mode);
-    const badgeComplimentaryReason = String(body.badge_complimentary_reason || "").trim();
 
     if (!firstName || !lastName) {
       return NextResponse.json(
@@ -313,9 +410,83 @@ export async function POST(req: Request) {
       );
     }
 
-    const now = new Date().toISOString();
-    const today = new Date();
-    const todayDate = dateOnly(today);
+    if (body.privacy_consent !== true) {
+      return NextResponse.json(
+        { ok: false, error: "Consenso privacy obbligatorio." },
+        { status: 400 },
+      );
+    }
+
+    const subscriptionChoice = String(
+      body.subscription_choice ||
+        body.subscription_mode ||
+        "with_subscription",
+    ).trim();
+
+    if (
+      subscriptionChoice !== "membership_only" &&
+      subscriptionChoice !== "with_subscription"
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Scelta abbonamento non valida." },
+        { status: 400 },
+      );
+    }
+
+    const paymentMethod = normalizePaymentMethod(
+      body.payment_method || body.paymentMethod,
+    );
+
+    if (!paymentMethod) {
+      return NextResponse.json(
+        { ok: false, error: "Metodo pagamento non valido." },
+        { status: 400 },
+      );
+    }
+
+    const defaultBranch = await getDefaultOperationalBranch(db);
+    const requestedBranchId = String(body.branch_id || "").trim();
+    const branchId = UUID_RE.test(requestedBranchId)
+      ? requestedBranchId
+      : defaultBranch?.id || "";
+
+    if (!UUID_RE.test(branchId)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Nessuna sede operativa attiva disponibile per completare lâ€™onboarding.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const rawPlanId = String(
+      body.subscription_plan_id || body.subscription_plan || "",
+    ).trim();
+    const subscriptionPlanId =
+      subscriptionChoice === "with_subscription" &&
+      UUID_RE.test(rawPlanId)
+        ? rawPlanId
+        : null;
+
+    if (
+      subscriptionChoice === "with_subscription" &&
+      !subscriptionPlanId
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Seleziona un piano abbonamento valido.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const badgeInput = String(
+      body.badge_code || body.controller_code || "",
+    ).trim();
+    const normalizedBadge = normalizeRfidCode(badgeInput);
 
     if (badgeInput && !normalizedBadge) {
       return NextResponse.json(
@@ -324,437 +495,193 @@ export async function POST(req: Request) {
       );
     }
 
-    if (normalizedBadge) {
-      const duplicateError = await findActiveBadgeDuplicate(
-        normalizedBadge.rawCode,
-        normalizedBadge.controllerCode,
-      );
+    const lookupCodes = normalizedBadge
+      ? credentialLookupCodes(normalizedBadge.rawCode)
+      : [];
 
-      if (duplicateError) {
-        return NextResponse.json({ ok: false, error: duplicateError }, { status: 409 });
-      }
-    }
+    const badgeCode = normalizedBadge?.rawCode || "";
+    const controllerCode =
+      normalizedBadge?.controllerCode || lookupCodes[0] || "";
 
-    const defaultBranch = await getDefaultOperationalBranch(supabase);
-    const branchId = typeof body.branch_id === "string" && UUID_RE.test(body.branch_id)
-      ? body.branch_id
-      : defaultBranch?.id || null;
-
-    if (!branchId) {
-      return NextResponse.json(
-        { ok: false, error: "Nessuna sede operativa attiva disponibile per completare l’onboarding." },
-        { status: 500 },
-      );
-    }
-
-    const [customerPaymentsHasBranch, paymentsHasBranch, receiptsHasBranch, membershipFee, receiptsHasComponents] =
-      await Promise.all([
-        tableHasColumn(supabase, "customer_payments", "branch_id"),
-        tableHasColumn(supabase, "payments", "branch_id"),
-        tableHasColumn(supabase, "customer_receipts", "branch_id"),
-        getActiveMembershipFee(branchId),
-        tableHasColumn(supabase, "customer_receipts", "receipt_components"),
-      ]);
-
-    if (membershipFee) {
-      membershipAmount = membershipFee.price;
-      membershipValidityDays = membershipFee.validity_days || 365;
-    }
-
-    if (subscriptionChoice === "with_subscription" && !subscriptionPlanId) {
-      return NextResponse.json(
-        { ok: false, error: "Seleziona un piano abbonamento valido." },
-        { status: 400 },
-      );
-    }
-
-    if (subscriptionChoice === "with_subscription" && subscriptionPlanId) {
-      const { data: selectedPlan, error: selectedPlanError } = await supabase
-        .from("subscription_plans")
-        .select("id, name, price, promo_price, duration_days, is_active, branch_id")
-        .eq("id", subscriptionPlanId)
-        .eq("branch_id", branchId)
-        .maybeSingle();
-
-      if (selectedPlanError || !selectedPlan || selectedPlan.is_active === false || selectedPlan.branch_id !== branchId || !isOfficialPlanName(selectedPlan.name)) {
-        return NextResponse.json(
-          { ok: false, error: "Piano abbonamento non valido per la sede selezionata." },
-          { status: 400 },
-        );
-      }
-
-      subscriptionName = selectedPlan.name || subscriptionName;
-      subscriptionAmount = Number(selectedPlan.promo_price || selectedPlan.price || 0);
-      subscriptionDurationDays = Number(selectedPlan.duration_days || 0);
-    }
-
-    if (!membershipAmount || membershipAmount <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "Quota associativa obbligatoria non valida." },
-        { status: 400 },
-      );
-    }
-
+    const badgeChargeMode = normalizeBadgeChargeMode(
+      body.badge_charge_mode,
+    );
+    const badgeComplimentaryReason = String(
+      body.badge_complimentary_reason || "",
+    ).trim();
     const badgeFeeConfig = getDefaultBadgeFee();
-    const hasDeliveredBadge = Boolean(badgeCode || controllerCode);
 
-    if (badgeChargeMode === "charged" && !hasDeliveredBadge) {
-      return NextResponse.json(
-        { ok: false, error: "Per addebitare il Badge RFID serve un codice badge/controller valido." },
-        { status: 400 },
-      );
-    }
-
-    if (badgeChargeMode === "complimentary" && !badgeComplimentaryReason) {
-      return NextResponse.json(
-        { ok: false, error: "Per omaggiare il Badge RFID è obbligatorio indicare il motivo operatore." },
-        { status: 400 },
-      );
-    }
-
-    const badgeFee = badgeChargeMode === "charged" && badgeFeeConfig.is_active ? badgeFeeConfig.price : 0;
-    const membershipUntil = dateOnly(addDays(today, membershipValidityDays));
-    const receiptComponents = [
-      ...(subscriptionAmount > 0 ? [{ code: "subscription", label: `Abbonamento ${subscriptionName}`, amount: subscriptionAmount }] : []),
-      { code: "membership_fee", label: "Quota associativa", amount: membershipAmount },
-      ...(badgeChargeMode !== "not_included" ? [{ code: "rfid_badge", label: "Badge RFID", amount: badgeFee }] : []),
-    ];
-    const componentDescription = receiptComponents.map((component) => `${component.label} €${Number(component.amount).toFixed(2).replace(".", ",")}`).join(" + ");
-    const totalAmount = membershipAmount + Math.max(subscriptionAmount, 0) + badgeFee;
-
-    if (totalAmount <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "Incasso obbligatorio mancante." },
-        { status: 400 },
-      );
-    }
-
-    const { data: customer, error: customerError } = await supabase
-      .from("customers")
-      .insert({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        email: email || null,
-        fiscal_code: fiscalCode,
-        branch_id: branchId,
-
-        gender: body.gender || null,
-        birth_date: body.birth_date || null,
-        birth_place: body.birth_place || null,
-
-        address: body.address || null,
-        street_number: body.street_number || null,
-        postal_code: body.postal_code || null,
-        city: body.city || null,
-        province: body.province || null,
-        country: body.country || "Italia",
-
-        document_type: body.document_type || null,
-        document_number: body.document_number || null,
-        document_issued_by: body.document_issued_by || null,
-        document_issued_at: body.document_issued_at || null,
-        document_expires_at: body.document_expires_at || null,
-
-        emergency_contact_name: body.emergency_contact_name || null,
-        emergency_contact_phone: body.emergency_contact_phone || null,
-        emergency_contact_relation: body.emergency_contact_relation || null,
-
-        profession: body.profession || null,
-        fitness_goal: body.fitness_goal || null,
-        marketing_source: body.marketing_source || null,
-        customer_tags: Array.isArray(body.customer_tags)
-          ? body.customer_tags
-          : [],
-
-        badge_code: badgeCode || null,
-        controller_code: controllerCode || null,
-
-        medical_certificate_start_date:
-          body.medical_certificate_start_date || null,
-        medical_certificate_end_date: body.medical_certificate_end_date || null,
-        medical_certificate_url: body.medical_certificate_url || null,
-        medical_certificate_status: body.medical_certificate_end_date
-          ? "valid"
-          : "missing",
-
-        active: false,
-        is_active: false,
-        status: "onboarding",
-
-        subscription_status: subscriptionAmount > 0 ? "active" : "pending",
-        subscription_expiry: null,
-
-        onboarding_status: "contract_pending",
-        payment_status: "paid",
-        contract_status: "pending_signature",
-        access_activation_status: "pending",
-
-        privacy_consent: Boolean(body.privacy_consent),
-        marketing_consent: Boolean(body.marketing_consent),
-        photo_video_consent: Boolean(body.photo_video_consent),
-      })
-      .select("id, branch_id")
-      .single();
-
-    if (customerError || !customer) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: customerError?.message || "Errore creazione cliente.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const customerId = customer.id;
-    const customerBranchId = customer.branch_id || branchId;
-
-    const { error: membershipError } = await supabase
-      .from("customer_membership_fees")
-      .insert({
-        customer_id: customerId,
-        branch_id: customerBranchId,
-        amount: membershipAmount,
-        paid_at: now,
-        valid_from: todayDate,
-        valid_until: membershipUntil,
-        payment_method: paymentMethod,
-        notes: "Quota associativa creata da onboarding Platinum",
-      });
-
-    if (membershipError) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Cliente creato ma quota associativa non registrata: ${membershipError.message}`,
-          customer_id: customerId,
-        },
-        { status: 500 },
-      );
-    }
-
-    let subscriptionId: string | null = null;
-    let subscriptionEndsAt: string | null = null;
-
-    if (subscriptionAmount > 0 && subscriptionDurationDays > 0) {
-      subscriptionEndsAt = dateOnly(addDays(today, subscriptionDurationDays));
-
-      const { data: subscription, error: subscriptionError } = await supabase
-        .from("customer_subscriptions")
-        .insert({
-          customer_id: customerId,
-          branch_id: customerBranchId,
-          plan_id: subscriptionPlanId,
-          amount: subscriptionAmount,
-          starts_at: todayDate,
-          ends_at: subscriptionEndsAt,
-          is_active: true,
-          payment_method: paymentMethod,
-          notes: `Creato da onboarding Platinum: ${subscriptionName}`,
-        })
-        .select("id")
-        .single();
-
-      if (subscriptionError) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: `Cliente creato ma abbonamento non registrato: ${subscriptionError.message}`,
-            customer_id: customerId,
-          },
-          { status: 500 },
-        );
-      }
-
-      subscriptionId = subscription?.id || null;
-
-      await supabase
-        .from("customers")
-        .update({
-          subscription_status: "active",
-          subscription_expiry: subscriptionEndsAt,
-        })
-        .eq("id", customerId);
-    } else {
-      await supabase
-        .from("customers")
-        .update({
-          subscription_status: "pending",
-          subscription_expiry: null,
-        })
-        .eq("id", customerId);
-    }
-
-    const description = `Nuova iscrizione: ${componentDescription}`;
-
-    const { data: payment, error: paymentError } = await supabase
-      .from("customer_payments")
-      .insert({
-        customer_id: customerId,
-        ...(customerPaymentsHasBranch ? { branch_id: customerBranchId } : {}),
-        type: "onboarding",
-        description,
-        amount: totalAmount,
-        payment_method: paymentMethod,
-        status: "paid",
-        paid_at: now,
-        notes: "Incasso obbligatorio nuovo cliente",
-      })
-      .select("id")
-      .single();
-
-    if (paymentError || !payment) {
+    if (
+      badgeChargeMode === "charged" &&
+      !badgeCode &&
+      !controllerCode
+    ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            paymentError?.message ||
-            "Cliente creato ma pagamento non registrato.",
-          customer_id: customerId,
+            "Per addebitare il Badge RFID serve un codice badge/controller valido.",
         },
-        { status: 500 },
+        { status: 400 },
       );
-    }
-
-    await supabase.from("payments").insert({
-      customer_id: customerId,
-      ...(paymentsHasBranch ? { branch_id: customerBranchId } : {}),
-      payment_method_id: null,
-      amount: totalAmount,
-      payment_type: "onboarding",
-      description,
-      status: "paid",
-      paid_at: now,
-      created_by: "admin@bodygate.it",
-    });
-
-    const receiptNumber = await getNextReceiptNumber();
-
-    const { error: receiptError } = await supabase
-      .from("customer_receipts")
-      .insert({
-        customer_id: customerId,
-        ...(receiptsHasBranch ? { branch_id: customerBranchId } : {}),
-        payment_id: payment.id,
-        subscription_id: subscriptionId,
-        receipt_year: receiptNumber.receipt_year,
-        receipt_sequence: receiptNumber.receipt_sequence,
-        receipt_number: receiptNumber.receipt_number,
-        receipt_type: "onboarding",
-        amount: totalAmount,
-        description,
-        customer_copy_label: "COPIA CLIENTE",
-        gym_copy_label: "COPIA PALESTRA",
-        issued_at: now,
-        ...(receiptsHasComponents ? { receipt_components: receiptComponents } : {}),
-      });
-
-    if (receiptError) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Cliente e pagamento creati, ma ricevuta non registrata: ${receiptError.message}`,
-          customer_id: customerId,
-          payment_id: payment.id,
-        },
-        { status: 500 },
-      );
-    }
-
-    if (badgeCode || controllerCode) {
-      const { error: credentialError } = await supabase
-        .from("access_credentials")
-        .upsert(
-          {
-            customer_id: customerId,
-            type: "card",
-            code: badgeCode,
-            controller_code: controllerCode,
-            status: "active",
-          },
-          { onConflict: "code" },
-        );
-
-      if (credentialError) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: `Cliente creato ma credenziale non registrata: ${credentialError.message}`,
-            customer_id: customerId,
-          },
-          { status: 500 },
-        );
-      }
-
-      await supabase
-        .from("customers")
-        .update({
-          access_activation_status: "badge_assigned",
-        })
-        .eq("id", customerId);
     }
 
     if (
-      body.medical_certificate_start_date ||
-      body.medical_certificate_end_date ||
-      body.medical_certificate_url
+      badgeChargeMode === "complimentary" &&
+      !badgeComplimentaryReason
     ) {
-      await supabase.from("medical_certificates").insert({
-        customer_id: customerId,
-        valid_from: body.medical_certificate_start_date || null,
-        valid_until: body.medical_certificate_end_date || null,
-        expiry_date: body.medical_certificate_end_date || null,
-        status: body.medical_certificate_end_date ? "valid" : "missing",
-        certificate_type: "non_agonistico",
-      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Per omaggiare il Badge RFID Ã¨ obbligatorio indicare il motivo operatore.",
+        },
+        { status: 400 },
+      );
     }
 
-    await supabase.from("customer_timeline").insert([
-      {
-        customer_id: customerId,
-        type: "customer",
-        title: "Cliente creato",
-        description: `${firstName} ${lastName} creato tramite onboarding Platinum`,
-        created_at: now,
-      },
-      {
-        customer_id: customerId,
-        type: "payment",
-        title: "Incasso onboarding registrato",
-        description: `${description} - €${totalAmount.toFixed(2)}`,
-        created_at: now,
-      },
-      ...(hasDeliveredBadge ? [{
-        customer_id: customerId,
-        type: "badge",
-        title: badgeChargeMode === "charged" ? "Badge RFID consegnato e addebitato" : "Badge RFID consegnato in omaggio",
-        description: badgeChargeMode === "charged" ? `Badge RFID consegnato e addebitato €${badgeFee.toFixed(2)}` : `Badge RFID consegnato in omaggio — motivo: ${badgeComplimentaryReason || "non addebitato"}`,
-        created_at: now,
-      }] : []),
-      {
-        customer_id: customerId,
-        type: "contract",
-        title: "Contratto in attesa di firma",
-        description: "Il cliente deve completare la firma OTP del contratto.",
-        created_at: now,
-      },
-    ]);
+    const idempotencyKey = getIdempotencyKey(req, body);
 
-    return NextResponse.json({
-      ok: true,
-      customer_id: customerId,
-      payment_id: payment.id,
-      subscription_id: subscriptionId,
-      branch_id: customerBranchId,
-      receipt_number: receiptNumber.receipt_number,
-      steps: { customer: true, membership_fee: true, subscription: Boolean(subscriptionId), payment: true, receipt: true, badge: Boolean(badgeCode || controllerCode), contract_pending: true },
-      technical_note: "Il flusso onboarding è multi-step e non ancora una transazione PostgreSQL atomica.",
-      next_url: `/customers/${customerId}/contract/print`,
-    });
-  } catch (error: unknown) {
+    if (!idempotencyKey) {
+      return NextResponse.json(
+        { ok: false, error: "Chiave operazione non valida." },
+        { status: 400 },
+      );
+    }
+
+    const normalizedRequest: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+      email: String(body.email || "").trim().toLowerCase() || null,
+      fiscal_code: fiscalCode,
+      branch_id: branchId,
+      gender: String(body.gender || "").trim() || null,
+      birth_date: normalizeOptionalDate(body.birth_date),
+      birth_place: String(body.birth_place || "").trim() || null,
+      address: String(body.address || "").trim() || null,
+      street_number:
+        String(body.street_number || "").trim() || null,
+      postal_code: String(body.postal_code || "").trim() || null,
+      city: String(body.city || "").trim() || null,
+      province: String(body.province || "").trim() || null,
+      country: String(body.country || "Italia").trim() || "Italia",
+      document_type:
+        String(body.document_type || "").trim() || null,
+      document_number:
+        String(body.document_number || "").trim() || null,
+      document_issued_by:
+        String(body.document_issued_by || "").trim() || null,
+      document_issued_at: normalizeOptionalDate(
+        body.document_issued_at,
+      ),
+      document_expires_at: normalizeOptionalDate(
+        body.document_expires_at,
+      ),
+      emergency_contact_name:
+        String(body.emergency_contact_name || "").trim() || null,
+      emergency_contact_phone:
+        String(body.emergency_contact_phone || "").trim() || null,
+      emergency_contact_relation:
+        String(body.emergency_contact_relation || "").trim() || null,
+      profession: String(body.profession || "").trim() || null,
+      fitness_goal: String(body.fitness_goal || "").trim() || null,
+      marketing_source:
+        String(body.marketing_source || "").trim() || null,
+      customer_tags: Array.isArray(body.customer_tags)
+        ? body.customer_tags.map(String)
+        : [],
+      medical_certificate_start_date: normalizeOptionalDate(
+        body.medical_certificate_start_date,
+      ),
+      medical_certificate_end_date: normalizeOptionalDate(
+        body.medical_certificate_end_date,
+      ),
+      medical_certificate_url:
+        String(body.medical_certificate_url || "").trim() || null,
+      badge_code: badgeCode || null,
+      controller_code: controllerCode || null,
+      subscription_choice: subscriptionChoice,
+      subscription_plan_id: subscriptionPlanId,
+      payment_method: paymentMethod,
+      membership_amount: Number(body.membership_amount || 10),
+      badge_charge_mode: badgeChargeMode,
+      badge_fee:
+        badgeChargeMode === "charged" &&
+        badgeFeeConfig.is_active
+          ? Number(badgeFeeConfig.price || 0)
+          : 0,
+      badge_complimentary_reason:
+        badgeComplimentaryReason || null,
+      privacy_consent: true,
+      marketing_consent: body.marketing_consent === true,
+      photo_video_consent: body.photo_video_consent === true,
+    };
+
+    const hash = requestHash(normalizedRequest);
+
+    const { data, error } = await db.rpc(
+      "create_platinum_atomic_v1",
+      {
+        p_idempotency_key: idempotencyKey,
+        p_request_hash: hash,
+        p_payload: normalizedRequest,
+      },
+    );
+
+    if (error) {
+      return rpcErrorResponse(error);
+    }
+
+    const result =
+      typeof data === "string"
+        ? (JSON.parse(data) as Record<string, unknown>)
+        : ((data || {}) as Record<string, unknown>);
+
+    if (
+      !result.ok ||
+      !result.customer_id ||
+      !result.membership_fee ||
+      !result.customer_payment ||
+      !result.payment ||
+      !result.receipt ||
+      !result.contract_document
+    ) {
+      console.error(
+        "create_platinum_atomic_v1 invalid payload",
+        result,
+      );
+
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "INVALID_ATOMIC_ONBOARDING_RESPONSE",
+          error: "Risposta onboarding atomico non valida.",
+        },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Errore onboarding Platinum." },
+      result,
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  } catch (error: unknown) {
+    console.error("create-platinum fatal error", error);
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Errore onboarding Platinum.",
+      },
       { status: 500 },
     );
   }

@@ -8,6 +8,7 @@ import BGPageHeader from "../../components/ui/BGPageHeader";
 import BGInput from "../../components/ui/BGInput";
 import BGSelect from "../../components/ui/BGSelect";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
+import { safeRandomId } from "../../lib/safeRandomId";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import type { DocumentStatus } from "../components/CustomerDocumentRows";
 import type { ScannerDocumentType } from "../components/documentScannerUtils";
@@ -76,10 +77,17 @@ function accessTypeLabel(value: string) {
   );
 }
 
-async function postJson(url: string, body: Record<string, unknown>) {
+async function postJson(
+  url: string,
+  body: Record<string, unknown>,
+  extraHeaders: Record<string, string> = {},
+) {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...extraHeaders,
+    },
     body: JSON.stringify(body),
   });
 
@@ -99,6 +107,7 @@ export default function NewCustomerPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [onboardingOperationId, setOnboardingOperationId] = useState("");
   const [configLoading, setConfigLoading] = useState(true);
   const [plans, setPlans] = useState<PlatinumPlan[]>(fallbackPlans);
   const [membershipAmount, setMembershipAmount] = useState(10);
@@ -304,6 +313,13 @@ export default function NewCustomerPage() {
       return;
     }
 
+    const operationId =
+      onboardingOperationId || safeRandomId("onboarding");
+
+    if (!onboardingOperationId) {
+      setOnboardingOperationId(operationId);
+    }
+
     setSaving(true);
 
     try {
@@ -318,6 +334,9 @@ export default function NewCustomerPage() {
         branch_id: operationalBranch.id,
         badge_charge_mode: form.badge_charge_mode,
         badge_complimentary_reason: form.badge_complimentary_reason,
+        operation_id: operationId,
+      }, {
+        "Idempotency-Key": operationId,
       });
 
       const customerId = result.customer_id;
@@ -353,6 +372,7 @@ export default function NewCustomerPage() {
         return;
       }
 
+      setOnboardingOperationId("");
       router.push(result.next_url || `/customers/${customerId}/contract`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Errore imprevisto.");

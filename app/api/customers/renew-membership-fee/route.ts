@@ -1,407 +1,382 @@
-import { NextResponse } from "next/server";
+import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-type ReceiptNumberPayload = {
-  receipt_year: number;
-  receipt_sequence: number;
-  receipt_number: string;
-};
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9:_-]{16,180}$/;
 
-function createSupabaseAdmin() {
+function admin() {
   if (!supabaseUrl || !serviceRoleKey) return null;
-  return createClient(supabaseUrl, serviceRoleKey);
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
+
   if (!Number.isFinite(amount) || amount <= 0) return null;
-  return amount;
+
+  return Number(amount.toFixed(2));
 }
 
 function normalizeDate(value: unknown) {
   const date = String(value || "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+
+  const parsed = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) return null;
+
   return date;
 }
 
 function normalizePaymentMethod(value: unknown) {
-  return String(value || "").trim();
+  const method = String(value || "").trim().toLowerCase();
+
+  if (method === "cash") return "cash";
+  if (method === "pos") return "pos";
+  if (method === "bank_transfer") return "bank_transfer";
+
+  return null;
 }
 
-function parseReceiptNumberPayload(data: unknown): ReceiptNumberPayload | null {
-  const payload = Array.isArray(data) ? data[0] : data;
+function getIdempotencyKey(
+  req: Request,
+  body: Record<string, unknown>,
+) {
+  const supplied = String(
+    req.headers.get("idempotency-key") ||
+      body.idempotency_key ||
+      body.operation_id ||
+      "",
+  ).trim();
 
-  if (!payload || typeof payload !== "object") return null;
+  const key = supplied || `server-${randomUUID()}`;
 
-  const receiptData = payload as Partial<ReceiptNumberPayload>;
-
-  if (
-    typeof receiptData.receipt_year !== "number" ||
-    typeof receiptData.receipt_sequence !== "number" ||
-    typeof receiptData.receipt_number !== "string" ||
-    !receiptData.receipt_number
-  ) {
+  if (!IDEMPOTENCY_KEY_RE.test(key)) {
     return null;
   }
 
-  return {
-    receipt_year: receiptData.receipt_year,
-    receipt_sequence: receiptData.receipt_sequence,
-    receipt_number: receiptData.receipt_number,
-  };
+  return key;
 }
 
-async function getNextReceiptNumber(supabaseAdmin: any) {
-  const { data, error } = await supabaseAdmin.rpc(
-    "next_bodygate_receipt_number_v2",
+function requestHash(payload: Record<string, unknown>) {
+  return createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+}
+
+function rpcErrorResponse(error: {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+}) {
+  const message = String(error.message || "");
+  const code = String(error.code || "");
+
+  if (
+    message.includes("BODYGATE_IDEMPOTENCY_PAYLOAD_MISMATCH") ||
+    message.includes("BODYGATE_IDEMPOTENCY_OPERATION_INCOMPLETE")
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "IDEMPOTENCY_CONFLICT",
+        error:
+          "La stessa operazione Ã¨ giÃ  stata inviata con dati differenti o non Ã¨ ancora conclusa. Aggiorna la scheda cliente prima di riprovare.",
+      },
+      { status: 409 },
+    );
+  }
+
+  if (message.includes("BODYGATE_NOT_FOUND_CUSTOMER")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "CUSTOMER_NOT_FOUND",
+        error: "Cliente non trovato.",
+      },
+      { status: 404 },
+    );
+  }
+
+  if (message.includes("BODYGATE_DUPLICATE_MEMBERSHIP_FEE")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "DUPLICATE_MEMBERSHIP_FEE",
+        error:
+          "Esiste giÃ  una quota associativa per lo stesso cliente e lo stesso periodo.",
+      },
+      { status: 409 },
+    );
+  }
+
+  if (message.includes("BODYGATE_DUPLICATE_MEMBERSHIP_RECEIPT")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "DUPLICATE_MEMBERSHIP_RECEIPT",
+        error:
+          "Esiste giÃ  una ricevuta di quota associativa per lo stesso anno. Conferma esplicitamente per procedere.",
+      },
+      { status: 409 },
+    );
+  }
+
+  if (message.includes("BODYGATE_VALIDATION_")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "INVALID_MEMBERSHIP_REQUEST",
+        error:
+          "Dati quota associativa non validi. Controlla importo, metodo di pagamento e periodo.",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    code === "PGRST202" ||
+    message.includes("renew_membership_fee_atomic_v1")
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "ATOMIC_MEMBERSHIP_MIGRATION_REQUIRED",
+        error:
+          "Il rinnovo quota associativa atomico non Ã¨ ancora attivo nel database. Applica la migration Atomic Operations 0.3.",
+      },
+      { status: 503 },
+    );
+  }
+
+  console.error("renew_membership_fee_atomic_v1 error", error);
+
+  return NextResponse.json(
+    {
+      ok: false,
+      code: "ATOMIC_MEMBERSHIP_FAILED",
+      error:
+        "La quota associativa non Ã¨ stata registrata. Nessun dato parziale deve essere considerato valido.",
+    },
+    { status: 500 },
   );
-
-  if (error) {
-    console.error("next_bodygate_receipt_number_v2 error", error);
-    throw new Error(
-      "Numerazione ricevuta non disponibile: impossibile generare la ricevuta quota associativa.",
-    );
-  }
-
-  const receiptNumber = parseReceiptNumberPayload(data);
-
-  if (!receiptNumber) {
-    console.error("next_bodygate_receipt_number_v2 invalid payload", data);
-    throw new Error(
-      "Numerazione ricevuta non valida: impossibile generare la ricevuta quota associativa.",
-    );
-  }
-
-  return receiptNumber;
-}
-
-function membershipYearFromDate(validFrom: string) {
-  return Number(validFrom.slice(0, 4));
 }
 
 export async function POST(req: Request) {
+  const db = admin();
+
+  if (!db) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Configurazione Supabase mancante: NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.",
+      },
+      { status: 500 },
+    );
+  }
+
   try {
-    const supabaseAdmin = createSupabaseAdmin();
-
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Configurazione Supabase mancante: NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const body = await req.json();
-    const customerId = String(body.customer_id || body.customerId || "").trim();
+    const body = (await req.json()) as Record<string, unknown>;
+    const customerId = String(
+      body.customer_id || body.customerId || "",
+    ).trim();
     const amount = parseAmount(body.amount);
     const paymentMethod = normalizePaymentMethod(
       body.payment_method || body.paymentMethod,
     );
-    const validFrom = normalizeDate(body.valid_from || body.validFrom);
-    const validUntil = normalizeDate(body.valid_until || body.validUntil);
+    const validFrom = normalizeDate(
+      body.valid_from || body.validFrom,
+    );
+    const validUntil = normalizeDate(
+      body.valid_until || body.validUntil,
+    );
     const allowDuplicate = body.allow_duplicate === true;
+    const idempotencyKey = getIdempotencyKey(req, body);
 
-    if (!customerId) {
+    if (!UUID_RE.test(customerId)) {
       return NextResponse.json(
-        { ok: false, error: "customer_id obbligatorio." },
+        { ok: false, error: "customer_id non valido." },
         { status: 400 },
       );
     }
 
     if (!amount) {
       return NextResponse.json(
-        { ok: false, error: "Importo quota associativa obbligatorio e maggiore di zero." },
+        {
+          ok: false,
+          error:
+            "Importo quota associativa obbligatorio e maggiore di zero.",
+        },
         { status: 400 },
       );
     }
 
     if (!paymentMethod) {
       return NextResponse.json(
-        { ok: false, error: "Metodo pagamento obbligatorio." },
+        {
+          ok: false,
+          error: "Metodo pagamento quota associativa non valido.",
+        },
         { status: 400 },
       );
     }
 
-    if (!validFrom) {
+    if (!validFrom || !validUntil) {
       return NextResponse.json(
-        { ok: false, error: "Data inizio validità quota obbligatoria." },
-        { status: 400 },
-      );
-    }
-
-    if (!validUntil) {
-      return NextResponse.json(
-        { ok: false, error: "Data fine validità quota obbligatoria." },
+        {
+          ok: false,
+          error: "Periodo quota associativa non valido.",
+        },
         { status: 400 },
       );
     }
 
     if (validUntil < validFrom) {
       return NextResponse.json(
-        { ok: false, error: "La data fine validità deve essere successiva o uguale alla data inizio." },
+        {
+          ok: false,
+          error:
+            "La data fine validitÃ  deve essere successiva o uguale alla data inizio.",
+        },
         { status: 400 },
       );
     }
 
-    const { data: customer, error: customerError } = await supabaseAdmin
-      .from("customers")
-      .select("id, branch_id, first_name, last_name")
-      .eq("id", customerId)
-      .maybeSingle();
-
-    if (customerError) {
-      return NextResponse.json(
-        { ok: false, error: customerError.message },
-        { status: 500 },
-      );
-    }
-
-    if (!customer) {
-      return NextResponse.json(
-        { ok: false, error: "Cliente non trovato." },
-        { status: 404 },
-      );
-    }
-
-    if (!allowDuplicate) {
-      const { data: duplicateFee, error: duplicateFeeError } = await supabaseAdmin
-        .from("customer_membership_fees")
-        .select("id, valid_from, valid_until")
-        .eq("customer_id", customerId)
-        .eq("valid_from", validFrom)
-        .eq("valid_until", validUntil)
-        .limit(1)
-        .maybeSingle();
-
-      if (duplicateFeeError) {
-        return NextResponse.json(
-          { ok: false, error: duplicateFeeError.message },
-          { status: 500 },
-        );
-      }
-
-      if (duplicateFee) {
-        return NextResponse.json(
-          {
-            ok: false,
-            code: "DUPLICATE_MEMBERSHIP_FEE",
-            error:
-              "Esiste già una quota associativa per lo stesso cliente e lo stesso periodo.",
-          },
-          { status: 409 },
-        );
-      }
-
-      const { data: duplicateReceipt, error: duplicateReceiptError } =
-        await supabaseAdmin
-          .from("customer_receipts")
-          .select("id, receipt_number")
-          .eq("customer_id", customerId)
-          .eq("receipt_type", "membership_fee")
-          .ilike(
-            "description",
-            `%Quota associativa Body Energy ASD anno ${membershipYearFromDate(validFrom)}%`,
-          )
-          .limit(1)
-          .maybeSingle();
-
-      if (duplicateReceiptError) {
-        return NextResponse.json(
-          { ok: false, error: duplicateReceiptError.message },
-          { status: 500 },
-        );
-      }
-
-      if (duplicateReceipt) {
-        return NextResponse.json(
-          {
-            ok: false,
-            code: "DUPLICATE_MEMBERSHIP_RECEIPT",
-            error:
-              "Esiste già una ricevuta di quota associativa per lo stesso anno. Conferma esplicitamente per procedere.",
-          },
-          { status: 409 },
-        );
-      }
-    }
-
-    const now = new Date().toISOString();
-    const year = membershipYearFromDate(validFrom);
-    const description = `Quota associativa Body Energy ASD anno ${year}`;
-
-    const { data: membershipFee, error: membershipFeeError } = await supabaseAdmin
-      .from("customer_membership_fees")
-      .insert({
-        customer_id: customerId,
-        branch_id: customer.branch_id || null,
-        amount,
-        valid_from: validFrom,
-        valid_until: validUntil,
-        payment_method: paymentMethod,
-        notes: description,
-      })
-      .select("id, valid_from, valid_until")
-      .single();
-
-    if (membershipFeeError || !membershipFee) {
+    if (!idempotencyKey) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            membershipFeeError?.message ||
-            "Quota associativa non registrata.",
+          error: "Chiave operazione non valida.",
         },
-        { status: 500 },
+        { status: 400 },
       );
     }
 
-    const { data: customerPayment, error: customerPaymentError } =
-      await supabaseAdmin
-        .from("customer_payments")
-        .insert({
-          customer_id: customerId,
-          amount,
-          type: "membership_fee",
-          description,
-          payment_method: paymentMethod,
-          status: "paid",
-          paid_at: now,
-          notes: `Validità ${validFrom} - ${validUntil}`,
-        })
-        .select("id")
-        .single();
-
-    if (customerPaymentError || !customerPayment) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            customerPaymentError?.message ||
-            "Quota registrata ma pagamento cliente non creato.",
-          membership_fee_id: membershipFee.id,
-        },
-        { status: 500 },
-      );
-    }
-
-    const { data: payment, error: paymentError } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        customer_id: customerId,
-        payment_method_id: null,
-        amount,
-        payment_type: "membership_fee",
-        description,
-        status: "paid",
-        paid_at: now,
-        created_by: "admin@bodygate.it",
-      })
-      .select("id")
-      .single();
-
-    if (paymentError || !payment) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            paymentError?.message ||
-            "Quota registrata ma pagamento generale non creato.",
-          membership_fee_id: membershipFee.id,
-          customer_payment_id: customerPayment.id,
-        },
-        { status: 500 },
-      );
-    }
-
-    const receiptNumber = await getNextReceiptNumber(supabaseAdmin);
-
-    const { data: receipt, error: receiptError } = await supabaseAdmin
-      .from("customer_receipts")
-      .insert({
-        customer_id: customerId,
-        payment_id: customerPayment.id,
-        receipt_year: receiptNumber.receipt_year,
-        receipt_sequence: receiptNumber.receipt_sequence,
-        receipt_number: receiptNumber.receipt_number,
-        receipt_type: "membership_fee",
-        amount,
-        description,
-        customer_copy_label: "COPIA CLIENTE",
-        gym_copy_label: "COPIA PALESTRA",
-        issued_at: now,
-      })
-      .select("*")
-      .single();
-
-    if (receiptError || !receipt) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            receiptError?.message ||
-            "Numero ricevuta generato, ma ricevuta quota associativa non salvata.",
-          membership_fee_id: membershipFee.id,
-          customer_payment_id: customerPayment.id,
-          payment_id: payment.id,
-        },
-        { status: 500 },
-      );
-    }
-
-    await supabaseAdmin.from("customer_timeline").insert({
+    const normalizedRequest = {
       customer_id: customerId,
-      type: "membership",
-      title: "Quota associativa incassata",
-      description: `${description} - €${amount.toFixed(2)} - ricevuta ${receipt.receipt_number}`,
-      created_at: now,
-    });
+      amount,
+      payment_method: paymentMethod,
+      valid_from: validFrom,
+      valid_until: validUntil,
+      allow_duplicate: allowDuplicate,
+    };
+    const hash = requestHash(normalizedRequest);
 
-    const { data: contractDocument, error: contractError } =
-      await supabaseAdmin
-        .from("customer_documents")
-        .insert({
-          customer_id: customerId,
-          document_type: "contract",
-          title: `Contratto associativo Body Energy ASD ${validFrom} - ${validUntil}`,
-          status: "generated",
-        })
-        .select("id")
-        .single();
+    const { data, error } = await db.rpc(
+      "renew_membership_fee_atomic_v1",
+      {
+        p_idempotency_key: idempotencyKey,
+        p_request_hash: hash,
+        p_customer_id: customerId,
+        p_amount: amount,
+        p_payment_method: paymentMethod,
+        p_valid_from: validFrom,
+        p_valid_until: validUntil,
+        p_allow_duplicate: allowDuplicate,
+      },
+    );
 
-    if (contractError) {
-      console.error("annual contract creation failed", contractError);
+    if (error) {
+      return rpcErrorResponse(error);
     }
 
-    return NextResponse.json({
-      ok: true,
-      membership_fee: membershipFee,
-      customer_payment_id: customerPayment.id,
-      payment_id: payment.id,
-      receipt,
-      receipt_url: `/customers/${customerId}/receipt/${receipt.id}`,
-      print_url: `/customers/${customerId}/receipt/${receipt.id}?print=1`,
-      contract_document_id: contractDocument?.id || null,
-      contract_url: `/customers/${customerId}/contract`,
-      contract_created: Boolean(contractDocument?.id),
-      contract_warning: contractError?.message || null,
-      cash_movement_created: false,
-      accounting_entry_created: false,
-    });
-  } catch (error: any) {
+    const result =
+      typeof data === "string"
+        ? (JSON.parse(data) as Record<string, unknown>)
+        : ((data || {}) as Record<string, unknown>);
+
+    if (
+      !result.ok ||
+      !result.membership_fee ||
+      !result.customer_payment ||
+      !result.payment ||
+      !result.receipt ||
+      !result.contract_document
+    ) {
+      console.error(
+        "renew_membership_fee_atomic_v1 invalid payload",
+        result,
+      );
+
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "INVALID_ATOMIC_MEMBERSHIP_RESPONSE",
+          error: "Risposta quota associativa non valida.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const receipt = result.receipt as {
+      id?: string;
+      receipt_number?: string;
+    };
+    const contractDocument = result.contract_document as {
+      id?: string;
+    };
+    const customerPayment = result.customer_payment as {
+      id?: string;
+    };
+    const payment = result.payment as { id?: string };
+    const membershipFee = result.membership_fee as {
+      id?: string;
+    };
+
+    const receiptUrl = receipt.id
+      ? `/customers/${customerId}/receipt/${receipt.id}`
+      : null;
+
+    return NextResponse.json(
+      {
+        ...result,
+        membership_fee: result.membership_fee,
+        customer_payment_id: customerPayment.id || null,
+        payment_id: payment.id || null,
+        receipt,
+        receipt_url: receiptUrl,
+        print_url: receiptUrl ? `${receiptUrl}?print=1` : null,
+        contract_document_id: contractDocument.id || null,
+        contract_url: `/customers/${customerId}/contract`,
+        contract_created: Boolean(contractDocument.id),
+        contract_warning: null,
+        membership_fee_id: membershipFee.id || null,
+        cash_movement_created: false,
+        accounting_entry_created: false,
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
+  } catch (error: unknown) {
+    console.error("renew-membership-fee fatal error", error);
+
     return NextResponse.json(
       {
         ok: false,
         error:
-          error?.message ||
-          "Errore imprevisto durante il rinnovo quota associativa.",
+          error instanceof Error
+            ? error.message
+            : "Errore imprevisto durante il rinnovo quota associativa.",
       },
       { status: 500 },
     );
