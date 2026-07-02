@@ -1,0 +1,105 @@
+.customer-page,
+.customer-page * {
+  min-width: 0;
+}
+
+.customer-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.customer-page .section-panel,
+.customer-page .operations-center,
+.customer-page .mini-card,
+.customer-page .status-box,
+.customer-page .payment-box,
+.customer-page .manual-renew-box,
+.customer-page .badge-card-panel,
+.customer-page .badge-edit-panel {
+  height: auto;
+  min-height: 0;
+}
+
+.customer-page .hero-copy h1,
+.customer-page .status-value,
+.customer-page .mini-value,
+.customer-page .row-title,
+.customer-page .row-subtitle,
+.customer-page .compact-info-row strong,
+.customer-page .history-title,
+.customer-page .history-period {
+  overflow-wrap: anywhere;
+}
+
+.customer-page input,
+.customer-page select,
+.customer-page textarea,
+.customer-page button {
+  max-width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .customer-page .customer-hero,
+  .customer-page .content-grid,
+  .customer-page .two-col-grid,
+  .customer-page .operations-grid,
+  .customer-page .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .customer-page .operations-center-grid,
+  .customer-page .overview-grid,
+  .customer-page .hero-statuses,
+  .customer-page .situation-kpis,
+  .customer-page .three-col-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .customer-page {
+    padding: 16px !important;
+  }
+
+  .customer-page .topbar,
+  .customer-page .hero-main,
+  .customer-page .situation-top,
+  .customer-page .badge-card-main {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .customer-page .hero-actions,
+  .customer-page .operations-center-grid,
+  .customer-page .overview-grid,
+  .customer-page .hero-statuses,
+  .customer-page .situation-kpis,
+  .customer-page .info-grid,
+  .customer-page .credential-summary,
+  .customer-page .three-col-grid,
+  .customer-page .quick-plan-grid,
+  .customer-page .access-decision-strip,
+  .customer-page .row,
+  .customer-page .history-row,
+  .customer-page .compact-info-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .customer-page .hero-actions {
+    width: 100% !important;
+  }
+
+  .customer-page .operations-center,
+  .customer-page .mini-card,
+  .customer-page .payment-box,
+  .customer-page .manual-renew-box {
+    padding: 14px !important;
+  }
+
+  .customer-page .row-right,
+  .customer-page .history-side {
+    justify-self: start !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+  }
+}
