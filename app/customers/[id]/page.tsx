@@ -1,4 +1,5 @@
 import CustomerDetailsClient from "./CustomerDetailsClient";
+import "./customer-details-responsive.css";
 
 export default async function Page({
   params,
