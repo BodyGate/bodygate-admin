@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  BookOpenCheck,
   CalendarDays,
   CreditCard,
   DoorOpen,
@@ -30,6 +31,7 @@ const mainMenu: MenuItem[] = [
   { label: "Dashboard", href: "/", icon: <LayoutDashboard size={20} /> },
   { label: "Clienti", href: "/customers", icon: <Users size={20} /> },
   { label: "Reception", href: "/reception", icon: <Monitor size={20} /> },
+  { label: "Corsi", href: "/courses", icon: <BookOpenCheck size={20} />, permission: "view_courses" },
   { label: "Access Control", href: "/access-control", icon: <DoorOpen size={20} /> },
   { label: "Badge", href: "/badges", icon: <BadgeCheck size={20} /> },
   { label: "Pagamenti", href: "/payments", icon: <CreditCard size={20} />, permission: "view_payments" },
@@ -37,7 +39,7 @@ const mainMenu: MenuItem[] = [
   { label: "Notifiche", href: "/notifications", icon: <Bell size={20} /> },
   { label: "Training", href: "/training", icon: <Dumbbell size={20} /> },
   { label: "Analytics", href: "/analytics", icon: <BarChart3 size={20} /> },
-  { label: "Contabilità", href: "/accounting", icon: <Receipt size={20} /> },
+  { label: "ContabilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â ", href: "/accounting", icon: <Receipt size={20} /> },
   { label: "Sistema", href: "/system", icon: <Settings size={20} /> },
   { label: "Impostazioni", href: "/settings", icon: <Settings size={20} /> },
 ];
@@ -105,7 +107,7 @@ export default function Sidebar() {
           const isProtected = Boolean(item.permission);
           const disabled = isProtected && !loading && !hasPermission(item.permission!);
           const title = disabled
-            ? `${item.label} · Protetto / Permessi non configurati`
+            ? `${item.label} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚· Protetto / Permessi non configurati`
             : item.label;
 
           if (disabled) {
