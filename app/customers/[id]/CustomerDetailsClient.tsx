@@ -108,6 +108,7 @@ export default function CustomerDetailsClient({
   const [membershipSaving, setMembershipSaving] = useState(false);
   const [membershipFeedback, setMembershipFeedback] = useState("");
   const [membershipReceiptUrl, setMembershipReceiptUrl] = useState("");
+  const [membershipOperationId, setMembershipOperationId] = useState("");
   const [showSubscriptionHistory, setShowSubscriptionHistory] = useState(false);
   const [showMembershipHistory, setShowMembershipHistory] = useState(false);
 
@@ -832,6 +833,18 @@ export default function CustomerDetailsClient({
       return;
     }
 
+    const operationId =
+
+      membershipOperationId || safeRandomId("membership-fee");
+
+
+    if (!membershipOperationId) {
+
+      setMembershipOperationId(operationId);
+
+    }
+
+
     setMembershipSaving(true);
     setMembershipFeedback("");
     setMembershipReceiptUrl("");
@@ -841,8 +854,10 @@ export default function CustomerDetailsClient({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+        "Idempotency-Key": operationId,
         },
         body: JSON.stringify({
+          operation_id: operationId,
           customer_id: customer.id,
           amount,
           payment_method: membershipPaymentMethod,
@@ -874,6 +889,8 @@ export default function CustomerDetailsClient({
         alert(result?.error || "Errore rinnovo quota associativa.");
         return;
       }
+
+      setMembershipOperationId("");
 
       await loadAll();
 
