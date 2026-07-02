@@ -7,6 +7,7 @@ function titleFromPath(pathname: string) {
   if (pathname === "/") return "Command Center";
   if (pathname.startsWith("/customers")) return "CRM Clienti";
   if (pathname.startsWith("/reception")) return "Reception";
+  if (pathname.startsWith("/courses")) return "Corsi & Prenotazioni";
   if (pathname.startsWith("/payments")) return "Pagamenti";
   if (pathname.startsWith("/access")) return "Access Control";
   if (pathname.startsWith("/badges")) return "Credenziali";
@@ -40,7 +41,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main
         style={{
           minHeight: "100vh",
-          background: isReceiptPage || isContractPrintPage ? "#ffffff" : "#050505",
+          background:
+            isReceiptPage || isContractPrintPage ? "#ffffff" : "#050505",
         }}
       >
         {children}
@@ -50,6 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
+      className="bodygate-app-shell"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -61,6 +64,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
 
       <div
+        className="bodygate-app-column"
         style={{
           flex: 1,
           minWidth: 0,
@@ -71,11 +75,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <header
           className="bodygate-shell-header"
           style={{
-            height: 76,
+            minHeight: 76,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 26px",
+            gap: 16,
+            padding: "12px 26px",
             background: "rgba(5,5,6,0.74)",
             position: "sticky",
             top: 0,
@@ -83,8 +88,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             backdropFilter: "blur(18px)",
           }}
         >
-          <div>
+          <div className="bodygate-shell-heading">
             <div
+              className="bodygate-shell-title"
               style={{
                 fontSize: 20,
                 fontWeight: 950,
@@ -95,6 +101,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <div
+              className="bodygate-shell-subtitle"
               style={{
                 color: "#8b8b8b",
                 fontSize: 12,
@@ -107,9 +114,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div
+            className="bodygate-shell-status"
             style={{
               display: "flex",
               alignItems: "center",
+              flex: "0 0 auto",
               gap: 10,
               color: "#86efac",
               fontWeight: 950,
@@ -122,6 +131,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <span
+              aria-hidden="true"
               style={{
                 width: 8,
                 height: 8,
@@ -135,8 +145,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main
+          className="bodygate-shell-content"
           style={{
             flex: 1,
+            minWidth: 0,
+            width: "100%",
             padding: 24,
             overflowX: "hidden",
           }}
