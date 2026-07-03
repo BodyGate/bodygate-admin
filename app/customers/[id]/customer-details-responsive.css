@@ -3,65 +3,51 @@
   min-width: 0;
 }
 
-.customer-contract-recovery {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin: 0 30px 14px;
-  padding: 16px 18px;
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top right, rgba(239, 68, 68, 0.14), transparent 42%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
-    rgba(8, 8, 10, 0.94);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+.customer-details-route-shell {
+  position: relative;
 }
 
-.customer-contract-recovery__eyebrow {
-  color: #f87171;
-  font-size: 10px;
-  font-weight: 950;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.customer-contract-recovery__title {
-  margin-top: 4px;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 950;
-}
-
-.customer-contract-recovery__copy {
-  margin-top: 5px;
-  color: #a3a3a3;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.customer-contract-recovery__button {
+.customer-contract-quick-action {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid rgba(239, 68, 68, 0.44);
+  border: 1px solid rgba(239, 68, 68, 0.34);
   border-radius: 14px;
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  background:
+    linear-gradient(145deg, rgba(239, 68, 68, 0.16), rgba(255, 255, 255, 0.035)),
+    rgba(12, 12, 14, 0.94);
   color: #ffffff;
   font-size: 13px;
   font-weight: 950;
   text-decoration: none;
-  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.22);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
 }
 
-.customer-contract-recovery__button:hover {
+.customer-contract-quick-action::before {
+  content: "▣";
+  margin-right: 8px;
+  color: #f87171;
+  font-size: 13px;
+}
+
+.customer-contract-quick-action:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 34px rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.52);
+  background:
+    linear-gradient(145deg, rgba(239, 68, 68, 0.22), rgba(255, 255, 255, 0.05)),
+    rgba(14, 14, 16, 0.98);
 }
 
 .customer-page,
@@ -72,6 +58,10 @@
 .customer-page {
   width: 100%;
   max-width: 100%;
+}
+
+.customer-page .topbar {
+  padding-right: 138px;
 }
 
 .customer-page .section-panel,
@@ -123,15 +113,14 @@
 }
 
 @media (max-width: 720px) {
-  .customer-contract-recovery {
-    margin: 0 16px 12px;
-    padding: 14px;
-    flex-direction: column;
-    align-items: stretch;
+  .customer-contract-quick-action {
+    position: static;
+    width: calc(100% - 32px);
+    margin: 16px 16px 0;
   }
 
-  .customer-contract-recovery__button {
-    width: 100%;
+  .customer-page .topbar {
+    padding-right: 0;
   }
 
   .customer-page {
