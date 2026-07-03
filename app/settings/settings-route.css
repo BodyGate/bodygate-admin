@@ -48,6 +48,51 @@
   white-space: nowrap;
 }
 
+.settings-route .setting-box {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 148px;
+  padding: 18px;
+  border: 1px solid #262626;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(239, 68, 68, 0.1), transparent 42%),
+    #080808;
+}
+
+.settings-route .setting-title {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.3;
+}
+
+.settings-route .setting-text {
+  color: #a3a3a3;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-route .badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: auto;
+  padding: 8px 10px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-route .badge-red {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fb7185;
+}
+
 .settings-route .mini-value,
 .settings-route .setting-title,
 .settings-route .setting-text,
@@ -89,5 +134,9 @@
 
   .settings-route .cards-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .settings-route .setting-box {
+    min-height: 0;
   }
 }
