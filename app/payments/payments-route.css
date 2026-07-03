@@ -1,0 +1,62 @@
+.payments-route,
+.payments-route * {
+  min-width: 0;
+}
+
+.payments-route {
+  width: 100%;
+  max-width: 100%;
+}
+
+.payments-route .payments-alert-content,
+.payments-route .payments-section-header {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.payments-route .payments-description,
+.payments-route .payments-receipt-reference,
+.payments-route .payments-no-action {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.payments-route .payments-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.payments-route .payments-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  .payments-route .payments-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .payments-route .payments-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .payments-route .payments-alert-content,
+  .payments-route .payments-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payments-route .payments-actions {
+    justify-content: flex-start;
+  }
+
+  .payments-route .payments-readonly-alert,
+  .payments-route .payments-history-card {
+    padding: 16px !important;
+  }
+}
