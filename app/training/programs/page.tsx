@@ -1,5 +1,2 @@
-import TrainingProgramsClient from "@/app/components/training/TrainingProgramsClient";
-
-export default function TrainingProgramsPage() {
-  return <TrainingProgramsClient />;
-}
+import TrainingPremiumClient from "@/app/components/training/TrainingPremiumClient";
+export default function TrainingProgramsPage() { return <TrainingPremiumClient view="programs" />; }
