@@ -9,7 +9,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-const DNAKE_IP = process.env.DNAKE_IP || "192.168.1.179";
+const DNAKE_IP = process.env.DNAKE_IP || "192.168.1.22";
 const DNAKE_USERNAME = process.env.DNAKE_USERNAME || "admin";
 const DNAKE_PASSWORD_MD5 = process.env.DNAKE_PASSWORD_MD5 || "";
 
@@ -215,6 +215,7 @@ export async function POST(req: Request) {
           code: qrPayload,
           controller_code: bridgeControllerCode,
           status: "active",
+          is_active: true,
         },
         { onConflict: "code" }
       );
