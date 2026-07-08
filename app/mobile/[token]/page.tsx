@@ -42,6 +42,30 @@ function fullName(customer: any) {
   return `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim() || "Cliente";
 }
 
+function isCredentialActive(row: any) {
+  return row?.is_active === true || String(row?.status || "").toLowerCase() === "active";
+}
+
+function getDnakeQrPayload(rows?: any[] | null) {
+  const list = rows || [];
+  const activeQr =
+    list.find((row) => String(row?.qr_status || "").toLowerCase() === "active" && row?.qr_payload) ||
+    list.find((row) => row?.qr_payload) ||
+    null;
+
+  return String(activeQr?.qr_payload || "").trim();
+}
+
+function getCredentialQrPayload(rows?: any[] | null) {
+  const list = rows || [];
+  const activeCredential =
+    list.find((row) => row?.code && isCredentialActive(row)) ||
+    list.find((row) => row?.code) ||
+    null;
+
+  return String(activeCredential?.code || "").trim();
+}
+
 async function loadMobilePass(token: string) {
   const { data: pass, error: passError } = await supabaseAdmin
     .from("customer_mobile_passes")
@@ -70,51 +94,62 @@ async function loadMobilePass(token: string) {
 
   const customerId = pass.customer_id;
 
-  const [customerRes, qrRes, subscriptionRes, membershipRes, certificateRes] =
-    await Promise.all([
-      supabaseAdmin
-        .from("customers")
-        .select("*")
-        .eq("id", customerId)
-        .maybeSingle(),
+  const [
+    customerRes,
+    dnakeQrRes,
+    qrCredentialsRes,
+    subscriptionRes,
+    membershipRes,
+    certificateRes,
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("customers")
+      .select("*")
+      .eq("id", customerId)
+      .maybeSingle(),
 
-      supabaseAdmin
-        .from("access_credentials")
-        .select("*")
-        .eq("customer_id", customerId)
-        .eq("type", "qr")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    supabaseAdmin
+      .from("customer_dnake_users")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(5),
 
-      supabaseAdmin
-        .from("customer_subscriptions")
-        .select("*")
-        .eq("customer_id", customerId)
-        .eq("is_active", true)
-        .order("ends_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    supabaseAdmin
+      .from("access_credentials")
+      .select("*")
+      .eq("customer_id", customerId)
+      .eq("type", "qr")
+      .order("created_at", { ascending: false })
+      .limit(5),
 
-      supabaseAdmin
-        .from("customer_membership_fees")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("valid_until", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    supabaseAdmin
+      .from("customer_subscriptions")
+      .select("*")
+      .eq("customer_id", customerId)
+      .eq("is_active", true)
+      .order("ends_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
 
-      supabaseAdmin
-        .from("medical_certificates")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("valid_until", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    supabaseAdmin
+      .from("customer_membership_fees")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("valid_until", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
 
-  const qrPayload = qrRes.data?.code || "";
+    supabaseAdmin
+      .from("medical_certificates")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("valid_until", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const qrPayload = getDnakeQrPayload(dnakeQrRes.data) || getCredentialQrPayload(qrCredentialsRes.data);
   const qrImage = qrPayload
     ? await QRCode.toDataURL(qrPayload, {
         width: 560,
@@ -231,7 +266,7 @@ export default async function MobilePassPage({
           </div>
         ) : (
           <div className="no-qr">
-            QR Code non ancora generato. Rivolgiti alla reception.
+            QR Code non ancora generato. Genera il QR DNake dalla scheda cliente in reception.
           </div>
         )}
 
