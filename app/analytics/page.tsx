@@ -1,9 +1,11 @@
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
-import BGPageHeader from "../components/ui/BGPageHeader";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function AnalyticsPage() {
   return (
-    <main className="bg-page-shell">
+    <main>
+      <BGPageShell>
       <BGPageHeader
         eyebrow="BodyGate Analytics"
         title="Analytics Dashboard"
@@ -11,6 +13,7 @@ export default function AnalyticsPage() {
       />
 
       <AnalyticsDashboard />
+      </BGPageShell>
     </main>
   );
 }

@@ -1,5 +1,10 @@
 import StaffManagerClient from "./StaffManagerClient";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function StaffPage() {
-  return <StaffManagerClient />;
+  return (
+    <BGPageShell>
+      <StaffManagerClient />
+    </BGPageShell>
+  );
 }

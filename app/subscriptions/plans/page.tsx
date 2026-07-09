@@ -1,13 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import BGButton from "../../components/ui/BGButton";
-import BGCard from "../../components/ui/BGCard";
-import BGEmptyState from "../../components/ui/BGEmptyState";
-import BGPageHeader from "../../components/ui/BGPageHeader";
-import BGStatCard from "../../components/ui/BGStatCard";
-import BGStatusBadge from "../../components/ui/BGStatusBadge";
-import "../../components/ui/bodygate-ui.css";
+import BGButton from "@/components/bodygate-ui/BGButton";
+import BGCard from "@/components/bodygate-ui/BGCard";
+import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
+import BGStatCard from "@/components/bodygate-ui/BGStatCard";
+import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 
 type Branch = {
@@ -368,6 +368,7 @@ export default function SubscriptionPlansPage() {
 
   return (
     <div className="plans-page-v2">
+      <BGPageShell>
       <BGPageHeader
         eyebrow="BodyGate · Abbonamenti"
         title="Piani Abbonamento"
@@ -554,6 +555,8 @@ export default function SubscriptionPlansPage() {
           )}
         </aside>
       </div>
+
+      </BGPageShell>
 
       <style jsx>{`
         .plans-page-v2 {

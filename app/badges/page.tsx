@@ -1,9 +1,11 @@
 import BadgesTable from "../components/BadgesTable";
-import BGPageHeader from "../components/ui/BGPageHeader";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function BadgesPage() {
   return (
-    <main className="bg-page-shell">
+    <main>
+      <BGPageShell>
       <BGPageHeader
         eyebrow="BodyGate Badges"
         title="Badge Management"
@@ -11,6 +13,7 @@ export default function BadgesPage() {
       />
 
       <BadgesTable />
+      </BGPageShell>
     </main>
   );
 }

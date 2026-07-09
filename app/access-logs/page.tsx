@@ -1,9 +1,11 @@
 import AccessLogsTable from "../components/AccessLogsTable";
-import BGPageHeader from "../components/ui/BGPageHeader";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function AccessLogsPage() {
   return (
-    <main className="bg-page-shell">
+    <main>
+      <BGPageShell>
       <BGPageHeader
         eyebrow="Access Control"
         title="Access Logs"
@@ -11,6 +13,7 @@ export default function AccessLogsPage() {
       />
 
       <AccessLogsTable />
+      </BGPageShell>
     </main>
   );
 }
