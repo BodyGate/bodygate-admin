@@ -622,7 +622,7 @@ export default function SubscriptionsPage() {
       <style jsx>{`
         .subscriptions-page-v2 {
           min-height: 100vh;
-          padding: 26px;
+          padding: 18px 20px 26px;
           color: #fff;
           background:
             radial-gradient(
@@ -638,6 +638,72 @@ export default function SubscriptionsPage() {
             linear-gradient(135deg, #050505, #090909 48%, #111);
         }
 
+        .subscriptions-page-v2 :global([class*="pageShell"]) {
+          gap: 14px;
+        }
+
+        .subscriptions-page-v2 :global([class*="pageHeader"]) {
+          align-items: center;
+          padding: 18px 20px;
+          min-height: 0;
+        }
+
+        .subscriptions-page-v2 :global([class*="title"]) {
+          margin-top: 6px;
+          font-size: clamp(28px, 2.4vw, 38px);
+          line-height: 1.05;
+        }
+
+        .subscriptions-page-v2 :global([class*="subtitle"]) {
+          max-width: 680px;
+          margin-top: 8px;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .subscriptions-page-v2 :global([class*="eyebrow"]) {
+          font-size: 11px;
+        }
+
+        .subscriptions-page-v2 :global([class*="statCard"]) {
+          min-height: 106px;
+          gap: 10px;
+          padding: 14px 16px;
+        }
+
+        .subscriptions-page-v2 :global([class*="statValue"]) {
+          margin-top: 4px;
+          font-size: clamp(24px, 2vw, 31px);
+          line-height: 1.06;
+          word-break: normal;
+        }
+
+        .subscriptions-page-v2 :global([class*="statNote"]) {
+          padding-top: 9px;
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .subscriptions-page-v2 :global([class*="label"]) {
+          font-size: 10.5px;
+          letter-spacing: 0.14em;
+        }
+
+        .subscriptions-page-v2 :global([class*="card"]) {
+          padding: 16px;
+        }
+
+        .subscriptions-page-v2 :global([class*="button"]) {
+          min-height: 36px;
+          padding-inline: 13px;
+          font-size: 12px;
+        }
+
+        .subscriptions-page-v2 :global([class*="badge"]) {
+          min-height: 26px;
+          font-size: 11px;
+        }
+
         .subscriptions-actions {
           display: flex;
           align-items: center;
@@ -649,58 +715,63 @@ export default function SubscriptionsPage() {
         .subscriptions-kpi-grid {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 14px;
-          margin-bottom: 18px;
+          gap: 12px;
+          margin-bottom: 0;
         }
 
         .subscriptions-panel-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 18px;
-          padding-bottom: 18px;
-          margin-bottom: 18px;
+          display: grid;
+          grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+          align-items: start;
+          gap: 16px;
+          padding-bottom: 14px;
+          margin-bottom: 12px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .subscriptions-panel-title {
-          font-size: 24px;
-          line-height: 1;
-          font-weight: 950;
-          letter-spacing: -0.055em;
+          font-size: 20px;
+          line-height: 1.1;
+          font-weight: 900;
+          letter-spacing: 0;
         }
 
         .subscriptions-panel-subtitle {
-          margin-top: 8px;
+          margin-top: 6px;
           color: #9f9f9f;
-          font-size: 13px;
-          line-height: 1.5;
+          font-size: 12px;
+          line-height: 1.42;
         }
 
         .subscriptions-tools {
-          display: flex;
-          width: min(100%, 620px);
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 10px;
+          display: grid;
+          width: 100%;
+          grid-template-columns: 1fr minmax(220px, 320px);
+          align-items: start;
+          gap: 8px 10px;
         }
 
         .subscriptions-filters {
           display: flex;
-          justify-content: flex-end;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 7px;
           flex-wrap: wrap;
         }
 
+        .subscriptions-access-filters {
+          grid-column: 1 / 2;
+        }
+
         .subscriptions-filter {
+          min-height: 31px;
           border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.055);
           color: #bdbdbd;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 900;
-          padding: 9px 12px;
+          padding: 0 10px;
           transition:
             border-color 0.2s ease,
             background 0.2s ease,
@@ -715,15 +786,17 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-search {
-          width: min(100%, 380px);
-          min-height: 46px;
-          border-radius: 16px;
+          grid-column: 2 / 3;
+          grid-row: 1 / span 2;
+          width: 100%;
+          min-height: 38px;
+          border-radius: 8px;
           border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.065);
+          background: rgba(5, 5, 6, 0.78);
           color: #fff;
           outline: none;
-          padding: 0 15px;
-          font-size: 13px;
+          padding: 0 12px;
+          font-size: 12px;
           font-weight: 800;
         }
 
@@ -732,8 +805,10 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-found-count {
+          grid-column: 2 / 3;
+          justify-self: end;
           color: #bdbdbd;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 900;
         }
 
@@ -757,17 +832,17 @@ export default function SubscriptionsPage() {
         .subscriptions-table-wrap {
           overflow-x: auto;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 22px;
+          border-radius: 8px;
         }
 
         .subscriptions-table {
           width: 100%;
-          min-width: 1280px;
+          min-width: 1120px;
           border-collapse: collapse;
         }
 
         .subscriptions-table th {
-          padding: 15px 16px;
+          padding: 11px 12px;
           text-align: left;
           color: #a3a3a3;
           background: rgba(255, 255, 255, 0.045);
@@ -778,10 +853,10 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-table td {
-          padding: 16px;
+          padding: 11px 12px;
           border-top: 1px solid rgba(255, 255, 255, 0.075);
           color: #e5e5e5;
-          font-size: 13px;
+          font-size: 12px;
           vertical-align: middle;
         }
 
@@ -820,7 +895,7 @@ export default function SubscriptionsPage() {
         .amount-cell {
           color: #fff;
           font-weight: 950;
-          max-width: 280px;
+          max-width: 240px;
           white-space: normal;
           overflow-wrap: anywhere;
           line-height: 1.3;
@@ -831,8 +906,8 @@ export default function SubscriptionsPage() {
         .contact-stack,
         .period-range {
           color: #9f9f9f;
-          font-size: 12px;
-          line-height: 1.45;
+          font-size: 11px;
+          line-height: 1.35;
         }
 
         .contact-stack {
@@ -840,7 +915,7 @@ export default function SubscriptionsPage() {
           flex-direction: column;
           gap: 4px;
           min-width: 0;
-          max-width: 260px;
+          max-width: 220px;
           overflow-wrap: anywhere;
         }
 
@@ -849,11 +924,11 @@ export default function SubscriptionsPage() {
           min-width: 76px;
           justify-content: center;
           border-radius: 999px;
-          padding: 8px 10px;
+          padding: 6px 9px;
           border: 1px solid rgba(34, 197, 94, 0.24);
           background: rgba(34, 197, 94, 0.09);
           color: #86efac;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 950;
         }
 
@@ -872,13 +947,13 @@ export default function SubscriptionsPage() {
         .subscription-action-stack {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
           min-width: 0;
         }
 
-        .subscription-action-stack :global(.bg-button) {
-          min-height: 38px;
+        .subscription-action-stack :global([class*="button"]) {
+          min-height: 32px;
           padding: 0 12px;
         }
 
@@ -886,11 +961,27 @@ export default function SubscriptionsPage() {
           .subscriptions-kpi-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
+
+          .subscriptions-panel-head,
+          .subscriptions-tools {
+            grid-template-columns: 1fr;
+          }
+
+          .subscriptions-search,
+          .subscriptions-found-count,
+          .subscriptions-access-filters {
+            grid-column: auto;
+            grid-row: auto;
+          }
+
+          .subscriptions-found-count {
+            justify-self: start;
+          }
         }
 
         @media (max-width: 760px) {
           .subscriptions-page-v2 {
-            padding: 16px;
+            padding: 14px;
           }
 
           .subscriptions-kpi-grid,
@@ -904,7 +995,6 @@ export default function SubscriptionsPage() {
 
           .subscriptions-panel-head {
             align-items: stretch;
-            flex-direction: column;
           }
 
           .subscriptions-tools,
