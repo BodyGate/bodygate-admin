@@ -1,2 +1,3 @@
 import TrainingPremiumClient from "@/app/components/training/TrainingPremiumClient";
-export default function TrainingProgramsPage() { return <TrainingPremiumClient view="programs" />; }
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
+export default function TrainingProgramsPage() { return <BGPageShell><TrainingPremiumClient view="programs" /></BGPageShell>; }
