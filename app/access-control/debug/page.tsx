@@ -2,8 +2,8 @@
 
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "../../components/ui/BGButton";
-import BGCard from "../../components/ui/BGCard";
+import BGButton from "@/components/bodygate-ui/BGButton";
+import BGCard from "@/components/bodygate-ui/BGCard";
 
 type DebugMatch = {
   source?: string;

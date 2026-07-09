@@ -1,5 +1,10 @@
 import NotificationCenterClient from "../components/notifications/NotificationCenterClient";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function NotificationsPage() {
-  return <NotificationCenterClient />;
+  return (
+    <BGPageShell>
+      <NotificationCenterClient />
+    </BGPageShell>
+  );
 }

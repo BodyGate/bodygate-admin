@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "./components/ui/BGButton";
-import BGCard from "./components/ui/BGCard";
-import BGEmptyState from "./components/ui/BGEmptyState";
-import BGPageHeader from "./components/ui/BGPageHeader";
-import BGQuickActionCard from "./components/ui/BGQuickActionCard";
-import BGStatCard from "./components/ui/BGStatCard";
-import BGStatusBadge from "./components/ui/BGStatusBadge";
-import "./components/ui/bodygate-ui.css";
+import Link from "next/link";
+import BGButton from "@/components/bodygate-ui/BGButton";
+import BGCard from "@/components/bodygate-ui/BGCard";
+import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
+import BGStatCard from "@/components/bodygate-ui/BGStatCard";
+import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
 
 type DashboardAccessItem = {
   id?: string | number | null;
@@ -88,6 +88,28 @@ function accessPersonName(item: DashboardAccessItem) {
     item.full_name ||
     `${item.first_name || ""} ${item.last_name || ""}`.trim() ||
     `Codice: ${item.controller_code || item.badge_code || "—"}`
+  );
+}
+
+function BGQuickActionCard({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  const visualIcon = title.slice(0, 1).toUpperCase() || icon;
+
+  return (
+    <Link href={href} className="quick-card">
+      <span className="quick-card-icon">{visualIcon}</span>
+      <span className="quick-card-title">{title}</span>
+      <span className="quick-card-description">{description}</span>
+    </Link>
   );
 }
 
@@ -284,6 +306,69 @@ export default function DashboardPage() {
           gap: 14px;
         }
 
+        .quick-card {
+          min-height: 132px;
+          display: grid;
+          gap: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          border-radius: 8px;
+          padding: 16px;
+          color: #fff;
+          text-decoration: none;
+          text-decoration-line: none;
+          background: rgba(255, 255, 255, 0.04);
+          transition:
+            border-color 150ms ease,
+            background 150ms ease,
+            transform 150ms ease;
+        }
+
+        .quick-card:link,
+        .quick-card:visited,
+        .quick-card:hover,
+        .quick-card:active {
+          color: #fff;
+          text-decoration: none;
+        }
+
+        .quick-card:focus-visible {
+          outline: 2px solid rgba(239, 68, 68, 0.72);
+          outline-offset: 3px;
+        }
+
+        .quick-card:hover {
+          transform: translateY(-1px);
+          border-color: rgba(239, 68, 68, 0.48);
+          background: rgba(239, 68, 68, 0.1);
+        }
+
+        .quick-card-icon {
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          border: 1px solid rgba(239, 68, 68, 0.28);
+          border-radius: 8px;
+          background: rgba(239, 68, 68, 0.12);
+          color: #fca5a5;
+          font-weight: 950;
+        }
+
+        .quick-card-title {
+          display: block;
+          color: #fff;
+          font-size: 15px;
+          font-weight: 950;
+        }
+
+        .quick-card-description {
+          display: block;
+          color: #a1a1aa;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
         .error {
           border-radius: 22px;
           padding: 18px;
@@ -332,6 +417,7 @@ export default function DashboardPage() {
         }
       `}</style>
 
+      <BGPageShell>
       <BGPageHeader
         eyebrow="BodyGate Command Center"
         title="Controllo palestra in tempo reale."
@@ -530,6 +616,7 @@ export default function DashboardPage() {
           </section>
         </>
       )}
+      </BGPageShell>
     </main>
   );
 }

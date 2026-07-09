@@ -1,5 +1,10 @@
 import ReceptionDashboard from "../components/ReceptionDashboard";
+import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function ReceptionPage() {
-  return <ReceptionDashboard />;
+  return (
+    <BGPageShell>
+      <ReceptionDashboard />
+    </BGPageShell>
+  );
 }

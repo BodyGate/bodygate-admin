@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import BGActionLink from "../../components/ui/BGActionLink";
-import BGButton from "../../components/ui/BGButton";
-import BGPageHeader from "../../components/ui/BGPageHeader";
-import BGInput from "../../components/ui/BGInput";
-import BGSelect from "../../components/ui/BGSelect";
+import BGButton from "@/components/bodygate-ui/BGButton";
+import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
+import BGInput from "@/components/bodygate-ui/BGInput";
+import BGSelect from "@/components/bodygate-ui/BGSelect";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 import { safeRandomId } from "../../lib/safeRandomId";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
@@ -583,9 +582,9 @@ export default function NewCustomerPage() {
         title="Nuovo cliente"
         subtitle="Crea anagrafica, quota associativa, abbonamento, pagamento, credenziali e contratto in un unico flusso guidato."
         actions={
-          <BGActionLink href="/customers" variant="ghost">
+          <BGButton href="/customers" variant="ghost">
             ← Torna ai clienti
-          </BGActionLink>
+          </BGButton>
         }
       />
 

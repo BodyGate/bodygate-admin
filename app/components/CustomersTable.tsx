@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BGActionButton from "./ui/BGActionButton";
-import BGActionLink from "./ui/BGActionLink";
-import BGEmptyState from "./ui/BGEmptyState";
-import BGInput from "./ui/BGInput";
-import BGStatCard from "./ui/BGStatCard";
-import BGStatusBadge from "./ui/BGStatusBadge";
+import BGButton from "@/components/bodygate-ui/BGButton";
+import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
+import BGInput from "@/components/bodygate-ui/BGInput";
+import BGStatCard from "@/components/bodygate-ui/BGStatCard";
+import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
 
 type Customer = {
   id: string;
@@ -267,22 +266,17 @@ export default function CustomersTable() {
         }
 
         .crm3-hero {
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 22px;
-          padding: 16px 18px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 24px;
           background:
-            radial-gradient(
-              circle at top left,
-              rgba(239, 68, 68, 0.2),
-              transparent 34%
-            ),
             linear-gradient(
               145deg,
-              rgba(255, 255, 255, 0.075),
-              rgba(255, 255, 255, 0.025)
+              rgba(22, 22, 24, 0.96),
+              rgba(8, 8, 9, 0.98)
             ),
-            rgba(7, 7, 9, 0.94);
-          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+            #0a0a0b;
+          box-shadow: 0 22px 64px rgba(0, 0, 0, 0.38);
         }
 
         .crm3-hero-inner {
@@ -303,10 +297,10 @@ export default function CustomersTable() {
 
         .crm3-title {
           margin: 0;
-          font-size: clamp(28px, 3vw, 34px);
-          line-height: 0.92;
-          letter-spacing: -0.06em;
-          font-weight: 950;
+          font-size: clamp(32px, 3vw, 42px);
+          line-height: 1.05;
+          letter-spacing: 0;
+          font-weight: 900;
         }
 
         .crm3-subtitle {
@@ -325,27 +319,29 @@ export default function CustomersTable() {
           justify-content: flex-end;
         }
 
-        .crm3-actions :global(.bg-action-link),
-        .crm3-actions :global(.bg-action-button) {
-          min-height: 42px;
-        }
-
         .crm3-filters {
           display: flex;
-          gap: 8px;
+          gap: 10px;
           flex-wrap: wrap;
-          margin-top: 12px;
+          margin-top: 18px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .crm3-filter-btn {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          min-height: 34px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.045);
-          color: #a1a1aa;
-          padding: 9px 13px;
+          background: rgba(255, 255, 255, 0.04);
+          color: #b7b7bd;
+          padding: 0 13px;
           font-size: 12px;
           font-weight: 900;
           cursor: pointer;
+          transition:
+            border-color 150ms ease,
+            background 150ms ease,
+            color 150ms ease;
         }
 
         .crm3-filter-btn:hover {
@@ -362,53 +358,36 @@ export default function CustomersTable() {
         .crm3-metrics {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 10px;
+          gap: 14px;
           align-items: stretch;
-        }
-
-        .crm3-metrics :global(.bg-stat) {
-          min-height: 88px;
-          padding: 13px 15px;
-          border-radius: 18px;
-        }
-
-        .crm3-metrics :global(.bg-stat-label) {
-          font-size: 11px;
-          letter-spacing: 0.08em;
-        }
-
-        .crm3-metrics :global(.bg-stat-value) {
-          margin-top: 7px;
-          font-size: clamp(26px, 2.4vw, 34px);
-          line-height: 1;
         }
 
         .crm3-workspace {
           display: grid;
-          grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-          gap: 14px;
-          min-height: 560px;
+          grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+          gap: 18px;
+          min-height: 0;
         }
 
         .crm3-list-panel,
         .crm3-detail-panel {
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 22px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
           background:
             linear-gradient(
               145deg,
-              rgba(255, 255, 255, 0.055),
-              rgba(255, 255, 255, 0.018)
+              rgba(22, 22, 24, 0.96),
+              rgba(8, 8, 9, 0.98)
             ),
-            rgba(8, 8, 10, 0.94);
+            #0a0a0b;
           overflow: hidden;
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+          box-shadow: 0 22px 64px rgba(0, 0, 0, 0.38);
         }
 
         .crm3-list-head {
           display: grid;
           gap: 12px;
-          padding: 18px;
+          padding: 16px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
@@ -419,9 +398,9 @@ export default function CustomersTable() {
         }
 
         .crm3-list {
-          max-height: 610px;
+          max-height: 570px;
           overflow: auto;
-          padding: 10px;
+          padding: 8px;
         }
 
         .crm3-list-item {
@@ -430,11 +409,11 @@ export default function CustomersTable() {
           background: transparent;
           color: #fff;
           display: grid;
-          grid-template-columns: 46px minmax(0, 1fr) auto;
-          gap: 12px;
+          grid-template-columns: 36px minmax(0, 1fr) auto;
+          gap: 10px;
           align-items: center;
-          padding: 12px;
-          border-radius: 18px;
+          padding: 10px;
+          border-radius: 8px;
           cursor: pointer;
           text-align: left;
         }
@@ -449,15 +428,15 @@ export default function CustomersTable() {
         }
 
         .crm3-avatar {
-          width: 46px;
-          height: 46px;
-          border-radius: 15px;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
           display: grid;
           place-items: center;
           color: #fff;
           font-weight: 950;
           background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 14px 28px rgba(239, 68, 68, 0.2);
+          box-shadow: 0 10px 22px rgba(239, 68, 68, 0.18);
         }
 
         .crm3-list-name {
@@ -504,52 +483,52 @@ export default function CustomersTable() {
 
         .crm3-detail {
           display: grid;
-          gap: 22px;
-          padding: 26px;
+          gap: 16px;
+          padding: 20px;
         }
 
         .crm3-detail-hero {
           display: flex;
           justify-content: space-between;
-          gap: 20px;
+          gap: 16px;
           align-items: center;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          padding-bottom: 22px;
+          padding-bottom: 16px;
         }
 
         .crm3-detail-main {
           display: flex;
-          gap: 18px;
+          gap: 14px;
           align-items: center;
           min-width: 0;
         }
 
         .crm3-detail-avatar {
-          width: 82px;
-          height: 82px;
-          border-radius: 26px;
+          width: 52px;
+          height: 52px;
+          border-radius: 12px;
           display: grid;
           place-items: center;
           color: #fff;
-          font-size: 28px;
+          font-size: 18px;
           font-weight: 950;
           background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 20px 44px rgba(239, 68, 68, 0.25);
+          box-shadow: 0 14px 30px rgba(239, 68, 68, 0.22);
         }
 
         .crm3-detail-name {
-          font-size: clamp(30px, 4vw, 48px);
-          line-height: 0.95;
-          letter-spacing: -0.055em;
-          font-weight: 950;
+          font-size: clamp(22px, 2.4vw, 30px);
+          line-height: 1.08;
+          letter-spacing: 0;
+          font-weight: 900;
           min-width: 0;
           overflow-wrap: anywhere;
         }
 
         .crm3-detail-contact {
-          margin-top: 10px;
+          margin-top: 6px;
           color: #a1a1aa;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           overflow-wrap: anywhere;
         }
@@ -557,17 +536,17 @@ export default function CustomersTable() {
         .crm3-detail-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
+          gap: 10px;
         }
 
         .crm3-info {
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 22px;
+          border-radius: 8px;
           display: grid;
           grid-template-rows: auto 1fr;
-          gap: 10px;
-          min-height: 96px;
-          padding: 18px;
+          gap: 7px;
+          min-height: 72px;
+          padding: 13px;
           background: rgba(255, 255, 255, 0.035);
         }
 
@@ -583,8 +562,8 @@ export default function CustomersTable() {
           display: block;
           margin-top: 0;
           color: #fff;
-          font-size: 16px;
-          font-weight: 950;
+          font-size: 14px;
+          font-weight: 900;
           overflow-wrap: anywhere;
           word-break: normal;
         }
@@ -592,18 +571,18 @@ export default function CustomersTable() {
         .crm3-action-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
+          gap: 10px;
         }
 
         .crm3-action {
-          min-height: 86px;
+          min-height: 60px;
           min-width: 0;
-          border-radius: 20px;
-          padding: 16px;
+          border-radius: 8px;
+          padding: 12px;
           text-decoration: none;
           color: #fff;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.045);
+          background: rgba(255, 255, 255, 0.04);
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -611,14 +590,14 @@ export default function CustomersTable() {
         }
 
         .crm3-action strong {
-          font-size: 15px;
-          font-weight: 950;
+          font-size: 13px;
+          font-weight: 900;
           overflow-wrap: anywhere;
         }
 
         .crm3-action span {
           color: #9ca3af;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 700;
           line-height: 1.35;
           overflow-wrap: anywhere;
@@ -631,12 +610,12 @@ export default function CustomersTable() {
 
         .crm3-note {
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 22px;
-          padding: 20px;
+          border-radius: 8px;
+          padding: 14px;
           background: rgba(255, 255, 255, 0.035);
           color: #a1a1aa;
           line-height: 1.6;
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .crm3-message {
@@ -708,13 +687,15 @@ export default function CustomersTable() {
             </div>
 
             <div className="crm3-actions">
-              <BGActionLink href="/customers/new" variant="primary">
+              <BGButton href="/customers/new">
                 + Nuovo cliente
-              </BGActionLink>
-              <BGActionLink href="/reception">Reception</BGActionLink>
-              <BGActionButton type="button" onClick={loadCustomers}>
+              </BGButton>
+              <BGButton href="/reception" variant="secondary">
+                Reception
+              </BGButton>
+              <BGButton type="button" onClick={loadCustomers} variant="secondary">
                 Aggiorna
-              </BGActionButton>
+              </BGButton>
             </div>
           </div>
 
@@ -921,38 +902,40 @@ export default function CustomersTable() {
                         </div>
 
                         <div className="crm3-action-grid">
-                          <BGActionLink
+                          <BGButton
                             className="crm3-action crm3-action-primary"
-                            variant="primary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Apri scheda</strong>
                             <span>Profilo completo</span>
-                          </BGActionLink>
+                          </BGButton>
 
-                          <BGActionLink
+                          <BGButton
                             className="crm3-action"
+                            variant="secondary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Rinnova</strong>
                             <span>Abbonamento o quota</span>
-                          </BGActionLink>
+                          </BGButton>
 
-                          <BGActionLink
+                          <BGButton
                             className="crm3-action"
+                            variant="secondary"
                             href={`/payments?customer=${selectedCustomer.id}`}
                           >
                             <strong>Incasso</strong>
                             <span>Nuovo pagamento</span>
-                          </BGActionLink>
+                          </BGButton>
 
-                          <BGActionLink
+                          <BGButton
                             className="crm3-action"
+                            variant="secondary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Accesso</strong>
                             <span>Badge, QR, Mobile Pass</span>
-                          </BGActionLink>
+                          </BGButton>
                         </div>
 
                         <div className="crm3-note">
