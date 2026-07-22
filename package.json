@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint",
+    "start:bodygate": "powershell -ExecutionPolicy Bypass -File scripts/start-bodygate.ps1",
+    "install:startup": "powershell -ExecutionPolicy Bypass -File scripts/install-bodygate-startup-task.ps1",
     "qa:responsive": "playwright test tests/responsive.spec.ts"
   },
   "dependencies": {
