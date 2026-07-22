@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BGButton from "@/components/bodygate-ui/BGButton";
 import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
@@ -93,6 +94,18 @@ function getName(customer: Customer) {
 
 function getBadgeCode(customer: Customer) {
   return String(customer.badge_code || customer.controller_code || "").trim();
+}
+
+function formatSubscriptionStatus(value: string | null, active: boolean) {
+  const status = normalize(value);
+
+  if (status === "active" || status === "attivo") return "Attivo";
+  if (status === "expired" || status === "scaduto") return "Scaduto";
+  if (status === "paused" || status === "suspended") return "Sospeso";
+  if (status === "cancelled" || status === "canceled") return "Annullato";
+  if (status === "none" || !status) return active ? "Attivo" : "Non attivo";
+
+  return value || (active ? "Attivo" : "Non attivo");
 }
 
 function initials(name: string) {
@@ -255,14 +268,14 @@ export default function CustomersTable() {
     <section className="crm3-page">
       <style jsx>{`
         .crm3-page {
-          min-height: calc(100vh - 120px);
+          min-height: 0;
           color: #fff;
         }
 
         .crm3-shell {
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 18px;
         }
 
         .crm3-hero {
@@ -357,14 +370,15 @@ export default function CustomersTable() {
 
         .crm3-metrics {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(150px, 1fr));
           gap: 14px;
           align-items: stretch;
+          min-width: 0;
         }
 
         .crm3-workspace {
           display: grid;
-          grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+          grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
           gap: 18px;
           min-height: 0;
         }
@@ -382,6 +396,16 @@ export default function CustomersTable() {
             #0a0a0b;
           overflow: hidden;
           box-shadow: 0 22px 64px rgba(0, 0, 0, 0.38);
+          min-width: 0;
+        }
+
+        .crm3-list-panel {
+          align-self: start;
+        }
+
+        .crm3-detail-panel {
+          align-self: start;
+          min-width: 0;
         }
 
         .crm3-list-head {
@@ -398,8 +422,6 @@ export default function CustomersTable() {
         }
 
         .crm3-list {
-          max-height: 570px;
-          overflow: auto;
           padding: 8px;
         }
 
@@ -535,7 +557,7 @@ export default function CustomersTable() {
 
         .crm3-detail-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(150px, 1fr));
           gap: 10px;
         }
 
@@ -570,29 +592,30 @@ export default function CustomersTable() {
 
         .crm3-action-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
           gap: 10px;
         }
 
         .crm3-action {
-          min-height: 60px;
+          min-height: 82px;
           min-width: 0;
           border-radius: 8px;
-          padding: 12px;
+          padding: 14px 16px;
           text-decoration: none;
           color: #fff;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: 8px;
+          display: grid;
+          align-content: center;
+          gap: 7px;
+          white-space: normal;
         }
 
         .crm3-action strong {
           font-size: 13px;
           font-weight: 900;
-          overflow-wrap: anywhere;
+          overflow-wrap: break-word;
+          white-space: normal;
         }
 
         .crm3-action span {
@@ -600,7 +623,13 @@ export default function CustomersTable() {
           font-size: 11px;
           font-weight: 700;
           line-height: 1.35;
-          overflow-wrap: anywhere;
+          overflow-wrap: break-word;
+          white-space: normal;
+        }
+
+        .crm3-action:hover {
+          border-color: rgba(239, 68, 68, 0.4);
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .crm3-action-primary {
@@ -634,12 +663,15 @@ export default function CustomersTable() {
 
         @media (max-width: 1280px) {
           .crm3-workspace {
-            grid-template-columns: 330px minmax(0, 1fr);
+            grid-template-columns: minmax(270px, 300px) minmax(0, 1fr);
           }
 
-          .crm3-detail-grid,
-          .crm3-action-grid {
+          .crm3-detail-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .crm3-action-grid {
+            grid-template-columns: 1fr;
           }
 
           .crm3-metrics {
@@ -660,10 +692,6 @@ export default function CustomersTable() {
 
           .crm3-workspace {
             grid-template-columns: 1fr;
-          }
-
-          .crm3-list {
-            max-height: 360px;
           }
 
           .crm3-metrics,
@@ -813,9 +841,10 @@ export default function CustomersTable() {
                   {(() => {
                     const name = getName(selectedCustomer);
                     const state = getAccessState(selectedCustomer);
-                    const subscriptionText =
-                      selectedCustomer.subscription_status ||
-                      (selectedCustomer.active ? "Attivo" : "Non attivo");
+                    const subscriptionText = formatSubscriptionStatus(
+                      selectedCustomer.subscription_status,
+                      selectedCustomer.active,
+                    );
 
                     return (
                       <>
@@ -902,40 +931,37 @@ export default function CustomersTable() {
                         </div>
 
                         <div className="crm3-action-grid">
-                          <BGButton
+                          <Link
                             className="crm3-action crm3-action-primary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Apri scheda</strong>
                             <span>Profilo completo</span>
-                          </BGButton>
+                          </Link>
 
-                          <BGButton
+                          <Link
                             className="crm3-action"
-                            variant="secondary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Rinnova</strong>
                             <span>Abbonamento o quota</span>
-                          </BGButton>
+                          </Link>
 
-                          <BGButton
+                          <Link
                             className="crm3-action"
-                            variant="secondary"
                             href={`/payments?customer=${selectedCustomer.id}`}
                           >
                             <strong>Incasso</strong>
                             <span>Nuovo pagamento</span>
-                          </BGButton>
+                          </Link>
 
-                          <BGButton
+                          <Link
                             className="crm3-action"
-                            variant="secondary"
                             href={`/customers/${selectedCustomer.id}`}
                           >
                             <strong>Accesso</strong>
                             <span>Badge, QR, Mobile Pass</span>
-                          </BGButton>
+                          </Link>
                         </div>
 
                         <div className="crm3-note">
