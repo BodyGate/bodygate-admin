@@ -635,7 +635,7 @@ export default function CustomersTable() {
           gap: 9px;
         }
 
-        .crm3-action {
+        :global(.crm3-action) {
           min-width: 0;
           min-height: 70px;
           display: grid;
@@ -651,19 +651,19 @@ export default function CustomersTable() {
           transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
         }
 
-        .crm3-action:hover {
+        :global(.crm3-action:hover) {
           transform: translateY(-1px);
           border-color: rgba(239, 68, 68, 0.45);
           background: rgba(239, 68, 68, 0.09);
         }
 
-        .crm3-action-primary {
+        :global(.crm3-action-primary) {
           border-color: rgba(239, 68, 68, 0.45);
           background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(153, 27, 27, 0.95));
           box-shadow: 0 12px 28px rgba(239, 68, 68, 0.18);
         }
 
-        .crm3-action-icon {
+        :global(.crm3-action-icon) {
           width: 34px;
           height: 34px;
           display: grid;
@@ -675,13 +675,13 @@ export default function CustomersTable() {
           font-weight: 900;
         }
 
-        .crm3-action-copy {
+        :global(.crm3-action-copy) {
           min-width: 0;
           display: grid;
           gap: 3px;
         }
 
-        .crm3-action strong {
+        :global(.crm3-action strong) {
           overflow: hidden;
           font-size: 12px;
           font-weight: 900;
@@ -689,7 +689,7 @@ export default function CustomersTable() {
           white-space: nowrap;
         }
 
-        .crm3-action-copy span {
+        :global(.crm3-action-copy span) {
           overflow: hidden;
           color: rgba(228, 228, 231, 0.68);
           font-size: 10px;
@@ -698,7 +698,7 @@ export default function CustomersTable() {
           white-space: nowrap;
         }
 
-        .crm3-action-arrow {
+        :global(.crm3-action-arrow) {
           color: rgba(255, 255, 255, 0.48);
           font-size: 16px;
           text-align: right;
