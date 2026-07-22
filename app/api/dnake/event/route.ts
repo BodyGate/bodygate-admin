@@ -215,11 +215,18 @@ function extractCode(url: URL, body: DnakeBody): string | null {
 }
 
 async function checkAccess(req: Request, code: string): Promise<AccessResult> {
+  const machineKey = process.env.BODYGATE_MACHINE_KEY?.trim();
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+
+  if (machineKey) {
+    headers["x-bodygate-machine-key"] = machineKey;
+  }
+
   const response = await fetch(new URL("/api/access/check", req.url), {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
+    headers,
     cache: "no-store",
     body: JSON.stringify({
       badge: code,
