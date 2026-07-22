@@ -5,30 +5,28 @@ import {
   verifySessionToken,
 } from "./app/lib/auth/session";
 
-const publicPaths = [
+const publicExactPaths = new Set([
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/me",
 
-  // Mobile Pass pubblico
-  "/mobile",
-  "/staff-mobile",
-  "/api/staff-mobile/send",
-
-  // API Mobile Pass
-  "/api/customers/create-mobile-pass",
-  "/api/mobile-pass/send",
-
-  // API accesso tornello / bridge
+  // API hardware pubbliche indispensabili. Le route amministrative che
+  // condividono questi prefissi devono restare protette dalla sessione.
   "/api/access/check",
   "/api/access/log",
-  "/api/dnake",
+  "/api/dnake/event",
   "/api/bridge/status",
-];
+]);
 
-function isPathMatch(pathname: string, path: string) {
-  return pathname === path || pathname.startsWith(`${path}/`);
+const publicPagePrefixes = ["/mobile", "/staff-mobile"];
+
+function isPublicPath(pathname: string) {
+  if (publicExactPaths.has(pathname)) return true;
+
+  return publicPagePrefixes.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
 }
 
 function clearLegacySession(response: NextResponse) {
@@ -107,9 +105,7 @@ async function isActiveAppUser(userId: string) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicPath = publicPaths.some((path) =>
-    isPathMatch(pathname, path)
-  );
+  const publicPath = isPublicPath(pathname);
 
   const isStaticFile =
     pathname.startsWith("/_next") ||
@@ -119,7 +115,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/manifest") ||
     pathname.startsWith("/site.webmanifest");
 
-  if (isPublicPath || isStaticFile) {
+  if (publicPath || isStaticFile) {
     return NextResponse.next();
   }
 
