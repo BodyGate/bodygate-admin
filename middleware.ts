@@ -19,7 +19,80 @@ const publicExactPaths = new Set([
   "/api/bridge/status",
 ]);
 
+const machineProtectedPaths = new Set([
+  "/api/access/check",
+  "/api/access/log",
+]);
+
 const publicPagePrefixes = ["/mobile", "/staff-mobile"];
+
+type MachineAuthMode = "off" | "observe" | "enforce";
+
+function getMachineAuthMode(): MachineAuthMode {
+  const value = process.env.BODYGATE_MACHINE_AUTH_MODE?.trim().toLowerCase();
+
+  if (value === "observe" || value === "enforce") {
+    return value;
+  }
+
+  return "off";
+}
+
+function getPresentedMachineKey(request: NextRequest) {
+  const directKey = request.headers.get("x-bodygate-machine-key")?.trim();
+
+  if (directKey) {
+    return directKey;
+  }
+
+  const authorization = request.headers.get("authorization")?.trim();
+  const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i);
+
+  return bearerMatch?.[1]?.trim() || null;
+}
+
+function checkMachineAuthentication(request: NextRequest) {
+  const mode = getMachineAuthMode();
+
+  if (mode === "off") {
+    return null;
+  }
+
+  const configuredKey = process.env.BODYGATE_MACHINE_KEY?.trim();
+  const presentedKey = getPresentedMachineKey(request);
+  const authenticated =
+    Boolean(configuredKey) &&
+    Boolean(presentedKey) &&
+    configuredKey === presentedKey;
+
+  if (authenticated) {
+    return null;
+  }
+
+  const reason = configuredKey
+    ? "credenziale macchina assente o non valida"
+    : "BODYGATE_MACHINE_KEY non configurata";
+
+  console.warn("[BodyGate machine auth]", {
+    mode,
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+    reason,
+  });
+
+  if (mode === "observe") {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      ok: false,
+      allowed: false,
+      error: "Machine authentication required",
+    },
+    { status: configuredKey ? 401 : 503 }
+  );
+}
 
 function isPublicPath(pathname: string) {
   if (publicExactPaths.has(pathname)) return true;
@@ -104,6 +177,14 @@ async function isActiveAppUser(userId: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (machineProtectedPaths.has(pathname)) {
+    const machineAuthResponse = checkMachineAuthentication(request);
+
+    if (machineAuthResponse) {
+      return machineAuthResponse;
+    }
+  }
 
   const publicPath = isPublicPath(pathname);
 
