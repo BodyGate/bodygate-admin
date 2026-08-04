@@ -1,4 +1,4 @@
-import CustomerDetailsClient from "./CustomerDetailsClient";
+import UnifiedCustomerDetailsClient from "./UnifiedCustomerDetailsClient";
 
 export default async function Page({
   params,
@@ -7,5 +7,5 @@ export default async function Page({
 }) {
   const { id } = await params;
 
-  return <CustomerDetailsClient customerId={id} />;
+  return <UnifiedCustomerDetailsClient customerId={id} />;
 }
