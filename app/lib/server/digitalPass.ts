@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeNumericControllerCode } from "../accessCodeNormalizer";
+import {
+  DnakeUserDirectoryError,
+  dnakeDirectoryContainsUserId,
+} from "./dnakeUserDirectory";
 
 const DNAKE_IP = process.env.DNAKE_IP || "192.168.1.22";
 const DNAKE_USERNAME = process.env.DNAKE_USERNAME || "admin";
@@ -101,15 +105,26 @@ async function assertLiveDnakeIdAvailable(sessionId: string, dnakeUserId: string
   });
   const text = await response.text();
 
-  if (!response.ok || !text.trimStart().startsWith("<")) {
+  if (!response.ok) {
     throw new DigitalPassError(
-      "Impossibile verificare in sicurezza gli utenti presenti sul DNake.",
+      `Impossibile leggere gli utenti presenti sul DNake. HTTP ${response.status}.`,
       502,
     );
   }
 
-  const escaped = dnakeUserId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  if (new RegExp(`(^|\\D)${escaped}(\\D|$)`, "m").test(text)) {
+  let idAlreadyExists = false;
+  try {
+    idAlreadyExists = dnakeDirectoryContainsUserId(text, dnakeUserId);
+  } catch (error) {
+    const detail =
+      error instanceof DnakeUserDirectoryError ? error.message : "formato non valido";
+    throw new DigitalPassError(
+      `Impossibile verificare in sicurezza gli utenti presenti sul DNake: ${detail}`,
+      502,
+    );
+  }
+
+  if (idAlreadyExists) {
     throw new DigitalPassError(
       `L'ID DNake ${dnakeUserId} esiste già nel dispositivo. Operazione interrotta.`,
       409,
