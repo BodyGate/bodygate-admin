@@ -213,10 +213,17 @@ async function findExistingQr(supabase: any, customer: Customer): Promise<QrResu
     throw new DigitalPassError(`Errore lettura credenziali QR: ${credentialResult.error.message}`);
   }
 
-  const dnakeRow =
-    (dnakeResult.data || []).find(
-      (row: any) => String(row.qr_status).toLowerCase() === "active" && row.qr_payload,
-    ) || (dnakeResult.data || []).find((row: any) => row.qr_payload);
+  const dnakeRow = (dnakeResult.data || []).find(
+    (row: any) => String(row.qr_status).toLowerCase() === "active" && row.qr_payload,
+  );
+  const inactiveDnakeRow = (dnakeResult.data || []).find((row: any) => row.qr_payload);
+
+  if (!dnakeRow && inactiveDnakeRow) {
+    throw new DigitalPassError(
+      "Esiste un QR DNake disattivato. Verifica amministrativa necessaria prima della riattivazione.",
+      409,
+    );
+  }
 
   if (dnakeRow?.qr_payload) {
     const dnakeUserId = String(dnakeRow.dnake_user_id || "").trim();
@@ -235,23 +242,23 @@ async function findExistingQr(supabase: any, customer: Customer): Promise<QrResu
     };
   }
 
-  const credential =
-    (credentialResult.data || []).find((row: any) => row.code && activeCredential(row)) ||
-    (credentialResult.data || []).find((row: any) => row.code);
+  const credential = (credentialResult.data || []).find(
+    (row: any) => row.code && activeCredential(row),
+  );
+  const inactiveCredential = (credentialResult.data || []).find((row: any) => row.code);
+
+  if (!credential && inactiveCredential) {
+    throw new DigitalPassError(
+      "Esiste una credenziale QR disattivata. Verifica amministrativa necessaria prima della riattivazione.",
+      409,
+    );
+  }
 
   if (!credential?.code) return null;
 
   const controllerCode = String(credential.controller_code || "").trim();
   if (!controllerCode) {
     throw new DigitalPassError("Credenziale QR esistente senza controller_code DNake.");
-  }
-
-  if (!activeCredential(credential)) {
-    const { error } = await supabase
-      .from("access_credentials")
-      .update({ status: "active", is_active: true })
-      .eq("id", credential.id);
-    if (error) throw new DigitalPassError(`Errore riattivazione QR: ${error.message}`);
   }
 
   return {
