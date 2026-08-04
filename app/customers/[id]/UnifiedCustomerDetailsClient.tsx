@@ -143,6 +143,10 @@ export default function UnifiedCustomerDetailsClient({
           display: none !important;
         }
 
+        .customer-page .hero-actions > .bg-button:nth-child(4) {
+          display: none !important;
+        }
+
         .customer-page .mobile-pass-url {
           margin-top: 2px;
         }
