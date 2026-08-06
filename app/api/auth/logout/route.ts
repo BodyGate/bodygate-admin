@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { shouldUseSecureCookie } from "../../../lib/auth/cookie-security";
 import { SESSION_COOKIE_NAME } from "../../../lib/auth/session";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const secureCookie = shouldUseSecureCookie(req);
   const response = NextResponse.json({
     ok: true,
     message: "Logout effettuato.",
@@ -10,7 +12,7 @@ export async function POST() {
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
@@ -18,7 +20,7 @@ export async function POST() {
   response.cookies.set("bodygate_role", "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
