@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { shouldUseSecureCookie } from "../../../lib/auth/cookie-security";
 import {
   createSessionToken,
   SESSION_COOKIE_NAME,
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       user.id,
       user.role || "staff"
     );
+    const secureCookie = shouldUseSecureCookie(req);
 
     const response = NextResponse.json({
       ok: true,
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
     response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookie,
       path: "/",
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
@@ -85,7 +87,7 @@ export async function POST(req: Request) {
     response.cookies.set("bodygate_role", "", {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookie,
       path: "/",
       maxAge: 0,
     });
