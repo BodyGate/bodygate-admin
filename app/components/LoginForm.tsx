@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("admin@bodygate.it");
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
@@ -36,8 +33,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.replace("/");
-      router.refresh();
+      window.location.replace("/");
     } catch {
       setMessage("Errore durante il login.");
       setLoading(false);

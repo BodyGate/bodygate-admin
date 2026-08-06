@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { shouldUseSecureCookie } from "./app/lib/auth/cookie-security";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
@@ -102,11 +103,16 @@ function isPublicPath(pathname: string) {
   );
 }
 
-function clearLegacySession(response: NextResponse) {
+function clearLegacySession(
+  response: NextResponse,
+  request: NextRequest
+) {
+  const secureCookie = shouldUseSecureCookie(request);
+
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
@@ -114,7 +120,7 @@ function clearLegacySession(response: NextResponse) {
   response.cookies.set("bodygate_role", "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
@@ -131,12 +137,14 @@ function unauthorized(request: NextRequest) {
           error: "Unauthorized",
         },
         { status: 401 }
-      )
+      ),
+      request
     );
   }
 
   return clearLegacySession(
-    NextResponse.redirect(new URL("/login", request.url))
+    NextResponse.redirect(new URL("/login", request.url)),
+    request
   );
 }
 
