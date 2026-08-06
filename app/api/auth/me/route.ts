@@ -3,11 +3,13 @@ import {
   getCurrentAuthContext,
   UnauthorizedError,
 } from "../../../lib/server/auth";
+import { shouldUseSecureCookie } from "../../../lib/auth/cookie-security";
 import { SESSION_COOKIE_NAME } from "../../../lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-function unauthorizedResponse() {
+function unauthorizedResponse(request: Request) {
+  const secureCookie = shouldUseSecureCookie(request);
   const response = NextResponse.json(
     { ok: false, error: "Unauthorized" },
     {
@@ -21,7 +23,7 @@ function unauthorizedResponse() {
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
@@ -29,7 +31,7 @@ function unauthorizedResponse() {
   response.cookies.set("bodygate_role", "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     maxAge: 0,
   });
@@ -37,7 +39,7 @@ function unauthorizedResponse() {
   return response;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const context = await getCurrentAuthContext();
 
@@ -62,7 +64,7 @@ export async function GET() {
     );
   } catch (error) {
     if (error instanceof UnauthorizedError) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     console.error("Errore caricamento sessione corrente:", error);
