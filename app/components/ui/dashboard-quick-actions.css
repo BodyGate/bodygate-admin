@@ -1,0 +1,234 @@
+.command-page-v2 .quick-actions-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(239, 68, 68, 0.24);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(239, 68, 68, 0.18), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+    rgba(8, 8, 8, 0.94);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.command-page-v2 .quick-actions-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.035), transparent 32%);
+}
+
+.command-page-v2 .quick-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.command-page-v2 .quick-card,
+.command-page-v2 .quick-card:link,
+.command-page-v2 .quick-card:visited,
+.command-page-v2 .quick-card:hover,
+.command-page-v2 .quick-card:active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.command-page-v2 .quick-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 34px;
+  grid-template-rows: auto 1fr;
+  column-gap: 14px;
+  row-gap: 7px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-radius: 20px;
+  padding: 18px 17px 18px 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.055), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.022)),
+    rgba(9, 9, 9, 0.78);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.26),
+    0 1px 0 rgba(255, 255, 255, 0.025) inset;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.command-page-v2 .quick-card::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #ef4444, rgba(127, 29, 29, 0.3));
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.34);
+  opacity: 0.72;
+  transition: opacity 180ms ease, box-shadow 180ms ease;
+}
+
+.command-page-v2 .quick-card::after {
+  content: "→";
+  grid-column: 3;
+  grid-row: 1 / 3;
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  justify-self: end;
+  align-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #a3a3a3;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.command-page-v2 .quick-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(239, 68, 68, 0.48);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(239, 68, 68, 0.2), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.025)),
+    rgba(10, 10, 10, 0.92);
+  box-shadow:
+    0 26px 58px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(239, 68, 68, 0.06) inset,
+    0 0 34px rgba(239, 68, 68, 0.08);
+}
+
+.command-page-v2 .quick-card:hover::before {
+  opacity: 1;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.52);
+}
+
+.command-page-v2 .quick-card:hover::after {
+  transform: translateX(3px);
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.1);
+}
+
+.command-page-v2 .quick-card:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.82);
+  outline-offset: 4px;
+  border-color: rgba(239, 68, 68, 0.52);
+}
+
+.command-page-v2 .quick-card-icon {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 46px;
+  height: 46px;
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.09), transparent 42%),
+    linear-gradient(145deg, rgba(239, 68, 68, 0.18), rgba(127, 29, 29, 0.08));
+  color: #fca5a5;
+  font-size: 0;
+  font-weight: 950;
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.26),
+    0 0 20px rgba(239, 68, 68, 0.07) inset;
+}
+
+.command-page-v2 .quick-card-icon::before {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.command-page-v2 .quick-card[href="/reception"] .quick-card-icon::before {
+  content: "⌁";
+}
+
+.command-page-v2 .quick-card[href="/customers/new"] .quick-card-icon::before {
+  content: "+";
+  font-size: 23px;
+}
+
+.command-page-v2 .quick-card[href="/payments"] .quick-card-icon::before {
+  content: "€";
+}
+
+.command-page-v2 .quick-card[href="/notifications"] .quick-card-icon::before {
+  content: "!";
+}
+
+.command-page-v2 .quick-card[href="/access-control"] .quick-card-icon::before {
+  content: "↳";
+}
+
+.command-page-v2 .quick-card[href="/system/staff"] .quick-card-icon::before {
+  content: "S";
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.command-page-v2 .quick-card-title {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  min-width: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+
+.command-page-v2 .quick-card-description {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  min-width: 0;
+  color: #9f9fa6;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.48;
+}
+
+@media (max-width: 720px) {
+  .command-page-v2 .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .command-page-v2 .quick-card {
+    min-height: 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-page-v2 .quick-card,
+  .command-page-v2 .quick-card::before,
+  .command-page-v2 .quick-card::after {
+    transition: none;
+  }
+
+  .command-page-v2 .quick-card:hover {
+    transform: none;
+  }
+}
