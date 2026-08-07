@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
 
 export const runtime = "nodejs";
@@ -53,6 +53,22 @@ function normalizeBadge(value: unknown) {
   return String(value || "").trim();
 }
 
+function timingHeaders(timings: {
+  badgeLookupMs: number;
+  customerLookupMs: number;
+  policyChecksMs: number;
+  totalMs: number;
+}) {
+  return {
+    "Server-Timing": [
+      `badge;dur=${timings.badgeLookupMs}`,
+      `customer;dur=${timings.customerLookupMs}`,
+      `policy;dur=${timings.policyChecksMs}`,
+      `total;dur=${timings.totalMs}`,
+    ].join(", "),
+  };
+}
+
 async function findBadgeMatch(
   supabase: ReturnType<typeof getSupabaseClient>,
   badge: string
@@ -61,9 +77,13 @@ async function findBadgeMatch(
   debug: BadgeLookupDebug;
 }> {
   const lookupCodes = rfidLookupCodes(badge);
-  const lookupFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
+  const lookupFilter = lookupCodes
+    .map((code) => `code.eq.${code},controller_code.eq.${code}`)
+    .join(",");
   const badgeFilter = lookupCodes.map((code) => `badge_code.eq.${code}`).join(",");
-  const customerFilter = lookupCodes.map((code) => `badge_code.eq.${code},controller_code.eq.${code}`).join(",");
+  const customerFilter = lookupCodes
+    .map((code) => `badge_code.eq.${code},controller_code.eq.${code}`)
+    .join(",");
   const exactQueryPathUsed = [
     "access_credentials.status=active AND normalized(code/controller_code)=badge",
   ];
@@ -106,7 +126,9 @@ async function findBadgeMatch(
     };
   }
 
-  exactQueryPathUsed.push("customer_badges.normalized(badge_code)=badge AND is_active=true");
+  exactQueryPathUsed.push(
+    "customer_badges.normalized(badge_code)=badge AND is_active=true"
+  );
 
   const { data: customerBadge, error: customerBadgeError } = await supabase
     .from("customer_badges")
@@ -233,7 +255,9 @@ async function findStaffAccess(
   source: string
 ) {
   const lookupCodes = rfidLookupCodes(badge);
-  const lookupFilter = lookupCodes.map((code) => `code.eq.${code},controller_code.eq.${code}`).join(",");
+  const lookupFilter = lookupCodes
+    .map((code) => `code.eq.${code},controller_code.eq.${code}`)
+    .join(",");
   const { data: staffCredential, error: staffCredentialError } = await supabase
     .from("staff_access_credentials")
     .select("id, staff_user_id, code, controller_code, type, status")
@@ -308,13 +332,22 @@ async function findStaffAccess(
   const staffName = staffUser.full_name || "Staff BodyGate";
   const staffRole = (staffUser.staff_roles as any)?.role_name || null;
 
-  await supabase.from("customer_access_logs").insert({
-    customer_id: null,
-    branch_id: null,
-    was_allowed: true,
-    reason: `Accesso staff autorizzato: ${staffName}`,
-    badge_code: staffCredential.code || badge,
-    controller_code: staffCredential.controller_code || badge,
+  after(async () => {
+    const { error } = await supabase.from("customer_access_logs").insert({
+      customer_id: null,
+      branch_id: null,
+      was_allowed: true,
+      reason: `Accesso staff autorizzato: ${staffName}`,
+      badge_code: staffCredential.code || badge,
+      controller_code: staffCredential.controller_code || badge,
+    });
+
+    if (error) {
+      console.error("staff customer_access_logs insert failed", {
+        staff_user_id: staffUser.id,
+        error: error.message,
+      });
+    }
   });
 
   return {
@@ -340,6 +373,8 @@ async function findStaffAccess(
 }
 
 export async function POST(req: Request) {
+  const requestStartedAt = Date.now();
+
   try {
     const body = await req.json();
 
@@ -355,7 +390,10 @@ export async function POST(req: Request) {
     }
 
     const supabase = getSupabaseClient();
+
+    const badgeLookupStartedAt = Date.now();
     const badgeLookup = await findBadgeMatch(supabase, badge);
+    const badgeLookupMs = Date.now() - badgeLookupStartedAt;
 
     if (!badgeLookup.match) {
       const staffResult = await findStaffAccess(supabase, badge, source);
@@ -404,12 +442,16 @@ export async function POST(req: Request) {
 
     const badgeMatch = badgeLookup.match;
 
+    const customerLookupStartedAt = Date.now();
     const { data: customer, error: customerError } = await supabase
       .from("customers")
-      .select("*")
+      .select(
+        "id, branch_id, is_active, first_name, last_name, medical_certificate_start_date, medical_certificate_start, medical_certificate_end_date, medical_certificate_end, medical_certificate_status"
+      )
       .eq("id", badgeMatch.customer_id)
       .limit(1)
       .maybeSingle();
+    const customerLookupMs = Date.now() - customerLookupStartedAt;
 
     if (customerError || !customer || customer.is_active === false) {
       await supabase.from("unknown_badge_logs").insert({
@@ -432,7 +474,7 @@ export async function POST(req: Request) {
     const today = new Date().toISOString().slice(0, 10);
 
     async function logAccess(wasAllowed: boolean, reason: string) {
-      await supabase.from("customer_access_logs").insert({
+      const { error } = await supabase.from("customer_access_logs").insert({
         customer_id: customerId,
         branch_id: branchId,
         was_allowed: wasAllowed,
@@ -440,10 +482,18 @@ export async function POST(req: Request) {
         badge_code: badgeMatch.badge_code,
         controller_code: badgeMatch.controller_code,
       });
+
+      if (error) {
+        console.error("customer_access_logs insert failed", {
+          customer_id: customerId,
+          was_allowed: wasAllowed,
+          error: error.message,
+        });
+      }
     }
 
     async function markPresenceInside() {
-      await supabase
+      const { error: closePresenceError } = await supabase
         .from("gym_presence")
         .update({
           is_inside: false,
@@ -452,13 +502,29 @@ export async function POST(req: Request) {
         .eq("customer_id", customerId)
         .eq("is_inside", true);
 
-      await supabase.from("gym_presence").insert({
-        customer_id: customerId,
-        branch_id: branchId,
-        badge_code: badgeMatch.badge_code,
-        is_inside: true,
-        source: "turnstile",
-      });
+      if (closePresenceError) {
+        console.error("gym_presence close previous presence failed", {
+          customer_id: customerId,
+          error: closePresenceError.message,
+        });
+      }
+
+      const { error: insertPresenceError } = await supabase
+        .from("gym_presence")
+        .insert({
+          customer_id: customerId,
+          branch_id: branchId,
+          badge_code: badgeMatch.badge_code,
+          is_inside: true,
+          source: "turnstile",
+        });
+
+      if (insertPresenceError) {
+        console.error("gym_presence insert failed", {
+          customer_id: customerId,
+          error: insertPresenceError.message,
+        });
+      }
     }
 
     if (!branchId) {
@@ -474,14 +540,57 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: activeBlock } = await supabase
-      .from("customer_blocks")
-      .select("*")
-      .eq("customer_id", customerId)
-      .eq("is_active", true)
-      .or(`ends_at.is.null,ends_at.gte.${new Date().toISOString()}`)
-      .limit(1)
-      .maybeSingle();
+    const policyChecksStartedAt = Date.now();
+    const nowIso = new Date().toISOString();
+
+    const [
+      activeBlockResult,
+      membershipSettingResult,
+      validMembershipFeeResult,
+      validSubscriptionResult,
+    ] = await Promise.all([
+      supabase
+        .from("customer_blocks")
+        .select("reason, ends_at")
+        .eq("customer_id", customerId)
+        .eq("is_active", true)
+        .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("membership_fee_settings")
+        .select("required_for_access")
+        .eq("branch_id", branchId)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("customer_membership_fees")
+        .select("id, valid_from, valid_until")
+        .eq("customer_id", customerId)
+        .eq("branch_id", branchId)
+        .lte("valid_from", today)
+        .gte("valid_until", today)
+        .order("valid_until", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("customer_subscriptions")
+        .select("id, customer_id, starts_at, ends_at, is_active")
+        .eq("customer_id", customerId)
+        .eq("is_active", true)
+        .lte("starts_at", today)
+        .gte("ends_at", today)
+        .order("ends_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const policyChecksMs = Date.now() - policyChecksStartedAt;
+    const activeBlock = activeBlockResult.data;
+    const membershipSetting = membershipSettingResult.data;
+    const validMembershipFee = validMembershipFeeResult.data;
+    const validSubscription = validSubscriptionResult.data;
 
     if (activeBlock) {
       const reason = `Accesso bloccato: ${activeBlock.reason}`;
@@ -524,50 +633,18 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: membershipSetting } = await supabase
-      .from("membership_fee_settings")
-      .select("*")
-      .eq("branch_id", branchId)
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+    if (membershipSetting?.required_for_access && !validMembershipFee) {
+      await logAccess(false, "Quota associativa assente o scaduta");
 
-    if (membershipSetting?.required_for_access) {
-      const { data: validMembershipFee } = await supabase
-        .from("customer_membership_fees")
-        .select("*")
-        .eq("customer_id", customerId)
-        .eq("branch_id", branchId)
-        .lte("valid_from", today)
-        .gte("valid_until", today)
-        .order("valid_until", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!validMembershipFee) {
-        await logAccess(false, "Quota associativa assente o scaduta");
-
-        return NextResponse.json({
-          ok: true,
-          allowed: false,
-          reason: "Quota associativa assente o scaduta",
-          customer_id: customerId,
-          badge_code: badgeMatch.badge_code,
-          credential_source: badgeMatch.source,
-        });
-      }
+      return NextResponse.json({
+        ok: true,
+        allowed: false,
+        reason: "Quota associativa assente o scaduta",
+        customer_id: customerId,
+        badge_code: badgeMatch.badge_code,
+        credential_source: badgeMatch.source,
+      });
     }
-
-    const { data: validSubscription } = await supabase
-      .from("customer_subscriptions")
-      .select("id, customer_id, starts_at, ends_at, is_active")
-      .eq("customer_id", customerId)
-      .eq("is_active", true)
-      .lte("starts_at", today)
-      .gte("ends_at", today)
-      .order("ends_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
 
     if (!validSubscription) {
       await logAccess(false, "Abbonamento assente o scaduto");
@@ -582,21 +659,55 @@ export async function POST(req: Request) {
       });
     }
 
-    await logAccess(true, "Accesso consentito");
-    await markPresenceInside();
+    const totalMs = Date.now() - requestStartedAt;
 
-    return NextResponse.json({
-      ok: true,
-      allowed: true,
-      reason: "Accesso consentito",
-      entity_type: "customer",
+    console.info("[BodyGate access timing]", {
+      badge,
       customer_id: customerId,
-      badge_code: badgeMatch.badge_code,
-      controller_code: badgeMatch.controller_code,
       credential_source: badgeMatch.source,
-      customer_name:
-        `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+      badge_lookup_ms: badgeLookupMs,
+      customer_lookup_ms: customerLookupMs,
+      policy_checks_ms: policyChecksMs,
+      total_before_response_ms: totalMs,
     });
+
+    after(async () => {
+      const postResponseStartedAt = Date.now();
+
+      await Promise.all([
+        logAccess(true, "Accesso consentito"),
+        markPresenceInside(),
+      ]);
+
+      console.info("[BodyGate access post-response]", {
+        badge,
+        customer_id: customerId,
+        persistence_ms: Date.now() - postResponseStartedAt,
+      });
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        allowed: true,
+        reason: "Accesso consentito",
+        entity_type: "customer",
+        customer_id: customerId,
+        badge_code: badgeMatch.badge_code,
+        controller_code: badgeMatch.controller_code,
+        credential_source: badgeMatch.source,
+        customer_name:
+          `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+      },
+      {
+        headers: timingHeaders({
+          badgeLookupMs,
+          customerLookupMs,
+          policyChecksMs,
+          totalMs,
+        }),
+      }
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Errore interno";
 
