@@ -445,9 +445,7 @@ export async function POST(req: Request) {
     const customerLookupStartedAt = Date.now();
     const { data: customer, error: customerError } = await supabase
       .from("customers")
-      .select(
-        "id, branch_id, is_active, first_name, last_name, medical_certificate_start_date, medical_certificate_start, medical_certificate_end_date, medical_certificate_end, medical_certificate_status"
-      )
+      .select("*")
       .eq("id", badgeMatch.customer_id)
       .limit(1)
       .maybeSingle();
