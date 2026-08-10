@@ -340,6 +340,8 @@ async function findStaffAccess(
 }
 
 export async function POST(req: Request) {
+  const accessStartedAt = Date.now();
+
   try {
     const body = await req.json();
 
@@ -474,14 +476,50 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: activeBlock } = await supabase
+    const nowIso = new Date().toISOString();
+
+    // Performance V2B: solo letture indipendenti avviate in parallelo.
+    // Nessuna regola di accesso e nessuna scrittura viene spostata.
+    const activeBlockPromise = supabase
       .from("customer_blocks")
       .select("*")
       .eq("customer_id", customerId)
       .eq("is_active", true)
-      .or(`ends_at.is.null,ends_at.gte.${new Date().toISOString()}`)
+      .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
       .limit(1)
       .maybeSingle();
+
+    const membershipSettingPromise = supabase
+      .from("membership_fee_settings")
+      .select("*")
+      .eq("branch_id", branchId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    const validMembershipFeePromise = supabase
+      .from("customer_membership_fees")
+      .select("*")
+      .eq("customer_id", customerId)
+      .eq("branch_id", branchId)
+      .lte("valid_from", today)
+      .gte("valid_until", today)
+      .order("valid_until", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const validSubscriptionPromise = supabase
+      .from("customer_subscriptions")
+      .select("id, customer_id, starts_at, ends_at, is_active")
+      .eq("customer_id", customerId)
+      .eq("is_active", true)
+      .lte("starts_at", today)
+      .gte("ends_at", today)
+      .order("ends_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: activeBlock } = await activeBlockPromise;
 
     if (activeBlock) {
       const reason = `Accesso bloccato: ${activeBlock.reason}`;
@@ -524,25 +562,17 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: membershipSetting } = await supabase
-      .from("membership_fee_settings")
-      .select("*")
-      .eq("branch_id", branchId)
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+    const [
+      { data: membershipSetting },
+      { data: validMembershipFee },
+      { data: validSubscription },
+    ] = await Promise.all([
+      membershipSettingPromise,
+      validMembershipFeePromise,
+      validSubscriptionPromise,
+    ]);
 
     if (membershipSetting?.required_for_access) {
-      const { data: validMembershipFee } = await supabase
-        .from("customer_membership_fees")
-        .select("*")
-        .eq("customer_id", customerId)
-        .eq("branch_id", branchId)
-        .lte("valid_from", today)
-        .gte("valid_until", today)
-        .order("valid_until", { ascending: false })
-        .limit(1)
-        .maybeSingle();
 
       if (!validMembershipFee) {
         await logAccess(false, "Quota associativa assente o scaduta");
@@ -558,17 +588,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: validSubscription } = await supabase
-      .from("customer_subscriptions")
-      .select("id, customer_id, starts_at, ends_at, is_active")
-      .eq("customer_id", customerId)
-      .eq("is_active", true)
-      .lte("starts_at", today)
-      .gte("ends_at", today)
-      .order("ends_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
     if (!validSubscription) {
       await logAccess(false, "Abbonamento assente o scaduto");
 
@@ -582,8 +601,24 @@ export async function POST(req: Request) {
       });
     }
 
-    await logAccess(true, "Accesso consentito");
-    await markPresenceInside();
+    const persistenceStartedAt = Date.now();
+
+    // V2C: entrambe le operazioni restano obbligatorie e sincrone,
+    // ma vengono avviate contemporaneamente.
+    await Promise.all([
+      logAccess(true, "Accesso consentito"),
+      markPresenceInside(),
+    ]);
+
+    const persistenceMs = Date.now() - persistenceStartedAt;
+    const totalMs = Date.now() - accessStartedAt;
+
+    console.info("[BodyGate access timing v2c]", {
+      badge,
+      customer_id: customerId,
+      persistence_ms: persistenceMs,
+      total_ms: totalMs,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -596,6 +631,10 @@ export async function POST(req: Request) {
       credential_source: badgeMatch.source,
       customer_name:
         `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
+    }, {
+      headers: {
+        "Server-Timing": `persistence;dur=${persistenceMs}, total;dur=${totalMs}`,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Errore interno";
