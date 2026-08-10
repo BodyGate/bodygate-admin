@@ -1,0 +1,314 @@
+.command-page-v2 .command-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.command-page-v2 .alert-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.command-page-v2 .alert-tile {
+  min-height: 160px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.command-page-v2 .quick-actions-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(239, 68, 68, 0.24);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(239, 68, 68, 0.18), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
+    rgba(8, 8, 8, 0.94);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.command-page-v2 .quick-actions-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.035), transparent 32%);
+}
+
+.command-page-v2 .quick-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.command-page-v2 .quick-card,
+.command-page-v2 .quick-card:link,
+.command-page-v2 .quick-card:visited,
+.command-page-v2 .quick-card:hover,
+.command-page-v2 .quick-card:active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.command-page-v2 .quick-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 172px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 32px;
+  grid-template-rows: 46px auto 1fr;
+  column-gap: 10px;
+  row-gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-radius: 20px;
+  padding: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.055), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.022)),
+    rgba(9, 9, 9, 0.78);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.26),
+    0 1px 0 rgba(255, 255, 255, 0.025) inset;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.command-page-v2 .quick-card::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #ef4444, rgba(127, 29, 29, 0.3));
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.34);
+  opacity: 0.72;
+  transition: opacity 180ms ease, box-shadow 180ms ease;
+}
+
+.command-page-v2 .quick-card::after {
+  content: "";
+  grid-column: 3;
+  grid-row: 1;
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  justify-self: end;
+  align-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  background-color: rgba(255, 255, 255, 0.045);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 17px 17px;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
+}
+
+.command-page-v2 .quick-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(239, 68, 68, 0.48);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(239, 68, 68, 0.2), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.025)),
+    rgba(10, 10, 10, 0.92);
+  box-shadow:
+    0 26px 58px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(239, 68, 68, 0.06) inset,
+    0 0 34px rgba(239, 68, 68, 0.08);
+}
+
+.command-page-v2 .quick-card:hover::before {
+  opacity: 1;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.52);
+}
+
+.command-page-v2 .quick-card:hover::after {
+  transform: translate(2px, -2px);
+  border-color: rgba(239, 68, 68, 0.4);
+  background-color: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.1);
+  filter: brightness(1.45);
+}
+
+.command-page-v2 .quick-card:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.82);
+  outline-offset: 4px;
+  border-color: rgba(239, 68, 68, 0.52);
+}
+
+.command-page-v2 .quick-card-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 46px;
+  height: 46px;
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.09), transparent 42%),
+    linear-gradient(145deg, rgba(239, 68, 68, 0.18), rgba(127, 29, 29, 0.08));
+  color: #fca5a5;
+  font-size: 0;
+  font-weight: 950;
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.26),
+    0 0 20px rgba(239, 68, 68, 0.07) inset;
+}
+
+.command-page-v2 .quick-card-icon::before {
+  content: "";
+  width: 23px;
+  height: 23px;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 23px 23px;
+}
+
+.command-page-v2 .quick-card[href="/reception"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='12' x='3' y='4' rx='2'/%3E%3Cpath d='m9 10 2 2 4-4'/%3E%3Cpath d='M8 20h8'/%3E%3Cpath d='M12 16v4'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card[href="/customers/new"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' x2='19' y1='8' y2='14'/%3E%3Cline x1='22' x2='16' y1='11' y2='11'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card[href="/payments"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='13' x='3' y='6' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3Cpath d='M7 15h2'/%3E%3Cpath d='M11 15h2'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card[href="/notifications"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.268 21a2 2 0 0 0 3.464 0'/%3E%3Cpath d='M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card[href="/access-control"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card[href="/system/staff"] .quick-card-icon::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M22 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
+}
+
+.command-page-v2 .quick-card-title {
+  grid-column: 1 / 4;
+  grid-row: 2;
+  align-self: end;
+  min-width: 0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+
+.command-page-v2 .quick-card-description {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  align-self: start;
+  min-width: 0;
+  color: #9f9fa6;
+  font-size: 0;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.command-page-v2 .quick-card-description::before {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.command-page-v2 .quick-card[href="/reception"] .quick-card-description::before {
+  content: "Clienti, accessi e operazioni quotidiane.";
+}
+
+.command-page-v2 .quick-card[href="/customers/new"] .quick-card-description::before {
+  content: "Registra anagrafica, contatti e dati iniziali.";
+}
+
+.command-page-v2 .quick-card[href="/payments"] .quick-card-description::before {
+  content: "Registra pagamenti, rinnovi e ricevute.";
+}
+
+.command-page-v2 .quick-card[href="/notifications"] .quick-card-description::before {
+  content: "Scadenze, anomalie e attivita da gestire.";
+}
+
+.command-page-v2 .quick-card[href="/access-control"] .quick-card-description::before {
+  content: "Controllo credenziali, accessi e registro eventi.";
+}
+
+.command-page-v2 .quick-card[href="/system/staff"] .quick-card-description::before {
+  content: "Gestisci operatori, ruoli e Staff Mobile Pass.";
+}
+
+@media (max-width: 1220px) {
+  .command-page-v2 .command-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .command-page-v2 .alert-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .command-page-v2 .alert-tile {
+    min-height: 132px;
+  }
+
+  .command-page-v2 .quick-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .command-page-v2 .alert-grid,
+  .command-page-v2 .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .command-page-v2 .alert-grid,
+  .command-page-v2 .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .command-page-v2 .quick-card {
+    min-height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-page-v2 .quick-card,
+  .command-page-v2 .quick-card::before,
+  .command-page-v2 .quick-card::after {
+    transition: none;
+  }
+
+  .command-page-v2 .quick-card:hover {
+    transform: none;
+  }
+}

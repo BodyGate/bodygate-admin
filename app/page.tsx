@@ -186,7 +186,15 @@ export default function DashboardPage() {
 
         .command-grid {
           display: grid;
-          grid-template-columns: 1.12fr .88fr;
+          grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
+          gap: 18px;
+          align-items: start;
+        }
+
+        .command-column {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
           gap: 18px;
         }
 
@@ -206,7 +214,7 @@ export default function DashboardPage() {
 
         .alert-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -449,7 +457,8 @@ export default function DashboardPage() {
           </section>
 
           <section className="command-grid">
-            <BGCard>
+            <div className="command-column">
+              <BGCard>
               <div className="panel-title-row">
                 <div className="panel-title">Alert operativi</div>
                 <BGStatusBadge tone={totalAlerts > 0 ? "warning" : "success"}>
@@ -477,55 +486,7 @@ export default function DashboardPage() {
               </div>
             </BGCard>
 
-            <BGCard className="quick-actions-panel">
-              <div className="panel-title-row">
-                <div>
-                  <div className="panel-title">Azioni rapide</div>
-                </div>
-                <BGStatusBadge tone="info">Reception</BGStatusBadge>
-              </div>
-
-              <div className="quick-grid bg-actions-grid">
-                <BGQuickActionCard
-                  href="/reception"
-                  icon="⌁"
-                  title="Reception Desk"
-                  description="Cliente rapido, accessi e operatività giornaliera."
-                />
-                <BGQuickActionCard
-                  href="/customers/new"
-                  icon="+"
-                  title="Nuovo cliente"
-                  description="Crea anagrafica, contatti e dati iniziali."
-                />
-                <BGQuickActionCard
-                  href="/payments"
-                  icon="€"
-                  title="Nuovo incasso"
-                  description="Registra pagamenti, rinnovi e ricevute."
-                />
-                <BGQuickActionCard
-                  href="/notifications"
-                  icon="!"
-                  title="Notification Center"
-                  description="Scadenze, blocchi e alert da lavorare."
-                />
-                <BGQuickActionCard
-                  href="/access-control"
-                  icon="↳"
-                  title="Access Control"
-                  description="Hub debug, audit credenziali e registro accessi."
-                />
-                <BGQuickActionCard
-                  href="/system/staff"
-                  icon="S"
-                  title="Staff"
-                  description="Ruoli, stato operatori e invio Staff Mobile Pass."
-                />
-              </div>
-            </BGCard>
-
-            <BGCard>
+              <BGCard>
               <div className="panel-title-row">
                 <div className="panel-title">Ultimi accessi</div>
                 <BGStatusBadge tone="info">Live log</BGStatusBadge>
@@ -560,8 +521,58 @@ export default function DashboardPage() {
                 ))}
               </div>
             </BGCard>
+            </div>
 
-            <BGCard>
+            <div className="command-column">
+              <BGCard className="quick-actions-panel">
+              <div className="panel-title-row">
+                <div>
+                  <div className="panel-title">Azioni rapide</div>
+                </div>
+                <BGStatusBadge tone="info">Reception</BGStatusBadge>
+              </div>
+
+              <div className="quick-grid bg-actions-grid">
+                <BGQuickActionCard
+                  href="/reception"
+                  icon="reception"
+                  title="Reception Desk"
+                  description="Cliente rapido, accessi e operatività giornaliera."
+                />
+                <BGQuickActionCard
+                  href="/customers/new"
+                  icon="customer"
+                  title="Nuovo cliente"
+                  description="Crea anagrafica, contatti e dati iniziali."
+                />
+                <BGQuickActionCard
+                  href="/payments"
+                  icon="payment"
+                  title="Nuovo incasso"
+                  description="Registra pagamenti, rinnovi e ricevute."
+                />
+                <BGQuickActionCard
+                  href="/notifications"
+                  icon="notification"
+                  title="Notification Center"
+                  description="Scadenze, blocchi e alert da lavorare."
+                />
+                <BGQuickActionCard
+                  href="/access-control"
+                  icon="access"
+                  title="Access Control"
+                  description="Hub debug, audit credenziali e registro accessi."
+                />
+                <BGQuickActionCard
+                  href="/system/staff"
+                  icon="staff"
+                  title="Staff"
+                  description="Ruoli, stato operatori e invio Staff Mobile Pass."
+                />
+              </div>
+            </BGCard>
+
+              <BGCard>
               <div className="panel-title-row">
                 <div className="panel-title">Scadenze imminenti</div>
                 <BGStatusBadge tone="warning">15 giorni</BGStatusBadge>
@@ -613,6 +624,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </BGCard>
+            </div>
           </section>
         </>
       )}
@@ -620,3 +632,4 @@ export default function DashboardPage() {
     </main>
   );
 }
+
