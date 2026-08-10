@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 const ADMIN_ROLE_KEYS = new Set([
   "admin",
@@ -20,6 +20,31 @@ type CurrentAuthResponse = {
   is_admin?: boolean;
 };
 
+type CurrentPermissionsState = {
+  permissions: string[];
+  roleKey: string | null;
+  staffName: string | null;
+  serverIsAdmin: boolean;
+  loading: boolean;
+  loaded: boolean;
+};
+
+const INITIAL_STATE: CurrentPermissionsState = {
+  permissions: [],
+  roleKey: null,
+  staffName: null,
+  serverIsAdmin: false,
+  loading: true,
+  loaded: false,
+};
+
+const REFRESH_DEDUP_MS = 30_000;
+const subscribers = new Set<() => void>();
+let state = INITIAL_STATE;
+let inFlight: Promise<void> | null = null;
+let lastLoadedAt = 0;
+let listenersRegistered = false;
+
 function normalizeRoleKey(roleKey?: string | null) {
   return roleKey?.toLowerCase().trim() || null;
 }
@@ -29,105 +54,152 @@ export function isAdminRole(roleKey?: string | null) {
   return normalized ? ADMIN_ROLE_KEYS.has(normalized) : false;
 }
 
-export function useCurrentPermissions() {
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [roleKey, setRoleKey] = useState<string | null>(null);
-  const [staffName, setStaffName] = useState<string | null>(null);
-  const [serverIsAdmin, setServerIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+function emit() {
+  subscribers.forEach((subscriber) => subscriber());
+}
 
-  const resetPermissions = useCallback(() => {
-    setPermissions([]);
-    setRoleKey(null);
-    setStaffName(null);
-    setServerIsAdmin(false);
-  }, []);
+function setState(nextState: CurrentPermissionsState) {
+  state = nextState;
+  emit();
+}
 
-  const loadPermissions = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) {
-        setLoading(true);
-      }
+function resetPermissions() {
+  lastLoadedAt = Date.now();
+  setState({ ...INITIAL_STATE, loading: false, loaded: true });
+}
 
-      try {
-        const response = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-          headers: {
-            Accept: "application/json",
-          },
-        });
+function subscribe(listener: () => void) {
+  subscribers.add(listener);
 
-        if (!response.ok) {
-          resetPermissions();
+  return () => {
+    subscribers.delete(listener);
+  };
+}
 
-          if (
-            response.status === 401 &&
-            typeof window !== "undefined" &&
-            window.location.pathname !== "/login"
-          ) {
-            window.location.assign("/login");
-          }
+function getSnapshot() {
+  return state;
+}
 
-          return;
-        }
+function getServerSnapshot() {
+  return INITIAL_STATE;
+}
 
-        const result = (await response.json()) as CurrentAuthResponse;
+function redirectToLoginIfNeeded(status: number) {
+  if (
+    status === 401 &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/login"
+  ) {
+    window.location.assign("/login");
+  }
+}
 
-        if (!result.ok) {
-          resetPermissions();
-          return;
-        }
+async function refreshPermissions(options: { showLoading?: boolean; force?: boolean } = {}) {
+  if (typeof window === "undefined") return;
 
-        setPermissions(
-          Array.isArray(result.permissions) ? result.permissions : []
-        );
-        setRoleKey(result.role_key || null);
-        setStaffName(result.staff_name || null);
-        setServerIsAdmin(Boolean(result.is_admin));
-      } catch (error) {
-        console.error("Errore caricamento permessi:", error);
+  const { showLoading = false, force = false } = options;
+  const now = Date.now();
+
+  if (inFlight) {
+    return inFlight;
+  }
+
+  if (!force && state.loaded && now - lastLoadedAt < REFRESH_DEDUP_MS) {
+    return;
+  }
+
+  if (showLoading && !state.loading) {
+    setState({ ...state, loading: true });
+  }
+
+  inFlight = (async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
         resetPermissions();
-      } finally {
-        setLoading(false);
+        redirectToLoginIfNeeded(response.status);
+        return;
       }
-    },
-    [resetPermissions]
-  );
+
+      const result = (await response.json()) as CurrentAuthResponse;
+
+      if (!result.ok) {
+        resetPermissions();
+        return;
+      }
+
+      lastLoadedAt = Date.now();
+      setState({
+        permissions: Array.isArray(result.permissions) ? result.permissions : [],
+        roleKey: result.role_key || null,
+        staffName: result.staff_name || null,
+        serverIsAdmin: Boolean(result.is_admin),
+        loading: false,
+        loaded: true,
+      });
+    } catch (error) {
+      console.warn("Errore caricamento permessi:", error);
+      lastLoadedAt = Date.now();
+      setState({ ...state, loading: false, loaded: true });
+    } finally {
+      inFlight = null;
+    }
+  })();
+
+  return inFlight;
+}
+
+function registerGlobalRefreshListeners() {
+  if (listenersRegistered || typeof window === "undefined") return;
+
+  const handleFocus = () => {
+    void refreshPermissions();
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      void refreshPermissions();
+    }
+  };
+
+  window.addEventListener("focus", handleFocus);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  listenersRegistered = true;
+}
+
+export function useCurrentPermissions() {
+  const {
+    permissions,
+    roleKey,
+    staffName,
+    serverIsAdmin,
+    loading,
+    loaded,
+  } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    void loadPermissions(true);
-
-    const handleFocus = () => {
-      void loadPermissions();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void loadPermissions();
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange
-      );
-    };
-  }, [loadPermissions]);
+    registerGlobalRefreshListeners();
+    void refreshPermissions({ showLoading: !loaded, force: !loaded });
+  }, [loaded]);
 
   const isAdmin = serverIsAdmin || isAdminRole(roleKey);
 
-  function hasPermission(permissionKey: string) {
-    if (isAdmin) return true;
+  const hasPermission = useCallback(
+    (permissionKey: string) => {
+      if (isAdmin) return true;
 
-    return permissions.includes(permissionKey);
-  }
+      return permissions.includes(permissionKey);
+    },
+    [isAdmin, permissions]
+  );
 
   return {
     permissions,

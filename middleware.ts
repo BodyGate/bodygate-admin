@@ -11,6 +11,7 @@ const publicExactPaths = new Set([
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/me",
+  "/api/health",
 
   // API hardware pubbliche indispensabili. Le route amministrative che
   // condividono questi prefissi devono restare protette dalla sessione.
