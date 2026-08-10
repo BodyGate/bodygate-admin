@@ -32,6 +32,9 @@ namespace BodyGateAccessBridge
         private static readonly string BodyGateLogUrl =
             "http://127.0.0.1:3000/api/access/log";
 
+        private static readonly string BodyGateMachineKey =
+            Environment.GetEnvironmentVariable("BODYGATE_MACHINE_KEY")?.Trim() ?? "";
+
         private static readonly int PollIntervalMs = 200;
         private static readonly int BadgeCooldownSeconds = 3;
         private static readonly int OpenDelayAfterBadgeMs = 50;
@@ -65,8 +68,6 @@ namespace BodyGateAccessBridge
             Directory.CreateDirectory(LogDir);
             Directory.CreateDirectory(WorkDir);
 
-            ConfigureBasicAuth();
-
             Log("====================================");
             Log("BodyGate Bridge " + Version + " avviato");
             Log("Modalita lettura badge: DNake SQLite polling");
@@ -91,14 +92,15 @@ namespace BodyGateAccessBridge
             }
         }
 
-        private static void ConfigureBasicAuth()
+        private static void AddBodyGateMachineAuth(HttpRequestMessage request)
         {
-            string credentials = Convert.ToBase64String(
-                Encoding.ASCII.GetBytes(DnakeUser + ":" + DnakePassword)
-            );
-
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Basic", credentials);
+            if (!string.IsNullOrWhiteSpace(BodyGateMachineKey))
+            {
+                request.Headers.TryAddWithoutValidation(
+                    "x-bodygate-machine-key",
+                    BodyGateMachineKey
+                );
+            }
         }
 
         private static void StartDnakeSqlPolling()
@@ -452,10 +454,16 @@ namespace BodyGateAccessBridge
                     "application/json"
                 );
 
-                using HttpResponseMessage response = httpClient.PostAsync(
-                    BodyGateCheckUrl,
-                    content
-                ).GetAwaiter().GetResult();
+                using HttpRequestMessage request =
+                    new HttpRequestMessage(HttpMethod.Post, BodyGateCheckUrl)
+                    {
+                        Content = content
+                    };
+
+                AddBodyGateMachineAuth(request);
+
+                using HttpResponseMessage response =
+                    httpClient.Send(request);
 
                 string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
@@ -666,10 +674,16 @@ namespace BodyGateAccessBridge
                     "application/json"
                 );
 
-                using HttpResponseMessage response = httpClient.PostAsync(
-                    BodyGateLogUrl,
-                    content
-                ).GetAwaiter().GetResult();
+                using HttpRequestMessage request =
+                    new HttpRequestMessage(HttpMethod.Post, BodyGateLogUrl)
+                    {
+                        Content = content
+                    };
+
+                AddBodyGateMachineAuth(request);
+
+                using HttpResponseMessage response =
+                    httpClient.Send(request);
 
                 string responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
