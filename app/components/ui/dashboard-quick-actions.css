@@ -101,7 +101,7 @@
 }
 
 .command-page-v2 .quick-card::after {
-  content: "→";
+  content: "";
   grid-column: 3;
   grid-row: 1;
   width: 32px;
@@ -112,17 +112,17 @@
   align-self: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.045);
-  color: #a3a3a3;
-  font-size: 16px;
-  font-weight: 900;
-  line-height: 1;
+  background-color: rgba(255, 255, 255, 0.045);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 17px 17px;
   transition:
     transform 180ms ease,
-    color 180ms ease,
     border-color 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease;
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
 }
 
 .command-page-v2 .quick-card:hover {
@@ -144,11 +144,11 @@
 }
 
 .command-page-v2 .quick-card:hover::after {
-  transform: translateX(3px);
-  color: #fff;
+  transform: translate(2px, -2px);
   border-color: rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.14);
+  background-color: rgba(239, 68, 68, 0.14);
   box-shadow: 0 0 18px rgba(239, 68, 68, 0.1);
+  filter: brightness(1.45);
 }
 
 .command-page-v2 .quick-card:focus-visible {
@@ -179,35 +179,37 @@
 }
 
 .command-page-v2 .quick-card-icon::before {
-  font-size: 18px;
-  line-height: 1;
+  content: "";
+  width: 23px;
+  height: 23px;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 23px 23px;
 }
 
 .command-page-v2 .quick-card[href="/reception"] .quick-card-icon::before {
-  content: "⌁";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='12' x='3' y='4' rx='2'/%3E%3Cpath d='m9 10 2 2 4-4'/%3E%3Cpath d='M8 20h8'/%3E%3Cpath d='M12 16v4'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/customers/new"] .quick-card-icon::before {
-  content: "+";
-  font-size: 23px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' x2='19' y1='8' y2='14'/%3E%3Cline x1='22' x2='16' y1='11' y2='11'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/payments"] .quick-card-icon::before {
-  content: "€";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='13' x='3' y='6' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3Cpath d='M7 15h2'/%3E%3Cpath d='M11 15h2'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/notifications"] .quick-card-icon::before {
-  content: "!";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.268 21a2 2 0 0 0 3.464 0'/%3E%3Cpath d='M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/access-control"] .quick-card-icon::before {
-  content: "↳";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/system/staff"] .quick-card-icon::before {
-  content: "S";
-  font-size: 16px;
-  letter-spacing: -0.02em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M22 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card-title {
@@ -228,9 +230,39 @@
   align-self: start;
   min-width: 0;
   color: #9f9fa6;
-  font-size: 11.5px;
+  font-size: 0;
   font-weight: 700;
   line-height: 1.45;
+}
+
+.command-page-v2 .quick-card-description::before {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.command-page-v2 .quick-card[href="/reception"] .quick-card-description::before {
+  content: "Clienti, accessi e operazioni quotidiane.";
+}
+
+.command-page-v2 .quick-card[href="/customers/new"] .quick-card-description::before {
+  content: "Registra anagrafica, contatti e dati iniziali.";
+}
+
+.command-page-v2 .quick-card[href="/payments"] .quick-card-description::before {
+  content: "Registra pagamenti, rinnovi e ricevute.";
+}
+
+.command-page-v2 .quick-card[href="/notifications"] .quick-card-description::before {
+  content: "Scadenze, anomalie e attivita da gestire.";
+}
+
+.command-page-v2 .quick-card[href="/access-control"] .quick-card-description::before {
+  content: "Controllo credenziali, accessi e registro eventi.";
+}
+
+.command-page-v2 .quick-card[href="/system/staff"] .quick-card-description::before {
+  content: "Gestisci operatori, ruoli e Staff Mobile Pass.";
 }
 
 @media (max-width: 1220px) {
