@@ -65,9 +65,9 @@ const paymentMethods = [
 
 const accessTypes = [
   { id: "none", label: "Nessuna credenziale ora" },
-  { id: "card", label: "Solo card / badge" },
+  { id: "card", label: "Solo card / badge (assegnabile dopo)" },
   { id: "qr", label: "Solo QR Code" },
-  { id: "qr_card", label: "QR Code + card" },
+  { id: "qr_card", label: "QR Code + card (badge assegnabile dopo)" },
 ];
 
 function accessTypeLabel(value: string) {
@@ -294,16 +294,6 @@ export default function NewCustomerPage() {
 
     if (!form.privacy_consent) {
       setMessage("Il consenso privacy è obbligatorio.");
-      return;
-    }
-
-    if (
-      (form.access_type === "card" || form.access_type === "qr_card") &&
-      !form.badge_code.trim()
-    ) {
-      setMessage(
-        "Per usare la card devi inserire il codice badge / card RFID.",
-      );
       return;
     }
 
@@ -801,10 +791,13 @@ export default function NewCustomerPage() {
               />
               <div className="badge-rfid-field">
                 <Field
-                  label="Codice badge / card RFID"
+                  label="Codice badge / card RFID (opzionale)"
                   value={form.badge_code}
                   onChange={(v) => update("badge_code", v)}
                 />
+                <div className="hint">
+                  Puoi completare l'iscrizione senza badge e assegnarlo successivamente dalla scheda cliente.
+                </div>
                 {form.badge_code.trim() ? (
                   <div className={badgePreview.controllerCode ? "bridge-preview" : "bridge-preview bridge-preview-warning"}>
                     <span>Codice bridge calcolato</span>
