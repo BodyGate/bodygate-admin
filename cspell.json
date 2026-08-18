@@ -1,0 +1,11 @@
+{
+  "version": "0.2",
+  "language": "it,en",
+  "import": ["@cspell/dict-it-it/cspell-ext.json"],
+  "files": [
+    "app/ui-lab/platinum/**/*.{ts,tsx}",
+    "components/bodygate-ui/**/*.{ts,tsx,css}"
+  ],
+  "ignorePaths": ["node_modules", ".next"],
+  "words": ["BodyGate", "Platinum", "Moretti", "Romano", "Bianchi", "Ferri", "topbar"]
+}
