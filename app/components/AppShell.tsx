@@ -35,6 +35,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     isReceiptPage ||
     isContractPrintPage;
 
+  const isIsolatedUiLab = pathname.startsWith("/ui-lab/platinum");
+
+  if (isIsolatedUiLab) {
+    return children;
+  }
+
   if (isPublicStandalonePage) {
     return (
       <main

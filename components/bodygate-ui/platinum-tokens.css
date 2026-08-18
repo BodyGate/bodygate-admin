@@ -1,0 +1,40 @@
+:root {
+  --platinum-canvas: #08090b;
+  --platinum-canvas-raised: #0d0f12;
+  --platinum-surface: #121419;
+  --platinum-surface-strong: #181b21;
+  --platinum-surface-hover: #1d2027;
+  --platinum-border: #292d35;
+  --platinum-border-strong: #3a3f49;
+  --platinum-text: #f7f7f8;
+  --platinum-text-secondary: #b5bac4;
+  --platinum-text-muted: #858b96;
+  --platinum-red: #e31b23;
+  --platinum-red-hover: #f02c34;
+  --platinum-red-dark: #9f1117;
+  --platinum-success: #42c985;
+  --platinum-warning: #f0b84b;
+  --platinum-danger: #ff6268;
+  --platinum-info: #7ca9ff;
+  --platinum-focus: #ff6d72;
+  --platinum-radius-sm: 8px;
+  --platinum-radius-md: 12px;
+  --platinum-radius-lg: 16px;
+  --platinum-shadow: 0 18px 54px rgb(0 0 0 / 32%);
+  --platinum-space-1: 4px;
+  --platinum-space-2: 8px;
+  --platinum-space-3: 12px;
+  --platinum-space-4: 16px;
+  --platinum-space-5: 20px;
+  --platinum-space-6: 24px;
+  --platinum-space-8: 32px;
+  --platinum-sidebar: 264px;
+  --platinum-header: 72px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
