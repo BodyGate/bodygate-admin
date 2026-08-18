@@ -4,8 +4,12 @@
   "import": ["@cspell/dict-it-it/cspell-ext.json"],
   "files": [
     "app/ui-lab/platinum/**/*.{ts,tsx}",
-    "components/bodygate-ui/**/*.{ts,tsx,css}"
+    "components/bodygate-ui/**/*.{ts,tsx,css}",
+    "architecture/deprecation-registry.mts",
+    "docs/deprecation-evidence-registry.md",
+    "scripts/scan-deprecations.mjs",
+    "tests/deprecation-registry.test.mjs"
   ],
   "ignorePaths": ["node_modules", ".next"],
-  "words": ["BodyGate", "Platinum", "Moretti", "Romano", "Bianchi", "Ferri", "topbar"]
+  "words": ["BodyGate", "Platinum", "Moretti", "Romano", "Bianchi", "Ferri", "topbar", "DNake", "bgmetriccard"]
 }
