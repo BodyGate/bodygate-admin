@@ -11,6 +11,7 @@
     "qa:writing": "cspell --config cspell.json",
     "qa:routes": "node --test tests/route-governance.test.mjs",
     "qa:navigation": "node --test tests/navigation-governance.test.mjs",
+    "qa:deprecations": "node --test tests/deprecation-registry.test.mjs && node scripts/scan-deprecations.mjs --check",
     "start:bodygate": "powershell -ExecutionPolicy Bypass -File scripts/start-bodygate.ps1",
     "install:startup": "powershell -ExecutionPolicy Bypass -File scripts/install-bodygate-startup-task.ps1",
     "qa:responsive": "playwright test tests/responsive.spec.ts"
