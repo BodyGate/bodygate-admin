@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "qa:writing": "cspell --config cspell.json",
+    "qa:routes": "node --test tests/route-governance.test.mjs",
     "start:bodygate": "powershell -ExecutionPolicy Bypass -File scripts/start-bodygate.ps1",
     "install:startup": "powershell -ExecutionPolicy Bypass -File scripts/install-bodygate-startup-task.ps1",
     "qa:responsive": "playwright test tests/responsive.spec.ts"
