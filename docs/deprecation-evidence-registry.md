@@ -1,12 +1,28 @@
 # Deprecation evidence registry
 
-This registry records evidence; it authorizes **no deletion or runtime change**. The reproducible scanner reads only `git ls-files`, performs no network, database or device access, writes nothing, emits sorted `file:line` evidence, and distinguishes definitions, imports, calls, documentation and other text. Run `npm run qa:deprecations`; run `node scripts/scan-deprecations.mjs` for JSON evidence.
+This registry records evidence and preserves tombstones for completed removals; it authorizes **no runtime change**. The reproducible scanner reads only `git ls-files`, performs no network, database or device access, writes nothing, emits sorted `file:line` evidence, and distinguishes definitions, imports, calls, documentation and other text. Run `npm run qa:deprecations`; run `node scripts/scan-deprecations.mjs` for JSON evidence.
+
+## Safe Cleanup 1 disposition
+
+The seven scoped files below were removed after independent, case-insensitive searches across Git-tracked files found no static importer, barrel export, dynamic import, `require`, JSX use, test, story, script, documentation consumer, route reference, generated loader, or cross-candidate dependency. The `@/*` alias resolves to the repository root, `package.json` declares no package exports, and no candidate was re-exported from a tracked `index` file. TypeScript graph compilation, scoped lint, and the production build are required post-removal gates.
+
+| Historical path | Disposition | Static references found | Shared or runtime asset decision | Rollback |
+|---|---|---|---|---|
+| `app/components/CustomersTable.backup.tsx` | removed; tombstone retained | definition and registry evidence only; active `CustomersTable` JSX resolves to the separate non-backup module | embedded styles only; no shared asset removed | restore from the cleanup commit |
+| `app/components/Sidebar.backup.tsx` | removed; tombstone retained | definition and registry evidence only; active `Sidebar` JSX resolves to the separate non-backup module | inline styles only; no shared asset removed | restore from the cleanup commit |
+| `app/components/bodygate-v2/BGMetricCard.tsx` | removed; tombstone retained | definition and registry evidence only | shared `bodygate-v2.css` retained because the V2 family is active | restore from the cleanup commit |
+| `app/components/ui/BGContentGrid.tsx` | removed; tombstone retained | definition and registry evidence only | shared CSS selectors retained because active markup uses `bg-content-grid` | restore from the cleanup commit |
+| `app/components/ui/BGFormPanel.tsx` | removed; tombstone retained | definition and registry evidence only | shared CSS selectors retained because active markup uses `bg-form-panel` | restore from the cleanup commit |
+| `app/components/ui/BGInlineAlert.tsx` | removed; tombstone retained | definition and registry evidence only | shared stylesheet retained | restore from the cleanup commit |
+| `app/components/ui/BGPremiumTabs.tsx` | removed; tombstone retained | definition and registry evidence only | shared stylesheet retained | restore from the cleanup commit |
+
+These are high-confidence **static** dispositions, not runtime verification: every `runtimeEvidence` list remains empty, every confidence remains `high` rather than `verified`, and the production-observation evidence gap remains recorded. No route, API, navigation entry, CSS file, or other runtime file was removed or modified.
 
 ## Decision matrix
 
 | Candidate | Confirmed duplication | Functional difference | Static evidence | Missing runtime evidence | Proposed decision | Risk | Prerequisites | Rollback |
 |---|---|---|---|---|---|---|---|---|
-| `*.backup.tsx` (2 files) | Snapshot counterparts exist | Historical implementation may differ | No tracked caller found | Deployment/import logs | remove after evidence | medium/high | 30-day observation; owner approval | restore removal commit |
+| `*.backup.tsx` (2 files) | Snapshot counterparts exist | Historical implementation may differ | Removed in Safe Cleanup 1 after no tracked caller was found | Deployment/import logs remain absent | removed; tombstones retained | medium/high | static gates completed; runtime evidence remains explicitly unclaimed | restore removal commit |
 | `/settings/modules` | None established | Placeholder copy plus client shell | Manifest says placeholder; navigation reference exists | Page views and operator workflow | hide from standard navigation | high | confirm no operational procedure | restore navigation entry |
 | `/api/admin/test` | None | Diagnostic API | No tracked caller beyond definition | Access logs/external scripts | remove after evidence | high | 30-day zero calls; Platform approval | restore route and deploy |
 | `/ui-lab` | Lab purpose established | General component lab | Developer/lab manifest classification | Authenticated page views | hide from standard navigation | low | Design System approval | restore exposure |
@@ -19,11 +35,11 @@ This registry records evidence; it authorizes **no deletion or runtime change**.
 | Customer creation APIs | Intent overlaps | Payload, validation and transaction behavior differ | Both route implementations exist | Contract and transaction parity | merge after parity | critical | adapter and rollback metrics | retain both endpoints |
 | Medical-certificate API families | Domain overlaps | Customer-scoped versus update payload/storage flow | Each has a distinct UI caller | Payload/error/storage parity | merge after parity | critical | adapter; contract tests; CRM approval | retain both families |
 | V2 and UI primitives | Conceptual Button/Card/Metric overlap | Props, styling and states differ | Separate implementations; V2 has live consumers | Visual/interaction parity | merge after parity | high | adapter and visual approval | keep both families |
-| Five definition-only components | None established | Unknown | Exact symbol/path has no tracked importer | Dynamic/external consumers | remove after evidence | low/medium | build plus 30-day observation | restore files |
+| Five definition-only components | None established | Unknown | Removed in Safe Cleanup 1 after exact symbol/path and loader scans found no tracked consumer | Dynamic/external consumers remain unobserved | removed; tombstones retained | low/medium | static gates completed; runtime evidence remains explicitly unclaimed | restore files |
 
 ## Disposition groups
 
-1. **Eligible after minimum verification:** the two backups, `/api/admin/test`, and the five definition-only components. “High” confidence describes static evidence only; none is `verified`.
+1. **Removed with static tombstones:** the two backups and five definition-only components were removed by Safe Cleanup 1. `/api/admin/test` remains active and only eligible after its separate evidence gates. “High” confidence describes static evidence only; none is `verified`.
 2. **Hide only:** `/settings/modules` and `/ui-lab`, after owner confirmation. This PR does not hide either route.
 3. **Merge after parity:** Customers V2, both customer-creation endpoints, both medical-certificate families, and overlapping V2/UI primitives. Use adapters rather than deletion.
 4. **Observe with telemetry:** every candidate, especially externally callable APIs. Static absence is never proof of zero production use.

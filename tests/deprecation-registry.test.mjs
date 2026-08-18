@@ -12,7 +12,11 @@ test("registry IDs are unique and declared repository paths exist", () => {
   for (const item of DEPRECATION_CANDIDATES) {
     assert.ok(PROPOSED_DECISIONS.includes(item.proposedDecision));
     assert.ok(CONFIDENCE_LEVELS.includes(item.confidence));
+    assert.ok(["active", "removed"].includes(item.repositoryState), `${item.id}: repository state`);
     for (const repositoryPath of item.repositoryPaths) assert.ok(existsSync(repositoryPath), `${item.id}: ${repositoryPath}`);
+    for (const historicalPath of item.historicalPaths) {
+      assert.ok(!item.repositoryPaths.includes(historicalPath), `${item.id}: historical path declared active`);
+    }
   }
 });
 
@@ -40,8 +44,33 @@ test("critical, token, access and hardware candidates cannot be immediately remo
   }
 });
 
-test("mandatory candidate definitions remain tracked and the registry is architecture-only", () => {
-  const mandatory = ["app/components/CustomersTable.backup.tsx", "app/components/Sidebar.backup.tsx", "app/api/admin/test/route.ts", "app/access/check/route.ts"];
+test("cleanup candidates have explicit active or tombstone evidence", () => {
+  const cleanupCandidates = new Set([
+    "app/components/CustomersTable.backup.tsx",
+    "app/components/Sidebar.backup.tsx",
+    "app/components/bodygate-v2/BGMetricCard.tsx",
+    "app/components/ui/BGContentGrid.tsx",
+    "app/components/ui/BGFormPanel.tsx",
+    "app/components/ui/BGInlineAlert.tsx",
+    "app/components/ui/BGPremiumTabs.tsx",
+  ]);
+  const governed = DEPRECATION_CANDIDATES.filter(({ path }) => cleanupCandidates.has(path));
+  assert.deepEqual(new Set(governed.map(({ path }) => path)), cleanupCandidates);
+  for (const item of governed) {
+    assert.ok(item.directReferences.length + item.indirectReferences.length + item.documentationReferences.length > 0, `${item.id}: tombstone evidence`);
+    assert.ok(item.rollbackPlan, `${item.id}: rollback`);
+    if (item.repositoryState === "active") assert.ok(existsSync(item.path), `${item.path} must exist while active`);
+    else {
+      assert.ok(item.historicalPaths.includes(item.path), `${item.id}: historical path`);
+      assert.ok(!existsSync(item.path), `${item.path} must be absent after removal`);
+      assert.equal(item.runtimeEvidence.length, 0, `${item.id}: static cleanup must not claim runtime evidence`);
+      assert.notEqual(item.confidence, "verified", `${item.id}: static cleanup cannot be verified`);
+    }
+  }
+});
+
+test("protected and unrelated mandatory files remain present", () => {
+  const mandatory = ["app/api/admin/test/route.ts", "app/access/check/route.ts"];
   for (const file of mandatory) assert.ok(existsSync(file), `${file} must not be deleted`);
   let output = "";
   try {
