@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
-import BGInput from "@/components/bodygate-ui/BGInput";
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
+import { BGButton, BGEmptyState, BGInput, BGStatusBadge } from "@/components/bodygate-ui";
+import { adaptCustomerRow } from "@/architecture/platinum-runtime-adapters";
 
 type Customer = {
   id: string;
@@ -85,14 +83,11 @@ function normalize(value?: string | null) {
 }
 
 function getName(customer: Customer) {
-  const full = customer.full_name?.trim();
-  const composed =
-    `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
-  return full || composed || "Cliente senza nome";
+  return adaptCustomerRow(customer)?.name || "Non disponibile";
 }
 
 function getBadgeCode(customer: Customer) {
-  return String(customer.badge_code || customer.controller_code || "").trim();
+  return adaptCustomerRow(customer)?.badgeCode || "";
 }
 
 function formatSubscriptionStatus(value: string | null, active: boolean) {

@@ -53,3 +53,38 @@ test("la shell preserva logout e permesso Incassi senza dipendere dal Lab", asyn
   assert.match(platinumShell, /fetch\("\/api\/auth\/logout", \{ method: "POST" \}\)/)
   assert.doesNotMatch(`${appShell}\n${platinumShell}`, /preview-content/)
 })
+
+test("gli adapter Clienti preservano identificativi e valori reali senza inventare fallback economici", async () => {
+  const adapters = await loadAdapters()
+  const row = adapters.adaptCustomerRow({ id: "customer-1", first_name: " Ada ", last_name: "Lovelace", active: true, subscription_expiry: null })
+  assert.deepEqual(row.name, "Ada Lovelace")
+  assert.equal(row.id, "customer-1")
+  assert.equal(row.subscriptionExpiry, null)
+  assert.equal(adapters.adaptCustomerRow({ first_name: "Senza id" }), null)
+  assert.equal(adapters.adaptMembershipFee({ id: "fee-1", amount: 0 }).amount, 0)
+  assert.equal(adapters.adaptMembershipFee({ id: "fee-2" }).amount, null)
+  assert.equal(adapters.adaptDisplayedPayment({ id: "pay-1", amount: 12.5 }).id, "pay-1")
+  assert.equal(adapters.adaptDisplayedReceipt({ id: "receipt-1", payment_id: "pay-1" }).paymentId, "pay-1")
+  assert.equal(adapters.adaptCustomerDocument({ id: "doc-1" }).url, null)
+  assert.equal(adapters.adaptRecentAccess({ id: "access-1" }).occurredAt, null)
+  assert.equal(adapters.adaptCustomerTimelineItem({ id: "event-1" }).detail, null)
+})
+
+test("il modulo Clienti usa la facade e conserva i contratti operativi", async () => {
+  const paths = [
+    "app/customers/page.tsx", "app/customers/new/page.tsx", "app/customers/[id]/page.tsx",
+    "app/customers/[id]/edit/page.tsx", "app/components/CustomersTable.tsx",
+    "app/customers/[id]/CustomerDetailsClient.tsx", "app/customers/components/CustomerReceiptsHistory.tsx",
+  ]
+  const sources = await Promise.all(paths.map(read))
+  const joined = sources.join("\n")
+  assert.doesNotMatch(joined, /components\/bodygate-ui\/(?!index)/)
+  assert.doesNotMatch(joined, /preview-content|app\/ui-lab|ui-lab\/platinum/)
+  assert.match(joined, /\/api\/customers\/list\?status=/)
+  assert.match(joined, /postJson\("\/api\/customers\/create-platinum"/)
+  assert.match(joined, /"Idempotency-Key": operationId/)
+  assert.match(joined, /\/api\/customers\/update-profile/)
+  assert.match(joined, /\/api\/customers\/renew-membership-fee/)
+  assert.match(joined, /\/api\/customers\/renew-subscription/)
+  assert.match(joined, /\/api\/customers\/update-subscription/)
+})

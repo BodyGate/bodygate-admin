@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGInput from "@/components/bodygate-ui/BGInput";
-import BGSelect from "@/components/bodygate-ui/BGSelect";
+import { BGButton, BGInput, BGPageHeader, BGSelect } from "@/components/bodygate-ui";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 import { safeRandomId } from "../../lib/safeRandomId";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
@@ -237,6 +234,8 @@ export default function NewCustomerPage() {
   }
 
   useEffect(() => {
+    // Preserve the existing coupled badge defaults when either operational input changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((current) => {
       const canDeliverBadge = (current.access_type === "card" || current.access_type === "qr_card") && Boolean(current.badge_code.trim());
       if (!canDeliverBadge && current.badge_charge_mode !== "not_included") return { ...current, badge_charge_mode: "not_included" };
@@ -376,6 +375,8 @@ export default function NewCustomerPage() {
           color: white;
           display: grid;
           gap: 22px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         form {
@@ -383,11 +384,13 @@ export default function NewCustomerPage() {
           grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
           gap: 22px;
           align-items: start;
+          min-width: 0;
         }
 
         .sections {
           display: grid;
           gap: 18px;
+          min-width: 0;
         }
 
         .card {
@@ -437,6 +440,9 @@ export default function NewCustomerPage() {
             rgba(8, 8, 10, 0.96);
           box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
           backdrop-filter: blur(14px);
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
         }
 
         .summary-title {
@@ -467,6 +473,8 @@ export default function NewCustomerPage() {
           justify-self: end;
           text-align: right;
           line-height: 1.25;
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .total {
@@ -482,6 +490,13 @@ export default function NewCustomerPage() {
           width: 100%;
           min-height: 54px;
           font-size: 15px;
+        }
+
+        .summary :global(button),
+        .summary :global(a) {
+          max-width: 100%;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .branch-card {
@@ -552,12 +567,17 @@ export default function NewCustomerPage() {
             position: relative;
             top: 0;
           }
+
+          .grid,
+          .grid-3 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
         }
 
         @media (max-width: 720px) {
           .grid,
           .grid-3 {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
           }
 
           .card,
@@ -796,7 +816,7 @@ export default function NewCustomerPage() {
                   onChange={(v) => update("badge_code", v)}
                 />
                 <div className="hint">
-                  Puoi completare l'iscrizione senza badge e assegnarlo successivamente dalla scheda cliente.
+                  Puoi completare l&apos;iscrizione senza badge e assegnarlo successivamente dalla scheda cliente.
                 </div>
                 {form.badge_code.trim() ? (
                   <div className={badgePreview.controllerCode ? "bridge-preview" : "bridge-preview bridge-preview-warning"}>
