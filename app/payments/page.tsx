@@ -1,6 +1,6 @@
+import { BGPageShell } from "@/components/bodygate-ui";
 import PaymentsClient from "@/app/components/payments/PaymentsClient";
 import PermissionGuard from "@/app/components/security/PermissionGuard";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function PaymentsPage() {
   return (

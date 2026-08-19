@@ -178,8 +178,8 @@ export default function StaffManagerClient() {
   }
 
   return (
-    <main style={styles.page}>
-      <section style={styles.hero}>
+    <main className="staff-manager-runtime" style={styles.page}>
+      <section className="staff-manager-runtime__hero" style={styles.hero}>
         <div>
           <p style={styles.kicker}>Sistema</p>
           <h1 style={styles.title}>Staff e Ruoli</h1>
@@ -189,13 +189,13 @@ export default function StaffManagerClient() {
           </p>
         </div>
 
-        <div style={styles.statBox}>
+        <div className="staff-manager-runtime__stat" style={styles.statBox}>
           <span style={styles.statNumber}>{activeStaff}</span>
           <span style={styles.statLabel}>Staff attivi</span>
         </div>
       </section>
 
-      <section style={styles.grid}>
+      <section className="staff-manager-runtime__grid" style={styles.grid}>
         <form onSubmit={createStaffUser} style={styles.card}>
           <h2 style={styles.cardTitle}>Nuovo utente staff</h2>
 

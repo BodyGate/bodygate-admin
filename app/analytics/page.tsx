@@ -1,6 +1,5 @@
+import { BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function AnalyticsPage() {
   return (

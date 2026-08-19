@@ -1352,3 +1352,42 @@
     font-size: 0 !important;
   }
 }
+
+
+/* Platinum runtime responsive findings */
+.notification-center-runtime,
+.staff-manager-runtime {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .notification-center-runtime,
+  .staff-manager-runtime {
+    padding: 16px !important;
+  }
+
+  .notification-center-runtime__hero,
+  .staff-manager-runtime__hero {
+    align-items: stretch !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 22px !important;
+  }
+
+  .notification-center-runtime__hero button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .staff-manager-runtime__stat {
+    box-sizing: border-box;
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .staff-manager-runtime__grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

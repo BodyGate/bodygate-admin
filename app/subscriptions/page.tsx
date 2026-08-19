@@ -1,13 +1,7 @@
 "use client";
 
+import { BGButton, BGCard, BGEmptyState, BGPageHeader, BGPageShell, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
-import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
-import BGStatCard from "@/components/bodygate-ui/BGStatCard";
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
 import { supabase } from "../lib/supabaseClient";
 
 type Customer = {
