@@ -11,5 +11,6 @@
     "tests/deprecation-registry.test.mjs"
   ],
   "ignorePaths": ["node_modules", ".next"],
+  "ignoreRegExpList": ["dall’account"],
   "words": ["BodyGate", "Platinum", "Moretti", "Romano", "Bianchi", "Ferri", "topbar", "DNake", "bgmetriccard"]
 }

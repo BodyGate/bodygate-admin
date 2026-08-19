@@ -46,7 +46,7 @@ function OperationalShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PlatinumAppShell
-      runtime
+      mode="runtime"
       systemStatus="Da verificare"
       paymentsAccess={
         permissionsLoading ? "loading" : hasPermission("view_payments") ? "allowed" : "denied"
