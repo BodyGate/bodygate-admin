@@ -1,5 +1,5 @@
 import CustomersTable from "../components/CustomersTable";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
+import { BGPageShell } from "@/components/bodygate-ui";
 
 export default function CustomersPage() {
   return (

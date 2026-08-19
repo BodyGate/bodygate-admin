@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import CustomerForm from "../../../components/CustomerForm";
+import { BGButton, BGEmptyState, BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
 
 type Props = {
   params: Promise<{
@@ -24,60 +24,17 @@ export default async function EditCustomerPage({ params }: Props) {
 
   if (!customer) {
     return (
-      <main style={{ color: "var(--text)" }}>
-        Cliente non trovato.
-      </main>
+      <BGPageShell>
+        <BGEmptyState title="Cliente non trovato" description="Non è stato possibile caricare i dati del cliente richiesto." />
+        <BGButton href="/customers" variant="secondary">Torna ai clienti</BGButton>
+      </BGPageShell>
     );
   }
 
   return (
-    <main style={{ display: "grid", gap: "24px" }}>
-      <div>
-        <Link
-          href={`/customers/${id}`}
-          style={{
-            color: "var(--accent)",
-            fontWeight: "bold",
-            textDecoration: "none",
-          }}
-        >
-          ← Torna alla scheda cliente
-        </Link>
-
-        <div
-          style={{
-            color: "var(--muted)",
-            fontSize: "13px",
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            marginTop: "28px",
-          }}
-        >
-          BODYGATE CUSTOMERS
-        </div>
-
-        <h1
-          style={{
-            margin: "12px 0 0 0",
-            fontSize: "54px",
-            lineHeight: 1,
-          }}
-        >
-          Modifica cliente
-        </h1>
-
-        <div
-          style={{
-            marginTop: "14px",
-            color: "var(--muted)",
-            fontSize: "18px",
-          }}
-        >
-          Aggiorna anagrafica, badge, abbonamento e stato accesso.
-        </div>
-      </div>
-
+    <BGPageShell>
+      <BGPageHeader eyebrow="BodyGate · Clienti" title="Modifica cliente" subtitle="Aggiorna anagrafica, badge, abbonamento e stato accesso." actions={<BGButton href={`/customers/${id}`} variant="ghost">Torna alla scheda cliente</BGButton>} />
       <CustomerForm mode="edit" customer={customer} />
-    </main>
+    </BGPageShell>
   );
 }
