@@ -2,13 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
-import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
-import BGStatCard from "@/components/bodygate-ui/BGStatCard";
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
+import { BGButton, BGCard, BGEmptyState, BGPageHeader, BGPageShell, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
+import { adaptDashboardOverview } from "@/architecture/platinum-runtime-adapters";
 
 type DashboardAccessItem = {
   id?: string | number | null;
@@ -62,12 +57,13 @@ type DashboardOverview = {
   latest_access: DashboardAccessItem[];
 };
 
-function euro(value: number) {
+function euro(value: number | null) {
+  if (value === null) return "Dato non disponibile";
   return new Intl.NumberFormat("it-IT", {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
-  }).format(value || 0);
+  }).format(value);
 }
 
 function dateTime(value?: string | null) {
@@ -142,24 +138,25 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const totalAlerts = useMemo(() => {
-    if (!data) return 0;
-
-    return (
-      data.alerts.expired_medical.length +
-      data.alerts.expiring_medical.length +
-      data.alerts.expired_subscriptions.length +
-      data.alerts.expiring_subscriptions.length +
-      data.kpis.active_blocks
-    );
-  }, [data]);
-
   const bridgeStatus = data?.bridge?.status || "unknown";
   const bridgeOnline = bridgeStatus === "online" || bridgeStatus === "ok";
+  const view = useMemo(() => adaptDashboardOverview(data), [data]);
+  const display = (value: string | number | null) => value ?? "Dato non disponibile";
+  const alertLists = {
+    expiredMedical: Array.isArray(data?.alerts?.expired_medical) ? data.alerts.expired_medical : null,
+    expiringMedical: Array.isArray(data?.alerts?.expiring_medical) ? data.alerts.expiring_medical : null,
+    expiredSubscriptions: Array.isArray(data?.alerts?.expired_subscriptions) ? data.alerts.expired_subscriptions : null,
+    expiringSubscriptions: Array.isArray(data?.alerts?.expiring_subscriptions) ? data.alerts.expiring_subscriptions : null,
+  };
+  const alertsComplete = Object.values(view.alertCounts).every(value => value !== null) && view.kpis.activeBlocks !== null;
+  const totalAlerts = alertsComplete
+    ? Object.values(view.alertCounts).reduce<number>((total, value) => total + (value ?? 0), view.kpis.activeBlocks ?? 0)
+    : null;
+  const latestAccess = Array.isArray(data?.latest_access) ? data.latest_access : null;
 
   return (
     <main className="command-page-v2">
-      <style jsx>{`
+      <style jsx global>{`
         .command-page-v2 {
           min-height: 100vh;
           padding: 26px;
@@ -182,6 +179,15 @@ export default function DashboardPage() {
           grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: 14px;
           margin-bottom: 18px;
+        }
+
+        .runtime-kpi > div > div:nth-child(2) {
+          overflow-wrap: anywhere;
+        }
+
+        .runtime-kpi[data-missing="true"] > div > div:nth-child(2) {
+          font-size: clamp(1.15rem, 1.55vw, 1.65rem);
+          line-height: 1.15;
         }
 
         .command-grid {
@@ -442,18 +448,18 @@ export default function DashboardPage() {
         }
       />
 
-      {loading && <div className="loading">Caricamento Command Center...</div>}
-      {errorMessage && <div className="error">{errorMessage}</div>}
+      {loading && <div className="loading" role="status">In aggiornamento</div>}
+      {errorMessage && <div className="error" role="alert">{errorMessage} <BGButton variant="secondary" onClick={loadDashboard}>Riprova</BGButton></div>}
 
       {!loading && data && (
         <>
           <section className="kpi-grid">
-            <BGStatCard label="Clienti attivi" value={data.kpis.active_customers} note="Anagrafiche operative" />
-            <BGStatCard label="Accessi oggi" value={data.kpis.accesses_today} note="Ingressi registrati" tone="green" />
-            <BGStatCard label="Negati oggi" value={data.kpis.denied_today} note="Accessi da monitorare" tone={data.kpis.denied_today > 0 ? "red" : "neutral"} />
-            <BGStatCard label="Incassi oggi" value={euro(data.kpis.revenue_today)} note="Pagamenti registrati" tone="green" />
-            <BGStatCard label="Incassi mese" value={euro(data.kpis.revenue_month)} note="Mese corrente" tone="blue" />
-            <BGStatCard label="Blocchi attivi" value={data.kpis.active_blocks} note="Clienti da verificare" tone={data.kpis.active_blocks > 0 ? "red" : "neutral"} />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.activeCustomers === null} label="Clienti attivi" value={display(view.kpis.activeCustomers)} note="Anagrafiche operative" />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.accessesToday === null} label="Accessi oggi" value={display(view.kpis.accessesToday)} note="Ingressi registrati" tone="green" />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.deniedToday === null} label="Negati oggi" value={display(view.kpis.deniedToday)} note="Accessi da monitorare" tone={(view.kpis.deniedToday ?? 0) > 0 ? "red" : "neutral"} />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.revenueToday === null} label="Incassi oggi" value={euro(view.kpis.revenueToday)} note="Pagamenti registrati" tone="green" />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.revenueMonth === null} label="Incassi mese" value={euro(view.kpis.revenueMonth)} note="Mese corrente" tone="blue" />
+            <BGStatCard className="runtime-kpi" data-missing={view.kpis.activeBlocks === null} label="Blocchi attivi" value={display(view.kpis.activeBlocks)} note="Clienti da verificare" tone={(view.kpis.activeBlocks ?? 0) > 0 ? "red" : "neutral"} />
           </section>
 
           <section className="command-grid">
@@ -461,26 +467,26 @@ export default function DashboardPage() {
               <BGCard>
               <div className="panel-title-row">
                 <div className="panel-title">Alert operativi</div>
-                <BGStatusBadge tone={totalAlerts > 0 ? "warning" : "success"}>
-                  {totalAlerts > 0 ? `${totalAlerts} alert` : "Tutto ok"}
+                <BGStatusBadge tone={totalAlerts === null || totalAlerts > 0 ? "warning" : "success"}>
+                  {totalAlerts === null ? "Da verificare" : totalAlerts > 0 ? `${totalAlerts} alert` : "Tutto ok"}
                 </BGStatusBadge>
               </div>
 
               <div className="alert-grid">
                 <div className="alert-tile danger">
-                  <div className="alert-number">{data.alerts.expired_medical.length}</div>
+                  <div className="alert-number">{display(view.alertCounts.expiredMedical)}</div>
                   <div className="alert-label">Certificati scaduti</div>
                 </div>
                 <div className="alert-tile warning">
-                  <div className="alert-number">{data.alerts.expiring_medical.length}</div>
+                  <div className="alert-number">{display(view.alertCounts.expiringMedical)}</div>
                   <div className="alert-label">Certificati in scadenza</div>
                 </div>
                 <div className="alert-tile danger">
-                  <div className="alert-number">{data.alerts.expired_subscriptions.length}</div>
+                  <div className="alert-number">{display(view.alertCounts.expiredSubscriptions)}</div>
                   <div className="alert-label">Abbonamenti scaduti</div>
                 </div>
                 <div className="alert-tile warning">
-                  <div className="alert-number">{data.alerts.expiring_subscriptions.length}</div>
+                  <div className="alert-number">{display(view.alertCounts.expiringSubscriptions)}</div>
                   <div className="alert-label">Abbonamenti in scadenza</div>
                 </div>
               </div>
@@ -493,14 +499,14 @@ export default function DashboardPage() {
               </div>
 
               <div className="access-list">
-                {data.latest_access.length === 0 && (
+                {latestAccess === null ? <BGEmptyState title="Dato non disponibile" description="Gli accessi recenti non sono presenti nella risposta." /> : latestAccess.length === 0 && (
                   <BGEmptyState
                     title="Nessun accesso recente"
                     description="Gli ingressi appariranno qui appena registrati."
                   />
                 )}
 
-                {data.latest_access.map((item) => (
+                {(latestAccess ?? []).map((item) => (
                   <div className="access-item" key={item.id || `${item.created_at}-${accessPersonName(item)}`}>
                     <span className={`dot ${item.allowed ? "ok" : "no"}`} />
 
@@ -579,15 +585,17 @@ export default function DashboardPage() {
               </div>
 
               <div className="deadline-list">
-                {data.alerts.expiring_subscriptions.length === 0 &&
-                  data.alerts.expiring_medical.length === 0 && (
+                {alertLists.expiringSubscriptions === null || alertLists.expiringMedical === null ? (
+                  <BGEmptyState title="Dato non disponibile" description="Le scadenze non sono presenti nella risposta." />
+                ) : alertLists.expiringSubscriptions.length === 0 &&
+                  alertLists.expiringMedical.length === 0 && (
                     <BGEmptyState
                       title="Nessuna scadenza imminente"
                       description="Abbonamenti e certificati risultano sotto controllo."
                     />
                   )}
 
-                {data.alerts.expiring_subscriptions.map((item) => {
+                {(alertLists.expiringSubscriptions ?? []).map((item) => {
                   const customerName =
                     item.customer_name ||
                     `${item.first_name || ""} ${item.last_name || ""}`.trim() ||
@@ -610,7 +618,7 @@ export default function DashboardPage() {
                   );
                 })}
 
-                {data.alerts.expiring_medical.map((item) => (
+                {(alertLists.expiringMedical ?? []).map((item) => (
                   <div className="access-item" key={`med-${item.id}`}>
                     <span className="dot no" />
                     <div>
@@ -632,4 +640,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
