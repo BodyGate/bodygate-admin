@@ -18,7 +18,8 @@
     "qa:platinum-screens": "node scripts/qa-platinum-screens.mjs",
     "qa:platinum-runtime": "node --test tests/platinum-runtime.test.mjs",
     "qa:platinum-customers": "node --test tests/platinum-customers.test.mjs",
-    "qa:platinum-completion": "node --test tests/platinum-completion.test.mjs"
+    "qa:platinum-completion": "node --test tests/platinum-completion.test.mjs",
+    "qa:platinum-visual-contract": "node --test tests/platinum-visual-contract.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

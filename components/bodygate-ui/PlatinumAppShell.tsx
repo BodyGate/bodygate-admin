@@ -2,55 +2,48 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Bell, LayoutGrid, LogOut, Menu, X } from "lucide-react"
+import { BarChart3, Bell, BookOpen, Building2, ChevronDown, CircleGauge, ClipboardList, CreditCard, DoorOpen, Fingerprint, IdCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, ShieldCheck, SlidersHorizontal, UserRound, Users, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { PLATINUM_SCREENS } from "@/architecture/platinum-screen-registry"
-import { PLATINUM_NAVIGATION } from "@/architecture/platinum-navigation"
+import { PLATINUM_GROUP_LABELS, PLATINUM_NAVIGATION, type PlatinumNavigationItem } from "@/architecture/platinum-navigation"
 import styles from "./platinum.module.css"
 import "./platinum-tokens.css"
 
-const groups = [...new Set(PLATINUM_SCREENS.map(screen => screen.navigationGroup))]
-function Brand() { return <Link href="/ui-lab/platinum" className={styles.brand}><span className={styles.brandMark}>BG</span><span><span className={styles.brandName}>BodyGate</span><span className={styles.brandEdition}>Platinum Lab</span></span></Link> }
-function ScreenNavigation({ activeScreen, onNavigate }: { activeScreen?: string; onNavigate?: () => void }) {
-  return <nav className={styles.nav} aria-label="Schermate Platinum">{groups.map(group => <section className={styles.navGroup} key={group}><h2 className={styles.navLabel}>{group}</h2>{PLATINUM_SCREENS.filter(screen => screen.navigationGroup === group).map(screen => <Link onClick={onNavigate} href={screen.prototypePath} className={`${styles.navItem} ${activeScreen === screen.id ? styles.navItemActive : ""}`} aria-current={activeScreen === screen.id ? "page" : undefined} key={screen.id}><span>{screen.label}</span></Link>)}</section>)}</nav>
-}
 type PaymentsAccess = "loading" | "allowed" | "denied"
+type ShellMode = "lab" | "runtime"
+type ShellBrand = { name: string; edition: string; href: string }
+type ShellOperator = { name: string; role: string; initials: string }
+type ShellStatus = { label: string; online: boolean }
 
-function RuntimeNavigation({ pathname, onNavigate, paymentsAccess }: { pathname: string; onNavigate?: () => void; paymentsAccess: PaymentsAccess }) {
-  return <nav className={styles.nav} aria-label="Navigazione operativa">{PLATINUM_NAVIGATION.map(item => {
-    const paymentsDenied = item.id === "payments" && paymentsAccess === "denied"
-    const label = paymentsDenied ? `${item.label} · Protetto / Permessi non configurati` : item.label
-    return paymentsDenied
-      ? <button key={item.id} type="button" className={styles.navItem} title={label} aria-label={label} disabled><span>{item.label}</span></button>
-      : <Link key={item.id} onClick={onNavigate} href={item.href} className={`${styles.navItem} ${(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) ? styles.navItemActive : ""}`}><span>{item.label}</span></Link>
-  })}</nav>
+const iconByName = { dashboard: LayoutDashboard, reception: DoorOpen, customers: Users, access: Fingerprint, payments: CreditCard, subscriptions: Receipt, notifications: Bell, training: BookOpen, reports: BarChart3, accounting: ClipboardList, staff: UserRound, settings: Settings, system: CircleGauge, credentials: IdCard, debug: SlidersHorizontal, audit: ShieldCheck } satisfies Record<PlatinumNavigationItem["icon"], typeof LayoutDashboard>
+
+function Brand({ brand }: { brand: ShellBrand }) { return <Link href={brand.href} className={styles.brand} aria-label={`${brand.name} ${brand.edition}`}><span className={styles.brandMark}>BG</span><span className={styles.brandCopy}><span className={styles.brandName}>{brand.name}</span><span className={styles.brandEdition}>{brand.edition}</span></span></Link> }
+
+function ScreenNavigation({ activeScreen, onNavigate }: { activeScreen?: string; onNavigate?: () => void }) {
+  const groups = [...new Set(PLATINUM_SCREENS.map(screen => screen.navigationGroup))]
+  return <nav className={styles.nav} aria-label="Schermate Platinum">{groups.map(group => <section className={styles.navGroup} key={group}><h2 className={styles.navLabel}>{group}</h2>{PLATINUM_SCREENS.filter(screen => screen.navigationGroup === group).map(screen => <Link onClick={onNavigate} href={screen.prototypePath} className={`${styles.navItem} ${activeScreen === screen.id ? styles.navItemActive : ""}`} aria-current={activeScreen === screen.id ? "page" : undefined} key={screen.id}><LayoutDashboard aria-hidden="true" /><span>{screen.label}</span></Link>)}</section>)}</nav>
 }
 
-export default function PlatinumAppShell({ children, activeScreen, runtime = false, systemStatus = "Da verificare", paymentsAccess = "allowed" }: { children: ReactNode; activeScreen?: string; runtime?: boolean; systemStatus?: string; paymentsAccess?: PaymentsAccess }) {
-  const [drawer, setDrawer] = useState(false)
-  const pathname = usePathname()
-  const menuTrigger = useRef<HTMLButtonElement>(null)
-  const drawerClose = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    if (!drawer) return
-    drawerClose.current?.focus()
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") { setDrawer(false); requestAnimationFrame(() => menuTrigger.current?.focus()) } }
-    document.addEventListener("keydown", closeOnEscape)
-    return () => document.removeEventListener("keydown", closeOnEscape)
-  }, [drawer])
-  const closeDrawer = () => { setDrawer(false); requestAnimationFrame(() => menuTrigger.current?.focus()) }
-  const Navigation = runtime ? <RuntimeNavigation pathname={pathname} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} />
-  const logout = async () => { await fetch("/api/auth/logout", { method: "POST" }).catch(() => null); window.location.href = "/login" }
-  return <div className={styles.shell}>
-    <aside className={styles.sidebar}>{runtime ? <Link href="/" className={styles.brand}><span className={styles.brandMark}>BG</span><span><span className={styles.brandName}>BodyGate</span><span className={styles.brandEdition}>Platinum</span></span></Link> : <Brand />}{Navigation}<div className={styles.sidebarFooter}>{runtime ? <button className={styles.button} onClick={logout}><LogOut /> Logout</button> : "40 anteprime · dati locali"}</div></aside>
-    <div className={styles.content}>
-      <header className={styles.topbar}><div><div className={styles.topbarTitle}>{runtime ? "BodyGate operativo" : "Platinum Page System"}</div><div className={styles.topbarMeta}>{runtime ? `Stato sistema: ${systemStatus}` : "Ambiente isolato · nessuna azione operativa"}</div></div><div className={styles.topbarActions}>
-        <button ref={menuTrigger} className={`${styles.button} ${styles.mobileMenu}`} onClick={() => setDrawer(true)} aria-label="Apri elenco schermate"><Menu /></button>
-        {runtime ? <Link href="/notifications" className={`${styles.button} ${styles.iconButton}`} aria-label="Apri notifiche"><Bell /></Link> : <span className={styles.tooltipHost}><button className={`${styles.button} ${styles.iconButton}`} aria-label="Notifiche dimostrative" aria-describedby="platinum-notifications-tooltip"><Bell /></button><span id="platinum-notifications-tooltip" role="tooltip" className={styles.inlineTooltip}>3 notifiche dimostrative</span></span>}
-      </div></header>
-      <main id="contenuto" className={styles.main}>{children}</main>
-    </div>
-    {drawer ? <div className={styles.mobileDrawerBackdrop} onClick={closeDrawer}><aside className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Navigazione" onClick={event => event.stopPropagation()}><div className={styles.drawerHeader}>{runtime ? <span className={styles.brand}>BodyGate Platinum</span> : <Brand />}<button ref={drawerClose} className={`${styles.button} ${styles.iconButton}`} onClick={closeDrawer} aria-label="Chiudi navigazione"><X /></button></div>{runtime ? <RuntimeNavigation pathname={pathname} onNavigate={closeDrawer} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} onNavigate={closeDrawer} />}</aside></div> : null}
-    <nav className={styles.bottomNav} aria-label="Navigazione mobile Platinum">{runtime ? PLATINUM_NAVIGATION.filter(item => item.mobilePlacement === "bottom").map(item => <Link className={`${styles.bottomItem} ${(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) ? styles.bottomItemActive : ""}`} href={item.href} key={item.id}><LayoutGrid /><span>{item.shortLabel}</span></Link>) : PLATINUM_SCREENS.filter(screen => ["dashboard", "reception", "customers", "payments"].includes(screen.id)).map(screen => <Link className={`${styles.bottomItem} ${activeScreen === screen.id ? styles.bottomItemActive : ""}`} href={screen.prototypePath} key={screen.id}><LayoutGrid /><span>{screen.label}</span></Link>)}<button className={styles.bottomItem} onClick={() => setDrawer(true)}><Menu /><span>Altro</span></button></nav>
-  </div>
+function RuntimeItem({ item, pathname, onNavigate, paymentsAccess, child = false }: { item: PlatinumNavigationItem; pathname: string; onNavigate?: () => void; paymentsAccess: PaymentsAccess; child?: boolean }) {
+  const Icon = iconByName[item.icon]; const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); const denied = item.id === "payments" && paymentsAccess === "denied"; const className = `${styles.navItem} ${active ? styles.navItemActive : ""}`
+  if (denied) return <button type="button" className={className} title="Incassi · Protetto / Permessi non configurati" disabled><Icon aria-hidden="true" /><span>{item.label}</span></button>
+  if (item.children.length && !child) return <details className={styles.navDetails} open={active || item.children.some(entry => pathname.startsWith(entry.href))}><summary className={className}><Icon aria-hidden="true" /><span>{item.label}</span><ChevronDown className={styles.chevron} aria-hidden="true" /></summary><div className={styles.subnav}>{item.children.map(entry => <RuntimeItem key={entry.id} item={entry} pathname={pathname} onNavigate={onNavigate} paymentsAccess={paymentsAccess} child />)}</div></details>
+  return <Link onClick={onNavigate} href={item.href} className={className} aria-current={active ? "page" : undefined}><Icon aria-hidden="true" /><span>{item.label}</span></Link>
+}
+
+function RuntimeNavigation({ pathname, onNavigate, paymentsAccess }: { pathname: string; onNavigate?: () => void; paymentsAccess: PaymentsAccess }) { return <nav className={styles.nav} aria-label="Navigazione operativa">{Object.entries(PLATINUM_GROUP_LABELS).map(([group, label]) => { const items = PLATINUM_NAVIGATION.filter(item => item.group === group); return items.length ? <section className={styles.navGroup} key={group}><h2 className={styles.navLabel}>{label}</h2>{items.map(item => <RuntimeItem key={item.id} item={item} pathname={pathname} onNavigate={onNavigate} paymentsAccess={paymentsAccess} />)}</section> : null })}</nav> }
+
+function OperatorProfile({ operator, runtime, onLogout }: { operator: ShellOperator; runtime: boolean; onLogout: () => void }) { return <div className={styles.operator}><span className={styles.avatar}>{operator.initials}</span><span className={styles.operatorCopy}><strong>{operator.name}</strong><span>{operator.role}</span></span>{runtime ? <button className={styles.profileAction} onClick={onLogout} aria-label="Esci dall’account" title="Logout"><LogOut /></button> : null}</div> }
+
+export type PlatinumAppShellProps = { children: ReactNode; mode?: ShellMode; activeScreen?: string; brand?: Partial<ShellBrand>; venue?: string; systemStatus?: string | ShellStatus; operator?: Partial<ShellOperator>; paymentsAccess?: PaymentsAccess; headerTitle?: string; headerActions?: ReactNode }
+
+export default function PlatinumAppShell({ children, mode = "lab", activeScreen, brand, venue, systemStatus = "Da verificare", operator, paymentsAccess = "allowed", headerTitle, headerActions }: PlatinumAppShellProps) {
+  const runtime = mode === "runtime"; const pathname = usePathname(); const [drawer, setDrawer] = useState(false); const menuTrigger = useRef<HTMLButtonElement>(null); const drawerClose = useRef<HTMLButtonElement>(null)
+  const shellBrand: ShellBrand = { name: "BodyGate", edition: "PLATINUM", href: runtime ? "/" : "/ui-lab/platinum", ...brand }; const shellOperator: ShellOperator = { name: runtime ? "Operatore BodyGate" : "Platinum Preview", role: runtime ? "Reception" : "UI Lab", initials: "BG", ...operator }; const status: ShellStatus = typeof systemStatus === "string" ? { label: systemStatus, online: ["online", "ok", "operativo"].includes(systemStatus.toLowerCase()) } : systemStatus; const title = headerTitle ?? (runtime ? "Dashboard" : "Platinum Page System"); const location = venue ?? (runtime ? "Sede da verificare" : "Ambiente isolato · dati dimostrativi")
+  const logout = async () => { await fetch("/api/auth/logout", { method: "POST" }).catch(() => null); window.location.href = "/login" }; const closeDrawer = () => { setDrawer(false); requestAnimationFrame(() => menuTrigger.current?.focus()) }
+  useEffect(() => { if (!drawer) return; drawerClose.current?.focus(); const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") closeDrawer() }; document.addEventListener("keydown", closeOnEscape); return () => document.removeEventListener("keydown", closeOnEscape) }, [drawer])
+  const navigation = runtime ? <RuntimeNavigation pathname={pathname} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} />
+  return <div className={styles.shell} data-shell-mode={mode}><aside className={styles.sidebar}><Brand brand={shellBrand} />{navigation}<div className={styles.sidebarFooter}><OperatorProfile operator={shellOperator} runtime={runtime} onLogout={logout} /></div></aside><div className={styles.content}><header className={styles.topbar}><div className={styles.topbarContext}><div className={styles.topbarTitle}>{title}</div><div className={styles.topbarMeta}><Building2 aria-hidden="true" />{location}</div></div><div className={styles.topbarActions}><span className={`${styles.systemStatus} ${status.online ? styles.systemOnline : styles.systemUnknown}`}><span className={styles.statusDot} />{status.label}</span>{headerActions}<Link href={runtime ? "/notifications" : "/ui-lab/platinum"} className={`${styles.button} ${styles.iconButton}`} aria-label="Apri notifiche"><Bell /></Link>{!runtime ? <span role="tooltip" className={styles.visuallyHidden}>Notifiche dimostrative</span> : null}<span className={`${styles.avatar} ${styles.topbarAvatar}`}>{shellOperator.initials}</span><button ref={menuTrigger} className={`${styles.button} ${styles.mobileMenu}`} onClick={() => setDrawer(true)} aria-label="Apri navigazione"><Menu /></button></div></header><main id="contenuto" className={styles.main}>{children}</main></div>
+    {drawer ? <div className={styles.mobileDrawerBackdrop} onClick={closeDrawer}><aside className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Navigazione" onClick={event => event.stopPropagation()}><div className={styles.drawerHeader}><Brand brand={shellBrand} /><button ref={drawerClose} className={`${styles.button} ${styles.iconButton}`} onClick={closeDrawer} aria-label="Chiudi navigazione"><X /></button></div>{runtime ? <RuntimeNavigation pathname={pathname} onNavigate={closeDrawer} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} onNavigate={closeDrawer} />}<div className={styles.sidebarFooter}><OperatorProfile operator={shellOperator} runtime={runtime} onLogout={logout} /></div></aside></div> : null}
+    <nav className={styles.bottomNav} aria-label="Navigazione mobile Platinum">{runtime ? PLATINUM_NAVIGATION.filter(item => item.mobilePlacement === "bottom").map(item => { const Icon = iconByName[item.icon]; const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link className={`${styles.bottomItem} ${active ? styles.bottomItemActive : ""}`} href={item.href} key={item.id}><Icon /><span>{item.shortLabel}</span></Link> }) : PLATINUM_SCREENS.filter(screen => ["dashboard", "reception", "customers", "payments"].includes(screen.id)).map(screen => <Link className={`${styles.bottomItem} ${activeScreen === screen.id ? styles.bottomItemActive : ""}`} href={screen.prototypePath} key={screen.id}><LayoutDashboard /><span>{screen.label}</span></Link>)}<button className={styles.bottomItem} onClick={() => setDrawer(true)}><Menu /><span>Altro</span></button></nav></div>
 }
