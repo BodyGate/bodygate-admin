@@ -1,62 +1,39 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
-import { BarChart3, Bell, BookOpen, Building2, CalendarClock, ChevronDown, CircleDollarSign, CreditCard, DoorOpen, Dumbbell, FileCheck2, Gauge, KeyRound, LayoutDashboard, LogOut, MoreHorizontal, Settings, ShieldCheck, Users, Wrench } from "lucide-react"
-
-import { navigationForRole, PLATINUM_GROUP_LABELS, PLATINUM_GROUPS, type PlatinumNavigationItem, type PlatinumRole } from "@/architecture/platinum-navigation"
-import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import Link from "next/link"
+import { useEffect, useRef, useState, type ReactNode } from "react"
+import { Bell, LayoutGrid, Menu, X } from "lucide-react"
+import { PLATINUM_SCREENS } from "@/architecture/platinum-screen-registry"
 import styles from "./platinum.module.css"
 import "./platinum-tokens.css"
 
-const icons = { dashboard: LayoutDashboard, reception: DoorOpen, customers: Users, access: ShieldCheck, payments: CircleDollarSign, subscriptions: CreditCard, notifications: CalendarClock, training: Dumbbell, reports: BarChart3, accounting: BookOpen, staff: Building2, settings: Settings, system: Gauge, credentials: KeyRound, debug: Wrench, audit: FileCheck2 }
-const roleLabels: Record<PlatinumRole, string> = { reception: "Reception", direction: "Direzione", administrator: "Amministratore" }
-
-function DemoLink({ item, compact = false }: { item: PlatinumNavigationItem; compact?: boolean }) {
-  const Icon = icons[item.icon]
-  return <button type="button" className={`${styles.navItem} ${item.id === "dashboard" ? styles.navItemActive : ""}`} aria-current={item.id === "dashboard" ? "page" : undefined} title={`${item.label} · ${item.href}`} onClick={() => undefined}>
-    <Icon aria-hidden="true" /><span>{compact ? item.shortLabel : item.label}</span>
-  </button>
+const groups = [...new Set(PLATINUM_SCREENS.map(screen => screen.navigationGroup))]
+function Brand() { return <Link href="/ui-lab/platinum" className={styles.brand}><span className={styles.brandMark}>BG</span><span><span className={styles.brandName}>BodyGate</span><span className={styles.brandEdition}>Platinum Lab</span></span></Link> }
+function ScreenNavigation({ activeScreen, onNavigate }: { activeScreen?: string; onNavigate?: () => void }) {
+  return <nav className={styles.nav} aria-label="Schermate Platinum">{groups.map(group => <section className={styles.navGroup} key={group}><h2 className={styles.navLabel}>{group}</h2>{PLATINUM_SCREENS.filter(screen => screen.navigationGroup === group).map(screen => <Link onClick={onNavigate} href={screen.prototypePath} className={`${styles.navItem} ${activeScreen === screen.id ? styles.navItemActive : ""}`} aria-current={activeScreen === screen.id ? "page" : undefined} key={screen.id}><span>{screen.label}</span></Link>)}</section>)}</nav>
 }
-
-function DesktopNavigation({ role }: { role: PlatinumRole }) {
-  const items = navigationForRole(role)
-  return <nav className={styles.nav} aria-label="Navigazione Platinum dimostrativa">
-    {PLATINUM_GROUPS.map((group) => {
-      const grouped = items.filter((item) => item.group === group)
-      if (!grouped.length) return null
-      return <section className={styles.navGroup} key={group} aria-labelledby={`group-${group}`}><h2 id={`group-${group}`} className={styles.navLabel}>{PLATINUM_GROUP_LABELS[group]}</h2>
-        {grouped.map((item) => item.children.length ? <details className={styles.navDetails} open key={item.id}><summary className={styles.navItem} title={`${item.label} · ${item.href}`}>{(() => { const Icon = icons[item.icon]; return <Icon aria-hidden="true" /> })()}<span>{item.label}</span><ChevronDown className={styles.chevron} aria-hidden="true" /></summary><div className={styles.subnav}>{item.children.map((child) => <DemoLink item={child} key={child.id} />)}</div></details> : <DemoLink item={item} key={item.id} />)}
-      </section>
-    })}
-  </nav>
-}
-
-function Brand() {
-  return <div className={styles.brand}><div className={styles.brandMark} aria-hidden="true">BG</div><div><div className={styles.brandName}>BodyGate</div><div className={styles.brandEdition}>Platinum</div></div></div>
-}
-
-function MoreDrawer({ role }: { role: PlatinumRole }) {
-  const more = navigationForRole(role).filter((item) => item.mobilePlacement === "more")
-  return <Sheet><SheetTrigger className={styles.bottomItem} aria-label="Apri il menu Altro"><MoreHorizontal aria-hidden="true" /><span>Altro</span></SheetTrigger>
-    <SheetContent side="right" className={styles.drawer} showCloseButton={false}><div className={styles.drawerHeader}><div><SheetTitle className={styles.drawerTitle}>Altro</SheetTitle><p>Funzioni disponibili per il ruolo {roleLabels[role]}.</p></div><SheetClose className={`${styles.button} ${styles.iconButton}`} aria-label="Chiudi il menu Altro">×</SheetClose></div>
-      <nav className={styles.moreNav} aria-label="Altre funzioni">{more.map((item) => <DemoLink item={item} key={item.id} />)}</nav>
-      <button type="button" className={styles.logoutDemo} onClick={() => undefined}><LogOut aria-hidden="true" />Logout <span>Solo demo</span></button>
-    </SheetContent>
-  </Sheet>
-}
-
-function BottomNavigation({ role }: { role: PlatinumRole }) {
-  const bottom = navigationForRole(role).filter((item) => item.mobilePlacement === "bottom")
-  return <nav className={styles.bottomNav} aria-label="Navigazione mobile Platinum">{bottom.map((item) => { const Icon = icons[item.icon]; return <button type="button" className={`${styles.bottomItem} ${item.id === "dashboard" ? styles.bottomItemActive : ""}`} key={item.id} title={`${item.label} · ${item.href}`}><Icon aria-hidden="true" /><span>{item.shortLabel}</span></button> })}<MoreDrawer role={role} /></nav>
-}
-
-export default function PlatinumAppShell({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<PlatinumRole>("reception")
-  return <TooltipProvider delay={250}><div className={styles.shell}>
-    <aside className={styles.sidebar}><Brand /><DesktopNavigation role={role} /><div className={styles.sidebarFooter}><div className={styles.operator}><div className={styles.avatar}>BG</div><div><strong>Operatore BodyGate</strong><span>{roleLabels[role]}</span></div></div></div></aside>
-    <div className={styles.content}><header className={styles.topbar}><div><div className={styles.topbarTitle}>Platinum Navigation Lab</div><div className={styles.topbarMeta}>Ambiente isolato · nessuna azione operativa</div></div>
-      <div className={styles.topbarActions}><label className={styles.rolePicker}><span>Scenario</span><select value={role} onChange={(event) => setRole(event.target.value as PlatinumRole)}><option value="reception">Reception</option><option value="direction">Direzione</option><option value="administrator">Amministratore</option></select></label><Tooltip><TooltipTrigger className={`${styles.button} ${styles.iconButton}`} aria-label="Notifiche dimostrative"><Bell /></TooltipTrigger><TooltipContent className={styles.tooltip}>3 notifiche dimostrative</TooltipContent></Tooltip></div>
-    </header><main id="contenuto" className={styles.main}>{children}</main></div><BottomNavigation role={role} />
-  </div></TooltipProvider>
+export default function PlatinumAppShell({ children, activeScreen }: { children: ReactNode; activeScreen?: string }) {
+  const [drawer, setDrawer] = useState(false)
+  const menuTrigger = useRef<HTMLButtonElement>(null)
+  const drawerClose = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!drawer) return
+    drawerClose.current?.focus()
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") { setDrawer(false); requestAnimationFrame(() => menuTrigger.current?.focus()) } }
+    document.addEventListener("keydown", closeOnEscape)
+    return () => document.removeEventListener("keydown", closeOnEscape)
+  }, [drawer])
+  const closeDrawer = () => { setDrawer(false); requestAnimationFrame(() => menuTrigger.current?.focus()) }
+  return <div className={styles.shell}>
+    <aside className={styles.sidebar}><Brand /><ScreenNavigation activeScreen={activeScreen} /><div className={styles.sidebarFooter}>40 anteprime · dati locali</div></aside>
+    <div className={styles.content}>
+      <header className={styles.topbar}><div><div className={styles.topbarTitle}>Platinum Page System</div><div className={styles.topbarMeta}>Ambiente isolato · nessuna azione operativa</div></div><div className={styles.topbarActions}>
+        <button ref={menuTrigger} className={`${styles.button} ${styles.mobileMenu}`} onClick={() => setDrawer(true)} aria-label="Apri elenco schermate"><Menu /></button>
+        <span className={styles.tooltipHost}><button className={`${styles.button} ${styles.iconButton}`} aria-label="Notifiche dimostrative" aria-describedby="platinum-notifications-tooltip"><Bell /></button><span id="platinum-notifications-tooltip" role="tooltip" className={styles.inlineTooltip}>3 notifiche dimostrative</span></span>
+      </div></header>
+      <main id="contenuto" className={styles.main}>{children}</main>
+    </div>
+    {drawer ? <div className={styles.mobileDrawerBackdrop} onClick={closeDrawer}><aside className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Elenco schermate Platinum" onClick={event => event.stopPropagation()}><div className={styles.drawerHeader}><Brand /><button ref={drawerClose} className={`${styles.button} ${styles.iconButton}`} onClick={closeDrawer} aria-label="Chiudi elenco schermate"><X /></button></div><ScreenNavigation activeScreen={activeScreen} onNavigate={closeDrawer} /></aside></div> : null}
+    <nav className={styles.bottomNav} aria-label="Navigazione mobile Platinum">{PLATINUM_SCREENS.filter(screen => ["dashboard", "reception", "customers", "payments"].includes(screen.id)).map(screen => <Link className={`${styles.bottomItem} ${activeScreen === screen.id ? styles.bottomItemActive : ""}`} href={screen.prototypePath} key={screen.id}><LayoutGrid /><span>{screen.label}</span></Link>)}<button className={styles.bottomItem} onClick={() => setDrawer(true)}><Menu /><span>Altro</span></button></nav>
+  </div>
 }
