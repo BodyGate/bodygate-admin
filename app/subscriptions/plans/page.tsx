@@ -1,13 +1,7 @@
 "use client";
 
+import { BGButton, BGCard, BGEmptyState, BGPageHeader, BGPageShell, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
-import BGEmptyState from "@/components/bodygate-ui/BGEmptyState";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
-import BGStatCard from "@/components/bodygate-ui/BGStatCard";
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge";
 import { supabase } from "../../lib/supabaseClient";
 
 type Branch = {
@@ -441,7 +435,7 @@ export default function SubscriptionPlansPage() {
                 description="Crea Mensile, Trimestrale, Semestrale o Annuale per renderli disponibili al rinnovo cliente."
               />
             ) : (
-              <div className="plans-table-wrap">
+              <div className="plans-table-wrap" style={{ maxWidth: "100%", overflowX: "auto" }}>
                 <table className="plans-table">
                   <thead>
                     <tr>
@@ -560,7 +554,11 @@ export default function SubscriptionPlansPage() {
 
       <style jsx>{`
         .plans-page-v2 {
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
           min-height: 100vh;
+          overflow-x: hidden;
           padding: 26px;
           color: #fff;
           background:
@@ -844,7 +842,7 @@ export default function SubscriptionPlansPage() {
 
         @media (max-width: 860px) {
           .plans-page-v2 {
-            padding: 16px;
+            padding: 0;
           }
 
           .plans-kpi-grid,
@@ -857,6 +855,15 @@ export default function SubscriptionPlansPage() {
           .plans-toolbar {
             align-items: stretch;
             flex-direction: column;
+          }
+
+          .plans-table-wrap {
+            box-sizing: border-box;
+            width: calc(100% - 24px);
+          }
+
+          .plans-table {
+            width: 900px;
           }
         }
       `}</style>

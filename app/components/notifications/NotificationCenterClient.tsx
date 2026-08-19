@@ -184,8 +184,8 @@ export default function NotificationCenterClient() {
   }, [notifications, filter]);
 
   return (
-    <main style={styles.page}>
-      <section style={styles.hero}>
+    <main className="notification-center-runtime" style={styles.page}>
+      <section className="notification-center-runtime__hero" style={styles.hero}>
         <div>
           <p style={styles.eyebrow}>BodyGate Intelligence</p>
           <h1 style={styles.title}>Notification Center</h1>

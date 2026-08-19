@@ -1,6 +1,6 @@
+import { BGPageShell } from "@/components/bodygate-ui";
 import PermissionGuard from "../components/security/PermissionGuard";
 import SettingsPageClient from "./components/SettingsPageClient";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function SettingsPage() {
   return (

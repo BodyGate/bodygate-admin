@@ -1,6 +1,5 @@
+import { BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
 import AccessLogsTable from "../components/AccessLogsTable";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function AccessLogsPage() {
   return (

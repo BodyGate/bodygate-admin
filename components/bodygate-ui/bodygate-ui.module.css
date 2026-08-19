@@ -1,9 +1,17 @@
 .pageShell {
+  box-sizing: border-box;
+  min-width: 0;
   width: min(100%, 1240px);
   margin: 0 auto;
   display: grid;
   gap: 18px;
   color: #ffffff;
+}
+
+.pageShell > * {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .pageHeader,
@@ -12,6 +20,9 @@
 .actionBar,
 .emptyState,
 .tableFrame {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background:

@@ -1,9 +1,8 @@
 "use client";
 
+import { BGButton, BGCard } from "@/components/bodygate-ui";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
 
 type DebugMatch = {
   source?: string;
@@ -150,10 +149,6 @@ export default function AccessControlDebugPage() {
     }
   }, []);
 
-  useEffect(() => {
-    const initialCode = new URLSearchParams(window.location.search).get("code");
-    if (initialCode) setCode(initialCode);
-  }, []);
 
   const checks = useMemo(() => result?.checks || {}, [result]);
   const owner = result?.customer || result?.staff || null;

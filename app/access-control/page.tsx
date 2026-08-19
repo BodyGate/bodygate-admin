@@ -1,9 +1,7 @@
+import { BGCard, BGPageHeader, BGPageShell, BGStatusBadge } from "@/components/bodygate-ui"
 import Link from "next/link"
+import styles from "./access-control.module.css"
 
-import BGCard from "@/components/bodygate-ui/BGCard"
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader"
-import BGPageShell from "@/components/bodygate-ui/BGPageShell"
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge"
 
 const activeCards = [
   {
@@ -64,22 +62,22 @@ function ActiveCard({ card }: { card: (typeof activeCards)[number] }) {
   return (
     <Link
       href={card.href}
-      className="group block min-h-full rounded-lg border border-white/10 bg-[linear-gradient(145deg,rgba(24,24,27,0.98),rgba(8,8,9,0.98))] p-5 text-white shadow-2xl shadow-black/30 transition hover:-translate-y-0.5 hover:border-red-400/60 hover:shadow-red-950/30 focus:outline-none focus:ring-2 focus:ring-red-400/70"
+      className={styles.cardLink}
     >
-      <div className="flex min-h-full flex-col gap-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={styles.disabledContent}>
+        <div className={styles.cardTop}>
           <StatusBadge tone="success" label={card.status} />
-          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-red-100 transition group-hover:bg-red-500/20">
+          <span className={styles.openLabel}>
             Apri
           </span>
         </div>
         <div>
-          <h2 className="text-2xl font-black tracking-normal">{card.title}</h2>
-          <p className="mt-3 text-sm font-bold leading-6 text-zinc-300">
+          <h2 className={styles.cardTitle}>{card.title}</h2>
+          <p className={styles.cardDescription}>
             {card.description}
           </p>
         </div>
-        <div className="mt-auto text-sm font-black uppercase tracking-[0.16em] text-red-200">
+        <div className={styles.cardDestination}>
           Vai a {card.href}
         </div>
       </div>
@@ -89,23 +87,23 @@ function ActiveCard({ card }: { card: (typeof activeCards)[number] }) {
 
 function DisabledCard({ card }: { card: (typeof disabledCards)[number] }) {
   return (
-    <BGCard variant="soft" className="h-full opacity-80">
-      <div className="flex min-h-full flex-col gap-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <BGCard variant="soft" className={styles.disabledCard}>
+      <div className={styles.disabledContent}>
+        <div className={styles.cardTop}>
           <StatusBadge tone="warning" label={card.status} />
           <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-zinc-400">
             Non cliccabile
           </span>
         </div>
         <div>
-          <h2 className="text-xl font-black tracking-normal text-zinc-100">
+          <h2 className={styles.disabledTitle}>
             {card.title}
           </h2>
-          <p className="mt-3 text-sm font-bold leading-6 text-zinc-400">
+          <p className={styles.cardDescription}>
             {card.description}
           </p>
         </div>
-        <p className="mt-auto rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm font-extrabold text-amber-100">
+        <p className={styles.disabledNotice}>
           Funzione non operativa: nessuna azione collegata finche il modulo
           reale non sara disponibile.
         </p>
@@ -125,13 +123,13 @@ export default function AccessControlHubPage() {
           actions={<StatusBadge tone="success" label="Operativo" />}
         />
 
-        <section className="grid gap-4 lg:grid-cols-3">
+        <section className={styles.grid}>
           {activeCards.map((card) => (
             <ActiveCard key={card.href} card={card} />
           ))}
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className={styles.grid}>
           {disabledCards.map((card) => (
             <DisabledCard key={card.title} card={card} />
           ))}

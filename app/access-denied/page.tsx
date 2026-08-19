@@ -1,13 +1,9 @@
 "use client"
 
+import { BGButton, BGCard, BGPageHeader, BGPageShell, BGStatusBadge } from "@/components/bodygate-ui"
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 
-import BGButton from "@/components/bodygate-ui/BGButton"
-import BGCard from "@/components/bodygate-ui/BGCard"
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader"
-import BGPageShell from "@/components/bodygate-ui/BGPageShell"
-import BGStatusBadge from "@/components/bodygate-ui/BGStatusBadge"
 
 function AccessDeniedContent() {
   const searchParams = useSearchParams()
