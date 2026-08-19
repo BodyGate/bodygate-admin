@@ -14,7 +14,8 @@
     "qa:deprecations": "node --test tests/deprecation-registry.test.mjs && node scripts/scan-deprecations.mjs --check",
     "start:bodygate": "powershell -ExecutionPolicy Bypass -File scripts/start-bodygate.ps1",
     "install:startup": "powershell -ExecutionPolicy Bypass -File scripts/install-bodygate-startup-task.ps1",
-    "qa:responsive": "playwright test tests/responsive.spec.ts"
+    "qa:responsive": "playwright test tests/responsive.spec.ts",
+    "qa:platinum-screens": "node scripts/qa-platinum-screens.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
