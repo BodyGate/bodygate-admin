@@ -1,0 +1,6 @@
+import type { Metadata } from "next"
+import Link from "next/link"
+import { PLATINUM_SCREENS } from "@/architecture/platinum-screen-registry"
+import { BGDemoNotice, BGPageHeader, BGPageShell, BGSection, PlatinumAppShell } from "@/components/bodygate-ui"
+export const metadata: Metadata = { title: "Platinum Page System | BodyGate", description: "Sistema isolato delle anteprime Platinum." }
+export default function PlatinumPage(){ return <PlatinumAppShell><BGPageShell><BGDemoNotice/><BGPageHeader eyebrow="UI Lab" title="Platinum Page System" subtitle="Quaranta anteprime coerenti e navigabili, pronte per una futura integrazione separata."/>{[...new Set(PLATINUM_SCREENS.map(screen=>screen.navigationGroup))].map(group=><BGSection title={group} key={group}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>{PLATINUM_SCREENS.filter(screen=>screen.navigationGroup===group).map(screen=><Link href={screen.prototypePath} key={screen.id} style={{border:"1px solid #30343c",borderRadius:8,padding:14,color:"white",textDecoration:"none"}}><strong>{screen.label}</strong><span style={{display:"block",marginTop:6,color:"#a0a4ad",fontSize:12,lineHeight:1.5}}>{screen.description}</span></Link>)}</div></BGSection>)}</BGPageShell></PlatinumAppShell> }

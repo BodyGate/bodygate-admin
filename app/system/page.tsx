@@ -1,10 +1,7 @@
+import { BGButton, BGCard, BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
 import PermissionGuard from "../components/security/PermissionGuard";
 import SystemLivePanel from "../components/SystemLivePanel";
 import SystemStatusCard from "../components/SystemStatusCard";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function SystemPage() {
   return (

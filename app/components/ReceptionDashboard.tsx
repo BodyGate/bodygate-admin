@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
-import BGActionLink from "./ui/BGActionLink";
-import BGButton from "./ui/BGButton";
-import BGCard from "./ui/BGCard";
-import BGEmptyState from "./ui/BGEmptyState";
-import BGPageHeader from "./ui/BGPageHeader";
-import BGStatCard from "./ui/BGStatCard";
-import BGStatusBadge from "./ui/BGStatusBadge";
+import { BGButton, BGCard, BGEmptyState, BGInput, BGPageHeader, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
+import { adaptReceptionCustomer } from "@/architecture/platinum-runtime-adapters";
 
 type Customer = {
   id: string;
@@ -110,6 +105,9 @@ export default function ReceptionDashboard() {
 
   const [bridgeLoading, setBridgeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dataError, setDataError] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   function normalizeCustomerName(item?: CustomerName | CustomerName[] | null) {
     const customer = Array.isArray(item) ? item[0] : item;
@@ -146,11 +144,11 @@ export default function ReceptionDashboard() {
     const in30Days = addDays(30);
 
     const [
-      { data: customersData },
-      { data: logsData },
-      { data: certificatesData },
-      { data: subscriptionsData },
-      { data: gymPresenceData },
+      { data: customersData, error: customersError },
+      { data: logsData, error: logsError },
+      { data: certificatesData, error: certificatesError },
+      { data: subscriptionsData, error: subscriptionsError },
+      { data: gymPresenceData, error: presenceError },
     ] = await Promise.all([
       supabase
         .from("customers")
@@ -219,6 +217,8 @@ export default function ReceptionDashboard() {
         .limit(120),
     ]);
 
+    const firstError = customersError || logsError || certificatesError || subscriptionsError || presenceError;
+    setDataError(firstError?.message || "");
     setCustomers((customersData || []) as Customer[]);
     setLogs((logsData || []) as AccessLog[]);
     setCertificates((certificatesData || []) as Customer[]);
@@ -540,6 +540,13 @@ export default function ReceptionDashboard() {
       .slice(0, 8);
   }, [bridgeStatus, bridgeWatchdog, logs, gymPresence]);
 
+  const customerMatches = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase("it-IT");
+    if (!needle) return [];
+    return customers.filter(customer => `${customer.first_name || ""} ${customer.last_name || ""}`.toLocaleLowerCase("it-IT").includes(needle)).slice(0, 8);
+  }, [customers, search]);
+  const selectedCustomer = useMemo(() => adaptReceptionCustomer(customers.find(customer => customer.id === selectedCustomerId), subscriptions), [customers, selectedCustomerId, subscriptions]);
+
   function systemStatusLabel(state: BridgeWatchdog["state"]) {
     if (state === "online") return "Sistema operativo";
     if (state === "degraded") return "Sistema degradato";
@@ -568,7 +575,43 @@ export default function ReceptionDashboard() {
   }
 
   return (
-    <main style={pageStyle}>
+    <main className="reception-runtime" style={pageStyle}>
+      <style jsx global>{`
+        .reception-runtime,
+        .reception-runtime > *,
+        .reception-runtime .reception-panel,
+        .reception-runtime .reception-panel > * {
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        @media (max-width: 1100px) {
+          .reception-runtime .reception-system-grid,
+          .reception-runtime .reception-history-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .reception-runtime .reception-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 700px) {
+          .reception-runtime .reception-panel-header {
+            align-items: stretch !important;
+            flex-direction: column;
+          }
+
+          .reception-runtime .reception-stats-grid,
+          .reception-runtime .reception-customer-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+
+          .reception-runtime input {
+            width: 100%;
+          }
+        }
+      `}</style>
       <BGPageHeader
         eyebrow="BodyGate Reception"
         title="Reception live"
@@ -600,7 +643,28 @@ export default function ReceptionDashboard() {
         }
       />
 
-      <div style={firstRowStyle}>
+      <BGCard className="reception-panel">
+        <div className="reception-panel-header" style={panelHeaderStyle}>
+          <div>
+            <h2 style={sectionTitleStyle}>1. Ricerca e identificazione cliente</h2>
+            <p style={sectionTextStyle}>Cerca nei clienti già caricati. La selezione non modifica alcun dato.</p>
+          </div>
+          <BGInput aria-label="Ricerca cliente" placeholder="Nome o cognome" value={search} onChange={event => setSearch(event.target.value)} />
+        </div>
+        {search && customerMatches.length === 0 ? <BGEmptyState title="Nessun risultato" description="Verifica i termini di ricerca." /> : null}
+        {customerMatches.length > 0 ? <div style={listStyle}>{customerMatches.map(customer => <button type="button" key={customer.id} onClick={() => setSelectedCustomerId(customer.id)} style={{...rowStyle, color: "inherit", cursor: "pointer", textAlign: "left", width: "100%"}}><strong>{`${customer.first_name || ""} ${customer.last_name || ""}`.trim() || "Dato non disponibile"}</strong><BGStatusBadge tone={customer.is_active === true ? "success" : customer.is_active === false ? "danger" : "warning"}>{customer.is_active === true ? "Attivo" : customer.is_active === false ? "Non attivo" : "Da verificare"}</BGStatusBadge></button>)}</div> : null}
+        {selectedCustomer ? <div className="reception-customer-grid" style={{...gridStyle, marginTop: 16}}>
+          <Card title="Cliente selezionato" value={selectedCustomer.name} note={selectedCustomer.activeLabel} />
+          <Card title="Abbonamento" value={selectedCustomer.subscriptionExpiry ? new Date(selectedCustomer.subscriptionExpiry).toLocaleDateString("it-IT") : "Dato non disponibile"} note="Scadenza disponibile" />
+          <Card title="Certificato medico" value={selectedCustomer.medicalExpiry ? new Date(selectedCustomer.medicalExpiry).toLocaleDateString("it-IT") : "Dato non disponibile"} note="Scadenza disponibile" />
+          <Card title="Quota associativa" value="Da verificare" note="Dato non presente nel caricamento reception" />
+          <Link href={`/customers/${selectedCustomer.id}`} style={rowLinkStyle}>Apri scheda cliente e azioni consentite</Link>
+        </div> : null}
+      </BGCard>
+
+      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "#ef4444", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
+
+      <div className="reception-system-grid" style={firstRowStyle}>
         <BridgeStatusCard
           status={bridgeStatus}
           loading={bridgeLoading}
@@ -623,9 +687,9 @@ export default function ReceptionDashboard() {
         />
       </div>
 
-      <div style={secondRowStyle}>
+      <div className="reception-history-grid" style={secondRowStyle}>
         <BGCard className="reception-panel">
-          <div style={panelHeaderStyle}>
+          <div className="reception-panel-header" style={panelHeaderStyle}>
             <div>
               <h2 style={sectionTitleStyle}>Accessi recenti</h2>
               <p style={sectionTextStyle}>
@@ -633,7 +697,7 @@ export default function ReceptionDashboard() {
               </p>
             </div>
 
-            <BGActionLink href="/access-logs">Apri registro</BGActionLink>
+            <Link href="/access-logs" style={rowLinkStyle}>Apri registro</Link>
           </div>
 
           {loading ? (
@@ -750,7 +814,7 @@ export default function ReceptionDashboard() {
         </BGCard>
       </div>
 
-      <div style={gridStyle}>
+      <div className="reception-stats-grid" style={gridStyle}>
         <BGStatCard
           label="Accessi oggi"
           value={stats.accessToday}
@@ -878,11 +942,11 @@ function AlertCard({
 }
 
 function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   function formatAlertTime(value: string) {
     if (!isMounted) return "--:--:--";

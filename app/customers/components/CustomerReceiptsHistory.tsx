@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "../../components/ui/BGButton";
-import BGCard from "../../components/ui/BGCard";
-import BGDataTable from "../../components/ui/BGDataTable";
-import BGEmptyState from "../../components/ui/BGEmptyState";
-import BGStatusBadge from "../../components/ui/BGStatusBadge";
+import { BGButton, BGCard, BGDataTable, BGEmptyState, BGStatusBadge } from "@/components/bodygate-ui";
 
 type Receipt = {
   id: string;
