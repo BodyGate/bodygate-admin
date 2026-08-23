@@ -172,6 +172,51 @@ Every backlog item must have:
 
 ---
 
+## BG-P0-007 — Close anon-key RLS exposure on base tables
+
+**Outcome:** browser code can no longer read or write customer, staff, payment
+or credential data directly with the anon key; every read/write to those
+tables goes through an authenticated server route.
+
+### Scope
+
+- confirmed via direct code audit (2026-08-23): 36 client components query
+  Supabase directly with `NEXT_PUBLIC_SUPABASE_ANON_KEY`, touching roughly 28
+  base tables, including `medical_certificates`, `payments`,
+  `customer_documents`, `access_credentials`, `staff_users`, `staff_roles`
+  and `staff_role_permissions`;
+- `security-hotfix-0-1` closed the CRM view and receipt RPCs but explicitly
+  left `anon SELECT USING (true)` policies open on base tables because
+  legacy UI still depends on anon reads — this item is that deferred phase;
+- the app has no Supabase Auth integration (no `auth.uid()`/`supabase.auth`
+  usage anywhere), so RLS cannot scope by signed-in user today; the only
+  sound fix is moving these 36 call sites to authenticated Next.js API
+  routes and then revoking `anon`/`authenticated` grants on the underlying
+  tables and the `documents` storage bucket;
+- inventory each of the 36 call sites against an existing or missing server
+  route;
+- build the missing server routes with explicit session + permission checks;
+  migrate storage uploads/downloads off direct bucket access to signed URLs
+  issued server-side;
+- revoke `anon`/`authenticated` privileges on the affected base tables and
+  `storage.objects` only after the corresponding UI migration lands.
+
+### Acceptance criteria
+
+- zero remaining imports of the anon Supabase client outside
+  `app/lib/supabaseClient.ts` itself;
+- `anon` and `authenticated` roles have no `SELECT`/`INSERT`/`UPDATE`/`DELETE`
+  grant on any base table containing customer, staff, payment or credential
+  data;
+- `documents` storage bucket denies unauthenticated/anon read and write;
+- full regression pass on customers, documents, medical certificates,
+  payments and staff management (no automated coverage exists yet for these
+  flows, so this pass is manual until BG-P1-006 lands);
+- no change to access decision semantics, Bridge, DNake, KT02.3, turnstile,
+  Mobile Pass, receipt numbering or atomic renewal/onboarding flows.
+
+---
+
 # P1 — V1 certification
 
 ## BG-P1-001 — Establish CI quality gate
