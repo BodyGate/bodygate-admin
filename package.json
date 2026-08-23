@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
+    "lint:baseline": "node scripts/check-lint-baseline.mjs",
     "qa:writing": "cspell --config cspell.json",
     "qa:routes": "node --test tests/route-governance.test.mjs",
     "qa:navigation": "node --test tests/navigation-governance.test.mjs",

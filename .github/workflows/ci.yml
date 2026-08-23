@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    name: Typecheck, lint, governance tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (full report, informational)
+        run: npm run lint || true
+
+      - name: Lint baseline gate (BG-P1-002)
+        run: npm run lint:baseline
+
+      - name: Route / navigation / deprecation governance
+        run: |
+          npm run qa:routes
+          npm run qa:navigation
+          npm run qa:deprecations
+
+      - name: Platinum runtime parity tests
+        run: |
+          npm run qa:platinum-runtime
+          npm run qa:platinum-customers
+          npm run qa:platinum-completion
+
+      - name: Secret scan (tracked files)
+        run: |
+          if git grep -nIE "(SUPABASE_SERVICE_ROLE_KEY|BODYGATE_SESSION_SECRET|BODYGATE_MACHINE_KEY|DNAKE_PASSWORD_MD5|GATEBOX_SECRET)\s*=\s*['\"][^'\"]+['\"]" -- . ':!*.example' ':!docs/**' ':!.github/workflows/ci.yml'; then
+            echo "::error::Possible committed secret matched above — remove it and rotate the credential."
+            exit 1
+          fi
+
+      - name: Build (CI placeholder environment)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+          BODYGATE_SESSION_SECRET: ci-placeholder-session-secret
+        run: npm run build
