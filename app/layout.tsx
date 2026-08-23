@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import AppShell from "./components/AppShell";
+import "./globals.css";
 import "./components/ui/bodygate-ui.css";
 import "./components/ui/dashboard-quick-actions.css";
 
