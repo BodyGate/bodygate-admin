@@ -10,12 +10,7 @@ import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import CustomerTimeline from "../components/CustomerTimeline";
 import CustomerPaymentsHistory from "../components/CustomerPaymentsHistory";
 import CustomerReceiptsHistory from "../components/CustomerReceiptsHistory";
-import BGButton from "../../components/ui/BGButton";
-import BGCard from "../../components/ui/BGCard";
-import BGEmptyState from "../../components/ui/BGEmptyState";
-import BGSectionHeader from "../../components/ui/BGSectionHeader";
-import BGStatusBadge from "../../components/ui/BGStatusBadge";
-import BGPremiumSectionNav from "../../components/ui/BGPremiumSectionNav";
+import { BGButton, BGCard, BGEmptyState, BGPremiumSectionNav, BGSectionHeader, BGStatusBadge } from "@/components/bodygate-ui";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 import { safeRandomId } from "../../lib/safeRandomId";
 
@@ -4268,7 +4263,7 @@ export default function CustomerDetailsClient({
               </div>
 
               <div className="small-muted" style={{ marginTop: 12 }}>
-                Nota: questa modifica aggiorna l'abbonamento e la timeline. Non
+                Nota: questa modifica aggiorna l&apos;abbonamento e la timeline. Non
                 modifica la ricevuta A4 già emessa.
               </div>
             </BGCard>

@@ -1,8 +1,7 @@
 "use client";
 
+import { BGButton, BGCard } from "@/components/bodygate-ui";
 import { useEffect, useMemo, useState } from "react";
-import BGButton from "@/components/bodygate-ui/BGButton";
-import BGCard from "@/components/bodygate-ui/BGCard";
 
 type Risk = "critical" | "medium" | "low" | "ok";
 type AuditItem = { id: string; code: string; risk: Risk; category: string; source: string; owner: string; credential_status: string; owner_status: string; explanation: string; recommended_action: string; debug_url: string; technical: Record<string, unknown> };

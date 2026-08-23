@@ -8,6 +8,7 @@ type BGStatCardProps = {
   note?: string
   tone?: BGStatTone
   className?: string
+  "data-missing"?: boolean
 }
 
 const toneClass: Record<BGStatTone, string> = {
@@ -24,9 +25,10 @@ export default function BGStatCard({
   note,
   tone = "neutral",
   className = "",
+  "data-missing": dataMissing,
 }: BGStatCardProps) {
   return (
-    <article className={`${styles.statCard} ${toneClass[tone]} ${className}`.trim()}>
+    <article data-missing={dataMissing} className={`${styles.statCard} ${toneClass[tone]} ${className}`.trim()}>
       <div>
         <div className={styles.label}>{label}</div>
         <div className={styles.statValue}>{value}</div>

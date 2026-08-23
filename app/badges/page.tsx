@@ -1,6 +1,5 @@
+import { BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
 import BadgesTable from "../components/BadgesTable";
-import BGPageHeader from "@/components/bodygate-ui/BGPageHeader";
-import BGPageShell from "@/components/bodygate-ui/BGPageShell";
 
 export default function BadgesPage() {
   return (
