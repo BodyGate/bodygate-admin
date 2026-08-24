@@ -6,6 +6,10 @@ $StartupScript = Join-Path $Root "scripts\start-bodygate-bridge.ps1"
 
 $OldExe = "C:\BodyGateBridge_Releases\V3.9.2-machine-auth\BodyGateBridge.exe"
 $NewExe = "C:\BodyGateBridge_Releases\V3.9.3-performance\BodyGateBridge.exe"
+# IMPORTANT: keep in sync with $ExpectedHash in
+# verify-bodygate-bridge-v3.9.3-performance.ps1 — both must match the hash of
+# the currently built BodyGateBridge.exe, recomputed after every source
+# change (e.g. the Pooling=False disk-fill fix), or this script aborts.
 $ExpectedNewHash = "7E6B846E389E9483B1D7AD915527849CBD6959EE5B878D2889FB0AECDCC27537"
 
 $BridgeStatusUrl = "http://127.0.0.1:5050/status"

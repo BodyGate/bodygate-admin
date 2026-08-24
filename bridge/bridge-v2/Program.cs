@@ -172,8 +172,12 @@ namespace BodyGateAccessBridge
                 {
                     DownloadDnakeDb(tempPath);
 
+                    // Pooling=False: this connection string is unique per poll (tempPath has a
+                    // fresh timestamp), so Microsoft.Data.Sqlite's connection pool never reuses
+                    // or evicts it — the native file handle stays open forever and the
+                    // File.Delete below silently fails, leaking one temp .db file every poll.
                     using SqliteConnection connection = new SqliteConnection(
-                        "Data Source=" + tempPath + ";Mode=ReadOnly"
+                        "Data Source=" + tempPath + ";Mode=ReadOnly;Pooling=False"
                     );
 
                     connection.Open();
@@ -270,8 +274,9 @@ namespace BodyGateAccessBridge
                             File.Delete(tempPath);
                         }
                     }
-                    catch
+                    catch (Exception cleanupError)
                     {
+                        Log("Impossibile eliminare " + tempPath + ": " + cleanupError.Message);
                     }
                 }
             }
