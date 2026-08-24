@@ -4700,10 +4700,15 @@ export default function CustomerDetailsClient({
                 Apri contratto
               </BGButton>
             ) : (
-              <BGEmptyState
-                title="Nessun contratto collegato"
-                description="Se il record cliente contiene un link contratto verrà mostrato qui."
-              />
+              <div className="stack">
+                <BGEmptyState
+                  title="Nessun contratto collegato"
+                  description="Genera il contratto associativo per completare la pratica cliente."
+                />
+                <BGButton href={`/customers/${customerId}/contract`} variant="primary">
+                  Genera contratto
+                </BGButton>
+              </div>
             )}
           </BGCard>
         </section>
