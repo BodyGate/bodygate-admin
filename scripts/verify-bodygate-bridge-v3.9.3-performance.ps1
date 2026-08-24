@@ -2,6 +2,12 @@
 
 $ReleaseDir = "C:\BodyGateBridge_Releases\V3.9.3-performance"
 $ReleaseExe = Join-Path $ReleaseDir "BodyGateBridge.exe"
+# IMPORTANT: this hash is pinned to one specific build. Any source change to
+# bridge/bridge-v2/Program.cs (e.g. the Pooling=False disk-fill fix) produces
+# a different binary and a different hash. After rebuilding, recompute with
+# Get-FileHash on the new BodyGateBridge.exe and update this constant (and
+# $ExpectedNewHash in switch-bodygate-bridge-v3.9.3-performance.ps1) before
+# running verify/switch, or both scripts will abort by design.
 $ExpectedHash = "7E6B846E389E9483B1D7AD915527849CBD6959EE5B878D2889FB0AECDCC27537"
 
 $BuildRoot = "C:\BodyGateBridge_Builds"
