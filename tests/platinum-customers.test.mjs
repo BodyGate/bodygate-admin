@@ -28,6 +28,8 @@ test("le quattro schermate operative usano composizione Platinum reale", async (
   for (const token of ["crm3-filters", "crm3-search", "BGEmptyState", "queryError", "loadCustomers", "crm3-workspace"]) assert.match(list, new RegExp(token))
   for (const token of ["BGPageHeader", "BGInput", "BGSelect", "CustomerDocumentRows", "saving", "Idempotency-Key"]) assert.match(create, new RegExp(token))
   for (const token of ["BGPremiumSectionNav", "BGSectionHeader", "CustomerPaymentsHistory", "CustomerReceiptsHistory", "CustomerTimeline", "CustomerDocumentRows"]) assert.match(detail, new RegExp(token))
+  assert.match(detail, /href=\{`\/customers\/\$\{customerId\}\/contract`\}/)
+  assert.match(detail, />\s*Genera contratto\s*</)
   for (const token of ["BGPageShell", "BGPageHeader", "CustomerForm"]) assert.match(editPage, new RegExp(token))
   for (const token of ["BGInput", "BGSelect", "BGButton", "BGAlert", "saving", "router.push"]) assert.match(editForm, new RegExp(token))
 })
