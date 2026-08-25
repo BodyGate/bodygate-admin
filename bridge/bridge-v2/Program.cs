@@ -163,19 +163,23 @@ namespace BodyGateAccessBridge
         {
             lock (pollLock)
             {
-                string tempPath = Path.Combine(
-                    WorkDir,
-                    "unlock_sql_" + DateTime.Now.Ticks + ".db"
-                );
+                // Fixed name, not one unique timestamp per poll: ReadLatestDnakeEvent runs
+                // under pollLock (one poll at a time), so there is no concurrent-access risk
+                // in reusing a single file. A fixed connection string also lets
+                // Microsoft.Data.Sqlite's connection pool legitimately reuse one pooled
+                // connection across polls instead of accumulating a new pooled entry (and
+                // open native file handle) every 200ms — that accumulation was the original
+                // cause of the disk-fill bug fixed in PR #150.
+                string tempPath = Path.Combine(WorkDir, "unlock_sql_current.db");
 
                 try
                 {
                     DownloadDnakeDb(tempPath);
 
-                    // Pooling=False: this connection string is unique per poll (tempPath has a
-                    // fresh timestamp), so Microsoft.Data.Sqlite's connection pool never reuses
-                    // or evicts it — the native file handle stays open forever and the
-                    // File.Delete below silently fails, leaking one temp .db file every poll.
+                    // Pooling=False is kept as a second, independent safeguard: even if this
+                    // connection were ever opened with a non-constant path again in the
+                    // future, a failed File.Delete would still leak at most the pool's normal
+                    // eviction lag, not accumulate forever.
                     using SqliteConnection connection = new SqliteConnection(
                         "Data Source=" + tempPath + ";Mode=ReadOnly;Pooling=False"
                     );
