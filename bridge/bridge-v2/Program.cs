@@ -163,19 +163,33 @@ namespace BodyGateAccessBridge
         {
             lock (pollLock)
             {
+                // Fixed name per process, not one unique timestamp per poll: ReadLatestDnakeEvent
+                // runs under pollLock (one poll at a time within this process), so there is no
+                // concurrent-access risk from a single process reusing one file. A fixed
+                // connection string also lets Microsoft.Data.Sqlite's connection pool
+                // legitimately reuse one pooled connection across polls instead of accumulating
+                // a new pooled entry (and open native file handle) every 200ms — that
+                // accumulation was the original cause of the disk-fill bug fixed in PR #150.
+                //
+                // The PID is included because StartHttpServer only logs and returns if its
+                // port bind fails (e.g. a second instance started alongside the scheduled one)
+                // rather than exiting the process — so pollLock alone does not rule out two
+                // separate BodyGateBridge processes polling concurrently. A per-process name
+                // keeps that scenario from corrupting each other's snapshot instead of merely
+                // making it rare.
                 string tempPath = Path.Combine(
                     WorkDir,
-                    "unlock_sql_" + DateTime.Now.Ticks + ".db"
+                    "unlock_sql_" + Environment.ProcessId + ".db"
                 );
 
                 try
                 {
                     DownloadDnakeDb(tempPath);
 
-                    // Pooling=False: this connection string is unique per poll (tempPath has a
-                    // fresh timestamp), so Microsoft.Data.Sqlite's connection pool never reuses
-                    // or evicts it — the native file handle stays open forever and the
-                    // File.Delete below silently fails, leaking one temp .db file every poll.
+                    // Pooling=False is kept as a second, independent safeguard: even if this
+                    // connection were ever opened with a non-constant path again in the
+                    // future, a failed File.Delete would still leak at most the pool's normal
+                    // eviction lag, not accumulate forever.
                     using SqliteConnection connection = new SqliteConnection(
                         "Data Source=" + tempPath + ";Mode=ReadOnly;Pooling=False"
                     );
