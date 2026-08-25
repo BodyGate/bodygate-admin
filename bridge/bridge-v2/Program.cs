@@ -163,14 +163,24 @@ namespace BodyGateAccessBridge
         {
             lock (pollLock)
             {
-                // Fixed name, not one unique timestamp per poll: ReadLatestDnakeEvent runs
-                // under pollLock (one poll at a time), so there is no concurrent-access risk
-                // in reusing a single file. A fixed connection string also lets
-                // Microsoft.Data.Sqlite's connection pool legitimately reuse one pooled
-                // connection across polls instead of accumulating a new pooled entry (and
-                // open native file handle) every 200ms — that accumulation was the original
-                // cause of the disk-fill bug fixed in PR #150.
-                string tempPath = Path.Combine(WorkDir, "unlock_sql_current.db");
+                // Fixed name per process, not one unique timestamp per poll: ReadLatestDnakeEvent
+                // runs under pollLock (one poll at a time within this process), so there is no
+                // concurrent-access risk from a single process reusing one file. A fixed
+                // connection string also lets Microsoft.Data.Sqlite's connection pool
+                // legitimately reuse one pooled connection across polls instead of accumulating
+                // a new pooled entry (and open native file handle) every 200ms — that
+                // accumulation was the original cause of the disk-fill bug fixed in PR #150.
+                //
+                // The PID is included because StartHttpServer only logs and returns if its
+                // port bind fails (e.g. a second instance started alongside the scheduled one)
+                // rather than exiting the process — so pollLock alone does not rule out two
+                // separate BodyGateBridge processes polling concurrently. A per-process name
+                // keeps that scenario from corrupting each other's snapshot instead of merely
+                // making it rare.
+                string tempPath = Path.Combine(
+                    WorkDir,
+                    "unlock_sql_" + Environment.ProcessId + ".db"
+                );
 
                 try
                 {
