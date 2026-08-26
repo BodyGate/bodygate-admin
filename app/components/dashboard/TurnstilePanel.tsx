@@ -132,9 +132,9 @@ const miniBadgeStyle: React.CSSProperties = {
 
 const miniBadgeDangerStyle: React.CSSProperties = {
   ...miniBadgeStyle,
-  background: "rgba(91,61,245,0.10)",
+  background: "rgba(214,49,74,0.1)",
   color: "var(--danger)",
-  border: "1px solid rgba(91,61,245,0.25)",
+  border: "1px solid rgba(214,49,74,0.25)",
 };
 
 const buttonRowStyle: React.CSSProperties = {
@@ -156,7 +156,7 @@ const baseButtonStyle: React.CSSProperties = {
 const primaryButtonStyle: React.CSSProperties = {
   ...baseButtonStyle,
   background:
-    "linear-gradient(to right, #5b3df5, #dc2626)",
+    "linear-gradient(to right, #5b3df5, #3d2b99)",
 };
 
 const warningButtonStyle: React.CSSProperties = {

@@ -102,7 +102,7 @@ export default function CustomerPhotoUpload({
           height: 170px;
           border-radius: 34px;
           padding: 4px;
-          background: linear-gradient(135deg, #5b3df5, #7f1d1d, #262626);
+          background: linear-gradient(135deg, #5b3df5, #3d2b99, #262626);
           margin: 10px 0 20px;
         }
 

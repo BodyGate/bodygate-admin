@@ -194,7 +194,7 @@ const actionsStyle: React.CSSProperties = {
 };
 
 const linkStyle: React.CSSProperties = {
-  color: "white",
+  color: "var(--text)",
   textDecoration: "none",
   fontWeight: 800,
   background: "var(--panel)",
@@ -205,9 +205,9 @@ const linkStyle: React.CSSProperties = {
 };
 
 const deleteButtonStyle: React.CSSProperties = {
-  border: "1px solid rgba(91,61,245,0.35)",
-  background: "rgba(91,61,245,0.12)",
-  color: "#5b3df5",
+  border: "1px solid rgba(214,49,74,0.35)",
+  background: "rgba(214,49,74,0.1)",
+  color: "var(--danger)",
   padding: "10px 14px",
   borderRadius: "14px",
   fontWeight: 800,

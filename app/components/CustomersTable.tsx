@@ -488,7 +488,7 @@ export default function CustomersTable() {
           flex: 0 0 auto;
           color: #fff;
           font-weight: 900;
-          background: linear-gradient(135deg, #5b3df5, #7f1d1d);
+          background: linear-gradient(135deg, #5b3df5, #3d2b99);
           box-shadow: 0 8px 20px rgba(91, 61, 245, 0.18);
         }
 

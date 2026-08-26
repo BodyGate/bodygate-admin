@@ -83,7 +83,7 @@ export default function Sidebar() {
           color: "#fff",
           fontSize: 18,
           fontWeight: 950,
-          background: "linear-gradient(135deg, #5b3df5, #7f1d1d)",
+          background: "linear-gradient(135deg, #5b3df5, #3d2b99)",
           boxShadow: "0 18px 38px rgba(91,61,245,0.24)",
         }}
       >

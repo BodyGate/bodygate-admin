@@ -78,9 +78,9 @@ const systemBadgeStyle: React.CSSProperties = {
 
 const systemBadgeDangerStyle: React.CSSProperties = {
   ...systemBadgeStyle,
-  background: "rgba(91,61,245,0.12)",
+  background: "rgba(214,49,74,0.1)",
   color: "var(--danger)",
-  border: "1px solid rgba(91,61,245,0.25)",
+  border: "1px solid rgba(214,49,74,0.25)",
 };
 
 const dotStyle: React.CSSProperties = {

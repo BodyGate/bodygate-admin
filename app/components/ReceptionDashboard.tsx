@@ -1246,7 +1246,7 @@ const heroActionsStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   color: "white",
-  background: "linear-gradient(180deg,#5b3df5,#b91c1c)",
+  background: "linear-gradient(180deg,#5b3df5,#3d2b99)",
   border: "1px solid rgba(91,61,245,0.5)",
   borderRadius: "14px",
   padding: "12px 16px",

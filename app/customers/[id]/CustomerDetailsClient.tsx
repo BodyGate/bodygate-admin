@@ -1762,7 +1762,7 @@ export default function CustomerDetailsClient({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #5b3df5, #7f1d1d);
+          background: linear-gradient(135deg, #5b3df5, #3d2b99);
           color: #fff;
           font-size: 27px;
           font-weight: 950;
