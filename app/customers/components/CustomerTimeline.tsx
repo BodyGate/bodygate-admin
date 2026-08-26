@@ -480,11 +480,11 @@ export default function CustomerTimeline({ customerId }: Props) {
     <div className="timeline-card">
       <style jsx>{`
         .timeline-card {
-          background: linear-gradient(140deg, #121212, #090909);
-          border: 1px solid #252525;
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 24px;
           padding: 24px;
-          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
         }
         .header {
           display: flex;
@@ -495,26 +495,26 @@ export default function CustomerTimeline({ customerId }: Props) {
         }
         h3 {
           margin: 0;
-          color: #fff;
+          color: var(--text);
           font-size: 22px;
           font-weight: 900;
         }
         .subtitle {
           margin-top: 6px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
         }
         .refresh {
-          border: 1px solid #333;
-          background: #171717;
-          color: #fff;
+          border: 1px solid var(--bg-border-strong, #d7d9e3);
+          background: var(--panel);
+          color: var(--text);
           border-radius: 12px;
           padding: 10px 14px;
           font-weight: 800;
           cursor: pointer;
         }
         .refresh:hover {
-          background: #222;
+          background: var(--bg-canvas-raised, #f4f5f9);
         }
         .stats {
           display: flex;
@@ -525,9 +525,9 @@ export default function CustomerTimeline({ customerId }: Props) {
         .pill {
           padding: 6px 10px;
           border-radius: 999px;
-          border: 1px solid #313131;
-          color: #cfcfcf;
-          background: #101010;
+          border: 1px solid var(--border);
+          color: var(--muted);
+          background: var(--bg-canvas-raised, #f4f5f9);
           font-size: 11px;
           font-weight: 800;
         }
@@ -540,8 +540,8 @@ export default function CustomerTimeline({ customerId }: Props) {
           display: grid;
           grid-template-columns: 16px 1fr;
           gap: 12px;
-          background: #0b0b0b;
-          border: 1px solid #232323;
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 14px;
         }
@@ -587,9 +587,9 @@ export default function CustomerTimeline({ customerId }: Props) {
           display: inline-flex;
           padding: 4px 8px;
           border-radius: 999px;
-          background: #171717;
-          border: 1px solid #303030;
-          color: #d4d4d4;
+          background: var(--bg-canvas-raised, #f4f5f9);
+          border: 1px solid var(--border);
+          color: var(--muted);
           font-size: 10px;
           font-weight: 900;
           text-transform: uppercase;
@@ -598,38 +598,38 @@ export default function CustomerTimeline({ customerId }: Props) {
           display: inline-flex;
           padding: 4px 8px;
           border-radius: 999px;
-          background: #0f172a;
-          border: 1px solid #1e3a8a;
-          color: #bfdbfe;
+          background: rgba(58, 107, 219, 0.1);
+          border: 1px solid rgba(58, 107, 219, 0.3);
+          color: #2c50a8;
           font-size: 10px;
           font-weight: 900;
           text-transform: uppercase;
         }
         .amount {
-          color: #86efac;
+          color: #157a53;
           font-size: 12px;
           font-weight: 800;
         }
         .title {
-          color: #fff;
+          color: var(--text);
           font-size: 15px;
           font-weight: 900;
         }
         .description {
           margin-top: 4px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.45;
         }
         .date {
           margin-top: 8px;
-          color: #737373;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 700;
         }
         .empty,
         .loading {
-          color: #737373;
+          color: var(--muted);
           font-size: 14px;
           padding: 8px 0;
         }

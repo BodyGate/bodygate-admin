@@ -7,7 +7,7 @@ export default function NotificationCard({ notification }: { notification: BodyG
 
   return (
     <article style={{ ...styles.card, borderColor: style.border, background: style.background }}>
-      <div style={{ ...styles.icon, background: style.iconBg }}>{style.icon}</div>
+      <div style={{ ...styles.icon, background: style.iconBg, color: style.color }}>{style.icon}</div>
 
       <div style={styles.content}>
         <div style={styles.topRow}>
@@ -32,24 +32,24 @@ export default function NotificationCard({ notification }: { notification: BodyG
 const severityStyle = {
   critical: {
     icon: "!",
-    color: "#fecaca",
-    border: "rgba(248,113,113,0.45)",
-    background: "linear-gradient(135deg, rgba(61,43,153,0.45), rgba(15,23,42,0.92))",
-    iconBg: "rgba(91,61,245,0.28)",
+    color: "#b5233c",
+    border: "rgba(214,49,74,0.35)",
+    background: "linear-gradient(178deg, rgba(214,49,74,0.06), var(--panel) 55%)",
+    iconBg: "rgba(214,49,74,0.12)",
   },
   warning: {
     icon: "⚠",
-    color: "#fde68a",
-    border: "rgba(251,191,36,0.45)",
-    background: "linear-gradient(135deg, rgba(120,53,15,0.38), rgba(15,23,42,0.92))",
-    iconBg: "rgba(245,158,11,0.24)",
+    color: "#8f620c",
+    border: "rgba(179,121,10,0.35)",
+    background: "linear-gradient(178deg, rgba(179,121,10,0.07), var(--panel) 55%)",
+    iconBg: "rgba(179,121,10,0.14)",
   },
   info: {
     icon: "i",
-    color: "#bfdbfe",
-    border: "rgba(96,165,250,0.42)",
-    background: "linear-gradient(135deg, rgba(30,64,175,0.30), rgba(15,23,42,0.92))",
-    iconBg: "rgba(59,130,246,0.22)",
+    color: "#2c50a8",
+    border: "rgba(58,107,219,0.32)",
+    background: "linear-gradient(178deg, rgba(58,107,219,0.06), var(--panel) 55%)",
+    iconBg: "rgba(58,107,219,0.14)",
   },
 };
 
@@ -60,7 +60,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 18,
     borderRadius: 22,
     border: "1px solid",
-    boxShadow: "0 18px 50px rgba(0,0,0,0.22)",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
   },
   icon: {
     width: 44,
@@ -69,7 +69,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     fontWeight: 900,
-    color: "#fff",
   },
   content: {
     flex: 1,
@@ -84,6 +83,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 17,
     fontWeight: 900,
+    color: "var(--text)",
   },
   badge: {
     fontSize: 11,
@@ -94,14 +94,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   message: {
     margin: "8px 0 12px",
-    color: "#cbd5e1",
+    color: "var(--muted)",
     lineHeight: 1.5,
   },
   meta: {
     display: "flex",
     gap: 10,
     flexWrap: "wrap",
-    color: "#64748b",
+    color: "var(--muted)",
     fontSize: 12,
     fontWeight: 700,
   },

@@ -1752,7 +1752,7 @@ export default function CustomerDetailsClient({
           height: 86px;
           border-radius: 25px;
           flex: 0 0 auto;
-          border: 2px solid rgba(255, 255, 255, 0.12);
+          border: 2px solid rgba(21, 22, 28, 0.1);
           box-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
         }
         .avatar {
@@ -1810,7 +1810,7 @@ export default function CustomerDetailsClient({
         .operations-center {
           display: grid;
           gap: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 30px;
           padding: 18px;
           background:
@@ -1880,7 +1880,7 @@ export default function CustomerDetailsClient({
           margin-top: 8px;
         }
         .access-decision-strip {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 22px;
           padding: 14px;
           background: rgba(0, 0, 0, 0.3);
@@ -1927,7 +1927,7 @@ export default function CustomerDetailsClient({
           justify-content: flex-end;
         }
         .access-check-pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           padding: 8px 10px;
           color: rgba(255, 255, 255, 0.76);
@@ -1952,7 +1952,7 @@ export default function CustomerDetailsClient({
         }
         .situation-kpi {
           min-width: 0;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 18px;
           padding: 14px;
           background: rgba(0, 0, 0, 0.32);
@@ -2000,7 +2000,7 @@ export default function CustomerDetailsClient({
           display: grid;
           grid-template-columns: 112px minmax(0, 1fr);
           gap: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
           padding-bottom: 9px;
         }
         .compact-info-row:last-child {
@@ -2037,7 +2037,7 @@ export default function CustomerDetailsClient({
           display: grid;
           gap: 8px;
           min-height: 104px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 20px;
           padding: 15px;
           background: rgba(255, 255, 255, 0.035);
@@ -2211,7 +2211,7 @@ export default function CustomerDetailsClient({
           display: inline-flex;
           width: fit-content;
           max-width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           padding: 6px 9px;
           background: rgba(255, 255, 255, 0.045);
@@ -2230,7 +2230,7 @@ export default function CustomerDetailsClient({
         .credential-mini {
           display: grid;
           gap: 7px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 18px;
           padding: 13px 14px;
           background: rgba(255, 255, 255, 0.035);
@@ -2267,7 +2267,7 @@ export default function CustomerDetailsClient({
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 14px;
           align-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 18px;
           padding: 14px;
           background: rgba(255, 255, 255, 0.035);
@@ -2313,7 +2313,7 @@ export default function CustomerDetailsClient({
           width: 100%;
           max-width: 100%;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.11);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background:
             linear-gradient(
               145deg,
@@ -2354,7 +2354,7 @@ export default function CustomerDetailsClient({
           gap: 10px;
           min-height: 48px;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.11);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           padding: 0 14px;
           background: rgba(255, 255, 255, 0.035);
         }
@@ -2367,7 +2367,7 @@ export default function CustomerDetailsClient({
         .manual-renew-box {
           padding: 15px;
           border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.035);
         }
         .quick-plan-grid {
@@ -2453,7 +2453,7 @@ export default function CustomerDetailsClient({
           max-width: 100%;
           min-width: 0;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.07);
           color: #fca5a5;
           padding: 7px 10px;
@@ -2491,7 +2491,7 @@ export default function CustomerDetailsClient({
           grid-template-columns: minmax(0, 1fr) minmax(118px, max-content);
           gap: 16px;
           align-items: start;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 20px;
           padding: 15px;
           background:
@@ -2554,7 +2554,7 @@ export default function CustomerDetailsClient({
           gap: 10px;
         }
         .credential-section {
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-top: 1px solid rgba(21, 22, 28, 0.1);
           padding-top: 16px;
           margin-top: 16px;
           display: grid;
@@ -2578,7 +2578,7 @@ export default function CustomerDetailsClient({
         .badge-edit-panel {
           display: grid;
           gap: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 20px;
           padding: 16px;
           background:
@@ -2883,7 +2883,7 @@ export default function CustomerDetailsClient({
           display: inline-flex;
           width: fit-content;
           max-width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           padding: 6px 9px;
           background: rgba(255, 255, 255, 0.045);

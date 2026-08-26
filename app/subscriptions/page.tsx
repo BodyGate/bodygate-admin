@@ -720,7 +720,7 @@ export default function SubscriptionsPage() {
           gap: 16px;
           padding-bottom: 14px;
           margin-bottom: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
         }
 
         .subscriptions-panel-title {
@@ -758,7 +758,7 @@ export default function SubscriptionsPage() {
 
         .subscriptions-filter {
           min-height: 31px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.055);
           color: #bdbdbd;
@@ -785,7 +785,7 @@ export default function SubscriptionsPage() {
           width: 100%;
           min-height: 38px;
           border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(5, 5, 6, 0.78);
           color: #fff;
           outline: none;
@@ -818,14 +818,14 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-loading {
-          border-color: rgba(255, 255, 255, 0.12);
+          border-color: rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.045);
           color: #d4d4d4;
         }
 
         .subscriptions-table-wrap {
           overflow-x: auto;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 8px;
         }
 

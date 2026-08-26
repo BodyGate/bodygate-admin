@@ -22,13 +22,13 @@ function AccessDeniedContent() {
 
         <BGCard variant="danger">
           <div className="grid gap-5">
-            <p className="m-0 text-sm font-bold leading-6 text-zinc-200">
+            <p className="m-0 text-sm font-bold leading-6 text-zinc-700">
               Se hai un ruolo amministrativo valido, torna alla dashboard e
               riprova dopo il caricamento della sessione. Altrimenti richiedi a
               un amministratore il permesso indicato.
             </p>
 
-            <div className="grid gap-2 rounded-lg border border-white/10 bg-black/25 p-4 text-sm font-black text-white">
+            <div className="grid gap-2 rounded-lg border border-black/10 bg-black/[0.03] p-4 text-sm font-black text-zinc-900">
               <span>Sezione: {section || "non specificata"}</span>
               <span>Permesso richiesto: {permission || "non specificato"}</span>
             </div>

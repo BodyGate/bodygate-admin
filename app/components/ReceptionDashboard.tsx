@@ -969,8 +969,8 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
           <div
             key={alert.id}
             style={{
-              background: "rgba(15,23,42,0.55)",
-              border: "1px solid rgba(148,163,184,.25)",
+              background: "rgba(179,121,10,0.06)",
+              border: "1px solid rgba(179,121,10,0.25)",
               borderRadius: "12px",
               padding: "10px",
             }}
@@ -1112,7 +1112,7 @@ const alertLinkStyle: React.CSSProperties = {
 const bridgeButtonStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.08)",
   color: "var(--text)",
-  border: "1px solid rgba(255,255,255,0.16)",
+  border: "1px solid rgba(21, 22, 28, 0.1)",
   borderRadius: "12px",
   padding: "10px 12px",
   fontWeight: 700,
@@ -1217,8 +1217,9 @@ const rowTitleStyle: React.CSSProperties = {
 };
 
 const rowLinkStyle: React.CSSProperties = {
-  color: "#ffffff",
+  color: "var(--accent)",
   textDecoration: "none",
+  fontWeight: 700,
 };
 
 const rowMetaStyle: React.CSSProperties = {

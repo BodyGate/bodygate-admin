@@ -94,7 +94,7 @@ export default function Sidebar() {
         minHeight: "100vh",
         background:
           "linear-gradient(180deg, rgba(12,12,14,0.98), rgba(24,24,27,0.98))",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        borderRight: "1px solid rgba(21, 22, 28, 0.1)",
         display: "flex",
         flexDirection: "column",
         padding: "18px",

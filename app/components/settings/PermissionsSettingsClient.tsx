@@ -188,13 +188,15 @@ export default function PermissionsSettingsClient() {
 
                                     background:
                                       active
-                                        ? "rgba(34,197,94,0.18)"
-                                        : "rgba(91,61,245,0.18)",
+                                        ? "rgba(31,157,107,0.1)"
+                                        : "var(--bg-canvas-raised, #f4f5f9)",
 
                                     borderColor:
                                       active
-                                        ? "rgba(34,197,94,0.45)"
-                                        : "rgba(91,61,245,0.45)",
+                                        ? "rgba(31,157,107,0.4)"
+                                        : "var(--bg-border-strong, #d7d9e3)",
+
+                                    color: active ? "#157a53" : "var(--muted)",
                                   }}
                                 >
                                   {active
@@ -221,7 +223,7 @@ export default function PermissionsSettingsClient() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     padding: 28,
-    color: "#fff",
+    color: "var(--text)",
   },
 
   hero: {
@@ -230,13 +232,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 24,
 
     background:
-      "linear-gradient(135deg, rgba(168,85,247,0.20), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
+      "linear-gradient(178deg, rgba(192,75,214,0.08), var(--panel) 55%)",
 
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
   },
 
   eyebrow: {
-    color: "#c084fc",
+    color: "var(--accent-2, #c04bd6)",
     textTransform: "uppercase",
     fontSize: 13,
     fontWeight: 800,
@@ -247,15 +249,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 38,
     fontWeight: 900,
     marginTop: 10,
+    color: "var(--text)",
   },
 
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     maxWidth: 700,
   },
 
   loading: {
-    color: "#94a3b8",
+    color: "var(--muted)",
   },
 
   section: {
@@ -266,36 +269,37 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 14,
     fontSize: 22,
     fontWeight: 800,
+    color: "var(--text)",
   },
 
   tableWrapper: {
     overflowX: "auto",
     borderRadius: 24,
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
   },
 
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    background: "rgba(15,23,42,0.92)",
+    background: "var(--panel)",
   },
 
   th: {
     padding: 18,
     textAlign: "left",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    color: "#94a3b8",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--muted)",
     fontSize: 13,
   },
 
   td: {
     padding: 18,
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--text)",
   },
 
   toggle: {
     border: "1px solid",
-    color: "#fff",
     borderRadius: 12,
     padding: "8px 14px",
     cursor: "pointer",

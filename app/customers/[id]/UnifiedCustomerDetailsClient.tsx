@@ -139,7 +139,7 @@ export default function UnifiedCustomerDetailsClient({
           > .credential-section:nth-last-child(2) {
           margin-bottom: 0 !important;
           padding-bottom: 14px !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          border: 1px solid rgba(21, 22, 28, 0.1) !important;
           border-bottom: 0 !important;
           border-radius: 22px 22px 0 0 !important;
           background:
@@ -156,7 +156,7 @@ export default function UnifiedCustomerDetailsClient({
           > .credential-section:last-child {
           margin-top: 0 !important;
           padding-top: 10px !important;
-          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          border: 1px solid rgba(21, 22, 28, 0.1) !important;
           border-top: 0 !important;
           border-radius: 0 0 22px 22px !important;
           background: rgba(8, 8, 10, 0.82) !important;

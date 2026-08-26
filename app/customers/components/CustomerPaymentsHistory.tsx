@@ -356,7 +356,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
               transparent 34%
             ),
             linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(9, 9, 9, 0.98));
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 26px;
           padding: 24px;
           color: white;
@@ -421,7 +421,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .total-box {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(0, 0, 0, 0.36);
           border-radius: 18px;
           padding: 14px 16px;
@@ -452,7 +452,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .count-pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.05);
           border-radius: 999px;
           padding: 9px 12px;
@@ -462,7 +462,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .payment-row {
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(8, 8, 8, 0.78);
           border-radius: 20px;
           padding: 17px;
@@ -511,7 +511,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.04);
           border-radius: 999px;
           padding: 7px 10px;
@@ -617,7 +617,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .empty-state,
         .error-state {
-          border: 1px dashed rgba(255, 255, 255, 0.15);
+          border: 1px dashed rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.035);
           border-radius: 20px;
           padding: 22px;
@@ -645,7 +645,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         .modal {
           width: min(740px, 100%);
           background: linear-gradient(180deg, #151515, #090909);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 26px;
           padding: 24px;
           box-shadow: 0 30px 90px rgba(0, 0, 0, 0.64);

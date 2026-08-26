@@ -36,13 +36,13 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     padding: 18,
     borderRadius: 22,
-    background: "rgba(15,23,42,0.86)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 18px 50px rgba(0,0,0,0.22)",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
   },
   label: {
     margin: 0,
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: 13,
     fontWeight: 700,
   },
@@ -50,6 +50,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "block",
     marginTop: 8,
     fontSize: 32,
-    color: "#fff",
+    color: "var(--text)",
   },
 };

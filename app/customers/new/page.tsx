@@ -458,7 +458,7 @@ export default function NewCustomerPage() {
           align-items: center;
           gap: 16px;
           padding: 14px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
           color: #d4d4d8;
           font-size: 14px;
           font-weight: 800;
@@ -537,7 +537,7 @@ export default function NewCustomerPage() {
           gap: 12px;
         }
         .badge-charge-card button {
-          border: 1px solid rgba(255,255,255,0.16);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           padding: 10px 14px;
           background: rgba(255,255,255,0.08);

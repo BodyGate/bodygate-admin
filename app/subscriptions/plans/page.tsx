@@ -583,7 +583,7 @@ export default function SubscriptionPlansPage() {
           gap: 14px;
           margin-bottom: 16px;
           padding: 16px 18px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 22px;
           background: rgba(255, 255, 255, 0.045);
         }
@@ -602,7 +602,7 @@ export default function SubscriptionPlansPage() {
         .field-input,
         .field-checkbox {
           width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 16px;
           background: rgba(5, 5, 5, 0.78);
           color: #fff;
@@ -684,7 +684,7 @@ export default function SubscriptionPlansPage() {
           gap: 18px;
           padding-bottom: 18px;
           margin-bottom: 18px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
         }
 
         .plans-card-head.stacked {
@@ -721,7 +721,7 @@ export default function SubscriptionPlansPage() {
         .plans-table th,
         .plans-table td {
           padding: 14px 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
           text-align: left;
           vertical-align: middle;
         }
@@ -772,7 +772,7 @@ export default function SubscriptionPlansPage() {
           padding: 7px 10px;
           border-radius: 999px;
           color: #d4d4d4;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: rgba(255, 255, 255, 0.055);
         }
 

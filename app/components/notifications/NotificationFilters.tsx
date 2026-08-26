@@ -44,17 +44,17 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 20,
   },
   button: {
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(15,23,42,0.82)",
-    color: "#94a3b8",
+    border: "1px solid var(--border)",
+    background: "var(--panel)",
+    color: "var(--muted)",
     padding: "10px 14px",
     borderRadius: 14,
     cursor: "pointer",
     fontWeight: 800,
   },
   active: {
-    background: "rgba(91,61,245,0.18)",
-    color: "#fff",
-    borderColor: "rgba(248,113,113,0.45)",
+    background: "rgba(91,61,245,0.12)",
+    color: "var(--accent)",
+    borderColor: "rgba(91,61,245,0.4)",
   },
 };

@@ -275,7 +275,7 @@ export default function CustomersTable() {
         .crm3-hero,
         .crm3-list-panel,
         .crm3-detail-panel {
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           background: linear-gradient(145deg, rgba(20, 20, 22, 0.98), rgba(7, 7, 8, 0.99));
           box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
         }
@@ -331,13 +331,13 @@ export default function CustomersTable() {
           flex-wrap: wrap;
           margin-top: 13px;
           padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
+          border-top: 1px solid rgba(21, 22, 28, 0.1);
         }
 
         .crm3-filter-btn {
           min-height: 30px;
           padding: 0 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.035);
           color: #a9a9b0;
@@ -372,7 +372,7 @@ export default function CustomersTable() {
           min-height: 76px;
           padding: 13px 15px;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 10px;
           background: linear-gradient(145deg, rgba(20, 20, 22, 0.96), rgba(8, 8, 9, 0.98));
         }
@@ -432,7 +432,7 @@ export default function CustomersTable() {
           align-items: center;
           gap: 12px;
           padding: 13px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
         }
 
         :global(.crm3-search) {
@@ -547,7 +547,7 @@ export default function CustomersTable() {
           align-items: center;
           gap: 16px;
           padding-bottom: 13px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
         }
 
         .crm3-detail-main {
@@ -597,7 +597,7 @@ export default function CustomersTable() {
           min-width: 0;
           min-height: 66px;
           padding: 11px 12px;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 9px;
           background: rgba(255, 255, 255, 0.028);
         }
@@ -638,7 +638,7 @@ export default function CustomersTable() {
           align-items: center;
           gap: 11px;
           padding: 11px 13px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 10px;
           background: rgba(255, 255, 255, 0.032);
           color: #fff;
@@ -663,7 +663,7 @@ export default function CustomersTable() {
           height: 34px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 8px;
           background: rgba(255, 255, 255, 0.055);
           font-size: 16px;

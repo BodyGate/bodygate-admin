@@ -252,9 +252,9 @@ export default function ExercisesLibraryClient() {
                     style={{
                       ...styles.status,
                       background: exercise.is_active
-                        ? "rgba(34,197,94,0.16)"
-                        : "rgba(91,61,245,0.16)",
-                      color: exercise.is_active ? "#86efac" : "#fca5a5",
+                        ? "rgba(31,157,107,0.1)"
+                        : "var(--bg-canvas-raised, #f4f5f9)",
+                      color: exercise.is_active ? "#157a53" : "var(--muted, #6b7080)",
                     }}
                   >
                     {exercise.is_active ? "Attivo" : "Disattivato"}
@@ -302,18 +302,18 @@ export default function ExercisesLibraryClient() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     padding: 28,
-    color: "#fff",
+    color: "var(--text)",
   },
   hero: {
     padding: 28,
     borderRadius: 28,
     marginBottom: 24,
     background:
-      "linear-gradient(135deg, rgba(59,130,246,0.22), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
-    border: "1px solid rgba(255,255,255,0.08)",
+      "linear-gradient(178deg, rgba(58,107,219,0.08), var(--panel) 55%)",
+    border: "1px solid var(--border)",
   },
   eyebrow: {
-    color: "#60a5fa",
+    color: "#2c50a8",
     textTransform: "uppercase",
     fontSize: 13,
     fontWeight: 800,
@@ -323,23 +323,24 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 38,
     fontWeight: 900,
     marginTop: 10,
+    color: "var(--text)",
   },
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     maxWidth: 760,
   },
   formPanel: {
     padding: 24,
     borderRadius: 28,
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
     marginBottom: 24,
   },
   panel: {
     padding: 24,
     borderRadius: 28,
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
   },
   panelHeader: {
     display: "flex",
@@ -352,9 +353,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 24,
     fontWeight: 900,
     margin: 0,
+    color: "var(--text)",
   },
   panelSubtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     marginTop: 6,
   },
   formGrid: {
@@ -367,14 +369,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    color: "#cbd5e1",
+    color: "var(--muted)",
     fontSize: 13,
     fontWeight: 700,
   },
   input: {
-    background: "#020617",
-    border: "1px solid rgba(255,255,255,0.10)",
-    color: "#fff",
+    background: "var(--bg-canvas-raised, #f4f5f9)",
+    border: "1px solid var(--bg-border-strong, #d7d9e3)",
+    color: "var(--text)",
     padding: "13px 14px",
     borderRadius: 14,
     outline: "none",
@@ -402,8 +404,9 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     padding: 20,
     borderRadius: 22,
-    background: "#020617",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -419,6 +422,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 18,
     fontWeight: 900,
+    color: "var(--text)",
   },
   status: {
     padding: "5px 9px",
@@ -428,12 +432,12 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap",
   },
   cardMeta: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: 13,
     marginTop: 8,
   },
   instructions: {
-    color: "#cbd5e1",
+    color: "var(--text)",
     fontSize: 13,
     lineHeight: 1.5,
     marginTop: 12,
@@ -444,24 +448,24 @@ const styles: Record<string, React.CSSProperties> = {
   },
   linkButton: {
     textDecoration: "none",
-    background: "rgba(59,130,246,0.18)",
-    color: "#bfdbfe",
+    background: "rgba(58,107,219,0.1)",
+    color: "#2c50a8",
     padding: "10px 13px",
     borderRadius: 12,
     fontWeight: 800,
     fontSize: 13,
   },
   secondaryButton: {
-    border: "none",
-    background: "rgba(255,255,255,0.08)",
-    color: "#fff",
+    border: "1px solid var(--bg-border-strong, #d7d9e3)",
+    background: "var(--panel)",
+    color: "var(--text)",
     padding: "10px 13px",
     borderRadius: 12,
     fontWeight: 800,
     cursor: "pointer",
   },
   empty: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     padding: 20,
   },
 };
