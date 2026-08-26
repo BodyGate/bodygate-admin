@@ -6,11 +6,19 @@ $StartupScript = Join-Path $Root "scripts\start-bodygate-bridge.ps1"
 
 $OldExe = "C:\BodyGateBridge_Releases\V3.9.2-machine-auth\BodyGateBridge.exe"
 $NewExe = "C:\BodyGateBridge_Releases\V3.9.3-performance\BodyGateBridge.exe"
+$NewDll = "C:\BodyGateBridge_Releases\V3.9.3-performance\BodyGateBridge.dll"
 # IMPORTANT: keep in sync with $ExpectedHash in
 # verify-bodygate-bridge-v3.9.3-performance.ps1 — both must match the hash of
 # the currently built BodyGateBridge.exe, recomputed after every source
 # change (e.g. the Pooling=False disk-fill fix), or this script aborts.
+#
+# NOTE: with `dotnet publish --self-contained` (non single-file),
+# BodyGateBridge.exe is just the native apphost stub — its bytes do not
+# change when Program.cs changes, so $ExpectedNewHash alone never actually
+# detects a source change. $ExpectedNewDllHash, pinned against
+# BodyGateBridge.dll (the real compiled IL), is the check that matters.
 $ExpectedNewHash = "7E6B846E389E9483B1D7AD915527849CBD6959EE5B878D2889FB0AECDCC27537"
+$ExpectedNewDllHash = "9CC50F5E1A59D692A6A5DDAD9B1340901FD982614EEC7F8A5AC0E8B3DE5D9948"
 
 $BridgeStatusUrl = "http://127.0.0.1:5050/status"
 $BodyGateHealthUrl = "http://127.0.0.1:3000/api/health"
@@ -154,6 +162,15 @@ try {
     $newHash = (Get-FileHash -LiteralPath $NewExe -Algorithm SHA256).Hash
     if ($newHash -ne $ExpectedNewHash) {
         throw "Hash V3.9.3 non corrispondente a quello verificato."
+    }
+
+    if (-not (Test-Path -LiteralPath $NewDll)) {
+        throw "V3.9.3 DLL non trovata: $NewDll"
+    }
+
+    $newDllHash = (Get-FileHash -LiteralPath $NewDll -Algorithm SHA256).Hash
+    if ($newDllHash -ne $ExpectedNewDllHash) {
+        throw "Hash DLL V3.9.3 non corrispondente a quello verificato. L'exe da solo non basta a garantire che il codice compilato sia quello atteso."
     }
 
     $bodyGateHealth = Invoke-WebRequest -Uri $BodyGateHealthUrl -UseBasicParsing -TimeoutSec 3
