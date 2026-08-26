@@ -3,7 +3,7 @@
 .cardLink:hover { border-color:rgba(248,113,113,.65); transform:translateY(-2px); }
 .cardLink:focus-visible { outline:3px solid rgba(248,113,113,.75); outline-offset:3px; }
 .cardTop { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.openLabel { border:1px solid rgba(248,113,113,.3); border-radius:999px; padding:6px 12px; color:#fecaca; background:rgba(239,68,68,.1); font-size:12px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+.openLabel { border:1px solid rgba(248,113,113,.3); border-radius:999px; padding:6px 12px; color:#fecaca; background:rgba(91,61,245,.1); font-size:12px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
 .cardTitle { margin:0; color:#fff; font-size:24px; line-height:1.15; }
 .cardDescription { margin:10px 0 0; color:#d4d4d8; font-size:14px; line-height:1.55; }
 .cardDestination { margin-top:auto; color:#fecaca; font-size:12px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; overflow-wrap:anywhere; }

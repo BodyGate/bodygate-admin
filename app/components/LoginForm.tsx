@@ -98,6 +98,8 @@ const brandStyle: React.CSSProperties = {
   fontSize: "42px",
   fontWeight: "bold",
   color: "var(--text)",
+  fontFamily: "var(--font-display)",
+  letterSpacing: "-0.02em",
 };
 
 const subtitleStyle: React.CSSProperties = {
@@ -136,9 +138,9 @@ const buttonStyle: React.CSSProperties = {
 };
 
 const messageStyle: React.CSSProperties = {
-  background: "rgba(239,68,68,0.12)",
-  color: "#ef4444",
-  border: "1px solid rgba(239,68,68,0.35)",
+  background: "rgba(214,49,74,0.1)",
+  color: "var(--danger)",
+  border: "1px solid rgba(214,49,74,0.35)",
   borderRadius: "14px",
   padding: "14px",
   fontWeight: "bold",

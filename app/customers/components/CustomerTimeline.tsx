@@ -561,8 +561,8 @@ export default function CustomerTimeline({ customerId }: Props) {
           color: #38bdf8;
         }
         .red {
-          background: #ef4444;
-          color: #ef4444;
+          background: #5b3df5;
+          color: #5b3df5;
         }
         .yellow {
           background: #facc15;

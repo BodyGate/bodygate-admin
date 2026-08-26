@@ -253,7 +253,7 @@ export default function ExercisesLibraryClient() {
                       ...styles.status,
                       background: exercise.is_active
                         ? "rgba(34,197,94,0.16)"
-                        : "rgba(239,68,68,0.16)",
+                        : "rgba(91,61,245,0.16)",
                       color: exercise.is_active ? "#86efac" : "#fca5a5",
                     }}
                   >

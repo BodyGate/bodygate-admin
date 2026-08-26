@@ -189,12 +189,12 @@ export default function PermissionsSettingsClient() {
                                     background:
                                       active
                                         ? "rgba(34,197,94,0.18)"
-                                        : "rgba(239,68,68,0.18)",
+                                        : "rgba(91,61,245,0.18)",
 
                                     borderColor:
                                       active
                                         ? "rgba(34,197,94,0.45)"
-                                        : "rgba(239,68,68,0.45)",
+                                        : "rgba(91,61,245,0.45)",
                                   }}
                                 >
                                   {active

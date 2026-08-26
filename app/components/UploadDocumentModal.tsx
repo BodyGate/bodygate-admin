@@ -149,7 +149,7 @@ export default function UploadDocumentModal({ customerId, onUploaded }: Props) {
 const buttonStyle: React.CSSProperties = {
   border: "none",
   borderRadius: "16px",
-  background: "linear-gradient(to right, #ef4444, #dc2626)",
+  background: "linear-gradient(to right, #5b3df5, #dc2626)",
   color: "white",
   padding: "13px 18px",
   fontWeight: 800,
@@ -233,7 +233,7 @@ const submitButtonStyle: React.CSSProperties = {
   marginTop: "6px",
   border: "none",
   borderRadius: "18px",
-  background: "linear-gradient(to right, #ef4444, #dc2626)",
+  background: "linear-gradient(to right, #5b3df5, #dc2626)",
   color: "white",
   padding: "15px 20px",
   fontWeight: 900,

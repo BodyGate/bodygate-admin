@@ -231,7 +231,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 28,
     borderRadius: 28,
     background:
-      "linear-gradient(135deg, rgba(239,68,68,0.22), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
+      "linear-gradient(135deg, rgba(91,61,245,0.22), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
     border: "1px solid rgba(255,255,255,0.08)",
     boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
     marginBottom: 22,
@@ -256,7 +256,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   refreshButton: {
     border: "1px solid rgba(248,113,113,0.45)",
-    background: "rgba(239,68,68,0.14)",
+    background: "rgba(91,61,245,0.14)",
     color: "#fff",
     padding: "12px 18px",
     borderRadius: 16,

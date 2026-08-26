@@ -141,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at top left, rgba(239,68,68,.25), #020617 45%)",
+      "radial-gradient(circle at top left, rgba(91,61,245,.25), #020617 45%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -166,7 +166,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto 24px",
     borderRadius: 24,
     background:
-      "linear-gradient(135deg,#ef4444 0%,#991b1b 100%)",
+      "linear-gradient(135deg,#5b3df5 0%,#3d2b99 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

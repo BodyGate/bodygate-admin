@@ -352,7 +352,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.16),
               transparent 34%
             ),
             linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(9, 9, 9, 0.98));
@@ -370,7 +370,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           pointer-events: none;
           background: linear-gradient(
             90deg,
-            rgba(239, 68, 68, 0.16),
+            rgba(91, 61, 245, 0.16),
             transparent 28%,
             transparent
           );
@@ -476,8 +476,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .payment-row.cancelled {
           opacity: 0.72;
-          border-color: rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.06);
+          border-color: rgba(91, 61, 245, 0.28);
+          background: rgba(91, 61, 245, 0.06);
         }
 
         .payment-title-line {
@@ -537,8 +537,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .pill.cancelled {
           color: #fca5a5;
-          border-color: rgba(239, 68, 68, 0.35);
-          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(91, 61, 245, 0.35);
+          background: rgba(91, 61, 245, 0.1);
         }
 
         .payment-side {
@@ -583,7 +583,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         button {
-          background: #ef4444;
+          background: #5b3df5;
           border: none;
           font-weight: 950;
           cursor: pointer;
@@ -627,8 +627,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .error-state {
           color: #fecaca;
-          border-color: rgba(239, 68, 68, 0.26);
-          background: rgba(239, 68, 68, 0.08);
+          border-color: rgba(91, 61, 245, 0.26);
+          background: rgba(91, 61, 245, 0.08);
         }
 
         .modal-backdrop {
@@ -719,8 +719,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .warning-box {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(91, 61, 245, 0.28);
+          background: rgba(91, 61, 245, 0.08);
           color: #fecaca;
           border-radius: 17px;
           padding: 13px;

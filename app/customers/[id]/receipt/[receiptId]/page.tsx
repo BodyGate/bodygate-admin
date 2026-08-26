@@ -407,7 +407,7 @@ export default async function ReceiptPage({
           font-size: 19px;
           font-weight: 950;
           letter-spacing: -0.4px;
-          color: #991b1b;
+          color: #3d2b99;
         }
 
         .muted {
@@ -417,8 +417,8 @@ export default async function ReceiptPage({
         }
 
         .copy-label {
-          border: 2px solid #991b1b;
-          color: #991b1b;
+          border: 2px solid #3d2b99;
+          color: #3d2b99;
           padding: 6px 10px;
           border-radius: 8px;
           font-weight: 950;
@@ -476,7 +476,7 @@ export default async function ReceiptPage({
         }
 
         .box-title {
-          color: #991b1b;
+          color: #3d2b99;
           font-weight: 950;
           text-transform: uppercase;
           font-size: 9.3px;
@@ -531,7 +531,7 @@ export default async function ReceiptPage({
 
         .total-row strong {
           font-size: 18px;
-          color: #991b1b;
+          color: #3d2b99;
         }
 
         .legal-note {

@@ -178,7 +178,7 @@ export default function CustomerDetailPanel({
     : "ATTIVO";
 
   const statusColor = !customer.active
-    ? "#ef4444"
+    ? "#5b3df5"
     : customer.subscription_status === "expired"
     ? "#f59e0b"
     : "#22c55e";
@@ -329,7 +329,7 @@ export default function CustomerDetailPanel({
 
                 <div
                   style={{
-                    color: log.allowed ? "#22c55e" : "#ef4444",
+                    color: log.allowed ? "#22c55e" : "#5b3df5",
                     fontWeight: "bold",
                   }}
                 >
@@ -451,9 +451,9 @@ const secondaryButton: React.CSSProperties = {
 };
 
 const dangerButton: React.CSSProperties = {
-  background: "rgba(239,68,68,0.12)",
-  color: "#ef4444",
-  border: "1px solid rgba(239,68,68,0.35)",
+  background: "rgba(91,61,245,0.12)",
+  color: "#5b3df5",
+  border: "1px solid rgba(91,61,245,0.35)",
   borderRadius: "14px",
   padding: "14px 18px",
   fontWeight: "bold",

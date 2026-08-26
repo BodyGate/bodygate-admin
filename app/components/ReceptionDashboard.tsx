@@ -561,7 +561,7 @@ export default function ReceptionDashboard() {
         ? "#22c55e"
         : state === "degraded"
           ? "#f59e0b"
-          : "#ef4444";
+          : "#5b3df5";
     return {
       background: `${color}22`,
       color,
@@ -662,7 +662,7 @@ export default function ReceptionDashboard() {
         </div> : null}
       </BGCard>
 
-      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "#ef4444", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
+      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "#5b3df5", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
 
       <div className="reception-system-grid" style={firstRowStyle}>
         <BridgeStatusCard
@@ -738,11 +738,11 @@ export default function ReceptionDashboard() {
                     <div
                       style={{
                         ...statusBadgeStyle,
-                        color: isAllowed(log) ? "#22c55e" : "#ef4444",
-                        borderColor: isAllowed(log) ? "#22c55e" : "#ef4444",
+                        color: isAllowed(log) ? "#22c55e" : "#5b3df5",
+                        borderColor: isAllowed(log) ? "#22c55e" : "#5b3df5",
                         background: isAllowed(log)
                           ? "rgba(34,197,94,0.12)"
-                          : "rgba(239,68,68,0.12)",
+                          : "rgba(91,61,245,0.12)",
                       }}
                     >
                       {isAllowed(log) ? "OK" : "NEGATO"}
@@ -799,9 +799,9 @@ export default function ReceptionDashboard() {
                       <span
                         style={{
                           ...statusBadgeStyle,
-                          color: "#ef4444",
-                          borderColor: "#ef4444",
-                          background: "rgba(239,68,68,0.12)",
+                          color: "#5b3df5",
+                          borderColor: "#5b3df5",
+                          background: "rgba(91,61,245,0.12)",
                         }}
                       >
                         NEGATO
@@ -858,7 +858,7 @@ function BridgeStatusCard({
   const isWarning = status.processing || (status.online && !status.connected);
   const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
   const color =
-    tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
+    tone === "online" ? "#22c55e" : tone === "offline" ? "#5b3df5" : "#f59e0b";
 
   return (
     <div
@@ -917,7 +917,7 @@ function AlertCard({
   href?: string;
 }) {
   const color =
-    tone === "danger" ? "#ef4444" : tone === "warning" ? "#f59e0b" : "#22c55e";
+    tone === "danger" ? "#5b3df5" : tone === "warning" ? "#f59e0b" : "#22c55e";
 
   return (
     <div
@@ -1022,7 +1022,7 @@ const heroStyle: React.CSSProperties = {
   padding: "30px",
   borderRadius: "30px",
   background:
-    "radial-gradient(circle at top left, rgba(239,68,68,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
+    "radial-gradient(circle at top left, rgba(91,61,245,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
   border: "1px solid var(--border)",
   boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
 };
@@ -1246,8 +1246,8 @@ const heroActionsStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   color: "white",
-  background: "linear-gradient(180deg,#ef4444,#b91c1c)",
-  border: "1px solid rgba(239,68,68,0.5)",
+  background: "linear-gradient(180deg,#5b3df5,#b91c1c)",
+  border: "1px solid rgba(91,61,245,0.5)",
   borderRadius: "14px",
   padding: "12px 16px",
   fontWeight: 800,

@@ -34,8 +34,8 @@ const severityStyle = {
     icon: "!",
     color: "#fecaca",
     border: "rgba(248,113,113,0.45)",
-    background: "linear-gradient(135deg, rgba(127,29,29,0.45), rgba(15,23,42,0.92))",
-    iconBg: "rgba(239,68,68,0.28)",
+    background: "linear-gradient(135deg, rgba(61,43,153,0.45), rgba(15,23,42,0.92))",
+    iconBg: "rgba(91,61,245,0.28)",
   },
   warning: {
     icon: "⚠",

@@ -1720,7 +1720,7 @@ export default function CustomerDetailsClient({
           background:
             radial-gradient(
               circle at 10% 0%,
-              rgba(239, 68, 68, 0.12),
+              rgba(91, 61, 245, 0.12),
               transparent 28%
             ),
             #050505;
@@ -1762,7 +1762,7 @@ export default function CustomerDetailsClient({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          background: linear-gradient(135deg, #5b3df5, #7f1d1d);
           color: #fff;
           font-size: 27px;
           font-weight: 950;
@@ -1816,7 +1816,7 @@ export default function CustomerDetailsClient({
           background:
             radial-gradient(
               circle at 4% 0%,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.16),
               transparent 28%
             ),
             linear-gradient(
@@ -1843,13 +1843,13 @@ export default function CustomerDetailsClient({
           align-items: stretch;
         }
         .situation-card {
-          border: 1px solid rgba(239, 68, 68, 0.22);
+          border: 1px solid rgba(91, 61, 245, 0.22);
           border-radius: 28px;
           padding: 22px;
           background:
             linear-gradient(
               135deg,
-              rgba(239, 68, 68, 0.13),
+              rgba(91, 61, 245, 0.13),
               rgba(255, 255, 255, 0.035) 34%,
               rgba(5, 5, 5, 0.88)
             ),
@@ -1901,7 +1901,7 @@ export default function CustomerDetailsClient({
           border-color: rgba(251, 113, 133, 0.28);
           background: linear-gradient(
             135deg,
-            rgba(127, 29, 29, 0.34),
+            rgba(61, 43, 153, 0.34),
             rgba(0, 0, 0, 0.28)
           );
         }
@@ -1943,7 +1943,7 @@ export default function CustomerDetailsClient({
         .access-check-pill.ko {
           border-color: rgba(251, 113, 133, 0.24);
           color: #fecdd3;
-          background: rgba(127, 29, 29, 0.2);
+          background: rgba(61, 43, 153, 0.2);
         }
         .situation-kpis {
           display: grid;
@@ -1980,7 +1980,7 @@ export default function CustomerDetailsClient({
         }
         .alert-chip {
           border: 1px solid rgba(251, 113, 133, 0.25);
-          background: rgba(127, 29, 29, 0.28);
+          background: rgba(61, 43, 153, 0.28);
           color: #fecdd3;
           border-radius: 16px;
           padding: 10px 12px;
@@ -2070,7 +2070,7 @@ export default function CustomerDetailsClient({
           background:
             radial-gradient(
               circle at 92% 0%,
-              rgba(239, 68, 68, 0.14),
+              rgba(91, 61, 245, 0.14),
               transparent 38%
             ),
             linear-gradient(
@@ -2095,7 +2095,7 @@ export default function CustomerDetailsClient({
           z-index: -1;
           border-radius: inherit;
           background:
-            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
+            linear-gradient(90deg, rgba(91, 61, 245, 0.12), transparent 46%),
             radial-gradient(
               circle at top left,
               rgba(255, 255, 255, 0.08),
@@ -2112,15 +2112,15 @@ export default function CustomerDetailsClient({
           left: 0;
           width: 3px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
-          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+          background: linear-gradient(180deg, #5b3df5, rgba(153, 27, 27, 0.22));
+          box-shadow: 0 0 18px rgba(91, 61, 245, 0.24);
         }
         .mini-card:hover {
           transform: translateY(-2px);
-          border-color: rgba(239, 68, 68, 0.38);
+          border-color: rgba(91, 61, 245, 0.38);
           box-shadow:
             0 24px 58px rgba(0, 0, 0, 0.4),
-            0 0 34px rgba(239, 68, 68, 0.08);
+            0 0 34px rgba(91, 61, 245, 0.08);
         }
         .mini-card:hover::before {
           opacity: 1;
@@ -2341,8 +2341,8 @@ export default function CustomerDetailsClient({
         input:focus,
         select:focus,
         textarea:focus {
-          border-color: rgba(239, 68, 68, 0.62);
-          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+          border-color: rgba(91, 61, 245, 0.62);
+          box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.16);
         }
         select option {
           background: #111;
@@ -2361,7 +2361,7 @@ export default function CustomerDetailsClient({
         .checkbox-field input {
           width: 18px;
           min-height: 18px;
-          accent-color: #ef4444;
+          accent-color: #5b3df5;
         }
         .payment-box,
         .manual-renew-box {
@@ -2393,11 +2393,11 @@ export default function CustomerDetailsClient({
           text-align: left;
           border-radius: 24px;
           padding: 20px;
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          border: 1px solid rgba(91, 61, 245, 0.28);
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.22),
+              rgba(91, 61, 245, 0.22),
               transparent 58%
             ),
             linear-gradient(
@@ -2417,11 +2417,11 @@ export default function CustomerDetailsClient({
             0 18px 42px rgba(0, 0, 0, 0.26);
         }
         .quick-plan-btn:hover {
-          border-color: rgba(239, 68, 68, 0.48);
+          border-color: rgba(91, 61, 245, 0.48);
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.3),
+              rgba(91, 61, 245, 0.3),
               transparent 58%
             ),
             linear-gradient(
@@ -2584,7 +2584,7 @@ export default function CustomerDetailsClient({
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.16),
               transparent 34%
             ),
             rgba(255, 255, 255, 0.035);
@@ -2605,7 +2605,7 @@ export default function CustomerDetailsClient({
         }
         .badge-edit-panel {
           background:
-            linear-gradient(145deg, rgba(239, 68, 68, 0.12), transparent),
+            linear-gradient(145deg, rgba(91, 61, 245, 0.12), transparent),
             rgba(5, 5, 5, 0.82);
         }
         .badge-feedback {
@@ -2620,8 +2620,8 @@ export default function CustomerDetailsClient({
           color: #bbf7d0;
         }
         .badge-feedback-danger {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(91, 61, 245, 0.28);
+          background: rgba(91, 61, 245, 0.1);
           color: #fecaca;
         }
         .qr-box {
@@ -2742,7 +2742,7 @@ export default function CustomerDetailsClient({
           background:
             radial-gradient(
               circle at 92% 0%,
-              rgba(239, 68, 68, 0.14),
+              rgba(91, 61, 245, 0.14),
               transparent 38%
             ),
             linear-gradient(
@@ -2767,7 +2767,7 @@ export default function CustomerDetailsClient({
           z-index: -1;
           border-radius: inherit;
           background:
-            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
+            linear-gradient(90deg, rgba(91, 61, 245, 0.12), transparent 46%),
             radial-gradient(
               circle at top left,
               rgba(255, 255, 255, 0.08),
@@ -2784,15 +2784,15 @@ export default function CustomerDetailsClient({
           left: 0;
           width: 3px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
-          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+          background: linear-gradient(180deg, #5b3df5, rgba(153, 27, 27, 0.22));
+          box-shadow: 0 0 18px rgba(91, 61, 245, 0.24);
         }
         .mini-card:hover {
           transform: translateY(-2px);
-          border-color: rgba(239, 68, 68, 0.38);
+          border-color: rgba(91, 61, 245, 0.38);
           box-shadow:
             0 24px 58px rgba(0, 0, 0, 0.4),
-            0 0 34px rgba(239, 68, 68, 0.08);
+            0 0 34px rgba(91, 61, 245, 0.08);
         }
         .mini-card:hover::before {
           opacity: 1;

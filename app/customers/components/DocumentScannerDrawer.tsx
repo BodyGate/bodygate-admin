@@ -118,9 +118,9 @@ export default function DocumentScannerDrawer({ open, title, documentType, initi
         h2 { margin:0; font-size:22px; letter-spacing:-.03em; } p { margin:5px 0 0; color:#a3a3a3; font-size:13px; }
         button { border:1px solid #333; background:#151515; color:#fff; border-radius:14px; padding:12px 14px; font-weight:900; cursor:pointer; }
         button:disabled { opacity:.45; cursor:not-allowed; }
-        .primary { background:#e11d2e; border-color:#ef4444; } .ghost { background:#090909; }
+        .primary { background:#e11d2e; border-color:#5b3df5; } .ghost { background:#090909; }
         .file-action { position: relative; border: 1px solid #333; background: #151515; color: #fff; border-radius: 14px; padding: 12px 14px; font-weight: 900; cursor: pointer; text-align: center; min-height: 46px; display: inline-flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        .file-action.primary-action { background: #e11d2e; border-color: #ef4444; }
+        .file-action.primary-action { background: #e11d2e; border-color: #5b3df5; }
         .file-action.disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
         .file-input { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; pointer-events: none; }
         .stage { border:1px solid #2d2d2d; border-radius:22px; min-height:330px; max-height:48vh; background: radial-gradient(circle at top,#1d1d1d,#080808); display:flex; align-items:center; justify-content:center; overflow:hidden; padding:14px; }

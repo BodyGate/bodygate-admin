@@ -81,7 +81,7 @@ export default function SettingsPageClient() {
         }
 
         .eyebrow {
-          color: #ef4444;
+          color: #5b3df5;
           font-size: 12px;
           font-weight: 900;
           letter-spacing: 0.12em;
@@ -140,7 +140,7 @@ export default function SettingsPageClient() {
 
         select:focus,
         input:focus {
-          border-color: #ef4444;
+          border-color: #5b3df5;
         }
 
         .branch-meta {
@@ -175,10 +175,10 @@ export default function SettingsPageClient() {
         }
 
         .tab-active {
-          background: #ef4444;
-          border-color: #ef4444;
+          background: #5b3df5;
+          border-color: #5b3df5;
           color: #ffffff;
-          box-shadow: 0 12px 30px rgba(239, 68, 68, 0.22);
+          box-shadow: 0 12px 30px rgba(91, 61, 245, 0.22);
         }
 
         .panel h2 {
@@ -262,9 +262,9 @@ export default function SettingsPageClient() {
         }
 
         .badge-red {
-          background: rgba(239, 68, 68, 0.12);
+          background: rgba(91, 61, 245, 0.12);
           color: #fb7185;
-          border-color: rgba(239, 68, 68, 0.3);
+          border-color: rgba(91, 61, 245, 0.3);
         }
 
         @media (max-width: 1100px) {

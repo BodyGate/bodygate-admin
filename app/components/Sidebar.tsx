@@ -66,7 +66,7 @@ export default function Sidebar() {
         alignItems: "center",
         gap: 16,
         background:
-          "radial-gradient(circle at top, rgba(239,68,68,0.14), transparent 38%), rgba(5,5,6,0.96)",
+          "radial-gradient(circle at top, rgba(91,61,245,0.14), transparent 38%), rgba(5,5,6,0.96)",
         backdropFilter: "blur(18px)",
       }}
     >
@@ -83,8 +83,8 @@ export default function Sidebar() {
           color: "#fff",
           fontSize: 18,
           fontWeight: 950,
-          background: "linear-gradient(135deg, #ef4444, #7f1d1d)",
-          boxShadow: "0 18px 38px rgba(239,68,68,0.24)",
+          background: "linear-gradient(135deg, #5b3df5, #7f1d1d)",
+          boxShadow: "0 18px 38px rgba(91,61,245,0.24)",
         }}
       >
         BG
@@ -149,13 +149,13 @@ export default function Sidebar() {
                 color: active ? "#fff" : "#a1a1aa",
                 textDecoration: "none",
                 background: active
-                  ? "linear-gradient(135deg, rgba(239,68,68,0.95), rgba(127,29,29,0.75))"
+                  ? "linear-gradient(135deg, rgba(91,61,245,0.95), rgba(61,43,153,0.75))"
                   : "rgba(255,255,255,0.035)",
                 border: active
                   ? "1px solid rgba(248,113,113,0.55)"
                   : "1px solid rgba(255,255,255,0.055)",
                 boxShadow: active
-                  ? "0 16px 32px rgba(239,68,68,0.22)"
+                  ? "0 16px 32px rgba(91,61,245,0.22)"
                   : "none",
               }}
             >
@@ -195,8 +195,8 @@ export default function Sidebar() {
             borderRadius: 16,
             cursor: "pointer",
             color: "#fecaca",
-            background: "rgba(239,68,68,0.11)",
-            border: "1px solid rgba(239,68,68,0.22)",
+            background: "rgba(91,61,245,0.11)",
+            border: "1px solid rgba(91,61,245,0.22)",
             display: "grid",
             placeItems: "center",
           }}

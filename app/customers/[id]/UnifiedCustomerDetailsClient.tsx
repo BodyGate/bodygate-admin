@@ -145,7 +145,7 @@ export default function UnifiedCustomerDetailsClient({
           background:
             radial-gradient(
               circle at 92% 0%,
-              rgba(239, 68, 68, 0.12),
+              rgba(91, 61, 245, 0.12),
               transparent 38%
             ),
             rgba(8, 8, 10, 0.82) !important;

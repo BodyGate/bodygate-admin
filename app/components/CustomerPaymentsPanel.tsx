@@ -412,9 +412,9 @@ const rightSideStyle: React.CSSProperties = {
 
 const receiptButtonStyle: React.CSSProperties = {
   marginTop: "8px",
-  background: "rgba(239,68,68,0.12)",
-  color: "#ef4444",
-  border: "1px solid rgba(239,68,68,0.35)",
+  background: "rgba(91,61,245,0.12)",
+  color: "#5b3df5",
+  border: "1px solid rgba(91,61,245,0.35)",
   borderRadius: "14px",
   padding: "10px 14px",
   fontWeight: "bold",

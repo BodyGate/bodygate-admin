@@ -395,7 +395,7 @@ export default function AccountingClient() {
         }
 
         .eyebrow {
-          color: #ef4444;
+          color: #5b3df5;
           font-size: 12px;
           font-weight: 950;
           letter-spacing: 0.12em;
@@ -455,7 +455,7 @@ export default function AccountingClient() {
 
         input:focus,
         select:focus {
-          border-color: #ef4444;
+          border-color: #5b3df5;
         }
 
         .summary-grid {
@@ -516,7 +516,7 @@ export default function AccountingClient() {
         }
 
         .print-btn {
-          background: #ef4444;
+          background: #5b3df5;
           color: #ffffff;
         }
 
@@ -567,9 +567,9 @@ export default function AccountingClient() {
         }
 
         .direction-btn.active-expense {
-          background: rgba(239, 68, 68, 0.14);
+          background: rgba(91, 61, 245, 0.14);
           color: #fb7185;
-          border-color: rgba(239, 68, 68, 0.35);
+          border-color: rgba(91, 61, 245, 0.35);
         }
 
         .save-btn {
@@ -578,7 +578,7 @@ export default function AccountingClient() {
           border: none;
           border-radius: 16px;
           padding: 15px;
-          background: #ef4444;
+          background: #5b3df5;
           color: white;
           font-size: 14px;
           font-weight: 950;
@@ -672,8 +672,8 @@ export default function AccountingClient() {
 
         .expense {
           color: #fb7185;
-          background: rgba(239, 68, 68, 0.12);
-          border: 1px solid rgba(239, 68, 68, 0.32);
+          background: rgba(91, 61, 245, 0.12);
+          border: 1px solid rgba(91, 61, 245, 0.32);
         }
 
         .empty {

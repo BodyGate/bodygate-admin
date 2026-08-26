@@ -215,7 +215,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           pointer-events: none;
           background: radial-gradient(
             circle at top right,
-            rgba(239, 68, 68, 0.16),
+            rgba(91, 61, 245, 0.16),
             transparent 36%
           );
         }
@@ -287,10 +287,10 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           gap: 12px;
           align-items: start;
           justify-items: start;
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          border: 1px solid rgba(91, 61, 245, 0.28);
           border-radius: 22px;
           padding: 22px;
-          background: rgba(239, 68, 68, 0.08);
+          background: rgba(91, 61, 245, 0.08);
           color: #fecaca;
         }
 

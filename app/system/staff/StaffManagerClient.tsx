@@ -338,7 +338,7 @@ export default function StaffManagerClient() {
                             ...styles.badge,
                             background: user.is_active
                               ? "rgba(34,197,94,.14)"
-                              : "rgba(239,68,68,.14)",
+                              : "rgba(91,61,245,.14)",
                             color: user.is_active ? "#4ade80" : "#f87171",
                           }}
                         >
@@ -393,7 +393,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 28,
     borderRadius: 28,
     background:
-      "linear-gradient(135deg, rgba(239,68,68,.22), rgba(15,23,42,.95))",
+      "linear-gradient(135deg, rgba(91,61,245,.22), rgba(15,23,42,.95))",
     border: "1px solid rgba(255,255,255,.08)",
     marginBottom: 24,
   },
@@ -483,7 +483,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     border: 0,
     borderRadius: 16,
-    background: "linear-gradient(135deg, #ef4444, #991b1b)",
+    background: "linear-gradient(135deg, #5b3df5, #3d2b99)",
     color: "#fff",
     padding: "13px 16px",
     fontWeight: 800,

@@ -562,7 +562,7 @@ export default function SubscriptionPlansPage() {
           padding: 26px;
           color: #fff;
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.24), transparent 30%),
+            radial-gradient(circle at top left, rgba(91, 61, 245, 0.24), transparent 30%),
             radial-gradient(circle at 78% 10%, rgba(255, 255, 255, 0.08), transparent 25%),
             linear-gradient(135deg, #050505, #090909 48%, #111);
         }
@@ -630,7 +630,7 @@ export default function SubscriptionPlansPage() {
         .field-checkbox input {
           width: 18px;
           height: 18px;
-          accent-color: #ef4444;
+          accent-color: #5b3df5;
         }
 
         .plans-alert {
@@ -649,8 +649,8 @@ export default function SubscriptionPlansPage() {
 
         .plans-alert.danger {
           color: #fecaca;
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(91, 61, 245, 0.3);
+          background: rgba(91, 61, 245, 0.1);
         }
 
         .plans-kpi-grid {
@@ -786,10 +786,10 @@ export default function SubscriptionPlansPage() {
         .preset-button {
           cursor: pointer;
           text-align: left;
-          border: 1px solid rgba(239, 68, 68, 0.24);
+          border: 1px solid rgba(91, 61, 245, 0.24);
           border-radius: 18px;
           padding: 13px;
-          background: rgba(239, 68, 68, 0.075);
+          background: rgba(91, 61, 245, 0.075);
           color: #fff;
           min-width: 0;
           white-space: normal;

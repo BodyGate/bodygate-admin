@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,.08)",
   },
   title: {
-    color: "#ef4444",
+    color: "#5b3df5",
     marginBottom: 12,
   },
   name: {

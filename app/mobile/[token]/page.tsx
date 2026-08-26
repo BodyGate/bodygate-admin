@@ -354,7 +354,7 @@ const styles = `
     min-height: 100svh;
     padding: max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
     background:
-      radial-gradient(circle at top left, rgba(239, 68, 68, 0.32), transparent 34%),
+      radial-gradient(circle at top left, rgba(91, 61, 245, 0.32), transparent 34%),
       radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 32%),
       linear-gradient(180deg, #09090b, #000);
     display: grid;
@@ -388,7 +388,7 @@ const styles = `
   }
 
   .brand {
-    color: #ef4444;
+    color: #5b3df5;
     font-size: 12px;
     font-weight: 950;
     letter-spacing: 2.4px;
@@ -417,8 +417,8 @@ const styles = `
 
   .top-badge.blocked {
     color: #fca5a5;
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.32);
+    background: rgba(91, 61, 245, 0.12);
+    border-color: rgba(91, 61, 245, 0.32);
   }
 
   h1 {
@@ -445,7 +445,7 @@ const styles = `
   }
 
   .qr-card.blocked {
-    border-color: rgba(239, 68, 68, 0.34);
+    border-color: rgba(91, 61, 245, 0.34);
   }
 
   .qr-header {
@@ -487,7 +487,7 @@ const styles = `
   .no-qr {
     border-radius: 20px;
     padding: 22px;
-    background: rgba(239, 68, 68, 0.14);
+    background: rgba(91, 61, 245, 0.14);
     color: #fecaca;
     line-height: 1.5;
   }
@@ -526,7 +526,7 @@ const styles = `
   }
 
   .status-row.ko {
-    background: rgba(239, 68, 68, 0.10);
+    background: rgba(91, 61, 245, 0.10);
   }
 
   .status-dot {

@@ -34,7 +34,7 @@ const heroStyle: React.CSSProperties = {
   padding: "30px",
   borderRadius: "30px",
   background:
-    "radial-gradient(circle at top left, rgba(239,68,68,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
+    "radial-gradient(circle at top left, rgba(91,61,245,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
   border: "1px solid var(--border)",
   boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
 };
@@ -78,9 +78,9 @@ const systemBadgeStyle: React.CSSProperties = {
 
 const systemBadgeDangerStyle: React.CSSProperties = {
   ...systemBadgeStyle,
-  background: "rgba(239,68,68,0.12)",
+  background: "rgba(91,61,245,0.12)",
   color: "var(--danger)",
-  border: "1px solid rgba(239,68,68,0.25)",
+  border: "1px solid rgba(91,61,245,0.25)",
 };
 
 const dotStyle: React.CSSProperties = {

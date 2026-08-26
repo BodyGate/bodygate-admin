@@ -53,7 +53,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
   active: {
-    background: "rgba(239,68,68,0.18)",
+    background: "rgba(91,61,245,0.18)",
     color: "#fff",
     borderColor: "rgba(248,113,113,0.45)",
   },

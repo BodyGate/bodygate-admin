@@ -178,7 +178,7 @@ export default function AccessControlDebugPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050505] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(239,68,68,0.28),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(255,255,255,0.10),transparent_26%),linear-gradient(180deg,rgba(5,5,5,0),#050505_72%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(91,61,245,0.28),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(255,255,255,0.10),transparent_26%),linear-gradient(180deg,rgba(5,5,5,0),#050505_72%)]" />
       <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header className="bg-page-header !mb-0">
           <div>

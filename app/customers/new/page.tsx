@@ -421,7 +421,7 @@ export default function NewCustomerPage() {
         .summary {
           position: sticky;
           top: 96px;
-          border: 1px solid rgba(239, 68, 68, 0.24);
+          border: 1px solid rgba(91, 61, 245, 0.24);
           border-radius: 28px;
           display: grid;
           gap: 16px;
@@ -429,7 +429,7 @@ export default function NewCustomerPage() {
           background:
             radial-gradient(
               circle at top right,
-              rgba(239, 68, 68, 0.2),
+              rgba(91, 61, 245, 0.2),
               transparent 44%
             ),
             linear-gradient(
@@ -500,10 +500,10 @@ export default function NewCustomerPage() {
         }
 
         .branch-card {
-          border: 1px solid rgba(239, 68, 68, 0.26);
+          border: 1px solid rgba(91, 61, 245, 0.26);
           border-radius: 22px;
           padding: 18px;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.04));
+          background: linear-gradient(135deg, rgba(91, 61, 245, 0.12), rgba(255, 255, 255, 0.04));
           display: grid;
           gap: 6px;
         }
@@ -529,10 +529,10 @@ export default function NewCustomerPage() {
 
         .badge-charge-card {
           grid-column: 1 / -1;
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          border: 1px solid rgba(91, 61, 245, 0.28);
           border-radius: 22px;
           padding: 16px;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(255,255,255,0.04));
+          background: linear-gradient(135deg, rgba(91, 61, 245, 0.14), rgba(255,255,255,0.04));
           display: grid;
           gap: 12px;
         }
@@ -545,15 +545,15 @@ export default function NewCustomerPage() {
           font-weight: 950;
           cursor: pointer;
         }
-        .badge-charge-card button.active { background: #ef4444; border-color: #fca5a5; }
+        .badge-charge-card button.active { background: #5b3df5; border-color: #fca5a5; }
         .hint { color: #a1a1aa; font-size: 13px; font-weight: 800; }
 
         .message {
           margin-top: 14px;
           border-radius: 16px;
           padding: 14px;
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          background: rgba(91, 61, 245, 0.1);
+          border: 1px solid rgba(91, 61, 245, 0.28);
           color: #fecaca;
           font-weight: 800;
         }

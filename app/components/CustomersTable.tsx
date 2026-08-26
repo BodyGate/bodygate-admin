@@ -294,7 +294,7 @@ export default function CustomersTable() {
 
         .crm3-eyebrow {
           margin-bottom: 5px;
-          color: #ef4444;
+          color: #5b3df5;
           font-size: 10px;
           font-weight: 900;
           letter-spacing: 0.17em;
@@ -353,10 +353,10 @@ export default function CustomersTable() {
         }
 
         .crm3-filter-btn-active {
-          border-color: rgba(239, 68, 68, 0.48);
-          background: rgba(239, 68, 68, 0.16);
+          border-color: rgba(91, 61, 245, 0.48);
+          background: rgba(91, 61, 245, 0.16);
           color: #fff;
-          box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.08);
+          box-shadow: inset 0 0 0 1px rgba(91, 61, 245, 0.08);
         }
 
         .crm3-metrics {
@@ -407,7 +407,7 @@ export default function CustomersTable() {
 
         .crm3-metric-blue { --metric: #3b82f6; }
         .crm3-metric-green { --metric: #22c55e; }
-        .crm3-metric-red { --metric: #ef4444; }
+        .crm3-metric-red { --metric: #5b3df5; }
         .crm3-metric-yellow { --metric: #eab308; }
         .crm3-metric-neutral { --metric: #71717a; }
 
@@ -477,8 +477,8 @@ export default function CustomersTable() {
         .crm3-list-item:hover { background: rgba(255, 255, 255, 0.04); }
 
         .crm3-list-item-active {
-          border-color: rgba(239, 68, 68, 0.3);
-          background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+          border-color: rgba(91, 61, 245, 0.3);
+          background: linear-gradient(90deg, rgba(91, 61, 245, 0.15), rgba(91, 61, 245, 0.05));
         }
 
         .crm3-avatar,
@@ -488,8 +488,8 @@ export default function CustomersTable() {
           flex: 0 0 auto;
           color: #fff;
           font-weight: 900;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.18);
+          background: linear-gradient(135deg, #5b3df5, #7f1d1d);
+          box-shadow: 0 8px 20px rgba(91, 61, 245, 0.18);
         }
 
         .crm3-avatar {
@@ -530,7 +530,7 @@ export default function CustomersTable() {
         }
 
         .crm3-dot-green { --dot: #22c55e; }
-        .crm3-dot-red { --dot: #ef4444; }
+        .crm3-dot-red { --dot: #5b3df5; }
         .crm3-dot-yellow { --dot: #eab308; }
         .crm3-dot-blue,
         .crm3-dot-neutral { --dot: #71717a; }
@@ -648,14 +648,14 @@ export default function CustomersTable() {
 
         :global(.crm3-action:hover) {
           transform: translateY(-1px);
-          border-color: rgba(239, 68, 68, 0.45);
-          background: rgba(239, 68, 68, 0.09);
+          border-color: rgba(91, 61, 245, 0.45);
+          background: rgba(91, 61, 245, 0.09);
         }
 
         :global(.crm3-action-primary) {
-          border-color: rgba(239, 68, 68, 0.45);
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(153, 27, 27, 0.95));
-          box-shadow: 0 12px 28px rgba(239, 68, 68, 0.18);
+          border-color: rgba(91, 61, 245, 0.45);
+          background: linear-gradient(135deg, rgba(91, 61, 245, 0.95), rgba(153, 27, 27, 0.95));
+          box-shadow: 0 12px 28px rgba(91, 61, 245, 0.18);
         }
 
         :global(.crm3-action-icon) {
@@ -708,8 +708,8 @@ export default function CustomersTable() {
         }
 
         .crm3-message-error {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(91, 61, 245, 0.28);
+          background: rgba(91, 61, 245, 0.08);
           color: #fecaca;
         }
 

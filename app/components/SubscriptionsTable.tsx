@@ -139,7 +139,7 @@ export default function SubscriptionsTable() {
         <StatsCard
           title="Scaduti"
           value={expiredCount.toString()}
-          color="#ef4444"
+          color="#5b3df5"
         />
 
         <StatsCard
@@ -256,8 +256,8 @@ export default function SubscriptionsTable() {
                   if (!customer.active) {
                     status = {
                       label: "BLOCCATO",
-                      color: "#ef4444",
-                      bg: "rgba(239,68,68,0.12)",
+                      color: "#5b3df5",
+                      bg: "rgba(91,61,245,0.12)",
                     };
                   } else if (
                     customer.subscription_status ===

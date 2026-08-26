@@ -621,7 +621,7 @@ export default function SubscriptionsPage() {
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.24),
+              rgba(91, 61, 245, 0.24),
               transparent 30%
             ),
             radial-gradient(
@@ -774,8 +774,8 @@ export default function SubscriptionsPage() {
 
         .subscriptions-filter:hover,
         .subscriptions-filter.active {
-          border-color: rgba(239, 68, 68, 0.42);
-          background: rgba(239, 68, 68, 0.14);
+          border-color: rgba(91, 61, 245, 0.42);
+          background: rgba(91, 61, 245, 0.14);
           color: #fff;
         }
 
@@ -810,8 +810,8 @@ export default function SubscriptionsPage() {
         .subscriptions-loading {
           border-radius: 18px;
           padding: 16px;
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(91, 61, 245, 0.28);
+          background: rgba(91, 61, 245, 0.1);
           color: #fecaca;
           font-size: 13px;
           font-weight: 850;
@@ -860,13 +860,13 @@ export default function SubscriptionsPage() {
 
         .subscriptions-table tbody tr.subscription-row-expired {
           box-shadow:
-            inset 3px 0 0 rgba(239, 68, 68, 0.72),
-            0 0 18px rgba(239, 68, 68, 0.08);
-          background: rgba(239, 68, 68, 0.035);
+            inset 3px 0 0 rgba(91, 61, 245, 0.72),
+            0 0 18px rgba(91, 61, 245, 0.08);
+          background: rgba(91, 61, 245, 0.035);
         }
 
         .subscriptions-table tbody tr.subscription-row-expired td {
-          border-top-color: rgba(239, 68, 68, 0.22);
+          border-top-color: rgba(91, 61, 245, 0.22);
         }
 
         .subscriptions-table tbody tr.subscription-row-expiring {
@@ -881,7 +881,7 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-table tbody tr:hover {
-          background: rgba(239, 68, 68, 0.055);
+          background: rgba(91, 61, 245, 0.055);
         }
 
         .customer-name,
@@ -933,8 +933,8 @@ export default function SubscriptionsPage() {
         }
 
         .days-pill.danger {
-          border-color: rgba(239, 68, 68, 0.3);
-          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(91, 61, 245, 0.3);
+          background: rgba(91, 61, 245, 0.1);
           color: #fecaca;
         }
 

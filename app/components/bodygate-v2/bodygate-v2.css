@@ -5,7 +5,7 @@
   --bg2-border: rgba(255,255,255,.105);
   --bg2-text: #f7f7fb;
   --bg2-muted: #9aa3ad;
-  --bg2-red: #ef4444;
+  --bg2-red: #5b3df5;
   --bg2-green: #22c55e;
   --bg2-yellow: #facc15;
   --bg2-blue: #60a5fa;
@@ -15,7 +15,7 @@
   padding: 28px;
   color: var(--bg2-text);
   background:
-    radial-gradient(circle at 18% 0%, rgba(239,68,68,.16), transparent 30%),
+    radial-gradient(circle at 18% 0%, rgba(91,61,245,.16), transparent 30%),
     radial-gradient(circle at 82% 20%, rgba(34,197,94,.10), transparent 28%),
     linear-gradient(135deg, #05070a, #080b10 48%, #0b0f14);
 }
@@ -26,14 +26,14 @@
 .bg2-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .bg2-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:12px 16px; border-radius:13px; text-decoration:none; border:1px solid var(--bg2-border); color:var(--bg2-text); background:rgba(255,255,255,.055); font-weight:850; font-size:13px; cursor:pointer; transition:.18s ease; }
 .bg2-btn:hover { transform:translateY(-1px); border-color:rgba(255,255,255,.2); }
-.bg2-btn-primary { background:linear-gradient(135deg,#ef4444,#991b1b); border-color:rgba(239,68,68,.45); box-shadow:0 18px 38px rgba(239,68,68,.22); }
+.bg2-btn-primary { background:linear-gradient(135deg,#5b3df5,#3d2b99); border-color:rgba(91,61,245,.45); box-shadow:0 18px 38px rgba(91,61,245,.22); }
 .bg2-btn-gold { background:linear-gradient(135deg,rgba(250,204,21,.18),rgba(250,204,21,.05)); color:#fde68a; border-color:rgba(250,204,21,.35); }
 .bg2-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; }
 .bg2-metric { position:relative; overflow:hidden; min-height:126px; padding:22px; border-radius:22px; border:1px solid var(--bg2-border); background:radial-gradient(circle at top right,var(--glow),transparent 45%), linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)), var(--bg2-panel); box-shadow:0 24px 70px rgba(0,0,0,.34); }
 .bg2-metric-green { --glow:rgba(34,197,94,.22); }
 .bg2-metric-blue { --glow:rgba(96,165,250,.22); }
 .bg2-metric-yellow { --glow:rgba(250,204,21,.22); }
-.bg2-metric-red { --glow:rgba(239,68,68,.26); }
+.bg2-metric-red { --glow:rgba(91,61,245,.26); }
 .bg2-metric-value { font-size:39px; line-height:.9; font-weight:950; letter-spacing:-.055em; }
 .bg2-metric-label { margin-top:10px; color:#d7dce4; font-size:14px; }
 .bg2-metric-note { margin-top:14px; color:var(--bg2-muted); font-size:12px; }
@@ -45,16 +45,16 @@
 .bg2-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
 .bg2-customer { position:relative; overflow:hidden; min-height:242px; border-radius:24px; padding:18px; border:1px solid rgba(34,197,94,.28); background:radial-gradient(circle at 100% 0%, rgba(34,197,94,.18), transparent 42%), linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)), rgba(12,16,22,.88); box-shadow:0 26px 72px rgba(0,0,0,.35); }
 .bg2-customer-expiring { border-color:rgba(250,204,21,.42); background:radial-gradient(circle at 100% 0%, rgba(250,204,21,.16), transparent 42%), linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)), rgba(12,16,22,.88); }
-.bg2-customer-danger { border-color:rgba(239,68,68,.42); background:radial-gradient(circle at 100% 0%, rgba(239,68,68,.17), transparent 42%), linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)), rgba(12,16,22,.88); }
+.bg2-customer-danger { border-color:rgba(91,61,245,.42); background:radial-gradient(circle at 100% 0%, rgba(91,61,245,.17), transparent 42%), linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)), rgba(12,16,22,.88); }
 .bg2-customer-head { display:flex; align-items:center; gap:14px; }
-.bg2-avatar { width:58px; height:58px; border-radius:18px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:950; font-size:20px; background:linear-gradient(135deg,#ef4444,#7f1d1d); box-shadow:0 16px 34px rgba(239,68,68,.25); flex:0 0 auto; }
+.bg2-avatar { width:58px; height:58px; border-radius:18px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:950; font-size:20px; background:linear-gradient(135deg,#5b3df5,#7f1d1d); box-shadow:0 16px 34px rgba(91,61,245,.25); flex:0 0 auto; }
 .bg2-name { font-size:20px; font-weight:950; line-height:1.05; letter-spacing:-.035em; }
 .bg2-contact { margin-top:6px; color:var(--bg2-muted); font-size:13px; font-weight:700; }
 .bg2-pill { display:inline-flex; align-items:center; gap:7px; margin-top:14px; padding:7px 11px; border-radius:999px; font-size:12px; font-weight:900; }
 .bg2-pill::before { content:""; width:7px; height:7px; border-radius:999px; background:currentColor; box-shadow:0 0 14px currentColor; }
 .bg2-pill-active { color:#86efac; background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.24); }
 .bg2-pill-expiring { color:#fde68a; background:rgba(250,204,21,.12); border:1px solid rgba(250,204,21,.25); }
-.bg2-pill-danger { color:#fecaca; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); }
+.bg2-pill-danger { color:#fecaca; background:rgba(91,61,245,.12); border:1px solid rgba(91,61,245,.25); }
 .bg2-facts { margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .bg2-fact { border-radius:14px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.07); padding:11px; min-height:60px; }
 .bg2-fact-label { color:var(--bg2-muted); font-size:10px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; }
@@ -108,14 +108,14 @@
 .bg2-primary-action {
   height: 48px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #ef4444, #991b1b);
+  background: linear-gradient(135deg, #5b3df5, #3d2b99);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   font-weight: 950;
-  box-shadow: 0 16px 36px rgba(239, 68, 68, 0.24);
+  box-shadow: 0 16px 36px rgba(91, 61, 245, 0.24);
 }
 
 .bg2-secondary-action {

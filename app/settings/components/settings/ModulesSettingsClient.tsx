@@ -77,10 +77,10 @@ export default function ModulesSettingsClient() {
                   ...styles.toggle,
                   background: module.is_enabled
                     ? "rgba(34,197,94,0.18)"
-                    : "rgba(239,68,68,0.18)",
+                    : "rgba(91,61,245,0.18)",
                   borderColor: module.is_enabled
                     ? "rgba(34,197,94,0.45)"
-                    : "rgba(239,68,68,0.45)",
+                    : "rgba(91,61,245,0.45)",
                 }}
               >
                 {module.is_enabled ? "ATTIVO" : "DISATTIVATO"}

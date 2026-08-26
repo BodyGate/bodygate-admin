@@ -124,14 +124,14 @@ const counterStyle: React.CSSProperties = {
   width: "52px",
   height: "52px",
   borderRadius: "50%",
-  background: "rgba(239,68,68,0.15)",
-  color: "#ef4444",
+  background: "rgba(91,61,245,0.15)",
+  color: "#5b3df5",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   fontWeight: 900,
   fontSize: "20px",
-  border: "1px solid rgba(239,68,68,0.30)",
+  border: "1px solid rgba(91,61,245,0.30)",
 };
 
 const emptyStyle: React.CSSProperties = {
