@@ -659,6 +659,18 @@ export default function CustomersTable() {
           color: #fff;
         }
 
+        :global(.crm3-action-primary .crm3-action-icon) {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        :global(.crm3-action-primary .crm3-action-arrow) {
+          color: rgba(255, 255, 255, 0.75);
+        }
+
+        :global(.crm3-action-primary .crm3-action-copy span) {
+          color: rgba(255, 255, 255, 0.75);
+        }
+
         :global(.crm3-action-icon) {
           width: 34px;
           height: 34px;
