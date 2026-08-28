@@ -212,7 +212,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "IDEMPOTENCY_CONFLICT",
         error:
-          "La stessa operazione Ã¨ giÃ  stata inviata con dati differenti o non Ã¨ ancora conclusa. Aggiorna la pagina prima di riprovare.",
+          "La stessa operazione è già stata inviata con dati differenti o non è ancora conclusa. Aggiorna la pagina prima di riprovare.",
       },
       { status: 409 },
     );
@@ -224,20 +224,20 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "DUPLICATE_CUSTOMER",
         error:
-          "Esiste giÃ  un cliente con lo stesso codice fiscale. Apri la scheda esistente invece di creare un duplicato.",
+          "Esiste già un cliente con lo stesso codice fiscale. Apri la scheda esistente invece di creare un duplicato.",
       },
       { status: 409 },
     );
   }
   const duplicateBadgeMessages: Record<string, string> = {
     BODYGATE_DUPLICATE_BADGE_CUSTOMER:
-      "Badge giÃ  assegnato a un cliente attivo.",
+      "Badge già assegnato a un cliente attivo.",
     BODYGATE_DUPLICATE_BADGE_CREDENTIAL:
-      "Badge giÃ  assegnato a una credenziale cliente attiva.",
+      "Badge già assegnato a una credenziale cliente attiva.",
     BODYGATE_DUPLICATE_BADGE_CUSTOMER_BADGE:
-      "Badge giÃ  presente nellâ€™archivio badge clienti.",
+      "Badge già presente nell’archivio badge clienti.",
     BODYGATE_DUPLICATE_BADGE_STAFF:
-      "Badge giÃ  assegnato a un membro dello staff.",
+      "Badge già assegnato a un membro dello staff.",
   };
 
   for (const [errorCode, errorMessage] of Object.entries(
@@ -298,7 +298,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "ATOMIC_ONBOARDING_MIGRATION_REQUIRED",
         error:
-          "Lâ€™onboarding atomico non Ã¨ ancora attivo nel database. Applica la migration Atomic Operations 0.4.",
+          "L’onboarding atomico non è ancora attivo nel database. Applica la migration Atomic Operations 0.4.",
       },
       { status: 503 },
     );
@@ -311,7 +311,7 @@ function rpcErrorResponse(error: {
       ok: false,
       code: "ATOMIC_ONBOARDING_FAILED",
       error:
-        "Il cliente non Ã¨ stato creato. La transazione Ã¨ stata annullata e nessun dato parziale deve essere considerato valido.",
+        "Il cliente non è stato creato. La transazione è stata annullata e nessun dato parziale deve essere considerato valido.",
     },
     { status: 500 },
   );
@@ -338,7 +338,7 @@ export async function GET() {
         {
           ok: false,
           error:
-            "Nessuna sede operativa attiva disponibile per lâ€™onboarding.",
+            "Nessuna sede operativa attiva disponibile per l’onboarding.",
         },
         { status: 500 },
       );
@@ -455,7 +455,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "Nessuna sede operativa attiva disponibile per completare lâ€™onboarding.",
+            "Nessuna sede operativa attiva disponibile per completare l’onboarding.",
         },
         { status: 500 },
       );
@@ -534,7 +534,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "Per omaggiare il Badge RFID Ã¨ obbligatorio indicare il motivo operatore.",
+            "Per omaggiare il Badge RFID è obbligatorio indicare il motivo operatore.",
         },
         { status: 400 },
       );

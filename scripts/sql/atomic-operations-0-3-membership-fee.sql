@@ -2,7 +2,7 @@
 -- Rinnovo quota associativa atomico e idempotente.
 --
 -- Crea una tabella tecnica condivisa, predisposta anche per il futuro
--- onboarding Platinum atomico. Non Ã¨ contabilitÃ  e non Ã¨ prima nota.
+-- onboarding Platinum atomico. Non è contabilità e non è prima nota.
 --
 -- Non eseguire manualmente la RPC o la RPC di numerazione ricevute.
 
@@ -69,7 +69,7 @@ grant select on table public.bodygate_atomic_operations
   to service_role;
 
 comment on table public.bodygate_atomic_operations is
-  'Registro tecnico idempotente BodyGate per quota associativa e onboarding. Non Ã¨ contabilitÃ  nÃ© prima nota.';
+  'Registro tecnico idempotente BodyGate per quota associativa e onboarding. Non è contabilità né prima nota.';
 
 create or replace function public.renew_membership_fee_atomic_v1(
   p_idempotency_key text,
@@ -326,7 +326,7 @@ begin
     p_payment_method,
     'paid',
     v_now,
-    'ValiditÃ  '
+    'Validità '
       || p_valid_from::text
       || ' - '
       || p_valid_until::text
@@ -403,7 +403,7 @@ begin
     'membership',
     'Quota associativa incassata',
     v_description
-      || ' - â‚¬'
+      || ' - €'
       || replace(to_char(p_amount, 'FM999999990.00'), '.', ',')
       || ' - ricevuta '
       || v_receipt.receipt_number,
