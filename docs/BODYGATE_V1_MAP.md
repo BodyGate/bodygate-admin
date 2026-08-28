@@ -236,7 +236,7 @@ Documento di mappatura completa della piattaforma **BodyGate V1 locale** (stato 
 - Bridge status API: `app/api/bridge/status/route.ts`
 - Turnstile open API: `app/api/turnstile/open/route.ts`
 - Auth login route: `app/api/auth/login/route.ts`
-- Middleware access/public routes: `middleware.ts`
+- Proxy access/public routes (formerly `middleware.ts`, renamed per Next.js v16): `proxy.ts`
 - Bridge C# core: `bridge/bridge-v2/Program.cs`
 - Bridge dependency: `bridge/bridge-v2/TcpClass.dll`
 

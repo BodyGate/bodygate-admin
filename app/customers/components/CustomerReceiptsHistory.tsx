@@ -215,7 +215,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           pointer-events: none;
           background: radial-gradient(
             circle at top right,
-            rgba(239, 68, 68, 0.16),
+            rgba(91, 61, 245, 0.16),
             transparent 36%
           );
         }
@@ -241,7 +241,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
         }
 
         .receipts-total {
-          color: #ffffff;
+          color: var(--text);
           font-size: 28px;
           font-weight: 950;
           letter-spacing: -0.05em;
@@ -252,7 +252,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
         }
 
         .receipt-description {
-          color: #f5f5f5;
+          color: var(--text);
           font-weight: 800;
           line-height: 1.35;
           max-width: 340px;
@@ -262,7 +262,7 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
         }
 
         .receipt-amount {
-          color: #ffffff;
+          color: var(--text);
           font-weight: 950;
           white-space: nowrap;
         }
@@ -287,21 +287,21 @@ export default function CustomerReceiptsHistory({ customerId }: Props) {
           gap: 12px;
           align-items: start;
           justify-items: start;
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          border: 1px solid rgba(214, 49, 74, 0.28);
           border-radius: 22px;
           padding: 22px;
-          background: rgba(239, 68, 68, 0.08);
-          color: #fecaca;
+          background: rgba(214, 49, 74, 0.08);
+          color: var(--danger);
         }
 
         .receipts-error strong {
-          color: #ffffff;
+          color: var(--text);
           font-size: 16px;
           font-weight: 950;
         }
 
         .receipts-error span {
-          color: #fecaca;
+          color: var(--danger);
           line-height: 1.5;
         }
 

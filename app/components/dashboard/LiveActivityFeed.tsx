@@ -157,15 +157,15 @@ const eventOkStyle: React.CSSProperties = {
 
 const eventNoStyle: React.CSSProperties = {
   ...baseEventStyle,
-  borderColor: "rgba(239,68,68,0.35)",
+  borderColor: "rgba(91,61,245,0.35)",
 };
 
 const statusIconStyle: React.CSSProperties = {
   width: "34px",
   height: "34px",
   borderRadius: "50%",
-  background: "rgba(239,68,68,0.16)",
-  color: "#ef4444",
+  background: "rgba(91,61,245,0.16)",
+  color: "#5b3df5",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

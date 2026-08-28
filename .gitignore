@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# QA scratch scripts/screenshots (never commit, always temporary)
+.qa-scratch/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

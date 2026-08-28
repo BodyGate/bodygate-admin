@@ -108,9 +108,9 @@ function DiagnosticCard({ title, status, children }: { title: string; status?: s
 
 function FieldRow({ label, value }: { label: string; value?: ReactNode }) {
   return (
-    <div className="bg-label-value-row rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
+    <div className="bg-label-value-row rounded-2xl border border-black/10 bg-black/[0.03] px-4 py-3">
       <span className="bg-field-label">{label}</span>
-      <span className="min-w-0 break-words text-sm font-extrabold text-zinc-100">{value ?? "—"}</span>
+      <span className="min-w-0 break-words text-sm font-extrabold text-zinc-900">{value ?? "—"}</span>
     </div>
   );
 }
@@ -177,8 +177,8 @@ export default function AccessControlDebugPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#050505] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(239,68,68,0.28),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(255,255,255,0.10),transparent_26%),linear-gradient(180deg,rgba(5,5,5,0),#050505_72%)]" />
+    <main className="min-h-screen overflow-hidden bg-[#f4f5f8] text-zinc-900">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(91,61,245,0.10),transparent_32%),radial-gradient(circle_at_88%_12%,rgba(192,75,214,0.08),transparent_26%),linear-gradient(180deg,rgba(244,245,248,0),#f4f5f8_72%)]" />
       <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header className="bg-page-header !mb-0">
           <div>
@@ -218,7 +218,7 @@ export default function AccessControlDebugPage() {
               {loading ? "Analisi..." : "Analizza codice"}
             </BGButton>
           </form>
-          {error ? <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-extrabold text-red-100">{error}</div> : null}
+          {error ? <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-extrabold text-red-700">{error}</div> : null}
         </BGCard>
 
         {result ? (
@@ -227,11 +227,11 @@ export default function AccessControlDebugPage() {
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="bg-eyebrow">Esito finale</div>
-                  <h2 className={`text-4xl font-black tracking-tight md:text-6xl ${result.final_allowed ? "text-emerald-200" : "text-red-100"}`}>
+                  <h2 className={`text-4xl font-black tracking-tight md:text-6xl ${result.final_allowed ? "text-emerald-700" : "text-red-700"}`}>
                     {result.final_allowed ? "ACCESSO CONSENTITO" : "ACCESSO NEGATO"}
                   </h2>
-                  <p className="mt-3 max-w-3xl text-lg font-bold text-white">{result.final_reason || "Motivo non disponibile"}</p>
-                  <p className="mt-3 text-sm font-semibold text-zinc-300">Simulazione sicura: nessuna apertura tornello, nessun log accesso</p>
+                  <p className="mt-3 max-w-3xl text-lg font-bold text-zinc-900">{result.final_reason || "Motivo non disponibile"}</p>
+                  <p className="mt-3 text-sm font-semibold text-zinc-500">Simulazione sicura: nessuna apertura tornello, nessun log accesso</p>
                 </div>
                 <StatusBadge tone={finalTone} label={result.final_allowed ? "consentito" : "negato"} />
               </div>
@@ -263,7 +263,7 @@ export default function AccessControlDebugPage() {
               <DiagnosticCard title="Quota associativa" status={checks.membership_fee?.status}><CheckSummary check={checks.membership_fee} /></DiagnosticCard>
               <DiagnosticCard title="Blocchi" status={checks.blocks?.status}><CheckSummary check={checks.blocks} /></DiagnosticCard>
               <DiagnosticCard title="Warning/anomalie" status={result.warnings?.length ? "warning" : "clear"}>
-                {result.warnings?.length ? result.warnings.map((warning, index) => <div key={`${warning}-${index}`} className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm font-bold text-amber-100">{warning}</div>) : <p className="bg-empty-description">Nessun warning rilevato.</p>}
+                {result.warnings?.length ? result.warnings.map((warning, index) => <div key={`${warning}-${index}`} className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm font-bold text-amber-800">{warning}</div>) : <p className="bg-empty-description">Nessun warning rilevato.</p>}
               </DiagnosticCard>
             </section>
 

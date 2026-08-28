@@ -462,9 +462,9 @@ export default function PaymentsClient() {
           justify-content: space-between;
           gap: 14px;
           padding: 18px;
-          border: 1px solid rgba(239, 68, 68, 0.35);
+          border: 1px solid rgba(91, 61, 245, 0.35);
           border-radius: 20px;
-          background: rgba(127, 29, 29, 0.24);
+          background: rgba(61, 43, 153, 0.24);
           color: #ffffff;
         }
 

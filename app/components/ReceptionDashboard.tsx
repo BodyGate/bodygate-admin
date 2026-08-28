@@ -561,7 +561,7 @@ export default function ReceptionDashboard() {
         ? "#22c55e"
         : state === "degraded"
           ? "#f59e0b"
-          : "#ef4444";
+          : "#d6314a";
     return {
       background: `${color}22`,
       color,
@@ -662,7 +662,7 @@ export default function ReceptionDashboard() {
         </div> : null}
       </BGCard>
 
-      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "#ef4444", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
+      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "var(--danger)", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
 
       <div className="reception-system-grid" style={firstRowStyle}>
         <BridgeStatusCard
@@ -738,11 +738,11 @@ export default function ReceptionDashboard() {
                     <div
                       style={{
                         ...statusBadgeStyle,
-                        color: isAllowed(log) ? "#22c55e" : "#ef4444",
-                        borderColor: isAllowed(log) ? "#22c55e" : "#ef4444",
+                        color: isAllowed(log) ? "#22c55e" : "var(--danger)",
+                        borderColor: isAllowed(log) ? "#22c55e" : "var(--danger)",
                         background: isAllowed(log)
                           ? "rgba(34,197,94,0.12)"
-                          : "rgba(239,68,68,0.12)",
+                          : "rgba(214,49,74,0.12)",
                       }}
                     >
                       {isAllowed(log) ? "OK" : "NEGATO"}
@@ -799,9 +799,9 @@ export default function ReceptionDashboard() {
                       <span
                         style={{
                           ...statusBadgeStyle,
-                          color: "#ef4444",
-                          borderColor: "#ef4444",
-                          background: "rgba(239,68,68,0.12)",
+                          color: "var(--danger)",
+                          borderColor: "var(--danger)",
+                          background: "rgba(214,49,74,0.12)",
                         }}
                       >
                         NEGATO
@@ -858,7 +858,7 @@ function BridgeStatusCard({
   const isWarning = status.processing || (status.online && !status.connected);
   const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
   const color =
-    tone === "online" ? "#22c55e" : tone === "offline" ? "#ef4444" : "#f59e0b";
+    tone === "online" ? "#22c55e" : tone === "offline" ? "#d6314a" : "#f59e0b";
 
   return (
     <div
@@ -894,7 +894,7 @@ function BridgeStatusCard({
           : "-"}
       </div>
       {status.error && (
-        <div style={{ ...alertTextStyle, color: "#fecaca" }}>
+        <div style={{ ...alertTextStyle, color: "var(--danger)" }}>
           Errore: {status.error}
         </div>
       )}
@@ -917,7 +917,7 @@ function AlertCard({
   href?: string;
 }) {
   const color =
-    tone === "danger" ? "#ef4444" : tone === "warning" ? "#f59e0b" : "#22c55e";
+    tone === "danger" ? "#d6314a" : tone === "warning" ? "#f59e0b" : "#22c55e";
 
   return (
     <div
@@ -961,7 +961,7 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
         flexDirection: "column",
       }}
     >
-      <div style={{ ...alertTitleStyle, color: "#fca5a5" }}>
+      <div style={{ ...alertTitleStyle, color: "var(--danger)" }}>
         Alert Reception
       </div>
       <div style={{ display: "grid", gap: "8px", width: "100%" }}>
@@ -969,8 +969,8 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
           <div
             key={alert.id}
             style={{
-              background: "rgba(15,23,42,0.55)",
-              border: "1px solid rgba(148,163,184,.25)",
+              background: "rgba(179,121,10,0.06)",
+              border: "1px solid rgba(179,121,10,0.25)",
               borderRadius: "12px",
               padding: "10px",
             }}
@@ -1022,7 +1022,7 @@ const heroStyle: React.CSSProperties = {
   padding: "30px",
   borderRadius: "30px",
   background:
-    "radial-gradient(circle at top left, rgba(239,68,68,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
+    "radial-gradient(circle at top left, rgba(91,61,245,0.20), transparent 35%), linear-gradient(180deg, #181818, #101010)",
   border: "1px solid var(--border)",
   boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
 };
@@ -1110,9 +1110,9 @@ const alertLinkStyle: React.CSSProperties = {
 };
 
 const bridgeButtonStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
+  background: "var(--bg-soft)",
   color: "var(--text)",
-  border: "1px solid rgba(255,255,255,0.16)",
+  border: "1px solid var(--border)",
   borderRadius: "12px",
   padding: "10px 12px",
   fontWeight: 700,
@@ -1133,12 +1133,12 @@ const secondRowStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "linear-gradient(180deg, #181818, #101010)",
+  background: "var(--panel)",
   border: "1px solid var(--border)",
   borderRadius: "28px",
   padding: "26px",
   minHeight: "150px",
-  boxShadow: "0 12px 35px rgba(0,0,0,0.28)",
+  boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
 };
 
 const cardTitleStyle: React.CSSProperties = {
@@ -1217,8 +1217,9 @@ const rowTitleStyle: React.CSSProperties = {
 };
 
 const rowLinkStyle: React.CSSProperties = {
-  color: "#ffffff",
+  color: "var(--accent)",
   textDecoration: "none",
+  fontWeight: 700,
 };
 
 const rowMetaStyle: React.CSSProperties = {
@@ -1246,8 +1247,8 @@ const heroActionsStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   color: "white",
-  background: "linear-gradient(180deg,#ef4444,#b91c1c)",
-  border: "1px solid rgba(239,68,68,0.5)",
+  background: "linear-gradient(180deg,#5b3df5,#3d2b99)",
+  border: "1px solid rgba(91,61,245,0.5)",
   borderRadius: "14px",
   padding: "12px 16px",
   fontWeight: 800,

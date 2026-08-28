@@ -16,10 +16,10 @@ export default function ReceptionAccessCard({
       style={{
         background: allowed
           ? "rgba(34,197,94,0.10)"
-          : "rgba(239,68,68,0.10)",
+          : "rgba(91,61,245,0.10)",
         border: allowed
           ? "1px solid rgba(34,197,94,0.25)"
-          : "1px solid rgba(239,68,68,0.25)",
+          : "1px solid rgba(91,61,245,0.25)",
         borderRadius: "20px",
         padding: "18px",
         display: "flex",
@@ -52,7 +52,7 @@ export default function ReceptionAccessCard({
       <div style={{ textAlign: "right" }}>
         <div
           style={{
-            color: allowed ? "#22c55e" : "#ef4444",
+            color: allowed ? "#22c55e" : "#5b3df5",
             fontWeight: "bold",
             fontSize: "14px",
           }}

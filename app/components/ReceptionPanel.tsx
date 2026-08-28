@@ -143,13 +143,13 @@ export default function ReceptionPanel() {
             maxWidth: "calc(100vw - 40px)",
             background: popupEvent.allowed
               ? "rgba(34,197,94,0.16)"
-              : "rgba(239,68,68,0.16)",
+              : "rgba(91,61,245,0.16)",
             border: popupEvent.allowed
               ? "1px solid rgba(34,197,94,0.45)"
-              : "1px solid rgba(239,68,68,0.45)",
+              : "1px solid rgba(91,61,245,0.45)",
             boxShadow: popupEvent.allowed
               ? "0 0 40px rgba(34,197,94,0.25)"
-              : "0 0 40px rgba(239,68,68,0.25)",
+              : "0 0 40px rgba(91,61,245,0.25)",
             backdropFilter: "blur(18px)",
             borderRadius: "28px",
             padding: "26px",
@@ -158,7 +158,7 @@ export default function ReceptionPanel() {
         >
           <div
             style={{
-              color: popupEvent.allowed ? "#22c55e" : "#ef4444",
+              color: popupEvent.allowed ? "#22c55e" : "#5b3df5",
               fontSize: "14px",
               fontWeight: "bold",
               letterSpacing: "0.08em",
@@ -249,17 +249,17 @@ export default function ReceptionPanel() {
           style={{
             background: lastEvent.allowed
               ? "rgba(34,197,94,0.12)"
-              : "rgba(239,68,68,0.12)",
+              : "rgba(91,61,245,0.12)",
             border: lastEvent.allowed
               ? "1px solid rgba(34,197,94,0.35)"
-              : "1px solid rgba(239,68,68,0.35)",
+              : "1px solid rgba(91,61,245,0.35)",
             borderRadius: "28px",
             padding: "30px",
           }}
         >
           <div
             style={{
-              color: lastEvent.allowed ? "#22c55e" : "#ef4444",
+              color: lastEvent.allowed ? "#22c55e" : "#5b3df5",
               fontSize: "15px",
               fontWeight: "bold",
               letterSpacing: "0.08em",

@@ -221,7 +221,7 @@ export default function NotificationCenterClient() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     padding: 28,
-    color: "#fff",
+    color: "var(--text)",
   },
   hero: {
     display: "flex",
@@ -231,14 +231,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 28,
     borderRadius: 28,
     background:
-      "linear-gradient(135deg, rgba(239,68,68,0.22), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+      "linear-gradient(178deg, rgba(91,61,245,0.08), var(--panel) 60%)",
+    border: "1px solid var(--border)",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
     marginBottom: 22,
   },
   eyebrow: {
     margin: 0,
-    color: "#f87171",
+    color: "var(--accent)",
     fontSize: 13,
     letterSpacing: 2,
     textTransform: "uppercase",
@@ -248,16 +248,17 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "8px 0",
     fontSize: 36,
     fontWeight: 900,
+    color: "var(--text)",
   },
   subtitle: {
     margin: 0,
-    color: "#cbd5e1",
+    color: "var(--muted)",
     maxWidth: 680,
   },
   refreshButton: {
-    border: "1px solid rgba(248,113,113,0.45)",
-    background: "rgba(239,68,68,0.14)",
-    color: "#fff",
+    border: "1px solid var(--bg-border-strong, #d7d9e3)",
+    background: "var(--panel)",
+    color: "var(--text)",
     padding: "12px 18px",
     borderRadius: 16,
     cursor: "pointer",
@@ -271,8 +272,8 @@ const styles: Record<string, React.CSSProperties> = {
   empty: {
     padding: 24,
     borderRadius: 20,
-    background: "rgba(15,23,42,0.86)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    color: "#94a3b8",
+    background: "var(--panel)",
+    border: "1px solid var(--border)",
+    color: "var(--muted)",
   },
 };

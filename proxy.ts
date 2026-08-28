@@ -26,7 +26,12 @@ const machineProtectedPaths = new Set([
   "/api/access/log",
 ]);
 
-const publicPagePrefixes = ["/mobile", "/staff-mobile"];
+// /ui-lab/platinum is a self-contained design-preview lab: local demo data
+// only (see architecture/platinum-screen-registry.ts dataMode:"local-demo"),
+// no operational actions, no real customer/session data. AppShell already
+// treats it as an isolated, unauthenticated area (isIsolatedUiLab) — this
+// mirrors that here so the middleware doesn't redirect it to /login first.
+const publicPagePrefixes = ["/mobile", "/staff-mobile", "/ui-lab/platinum"];
 
 type MachineAuthMode = "off" | "observe" | "enforce";
 
@@ -184,7 +189,7 @@ async function isActiveAppUser(userId: string) {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (machineProtectedPaths.has(pathname)) {

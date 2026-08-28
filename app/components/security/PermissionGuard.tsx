@@ -31,7 +31,7 @@ export default function PermissionGuard({
             borderRadius: 28,
             padding: 28,
             background:
-              "radial-gradient(circle at top left, rgba(239,68,68,0.20), transparent 36%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
+              "radial-gradient(circle at top left, rgba(91,61,245,0.20), transparent 36%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
             border: "1px solid rgba(255,255,255,0.10)",
             boxShadow: "0 28px 90px rgba(0,0,0,0.46)",
           }}
@@ -69,7 +69,7 @@ export default function PermissionGuard({
             borderRadius: 30,
             padding: 32,
             background:
-              "radial-gradient(circle at top left, rgba(239,68,68,0.24), transparent 34%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
+              "radial-gradient(circle at top left, rgba(91,61,245,0.24), transparent 34%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
             border: "1px solid rgba(248,113,113,0.28)",
             boxShadow: "0 28px 90px rgba(0,0,0,0.46)",
           }}
@@ -88,7 +88,7 @@ export default function PermissionGuard({
             <span>Profilo: {staffName || "sessione non riconosciuta"}</span>
             <span>Ruolo: {roleKey || "non configurato"}{isAdmin ? " · amministrazione" : ""}</span>
           </div>
-          <Link href="/" style={{ display: "inline-flex", textDecoration: "none", background: "#ef4444", color: "white", padding: "13px 18px", borderRadius: 16, fontWeight: 900 }}>
+          <Link href="/" style={{ display: "inline-flex", textDecoration: "none", background: "#5b3df5", color: "white", padding: "13px 18px", borderRadius: 16, fontWeight: 900 }}>
             Torna alla Dashboard
           </Link>
         </section>

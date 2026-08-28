@@ -96,7 +96,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "IDEMPOTENCY_CONFLICT",
         error:
-          "La stessa operazione Ã¨ giÃ  stata inviata con dati differenti o non Ã¨ ancora conclusa. Aggiorna la scheda cliente prima di riprovare.",
+          "La stessa operazione è già stata inviata con dati differenti o non è ancora conclusa. Aggiorna la scheda cliente prima di riprovare.",
       },
       { status: 409 },
     );
@@ -119,7 +119,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "DUPLICATE_MEMBERSHIP_FEE",
         error:
-          "Esiste giÃ  una quota associativa per lo stesso cliente e lo stesso periodo.",
+          "Esiste già una quota associativa per lo stesso cliente e lo stesso periodo.",
       },
       { status: 409 },
     );
@@ -131,7 +131,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "DUPLICATE_MEMBERSHIP_RECEIPT",
         error:
-          "Esiste giÃ  una ricevuta di quota associativa per lo stesso anno. Conferma esplicitamente per procedere.",
+          "Esiste già una ricevuta di quota associativa per lo stesso anno. Conferma esplicitamente per procedere.",
       },
       { status: 409 },
     );
@@ -158,7 +158,7 @@ function rpcErrorResponse(error: {
         ok: false,
         code: "ATOMIC_MEMBERSHIP_MIGRATION_REQUIRED",
         error:
-          "Il rinnovo quota associativa atomico non Ã¨ ancora attivo nel database. Applica la migration Atomic Operations 0.3.",
+          "Il rinnovo quota associativa atomico non è ancora attivo nel database. Applica la migration Atomic Operations 0.3.",
       },
       { status: 503 },
     );
@@ -171,7 +171,7 @@ function rpcErrorResponse(error: {
       ok: false,
       code: "ATOMIC_MEMBERSHIP_FAILED",
       error:
-        "La quota associativa non Ã¨ stata registrata. Nessun dato parziale deve essere considerato valido.",
+        "La quota associativa non è stata registrata. Nessun dato parziale deve essere considerato valido.",
     },
     { status: 500 },
   );
@@ -252,7 +252,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "La data fine validitÃ  deve essere successiva o uguale alla data inizio.",
+            "La data fine validità deve essere successiva o uguale alla data inizio.",
         },
         { status: 400 },
       );

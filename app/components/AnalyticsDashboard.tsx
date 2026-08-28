@@ -186,7 +186,7 @@ export default function AnalyticsDashboard() {
         <StatCard
           title="Accessi negati"
           value={stats.deniedAccesses.toString()}
-          color="#ef4444"
+          color="#5b3df5"
         />
 
         <StatCard
@@ -286,7 +286,7 @@ export default function AnalyticsDashboard() {
                 style={{
                   color: log.allowed
                     ? "#22c55e"
-                    : "#ef4444",
+                    : "#5b3df5",
                   fontWeight: "bold",
                 }}
               >

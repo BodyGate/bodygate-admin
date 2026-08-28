@@ -85,7 +85,7 @@ export default function CustomerMedicalCertificates({ customerId }: Props) {
     if (today > cert.valid_until) {
       return {
         label: "SCADUTO",
-        color: "#ef4444",
+        color: "#5b3df5",
       };
     }
 
@@ -456,9 +456,9 @@ const linkButtonStyle: React.CSSProperties = {
 };
 
 const deleteButtonStyle: React.CSSProperties = {
-  background: "rgba(239,68,68,0.12)",
-  color: "#ef4444",
-  border: "1px solid rgba(239,68,68,0.35)",
+  background: "rgba(214,49,74,0.1)",
+  color: "var(--danger)",
+  border: "1px solid rgba(214,49,74,0.35)",
   borderRadius: "12px",
   padding: "10px 14px",
   fontWeight: "bold",

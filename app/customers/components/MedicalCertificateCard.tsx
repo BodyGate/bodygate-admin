@@ -231,15 +231,15 @@ export default function MedicalCertificateCard({
         }
 
         .expired {
-          background: rgba(239, 68, 68, 0.14);
+          background: rgba(91, 61, 245, 0.14);
           color: #fb7185;
-          border: 1px solid rgba(239, 68, 68, 0.35);
+          border: 1px solid rgba(91, 61, 245, 0.35);
         }
 
         .microcopy {
           margin-top: 18px;
-          border: 1px solid rgba(239, 68, 68, 0.25);
-          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(91, 61, 245, 0.25);
+          background: rgba(91, 61, 245, 0.08);
           border-radius: 18px;
           padding: 12px 14px;
           color: #f5f5f5;
@@ -278,8 +278,8 @@ export default function MedicalCertificateCard({
         }
 
         input:focus {
-          border-color: rgba(239, 68, 68, 0.75);
-          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+          border-color: rgba(91, 61, 245, 0.75);
+          box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.12);
         }
 
         .upload-area {
@@ -306,7 +306,7 @@ export default function MedicalCertificateCard({
         }
 
         .upload-btn {
-          background: #ef4444;
+          background: #5b3df5;
           color: white;
           width: 100%;
         }
@@ -353,8 +353,8 @@ export default function MedicalCertificateCard({
 
         .error {
           color: #fb7185;
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.25);
+          background: rgba(91, 61, 245, 0.1);
+          border: 1px solid rgba(91, 61, 245, 0.25);
         }
 
         .success {

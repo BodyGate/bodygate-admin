@@ -1,7 +1,7 @@
 -- BodyGate ATOMIC OPERATIONS 0.4
 -- Onboarding Platinum atomico e idempotente.
 --
--- Requisito: ATOMIC OPERATIONS 0.3 giÃ  applicata.
+-- Requisito: ATOMIC OPERATIONS 0.3 già applicata.
 -- La RPC crea in una sola transazione:
 -- cliente, quota associativa, eventuale abbonamento, pagamenti,
 -- ricevuta, contratto, eventuale credenziale badge,
@@ -641,7 +641,7 @@ begin
 
   select string_agg(
     component->>'label'
-      || ' â‚¬'
+      || ' €'
       || replace(
         to_char((component->>'amount')::numeric, 'FM999999990.00'),
         '.',
@@ -833,7 +833,7 @@ begin
       'payment',
       'Incasso onboarding registrato',
       v_description
-        || ' - â‚¬'
+        || ' - €'
         || replace(to_char(v_total_amount, 'FM999999990.00'), '.', ','),
       v_now
     ),
@@ -863,9 +863,9 @@ begin
       end,
       case
         when v_badge_charge_mode = 'charged'
-          then 'Badge RFID consegnato e addebitato â‚¬'
+          then 'Badge RFID consegnato e addebitato €'
             || replace(to_char(v_badge_amount, 'FM999999990.00'), '.', ',')
-        else 'Badge RFID consegnato in omaggio â€” motivo: '
+        else 'Badge RFID consegnato in omaggio — motivo: '
           || coalesce(v_badge_reason, 'non addebitato')
       end,
       v_now

@@ -94,7 +94,7 @@ export default function Sidebar() {
         minHeight: "100vh",
         background:
           "linear-gradient(180deg, rgba(12,12,14,0.98), rgba(24,24,27,0.98))",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        borderRight: "1px solid rgba(21, 22, 28, 0.1)",
         display: "flex",
         flexDirection: "column",
         padding: "18px",
@@ -116,8 +116,8 @@ export default function Sidebar() {
             borderRadius: "22px",
             padding: "18px",
             background:
-              "linear-gradient(135deg, rgba(239,68,68,0.22), rgba(127,29,29,0.12))",
-            border: "1px solid rgba(239,68,68,0.24)",
+              "linear-gradient(135deg, rgba(91,61,245,0.22), rgba(61,43,153,0.12))",
+            border: "1px solid rgba(91,61,245,0.24)",
           }}
         >
           <div
@@ -193,13 +193,13 @@ export default function Sidebar() {
                 textDecoration: "none",
                 color: active ? "#fff" : "rgba(255,255,255,0.68)",
                 background: active
-                  ? "linear-gradient(135deg, #ef4444, #991b1b)"
+                  ? "linear-gradient(135deg, #5b3df5, #3d2b99)"
                   : "rgba(255,255,255,0.035)",
                 border: active
                   ? "1px solid rgba(255,255,255,0.18)"
                   : "1px solid rgba(255,255,255,0.055)",
                 boxShadow: active
-                  ? "0 12px 30px rgba(239,68,68,0.24)"
+                  ? "0 12px 30px rgba(91,61,245,0.24)"
                   : "none",
                 transition: "0.18s ease",
               }}
@@ -297,7 +297,7 @@ export default function Sidebar() {
             style={{
               width: "100%",
               border: "none",
-              background: "rgba(239,68,68,0.14)",
+              background: "rgba(91,61,245,0.14)",
               color: "#fecaca",
               padding: "12px",
               borderRadius: "15px",

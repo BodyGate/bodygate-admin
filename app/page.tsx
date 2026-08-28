@@ -160,11 +160,10 @@ export default function DashboardPage() {
         .command-page-v2 {
           min-height: 100vh;
           padding: 26px;
-          color: #fff;
+          color: var(--text);
           background:
-            radial-gradient(circle at top left, rgba(239, 68, 68, 0.22), transparent 30%),
-            radial-gradient(circle at 75% 0%, rgba(255,255,255,.08), transparent 24%),
-            linear-gradient(135deg, #050505, #0a0a0a 46%, #111);
+            radial-gradient(circle at top left, rgba(91, 61, 245, 0.08), transparent 30%),
+            var(--bg);
         }
 
         .top-actions {
@@ -226,35 +225,37 @@ export default function DashboardPage() {
 
         .alert-tile {
           min-height: 124px;
-          border-radius: 22px;
+          border-radius: 14px;
           padding: 18px;
-          border: 1px solid rgba(255,255,255,.09);
-          background: rgba(255,255,255,.035);
+          border: 1px solid var(--border);
+          background: var(--panel);
         }
 
         .alert-tile.danger {
-          border-color: rgba(239,68,68,.34);
-          background: radial-gradient(circle at top right, rgba(239,68,68,.22), transparent 55%), rgba(255,255,255,.035);
+          border-color: rgba(214,49,74,.28);
+          background: linear-gradient(178deg, rgba(214,49,74,.07), var(--panel) 60%);
         }
 
         .alert-tile.warning {
-          border-color: rgba(250,204,21,.27);
-          background: radial-gradient(circle at top right, rgba(250,204,21,.20), transparent 55%), rgba(255,255,255,.035);
+          border-color: rgba(179,121,10,.26);
+          background: linear-gradient(178deg, rgba(179,121,10,.08), var(--panel) 60%);
         }
 
         .alert-number {
-          font-size: 38px;
+          font-family: var(--font-display), Arial, sans-serif;
+          font-size: 34px;
           line-height: .95;
-          font-weight: 950;
-          letter-spacing: -.06em;
+          font-weight: 800;
+          letter-spacing: -.02em;
+          color: var(--text);
         }
 
         .alert-label {
           margin-top: 10px;
-          color: #cfcfcf;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.35;
-          font-weight: 800;
+          font-weight: 650;
         }
 
         .access-list,
@@ -269,49 +270,47 @@ export default function DashboardPage() {
           grid-template-columns: 12px 1fr auto;
           align-items: center;
           gap: 12px;
-          border-radius: 18px;
+          border-radius: 12px;
           padding: 14px;
-          background: rgba(255,255,255,.035);
-          border: 1px solid rgba(255,255,255,.075);
+          background: var(--panel);
+          border: 1px solid var(--border);
         }
 
         .dot {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: #737373;
-          box-shadow: 0 0 16px currentColor;
+          background: var(--muted);
+          box-shadow: 0 0 12px currentColor;
         }
 
         .dot.ok {
-          background: #22c55e;
-          color: #22c55e;
+          background: var(--success);
+          color: var(--success);
         }
 
         .dot.no {
-          background: #ef4444;
-          color: #ef4444;
+          background: var(--danger);
+          color: var(--danger);
         }
 
         .access-title {
-          font-weight: 950;
+          font-weight: 700;
           font-size: 13px;
-          color: #fff;
+          color: var(--text);
         }
 
         .access-sub {
           margin-top: 4px;
-          color: #8c8c8c;
+          color: var(--muted);
           font-size: 12px;
           line-height: 1.35;
         }
 
         .quick-actions-panel {
-          border-color: rgba(239, 68, 68, 0.18);
+          border-color: rgba(91, 61, 245, 0.16);
           background:
-            radial-gradient(circle at top right, rgba(239,68,68,.16), transparent 42%),
-            linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.022)),
-            rgba(8,8,8,.9);
+            linear-gradient(178deg, rgba(91, 61, 245, .05), var(--panel) 55%);
         }
 
         .quick-grid {
@@ -324,13 +323,13 @@ export default function DashboardPage() {
           min-height: 132px;
           display: grid;
           gap: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 8px;
+          border: 1px solid var(--border);
+          border-radius: 12px;
           padding: 16px;
-          color: #fff;
+          color: var(--text);
           text-decoration: none;
           text-decoration-line: none;
-          background: rgba(255, 255, 255, 0.04);
+          background: var(--panel);
           transition:
             border-color 150ms ease,
             background 150ms ease,
@@ -341,19 +340,19 @@ export default function DashboardPage() {
         .quick-card:visited,
         .quick-card:hover,
         .quick-card:active {
-          color: #fff;
+          color: var(--text);
           text-decoration: none;
         }
 
         .quick-card:focus-visible {
-          outline: 2px solid rgba(239, 68, 68, 0.72);
+          outline: 2px solid rgba(91, 61, 245, 0.5);
           outline-offset: 3px;
         }
 
         .quick-card:hover {
           transform: translateY(-1px);
-          border-color: rgba(239, 68, 68, 0.48);
-          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(91, 61, 245, 0.4);
+          background: rgba(91, 61, 245, 0.05);
         }
 
         .quick-card-icon {
@@ -361,43 +360,43 @@ export default function DashboardPage() {
           height: 34px;
           display: inline-grid;
           place-items: center;
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          border-radius: 8px;
-          background: rgba(239, 68, 68, 0.12);
-          color: #fca5a5;
-          font-weight: 950;
+          border: 1px solid rgba(91, 61, 245, 0.24);
+          border-radius: 9px;
+          background: rgba(91, 61, 245, 0.1);
+          color: #5b3df5;
+          font-weight: 800;
         }
 
         .quick-card-title {
           display: block;
-          color: #fff;
+          color: var(--text);
           font-size: 15px;
-          font-weight: 950;
+          font-weight: 700;
         }
 
         .quick-card-description {
           display: block;
-          color: #a1a1aa;
+          color: var(--muted);
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 500;
           line-height: 1.45;
         }
 
         .error {
-          border-radius: 22px;
+          border-radius: 14px;
           padding: 18px;
-          border: 1px solid rgba(239,68,68,.38);
-          background: rgba(239,68,68,.1);
-          color: #fecaca;
+          border: 1px solid rgba(214,49,74,.32);
+          background: rgba(214,49,74,.08);
+          color: #b5233c;
           margin-bottom: 18px;
         }
 
         .loading {
-          border-radius: 22px;
+          border-radius: 14px;
           padding: 22px;
-          background: rgba(255,255,255,.05);
-          border: 1px solid rgba(255,255,255,.1);
-          color: #ddd;
+          background: var(--panel);
+          border: 1px solid var(--border);
+          color: var(--muted);
         }
 
         @media (max-width: 1220px) {

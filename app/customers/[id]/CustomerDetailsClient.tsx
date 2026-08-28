@@ -1716,14 +1716,14 @@ export default function CustomerDetailsClient({
       <style jsx>{`
         .customer-page {
           padding: 30px;
-          color: #ffffff;
+          color: var(--text);
           background:
             radial-gradient(
               circle at 10% 0%,
-              rgba(239, 68, 68, 0.12),
+              rgba(91, 61, 245, 0.06),
               transparent 28%
             ),
-            #050505;
+            var(--bg);
           min-height: 100vh;
         }
         .topbar {
@@ -1752,8 +1752,8 @@ export default function CustomerDetailsClient({
           height: 86px;
           border-radius: 25px;
           flex: 0 0 auto;
-          border: 2px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
+          border: 2px solid var(--border);
+          box-shadow: 0 10px 24px rgba(21, 22, 28, 0.16);
         }
         .avatar {
           object-fit: cover;
@@ -1762,7 +1762,7 @@ export default function CustomerDetailsClient({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d);
+          background: linear-gradient(135deg, #5b3df5, #3d2b99);
           color: #fff;
           font-size: 27px;
           font-weight: 950;
@@ -1780,7 +1780,7 @@ export default function CustomerDetailsClient({
         .hero-meta,
         .muted,
         .small-muted {
-          color: #9ca3af;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.5;
         }
@@ -1810,24 +1810,17 @@ export default function CustomerDetailsClient({
         .operations-center {
           display: grid;
           gap: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid var(--border);
           border-radius: 30px;
           padding: 18px;
           background:
             radial-gradient(
               circle at 4% 0%,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.06),
               transparent 28%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.055),
-              rgba(255, 255, 255, 0.018)
-            ),
-            rgba(6, 6, 8, 0.9);
-          box-shadow:
-            0 22px 58px rgba(0, 0, 0, 0.34),
-            inset 0 1px 0 rgba(255, 255, 255, 0.055);
+            var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
         }
         .operations-center-grid,
         .overview-grid {
@@ -1843,18 +1836,13 @@ export default function CustomerDetailsClient({
           align-items: stretch;
         }
         .situation-card {
-          border: 1px solid rgba(239, 68, 68, 0.22);
+          border: 1px solid rgba(91, 61, 245, 0.22);
           border-radius: 28px;
           padding: 22px;
           background:
-            linear-gradient(
-              135deg,
-              rgba(239, 68, 68, 0.13),
-              rgba(255, 255, 255, 0.035) 34%,
-              rgba(5, 5, 5, 0.88)
-            ),
-            rgba(10, 10, 10, 0.9);
-          box-shadow: 0 22px 54px rgba(0, 0, 0, 0.35);
+            linear-gradient(135deg, rgba(91, 61, 245, 0.08), var(--panel) 40%),
+            var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
           display: grid;
           gap: 18px;
         }
@@ -1867,53 +1855,53 @@ export default function CustomerDetailsClient({
         }
         .situation-title {
           margin: 0;
-          color: #fff;
+          color: var(--text);
           font-size: clamp(24px, 3vw, 38px);
           line-height: 0.95;
           letter-spacing: -0.055em;
           font-weight: 950;
         }
         .situation-subtitle {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
           font-weight: 800;
           margin-top: 8px;
         }
         .access-decision-strip {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 22px;
           padding: 14px;
-          background: rgba(0, 0, 0, 0.3);
+          background: var(--bg-soft);
           display: grid;
           grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
           gap: 14px;
           align-items: center;
         }
         .access-decision-strip.allowed {
-          border-color: rgba(74, 222, 128, 0.25);
+          border-color: rgba(31, 157, 107, 0.25);
           background: linear-gradient(
             135deg,
-            rgba(22, 101, 52, 0.28),
-            rgba(0, 0, 0, 0.28)
+            rgba(31, 157, 107, 0.12),
+            var(--bg-soft)
           );
         }
         .access-decision-strip.denied {
-          border-color: rgba(251, 113, 133, 0.28);
+          border-color: rgba(214, 49, 74, 0.28);
           background: linear-gradient(
             135deg,
-            rgba(127, 29, 29, 0.34),
-            rgba(0, 0, 0, 0.28)
+            rgba(214, 49, 74, 0.12),
+            var(--bg-soft)
           );
         }
         .access-decision-label {
-          color: rgba(255, 255, 255, 0.62);
+          color: var(--muted);
           font-size: 10px;
           font-weight: 950;
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
         .access-decision-value {
-          color: #fff;
+          color: var(--text);
           font-size: clamp(22px, 3vw, 34px);
           line-height: 1;
           font-weight: 950;
@@ -1927,23 +1915,23 @@ export default function CustomerDetailsClient({
           justify-content: flex-end;
         }
         .access-check-pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 999px;
           padding: 8px 10px;
-          color: rgba(255, 255, 255, 0.76);
+          color: var(--muted);
           font-size: 11px;
           font-weight: 900;
-          background: rgba(255, 255, 255, 0.04);
+          background: var(--bg-soft);
         }
         .access-check-pill.ok {
-          border-color: rgba(74, 222, 128, 0.22);
-          color: #bbf7d0;
-          background: rgba(22, 101, 52, 0.18);
+          border-color: rgba(31, 157, 107, 0.25);
+          color: var(--success);
+          background: rgba(31, 157, 107, 0.08);
         }
         .access-check-pill.ko {
-          border-color: rgba(251, 113, 133, 0.24);
-          color: #fecdd3;
-          background: rgba(127, 29, 29, 0.2);
+          border-color: rgba(214, 49, 74, 0.25);
+          color: var(--danger);
+          background: rgba(214, 49, 74, 0.08);
         }
         .situation-kpis {
           display: grid;
@@ -1952,14 +1940,14 @@ export default function CustomerDetailsClient({
         }
         .situation-kpi {
           min-width: 0;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid var(--border);
           border-radius: 18px;
           padding: 14px;
-          background: rgba(0, 0, 0, 0.32);
+          background: var(--panel-2);
         }
         .situation-kpi strong {
           display: block;
-          color: #fff;
+          color: var(--text);
           font-size: 17px;
           line-height: 1.15;
           font-weight: 950;
@@ -1967,7 +1955,7 @@ export default function CustomerDetailsClient({
         }
         .situation-kpi span {
           display: block;
-          color: #8b8b8b;
+          color: var(--muted);
           font-size: 10px;
           font-weight: 950;
           letter-spacing: 0.08em;
@@ -1979,9 +1967,9 @@ export default function CustomerDetailsClient({
           gap: 8px;
         }
         .alert-chip {
-          border: 1px solid rgba(251, 113, 133, 0.25);
-          background: rgba(127, 29, 29, 0.28);
-          color: #fecdd3;
+          border: 1px solid rgba(214, 49, 74, 0.25);
+          background: rgba(214, 49, 74, 0.08);
+          color: var(--danger);
           border-radius: 16px;
           padding: 10px 12px;
           font-size: 12px;
@@ -2000,7 +1988,7 @@ export default function CustomerDetailsClient({
           display: grid;
           grid-template-columns: 112px minmax(0, 1fr);
           gap: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid var(--border);
           padding-bottom: 9px;
         }
         .compact-info-row:last-child {
@@ -2008,14 +1996,14 @@ export default function CustomerDetailsClient({
           padding-bottom: 0;
         }
         .compact-info-row span {
-          color: #8b8b8b;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.07em;
           text-transform: uppercase;
         }
         .compact-info-row strong {
-          color: #fff;
+          color: var(--text);
           font-size: 13px;
           line-height: 1.35;
           font-weight: 850;
@@ -2037,20 +2025,20 @@ export default function CustomerDetailsClient({
           display: grid;
           gap: 8px;
           min-height: 104px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid var(--border);
           border-radius: 20px;
           padding: 15px;
-          background: rgba(255, 255, 255, 0.035);
+          background: var(--panel-2);
         }
         .status-label {
-          color: #8b8b8b;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
         .status-value {
-          color: #fff;
+          color: var(--text);
           font-size: 14px;
           font-weight: 900;
           line-height: 1.35;
@@ -2064,24 +2052,17 @@ export default function CustomerDetailsClient({
           grid-template-rows: auto minmax(0, 1fr) auto;
           gap: 16px;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.105);
+          border: 1px solid var(--border);
           border-radius: 24px;
           padding: 18px;
           background:
             radial-gradient(
               circle at 92% 0%,
-              rgba(239, 68, 68, 0.14),
+              rgba(91, 61, 245, 0.06),
               transparent 38%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.075),
-              rgba(255, 255, 255, 0.022)
-            ),
-            rgba(8, 8, 10, 0.94);
-          box-shadow:
-            0 18px 42px rgba(0, 0, 0, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
           transition:
             transform 0.18s ease,
             border-color 0.18s ease,
@@ -2094,13 +2075,7 @@ export default function CustomerDetailsClient({
           inset: 1px;
           z-index: -1;
           border-radius: inherit;
-          background:
-            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
-            radial-gradient(
-              circle at top left,
-              rgba(255, 255, 255, 0.08),
-              transparent 32%
-            );
+          background: linear-gradient(90deg, rgba(91, 61, 245, 0.05), transparent 46%);
           opacity: 0.76;
           transition: opacity 0.18s ease;
         }
@@ -2112,29 +2087,29 @@ export default function CustomerDetailsClient({
           left: 0;
           width: 3px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
-          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+          background: linear-gradient(180deg, var(--accent), transparent);
+          box-shadow: 0 0 18px rgba(91, 61, 245, 0.24);
         }
         .mini-card:hover {
           transform: translateY(-2px);
-          border-color: rgba(239, 68, 68, 0.38);
+          border-color: rgba(91, 61, 245, 0.38);
           box-shadow:
-            0 24px 58px rgba(0, 0, 0, 0.4),
-            0 0 34px rgba(239, 68, 68, 0.08);
+            0 12px 32px -8px rgba(21, 22, 28, 0.18),
+            0 0 0 3px rgba(91, 61, 245, 0.08);
         }
         .mini-card:hover::before {
           opacity: 1;
         }
         .mini-card-success::after {
-          background: linear-gradient(180deg, #22c55e, rgba(21, 128, 61, 0.22));
-          box-shadow: 0 0 18px rgba(34, 197, 94, 0.2);
+          background: linear-gradient(180deg, var(--success), transparent);
+          box-shadow: 0 0 18px rgba(31, 157, 107, 0.2);
         }
         .mini-card-warning::after {
-          background: linear-gradient(180deg, #f59e0b, rgba(180, 83, 9, 0.22));
-          box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+          background: linear-gradient(180deg, var(--warning), transparent);
+          box-shadow: 0 0 18px rgba(179, 121, 10, 0.2);
         }
         .mini-card-danger::after {
-          background: linear-gradient(180deg, #fb7185, rgba(190, 18, 60, 0.24));
+          background: linear-gradient(180deg, var(--danger), transparent);
         }
         .mini-card-head {
           display: flex;
@@ -2149,7 +2124,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .mini-card-eyebrow {
-          color: #fca5a5;
+          color: var(--accent);
           font-size: 10px;
           font-weight: 950;
           letter-spacing: 0.1em;
@@ -2159,7 +2134,7 @@ export default function CustomerDetailsClient({
         .mini-title,
         .row-title,
         .plan-title {
-          color: #fff;
+          color: var(--text);
           font-size: 15px;
           font-weight: 950;
           line-height: 1.25;
@@ -2175,7 +2150,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .mini-value {
-          color: #fff;
+          color: var(--text);
           font-size: 18px;
           font-weight: 950;
           line-height: 1.22;
@@ -2198,7 +2173,7 @@ export default function CustomerDetailsClient({
           display: grid;
           gap: 6px;
           margin-top: 4px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 800;
           line-height: 1.35;
@@ -2211,11 +2186,11 @@ export default function CustomerDetailsClient({
           display: inline-flex;
           width: fit-content;
           max-width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 999px;
           padding: 6px 9px;
-          background: rgba(255, 255, 255, 0.045);
-          color: rgba(255, 255, 255, 0.78);
+          background: var(--bg-soft);
+          color: var(--text);
           font-size: 11px;
           font-weight: 900;
           line-height: 1.2;
@@ -2230,16 +2205,16 @@ export default function CustomerDetailsClient({
         .credential-mini {
           display: grid;
           gap: 7px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--border);
           border-radius: 18px;
           padding: 13px 14px;
-          background: rgba(255, 255, 255, 0.035);
+          background: var(--panel-2);
           min-width: 0;
         }
         .info-label,
         .credential-section-title,
         .credential-mini-label {
-          color: #8b8b8b;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
@@ -2247,7 +2222,7 @@ export default function CustomerDetailsClient({
         }
         .info-value,
         .credential-mini-value {
-          color: #fff;
+          color: var(--text);
           font-size: 14px;
           font-weight: 900;
           overflow-wrap: anywhere;
@@ -2267,15 +2242,15 @@ export default function CustomerDetailsClient({
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 14px;
           align-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--border);
           border-radius: 18px;
           padding: 14px;
-          background: rgba(255, 255, 255, 0.035);
+          background: var(--panel-2);
           min-width: 0;
         }
         .row-subtitle,
         .row-right {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
           margin-top: 4px;
           line-height: 1.45;
@@ -2298,7 +2273,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .edit-field label {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.7px;
@@ -2313,15 +2288,9 @@ export default function CustomerDetailsClient({
           width: 100%;
           max-width: 100%;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.11);
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.07),
-              rgba(255, 255, 255, 0.025)
-            ),
-            rgba(5, 5, 5, 0.92);
-          color: #fff;
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
+          color: var(--text);
           outline: none;
           font-size: 14px;
           font-weight: 800;
@@ -2341,12 +2310,12 @@ export default function CustomerDetailsClient({
         input:focus,
         select:focus,
         textarea:focus {
-          border-color: rgba(239, 68, 68, 0.62);
-          box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+          border-color: rgba(91, 61, 245, 0.62);
+          box-shadow: 0 0 0 4px rgba(91, 61, 245, 0.16);
         }
         select option {
-          background: #111;
-          color: #fff;
+          background: var(--panel);
+          color: var(--text);
         }
         .checkbox-field {
           display: flex;
@@ -2354,21 +2323,21 @@ export default function CustomerDetailsClient({
           gap: 10px;
           min-height: 48px;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.11);
+          border: 1px solid var(--border);
           padding: 0 14px;
-          background: rgba(255, 255, 255, 0.035);
+          background: var(--bg-soft);
         }
         .checkbox-field input {
           width: 18px;
           min-height: 18px;
-          accent-color: #ef4444;
+          accent-color: #5b3df5;
         }
         .payment-box,
         .manual-renew-box {
           padding: 15px;
           border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.035);
+          border: 1px solid var(--border);
+          background: var(--panel-2);
         }
         .quick-plan-grid {
           display: grid;
@@ -2393,43 +2362,31 @@ export default function CustomerDetailsClient({
           text-align: left;
           border-radius: 24px;
           padding: 20px;
-          border: 1px solid rgba(239, 68, 68, 0.28);
+          border: 1px solid rgba(91, 61, 245, 0.28);
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.22),
+              rgba(91, 61, 245, 0.1),
               transparent 58%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.07),
-              rgba(255, 255, 255, 0.025)
-            ),
-            rgba(8, 8, 8, 0.94);
-          color: #fff;
+            var(--panel);
+          color: var(--text);
           cursor: pointer;
           white-space: normal;
           line-height: 1.2;
           overflow: hidden;
           box-sizing: border-box;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 18px 42px rgba(0, 0, 0, 0.26);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.12);
         }
         .quick-plan-btn:hover {
-          border-color: rgba(239, 68, 68, 0.48);
+          border-color: rgba(91, 61, 245, 0.48);
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.3),
+              rgba(91, 61, 245, 0.16),
               transparent 58%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.09),
-              rgba(255, 255, 255, 0.03)
-            ),
-            rgba(10, 10, 10, 0.96);
+            var(--panel);
         }
         .plan-copy {
           display: grid;
@@ -2453,9 +2410,9 @@ export default function CustomerDetailsClient({
           max-width: 100%;
           min-width: 0;
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.07);
-          color: #fca5a5;
+          border: 1px solid var(--border);
+          background: var(--accent-soft);
+          color: var(--accent);
           padding: 7px 10px;
           font-size: 11px;
           font-weight: 950;
@@ -2475,7 +2432,7 @@ export default function CustomerDetailsClient({
         }
         .plan-price {
           display: block;
-          color: #fff;
+          color: var(--text);
           font-size: clamp(28px, 4vw, 36px);
           line-height: 0.92;
           font-weight: 950;
@@ -2491,16 +2448,10 @@ export default function CustomerDetailsClient({
           grid-template-columns: minmax(0, 1fr) minmax(118px, max-content);
           gap: 16px;
           align-items: start;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid var(--border);
           border-radius: 20px;
           padding: 15px;
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.055),
-              rgba(255, 255, 255, 0.02)
-            ),
-            rgba(7, 7, 7, 0.78);
+          background: var(--panel-2);
           min-width: 0;
         }
         .history-main {
@@ -2509,7 +2460,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .history-title {
-          color: #fff;
+          color: var(--text);
           font-size: 14px;
           font-weight: 950;
           line-height: 1.3;
@@ -2517,7 +2468,7 @@ export default function CustomerDetailsClient({
           overflow-wrap: anywhere;
         }
         .history-period {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 800;
           line-height: 1.45;
@@ -2534,14 +2485,14 @@ export default function CustomerDetailsClient({
           max-width: 100%;
         }
         .history-amount {
-          color: #fff;
+          color: var(--text);
           font-size: 16px;
           font-weight: 950;
           letter-spacing: -0.02em;
           white-space: nowrap;
         }
         .history-method {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 850;
           line-height: 1.35;
@@ -2554,7 +2505,7 @@ export default function CustomerDetailsClient({
           gap: 10px;
         }
         .credential-section {
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-top: 1px solid var(--border);
           padding-top: 16px;
           margin-top: 16px;
           display: grid;
@@ -2567,8 +2518,8 @@ export default function CustomerDetailsClient({
         }
         .credential-pill {
           border-radius: 999px;
-          background: #050505;
-          border: 1px solid #303030;
+          background: var(--bg-soft);
+          border: 1px solid var(--border);
           padding: 8px 11px;
           font-size: 12px;
           font-weight: 800;
@@ -2578,16 +2529,16 @@ export default function CustomerDetailsClient({
         .badge-edit-panel {
           display: grid;
           gap: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 20px;
           padding: 16px;
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.06),
               transparent 34%
             ),
-            rgba(255, 255, 255, 0.035);
+            var(--panel-2);
         }
         .badge-card-main {
           display: flex;
@@ -2597,7 +2548,7 @@ export default function CustomerDetailsClient({
           flex-wrap: wrap;
         }
         .badge-card-code {
-          color: #fff;
+          color: var(--text);
           font-size: 22px;
           font-weight: 950;
           letter-spacing: -0.03em;
@@ -2605,8 +2556,8 @@ export default function CustomerDetailsClient({
         }
         .badge-edit-panel {
           background:
-            linear-gradient(145deg, rgba(239, 68, 68, 0.12), transparent),
-            rgba(5, 5, 5, 0.82);
+            linear-gradient(145deg, rgba(91, 61, 245, 0.08), transparent),
+            var(--panel-2);
         }
         .badge-feedback {
           border-radius: 14px;
@@ -2617,15 +2568,16 @@ export default function CustomerDetailsClient({
         .badge-feedback-success {
           border: 1px solid rgba(34, 197, 94, 0.24);
           background: rgba(34, 197, 94, 0.1);
-          color: #bbf7d0;
+          color: var(--success);
         }
         .badge-feedback-danger {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.1);
-          color: #fecaca;
+          border: 1px solid rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.08);
+          color: var(--danger);
         }
         .qr-box {
           background: #fff;
+          border: 1px solid var(--border);
           border-radius: 18px;
           padding: 14px;
           display: inline-flex;
@@ -2638,9 +2590,9 @@ export default function CustomerDetailsClient({
         }
         .mobile-pass-url,
         .error-details {
-          border: 1px solid rgba(59, 130, 246, 0.22);
-          background: rgba(59, 130, 246, 0.08);
-          color: #bfdbfe;
+          border: 1px solid rgba(37, 99, 235, 0.25);
+          background: rgba(37, 99, 235, 0.08);
+          color: #1d4ed8;
           border-radius: 14px;
           padding: 12px;
           font-size: 12px;
@@ -2649,10 +2601,10 @@ export default function CustomerDetailsClient({
           white-space: pre-wrap;
         }
         .danger-text {
-          color: #fb7185;
+          color: var(--danger);
         }
         .success-text {
-          color: #4ade80;
+          color: var(--success);
         }
         @media (max-width: 1180px) {
           .customer-hero,
@@ -2736,24 +2688,17 @@ export default function CustomerDetailsClient({
           grid-template-rows: auto minmax(0, 1fr) auto;
           gap: 16px;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.105);
+          border: 1px solid var(--border);
           border-radius: 24px;
           padding: 18px;
           background:
             radial-gradient(
               circle at 92% 0%,
-              rgba(239, 68, 68, 0.14),
+              rgba(91, 61, 245, 0.06),
               transparent 38%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.075),
-              rgba(255, 255, 255, 0.022)
-            ),
-            rgba(8, 8, 10, 0.94);
-          box-shadow:
-            0 18px 42px rgba(0, 0, 0, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
           transition:
             transform 0.18s ease,
             border-color 0.18s ease,
@@ -2766,13 +2711,7 @@ export default function CustomerDetailsClient({
           inset: 1px;
           z-index: -1;
           border-radius: inherit;
-          background:
-            linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent 46%),
-            radial-gradient(
-              circle at top left,
-              rgba(255, 255, 255, 0.08),
-              transparent 32%
-            );
+          background: linear-gradient(90deg, rgba(91, 61, 245, 0.05), transparent 46%);
           opacity: 0.76;
           transition: opacity 0.18s ease;
         }
@@ -2784,34 +2723,34 @@ export default function CustomerDetailsClient({
           left: 0;
           width: 3px;
           border-radius: 999px;
-          background: linear-gradient(180deg, #ef4444, rgba(153, 27, 27, 0.22));
-          box-shadow: 0 0 18px rgba(239, 68, 68, 0.24);
+          background: linear-gradient(180deg, var(--accent), transparent);
+          box-shadow: 0 0 18px rgba(91, 61, 245, 0.24);
         }
         .mini-card:hover {
           transform: translateY(-2px);
-          border-color: rgba(239, 68, 68, 0.38);
+          border-color: rgba(91, 61, 245, 0.38);
           box-shadow:
-            0 24px 58px rgba(0, 0, 0, 0.4),
-            0 0 34px rgba(239, 68, 68, 0.08);
+            0 12px 32px -8px rgba(21, 22, 28, 0.18),
+            0 0 0 3px rgba(91, 61, 245, 0.08);
         }
         .mini-card:hover::before {
           opacity: 1;
         }
         .mini-card-success::after {
-          background: linear-gradient(180deg, #22c55e, rgba(21, 128, 61, 0.22));
-          box-shadow: 0 0 18px rgba(34, 197, 94, 0.2);
+          background: linear-gradient(180deg, var(--success), transparent);
+          box-shadow: 0 0 18px rgba(31, 157, 107, 0.2);
         }
         .mini-card-warning::after {
-          background: linear-gradient(180deg, #f59e0b, rgba(180, 83, 9, 0.22));
-          box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+          background: linear-gradient(180deg, var(--warning), transparent);
+          box-shadow: 0 0 18px rgba(179, 121, 10, 0.2);
         }
         .mini-card-danger::after {
-          background: linear-gradient(180deg, #fb7185, rgba(190, 18, 60, 0.24));
-          box-shadow: 0 0 18px rgba(251, 113, 133, 0.2);
+          background: linear-gradient(180deg, var(--danger), transparent);
+          box-shadow: 0 0 18px rgba(214, 49, 74, 0.2);
         }
         .mini-card-info::after {
-          background: linear-gradient(180deg, #60a5fa, rgba(37, 99, 235, 0.24));
-          box-shadow: 0 0 18px rgba(96, 165, 250, 0.2);
+          background: linear-gradient(180deg, #2563eb, transparent);
+          box-shadow: 0 0 18px rgba(37, 99, 235, 0.2);
         }
         .mini-card-head {
           display: flex;
@@ -2826,7 +2765,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .mini-card-eyebrow {
-          color: #fca5a5;
+          color: var(--accent);
           font-size: 10px;
           font-weight: 950;
           letter-spacing: 0.1em;
@@ -2834,7 +2773,7 @@ export default function CustomerDetailsClient({
           text-transform: uppercase;
         }
         .mini-title {
-          color: #fff;
+          color: var(--text);
           font-size: 15px;
           font-weight: 950;
           line-height: 1.25;
@@ -2847,7 +2786,7 @@ export default function CustomerDetailsClient({
           min-width: 0;
         }
         .mini-value {
-          color: #fff;
+          color: var(--text);
           font-size: 18px;
           font-weight: 950;
           line-height: 1.22;
@@ -2870,7 +2809,7 @@ export default function CustomerDetailsClient({
           display: grid;
           gap: 6px;
           margin-top: 4px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 800;
           line-height: 1.35;
@@ -2883,11 +2822,11 @@ export default function CustomerDetailsClient({
           display: inline-flex;
           width: fit-content;
           max-width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 999px;
           padding: 6px 9px;
-          background: rgba(255, 255, 255, 0.045);
-          color: rgba(255, 255, 255, 0.78);
+          background: var(--bg-soft);
+          color: var(--text);
           font-size: 11px;
           font-weight: 900;
           line-height: 1.2;
@@ -3142,9 +3081,9 @@ export default function CustomerDetailsClient({
                   <div
                     className="alert-chip"
                     style={{
-                      borderColor: "rgba(59, 130, 246, .30)",
-                      background: "rgba(30, 64, 175, .20)",
-                      color: "#bfdbfe",
+                      borderColor: "rgba(37, 99, 235, .3)",
+                      background: "rgba(37, 99, 235, .08)",
+                      color: "#1d4ed8",
                     }}
                   >
                     Incasso onboarding · {formatDateIT(onboardingPaymentDate)} ·{" "}
@@ -3162,9 +3101,9 @@ export default function CustomerDetailsClient({
                       className="alert-chip"
                       style={{
                         display: "block",
-                        borderColor: "rgba(245, 158, 11, .45)",
-                        background: "rgba(146, 64, 14, .30)",
-                        color: "#fde68a",
+                        borderColor: "rgba(179, 121, 10, .4)",
+                        background: "rgba(179, 121, 10, .08)",
+                        color: "var(--warning)",
                       }}
                     >
                       <strong>Disallineamento economico onboarding</strong>
@@ -3207,9 +3146,9 @@ export default function CustomerDetailsClient({
                     <div
                       className="alert-chip"
                       style={{
-                        borderColor: "rgba(245, 158, 11, .35)",
-                        background: "rgba(146, 64, 14, .24)",
-                        color: "#fde68a",
+                        borderColor: "rgba(179, 121, 10, .35)",
+                        background: "rgba(179, 121, 10, .07)",
+                        color: "var(--warning)",
                       }}
                     >
                       Accesso consentito con avvisi amministrativi
@@ -3225,9 +3164,9 @@ export default function CustomerDetailsClient({
                 <div
                   className="alert-chip"
                   style={{
-                    borderColor: "rgba(74, 222, 128, .25)",
-                    background: "rgba(22, 101, 52, .22)",
-                    color: "#bbf7d0",
+                    borderColor: "rgba(31, 157, 107, .25)",
+                    background: "rgba(31, 157, 107, .08)",
+                    color: "var(--success)",
                   }}
                 >
                   Nessun alert operativo: cliente regolare per sede,

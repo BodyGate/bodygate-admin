@@ -136,7 +136,7 @@ export default function AuditLogsClient() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     padding: 28,
-    color: "#fff",
+    color: "var(--text)",
   },
 
   hero: {
@@ -145,13 +145,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 24,
 
     background:
-      "linear-gradient(135deg, rgba(14,165,233,0.20), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
+      "linear-gradient(178deg, rgba(58,107,219,0.08), var(--panel) 55%)",
 
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
   },
 
   eyebrow: {
-    color: "#38bdf8",
+    color: "#2c50a8",
     textTransform: "uppercase",
     fontSize: 13,
     fontWeight: 800,
@@ -162,15 +162,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 38,
     fontWeight: 900,
     marginTop: 10,
+    color: "var(--text)",
   },
 
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     maxWidth: 700,
   },
 
   loading: {
-    color: "#94a3b8",
+    color: "var(--muted)",
   },
 
   logs: {
@@ -182,9 +183,10 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 24,
     borderRadius: 24,
 
-    background: "rgba(15,23,42,0.92)",
+    background: "var(--panel)",
 
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
   },
 
   top: {
@@ -197,15 +199,16 @@ const styles: Record<string, React.CSSProperties> = {
   action: {
     fontSize: 18,
     fontWeight: 800,
+    color: "var(--text)",
   },
 
   staff: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     marginTop: 4,
   },
 
   date: {
-    color: "#64748b",
+    color: "var(--muted)",
     fontSize: 13,
   },
 
@@ -213,28 +216,28 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: 20,
     marginBottom: 16,
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: 13,
   },
 
   detailsDisclosure: {
     marginTop: 14,
     borderRadius: 18,
-    border: "1px solid rgba(255,255,255,.08)",
-    background: "rgba(0,0,0,.22)",
+    border: "1px solid var(--border)",
+    background: "var(--bg-canvas-raised, #f4f5f9)",
     overflow: "hidden",
   },
   detailsSummary: {
     cursor: "pointer",
     padding: "12px 14px",
-    color: "#fca5a5",
+    color: "var(--accent)",
     fontWeight: 900,
     letterSpacing: ".04em",
     textTransform: "uppercase",
     fontSize: 12,
   },
   details: {
-    background: "#020617",
+    background: "#0d1117",
     borderRadius: 16,
     padding: 16,
     overflowX: "auto",

@@ -5,7 +5,7 @@ export default function ModulesSettingsClient() {
     <main
       style={{
         padding: 28,
-        color: "white",
+        color: "var(--text)",
       }}
     >
       <h1
@@ -15,13 +15,13 @@ export default function ModulesSettingsClient() {
           marginBottom: 20,
         }}
       >
-        Modules Management
+        Gestione moduli
       </h1>
 
       <div
         style={{
-          background: "rgba(15,23,42,0.92)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "var(--panel)",
+          border: "1px solid var(--border)",
           borderRadius: 24,
           padding: 24,
         }}

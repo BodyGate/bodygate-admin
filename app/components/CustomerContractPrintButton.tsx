@@ -28,7 +28,7 @@ const toolbarStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  background: "linear-gradient(to right, #ef4444, #dc2626)",
+  background: "linear-gradient(to right, #5b3df5, #3d2b99)",
   color: "white",
   border: "none",
   borderRadius: "14px",

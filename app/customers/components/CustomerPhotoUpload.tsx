@@ -66,11 +66,11 @@ export default function CustomerPhotoUpload({
         .photo-card {
           height: 100%;
           min-height: 330px;
-          background: linear-gradient(135deg, #141414, #080808);
-          border: 1px solid #262626;
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 26px;
           padding: 24px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -86,14 +86,14 @@ export default function CustomerPhotoUpload({
 
         h3 {
           margin: 0;
-          color: #ffffff;
+          color: var(--text);
           font-size: 20px;
           font-weight: 900;
         }
 
         p {
           margin: 6px 0 0;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 14px;
         }
 
@@ -102,7 +102,7 @@ export default function CustomerPhotoUpload({
           height: 170px;
           border-radius: 34px;
           padding: 4px;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d, #262626);
+          background: linear-gradient(135deg, var(--accent), var(--accent-2));
           margin: 10px 0 20px;
         }
 
@@ -111,8 +111,8 @@ export default function CustomerPhotoUpload({
           height: 100%;
           border-radius: 30px;
           overflow: hidden;
-          background: #050505;
-          border: 1px solid #262626;
+          background: var(--panel-2);
+          border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -125,7 +125,7 @@ export default function CustomerPhotoUpload({
         }
 
         .empty-photo {
-          color: #737373;
+          color: var(--muted);
           font-size: 13px;
           font-weight: 800;
         }
@@ -139,7 +139,7 @@ export default function CustomerPhotoUpload({
           border: none;
           border-radius: 16px;
           padding: 14px 18px;
-          background: #ef4444;
+          background: var(--accent);
           color: #ffffff;
           font-size: 14px;
           font-weight: 900;
@@ -149,7 +149,7 @@ export default function CustomerPhotoUpload({
 
         button:hover {
           transform: translateY(-1px);
-          background: #f87171;
+          background: var(--accent-2);
         }
 
         button:disabled {
@@ -160,13 +160,13 @@ export default function CustomerPhotoUpload({
 
         .hint {
           margin-top: 12px;
-          color: #737373;
+          color: var(--muted);
           font-size: 12px;
         }
 
         .error {
           margin-top: 12px;
-          color: #fb7185;
+          color: var(--danger);
           font-size: 13px;
           font-weight: 700;
         }

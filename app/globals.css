@@ -3,21 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0a0a0a;
-  --bg-soft: #111111;
-  --panel: #181818;
-  --panel-2: #202020;
-  --border: #2a2a2a;
+  --bg: #f4f5f8;
+  --bg-soft: #eceef3;
+  --panel: #ffffff;
+  --panel-2: #f4f5f9;
+  --border: #e7e8ee;
 
-  --text: #ffffff;
-  --muted: #9ca3af;
+  --text: #15161c;
+  --muted: #6b7080;
 
-  --accent: #ef4444;
-  --accent-soft: rgba(239, 68, 68, 0.12);
+  --accent: #5b3df5;
+  --accent-2: #c04bd6;
+  --accent-soft: rgba(91, 61, 245, 0.1);
 
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --success: #1f9d6b;
+  --warning: #b3790a;
+  --danger: #d6314a;
+
+  /* aliases consumed by components/bodygate-ui/*.module.css */
+  --ink: var(--text);
+  --bg-surface: var(--panel);
+  --bg-canvas-raised: var(--panel-2);
+  --bg-border: var(--border);
+  --bg-border-strong: #d7d9e3;
+  --bg-secondary: #4b4f5c;
+  --bg-muted: var(--muted);
+  --bg-accent: var(--accent);
 }
 
 html,
@@ -27,7 +38,7 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
 }
 
 body {
@@ -58,18 +69,20 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #cdd0da;
   border-radius: 20px;
 }
 
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 14px;
   padding: 24px;
+  box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
 }
 
 .card-title {
+  font-family: var(--font-display), Arial, sans-serif;
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 8px;
@@ -92,21 +105,21 @@ button {
   align-items: center !important;
   gap: 14px !important;
   padding: 13px 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 .bg2-row span {
-  color: #8b8b8b !important;
+  color: var(--muted) !important;
   font-size: 11px !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.09em !important;
 }
 
 .bg2-row strong {
-  color: #fff !important;
+  color: var(--text) !important;
   font-size: 14px !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
   text-align: right !important;
 }
 
@@ -120,23 +133,23 @@ button {
 .bg2-primary-action,
 .bg2-secondary-action {
   height: 48px !important;
-  border-radius: 16px !important;
+  border-radius: 12px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   text-decoration: none !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
 }
 
 .bg2-primary-action {
-  background: linear-gradient(135deg, #ef4444, #991b1b) !important;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
   color: white !important;
-  box-shadow: 0 16px 36px rgba(239, 68, 68, 0.24) !important;
+  box-shadow: 0 16px 36px rgba(91, 61, 245, 0.28) !important;
 }
 
 .bg2-secondary-action {
   padding: 0 18px !important;
-  background: rgba(255, 255, 255, 0.065) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: white !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--bg-border-strong) !important;
+  color: var(--text) !important;
 }

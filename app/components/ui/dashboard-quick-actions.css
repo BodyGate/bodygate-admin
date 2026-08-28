@@ -22,13 +22,13 @@
 .command-page-v2 .quick-actions-panel {
   position: relative;
   overflow: hidden;
-  border-color: rgba(239, 68, 68, 0.24);
+  border-color: rgba(91, 61, 245, 0.24);
   background:
-    radial-gradient(circle at 88% 0%, rgba(239, 68, 68, 0.18), transparent 40%),
+    radial-gradient(circle at 88% 0%, rgba(91, 61, 245, 0.18), transparent 40%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022)),
-    rgba(8, 8, 8, 0.94);
+    #ffffff;
   box-shadow:
-    0 28px 72px rgba(0, 0, 0, 0.38),
+    0 28px 72px rgba(21, 22, 28, 0.16),
     0 0 0 1px rgba(255, 255, 255, 0.02) inset;
 }
 
@@ -53,7 +53,7 @@
 .command-page-v2 .quick-card:visited,
 .command-page-v2 .quick-card:hover,
 .command-page-v2 .quick-card:active {
-  color: #fff;
+  color: var(--ink, #15161c);
   text-decoration: none;
 }
 
@@ -68,16 +68,16 @@
   column-gap: 10px;
   row-gap: 10px;
   align-items: start;
-  border: 1px solid rgba(255, 255, 255, 0.095);
+  border: 1px solid rgba(21, 22, 28, 0.1);
   border-radius: 20px;
   padding: 16px;
   overflow: hidden;
   background:
     radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.055), transparent 34%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.022)),
-    rgba(9, 9, 9, 0.78);
+    #ffffff;
   box-shadow:
-    0 18px 42px rgba(0, 0, 0, 0.26),
+    0 18px 42px rgba(21, 22, 28, 0.1),
     0 1px 0 rgba(255, 255, 255, 0.025) inset;
   transition:
     transform 180ms ease,
@@ -94,8 +94,8 @@
   left: 0;
   width: 3px;
   border-radius: 0 999px 999px 0;
-  background: linear-gradient(180deg, #ef4444, rgba(127, 29, 29, 0.3));
-  box-shadow: 0 0 22px rgba(239, 68, 68, 0.34);
+  background: linear-gradient(180deg, #5b3df5, rgba(61, 43, 153, 0.3));
+  box-shadow: 0 0 22px rgba(91, 61, 245, 0.34);
   opacity: 0.72;
   transition: opacity 180ms ease, box-shadow 180ms ease;
 }
@@ -110,7 +110,7 @@
   place-items: center;
   justify-self: end;
   align-self: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(21, 22, 28, 0.1);
   border-radius: 11px;
   background-color: rgba(255, 255, 255, 0.045);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
@@ -127,34 +127,34 @@
 
 .command-page-v2 .quick-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(239, 68, 68, 0.48);
+  border-color: rgba(91, 61, 245, 0.48);
   background:
-    radial-gradient(circle at 92% 10%, rgba(239, 68, 68, 0.2), transparent 40%),
+    radial-gradient(circle at 92% 10%, rgba(91, 61, 245, 0.2), transparent 40%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.082), rgba(255, 255, 255, 0.025)),
-    rgba(10, 10, 10, 0.92);
+    #ffffff;
   box-shadow:
-    0 26px 58px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(239, 68, 68, 0.06) inset,
-    0 0 34px rgba(239, 68, 68, 0.08);
+    0 26px 58px rgba(21, 22, 28, 0.14),
+    0 0 0 1px rgba(91, 61, 245, 0.06) inset,
+    0 0 34px rgba(91, 61, 245, 0.08);
 }
 
 .command-page-v2 .quick-card:hover::before {
   opacity: 1;
-  box-shadow: 0 0 28px rgba(239, 68, 68, 0.52);
+  box-shadow: 0 0 28px rgba(91, 61, 245, 0.52);
 }
 
 .command-page-v2 .quick-card:hover::after {
   transform: translate(2px, -2px);
-  border-color: rgba(239, 68, 68, 0.4);
-  background-color: rgba(239, 68, 68, 0.14);
-  box-shadow: 0 0 18px rgba(239, 68, 68, 0.1);
+  border-color: rgba(91, 61, 245, 0.4);
+  background-color: rgba(91, 61, 245, 0.14);
+  box-shadow: 0 0 18px rgba(91, 61, 245, 0.1);
   filter: brightness(1.45);
 }
 
 .command-page-v2 .quick-card:focus-visible {
-  outline: 2px solid rgba(239, 68, 68, 0.82);
+  outline: 2px solid rgba(91, 61, 245, 0.82);
   outline-offset: 4px;
-  border-color: rgba(239, 68, 68, 0.52);
+  border-color: rgba(91, 61, 245, 0.52);
 }
 
 .command-page-v2 .quick-card-icon {
@@ -165,17 +165,17 @@
   display: inline-grid;
   place-items: center;
   align-self: center;
-  border: 1px solid rgba(239, 68, 68, 0.28);
+  border: 1px solid rgba(91, 61, 245, 0.28);
   border-radius: 15px;
   background:
     radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.09), transparent 42%),
-    linear-gradient(145deg, rgba(239, 68, 68, 0.18), rgba(127, 29, 29, 0.08));
-  color: #fca5a5;
+    linear-gradient(145deg, rgba(91, 61, 245, 0.18), rgba(61, 43, 153, 0.08));
+  color: #5b3df5;
   font-size: 0;
   font-weight: 950;
   box-shadow:
-    0 12px 26px rgba(0, 0, 0, 0.26),
-    0 0 20px rgba(239, 68, 68, 0.07) inset;
+    0 12px 26px rgba(21, 22, 28, 0.1),
+    0 0 20px rgba(91, 61, 245, 0.07) inset;
 }
 
 .command-page-v2 .quick-card-icon::before {
@@ -189,27 +189,27 @@
 }
 
 .command-page-v2 .quick-card[href="/reception"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='12' x='3' y='4' rx='2'/%3E%3Cpath d='m9 10 2 2 4-4'/%3E%3Cpath d='M8 20h8'/%3E%3Cpath d='M12 16v4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='12' x='3' y='4' rx='2'/%3E%3Cpath d='m9 10 2 2 4-4'/%3E%3Cpath d='M8 20h8'/%3E%3Cpath d='M12 16v4'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/customers/new"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' x2='19' y1='8' y2='14'/%3E%3Cline x1='22' x2='16' y1='11' y2='11'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' x2='19' y1='8' y2='14'/%3E%3Cline x1='22' x2='16' y1='11' y2='11'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/payments"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='13' x='3' y='6' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3Cpath d='M7 15h2'/%3E%3Cpath d='M11 15h2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='13' x='3' y='6' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3Cpath d='M7 15h2'/%3E%3Cpath d='M11 15h2'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/notifications"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.268 21a2 2 0 0 0 3.464 0'/%3E%3Cpath d='M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.268 21a2 2 0 0 0 3.464 0'/%3E%3Cpath d='M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/access-control"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card[href="/system/staff"] .quick-card-icon::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23fca5a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M22 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%235b3df5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M22 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
 }
 
 .command-page-v2 .quick-card-title {
@@ -217,7 +217,7 @@
   grid-row: 2;
   align-self: end;
   min-width: 0;
-  color: #fff;
+  color: var(--ink, #15161c);
   font-size: 14px;
   font-weight: 950;
   line-height: 1.15;

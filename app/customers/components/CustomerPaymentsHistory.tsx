@@ -352,15 +352,15 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           background:
             radial-gradient(
               circle at top left,
-              rgba(239, 68, 68, 0.16),
+              rgba(91, 61, 245, 0.06),
               transparent 34%
             ),
-            linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(9, 9, 9, 0.98));
-          border: 1px solid rgba(255, 255, 255, 0.1);
+            var(--panel);
+          border: 1px solid var(--border);
           border-radius: 26px;
           padding: 24px;
-          color: white;
-          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+          color: var(--text);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
         }
 
         .payments-card::before {
@@ -370,7 +370,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
           pointer-events: none;
           background: linear-gradient(
             90deg,
-            rgba(239, 68, 68, 0.16),
+            rgba(91, 61, 245, 0.06),
             transparent 28%,
             transparent
           );
@@ -391,7 +391,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .eyebrow {
-          color: #f87171;
+          color: var(--accent);
           font-weight: 950;
           letter-spacing: 2.4px;
           font-size: 12px;
@@ -407,7 +407,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .subtitle {
-          color: #cbd5e1;
+          color: var(--muted);
           margin-top: 7px;
           font-size: 14px;
           line-height: 1.45;
@@ -421,15 +421,15 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .total-box {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(0, 0, 0, 0.36);
+          border: 1px solid var(--border);
+          background: var(--panel-2);
           border-radius: 18px;
           padding: 14px 16px;
           min-width: 155px;
         }
 
         .total-label {
-          color: #94a3b8;
+          color: var(--muted);
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.7px;
@@ -452,18 +452,18 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .count-pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
           border-radius: 999px;
           padding: 9px 12px;
-          color: #d4d4d4;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 900;
         }
 
         .payment-row {
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          background: rgba(8, 8, 8, 0.78);
+          border: 1px solid var(--border);
+          background: var(--panel-2);
           border-radius: 20px;
           padding: 17px;
           margin-top: 12px;
@@ -476,8 +476,8 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .payment-row.cancelled {
           opacity: 0.72;
-          border-color: rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.06);
+          border-color: rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.05);
         }
 
         .payment-title-line {
@@ -496,7 +496,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .payment-description {
-          color: #a3a3a3;
+          color: var(--muted);
           margin-top: 6px;
           font-size: 13px;
           line-height: 1.5;
@@ -511,12 +511,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .pill {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
           border-radius: 999px;
           padding: 7px 10px;
           font-size: 12px;
-          color: #d4d4d4;
+          color: var(--muted);
           font-weight: 850;
           max-width: 100%;
           overflow-wrap: anywhere;
@@ -524,21 +524,21 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .pill.good {
-          color: #86efac;
+          color: var(--success);
           border-color: rgba(34, 197, 94, 0.28);
           background: rgba(34, 197, 94, 0.1);
         }
 
         .pill.warning {
-          color: #fde68a;
-          border-color: rgba(245, 158, 11, 0.3);
-          background: rgba(245, 158, 11, 0.1);
+          color: var(--warning);
+          border-color: rgba(179, 121, 10, 0.3);
+          background: rgba(179, 121, 10, 0.1);
         }
 
         .pill.cancelled {
-          color: #fca5a5;
-          border-color: rgba(239, 68, 68, 0.35);
-          background: rgba(239, 68, 68, 0.1);
+          color: var(--danger);
+          border-color: rgba(214, 49, 74, 0.3);
+          background: rgba(214, 49, 74, 0.08);
         }
 
         .payment-side {
@@ -552,12 +552,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         .amount {
           font-size: 26px;
           font-weight: 950;
-          color: #ffffff;
+          color: var(--text);
           letter-spacing: -0.8px;
         }
 
         .amount.cancelled {
-          color: #fca5a5;
+          color: var(--danger);
           text-decoration: line-through;
         }
 
@@ -573,17 +573,18 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         input,
         textarea {
           border-radius: 14px;
-          border: 1px solid #303030;
+          border: 1px solid var(--border);
           padding: 12px 13px;
-          background: #050505;
-          color: #ffffff;
+          background: var(--bg-soft);
+          color: var(--text);
           outline: none;
           font-size: 14px;
           font-family: inherit;
         }
 
         button {
-          background: #ef4444;
+          background: var(--accent);
+          color: #ffffff;
           border: none;
           font-weight: 950;
           cursor: pointer;
@@ -601,40 +602,42 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .secondary {
-          background: #ffffff;
-          color: #000000;
+          background: var(--panel);
+          color: var(--text);
+          border: 1px solid var(--border);
         }
 
         .ghost {
-          background: #101010;
-          color: #ffffff;
-          border: 1px solid #303030;
+          background: var(--bg-soft);
+          color: var(--text);
+          border: 1px solid var(--border);
         }
 
         .danger {
-          background: #7f1d1d;
+          background: var(--danger);
+          color: #ffffff;
         }
 
         .empty-state,
         .error-state {
-          border: 1px dashed rgba(255, 255, 255, 0.15);
-          background: rgba(255, 255, 255, 0.035);
+          border: 1px dashed var(--border);
+          background: var(--bg-soft);
           border-radius: 20px;
           padding: 22px;
-          color: #94a3b8;
+          color: var(--muted);
           line-height: 1.55;
         }
 
         .error-state {
-          color: #fecaca;
-          border-color: rgba(239, 68, 68, 0.26);
-          background: rgba(239, 68, 68, 0.08);
+          color: var(--danger);
+          border-color: rgba(214, 49, 74, 0.26);
+          background: rgba(214, 49, 74, 0.08);
         }
 
         .modal-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.78);
+          background: rgba(21, 22, 28, 0.45);
           z-index: 1000;
           display: grid;
           place-items: center;
@@ -644,11 +647,11 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .modal {
           width: min(740px, 100%);
-          background: linear-gradient(180deg, #151515, #090909);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 26px;
           padding: 24px;
-          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.64);
+          box-shadow: 0 20px 60px rgba(21, 22, 28, 0.2);
         }
 
         .modal h3 {
@@ -669,7 +672,7 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .field label {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
@@ -694,17 +697,12 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
         }
 
         .receipt-linked-panel {
-          border: 1px solid rgba(245, 158, 11, 0.42);
-          background: linear-gradient(
-            180deg,
-            rgba(120, 53, 15, 0.92),
-            rgba(69, 26, 3, 0.92)
-          );
-          color: #fef3c7;
+          border: 1px solid rgba(179, 121, 10, 0.35);
+          background: rgba(179, 121, 10, 0.08);
+          color: var(--text);
           border-radius: 22px;
           padding: 18px;
           margin-bottom: 16px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
         }
 
         .receipt-linked-panel h3 {
@@ -714,14 +712,14 @@ export default function CustomerPaymentsHistory({ customerId }: Props) {
 
         .receipt-linked-panel p {
           margin: 0 0 14px;
-          color: #fde68a;
+          color: var(--warning);
           line-height: 1.5;
         }
 
         .warning-box {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.08);
-          color: #fecaca;
+          border: 1px solid rgba(179, 121, 10, 0.3);
+          background: rgba(179, 121, 10, 0.08);
+          color: var(--warning);
           border-radius: 17px;
           padding: 13px;
           line-height: 1.45;

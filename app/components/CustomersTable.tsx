@@ -196,22 +196,28 @@ export default function CustomersTable() {
   const filteredCustomers = useMemo(() => {
     const q = search.toLowerCase().trim();
 
-    if (!q) return customers;
+    const matches = !q
+      ? customers
+      : customers.filter((customer) => {
+          const name = getName(customer).toLowerCase();
 
-    return customers.filter((customer) => {
-      const name = getName(customer).toLowerCase();
+          return (
+            name.includes(q) ||
+            String(customer.phone || "")
+              .toLowerCase()
+              .includes(q) ||
+            String(customer.email || "")
+              .toLowerCase()
+              .includes(q) ||
+            getBadgeCode(customer).toLowerCase().includes(q)
+          );
+        });
 
-      return (
-        name.includes(q) ||
-        String(customer.phone || "")
-          .toLowerCase()
-          .includes(q) ||
-        String(customer.email || "")
-          .toLowerCase()
-          .includes(q) ||
-        getBadgeCode(customer).toLowerCase().includes(q)
+    return matches
+      .slice()
+      .sort((a, b) =>
+        getName(a).localeCompare(getName(b), "it", { sensitivity: "base" }),
       );
-    });
   }, [customers, search]);
 
   const selectedCustomer = useMemo(() => {
@@ -262,7 +268,7 @@ export default function CustomersTable() {
     <section className="crm3-page">
       <style jsx>{`
         .crm3-page {
-          color: #fff;
+          color: var(--text);
           min-width: 0;
         }
 
@@ -275,9 +281,9 @@ export default function CustomersTable() {
         .crm3-hero,
         .crm3-list-panel,
         .crm3-detail-panel {
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          background: linear-gradient(145deg, rgba(20, 20, 22, 0.98), rgba(7, 7, 8, 0.99));
-          box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+          border: 1px solid var(--border);
+          background: var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
         }
 
         .crm3-hero {
@@ -294,7 +300,7 @@ export default function CustomersTable() {
 
         .crm3-eyebrow {
           margin-bottom: 5px;
-          color: #ef4444;
+          color: var(--accent);
           font-size: 10px;
           font-weight: 900;
           letter-spacing: 0.17em;
@@ -312,7 +318,7 @@ export default function CustomersTable() {
         .crm3-subtitle {
           margin-top: 7px;
           max-width: 650px;
-          color: #9d9da5;
+          color: var(--muted);
           font-size: 12px;
           line-height: 1.45;
         }
@@ -331,16 +337,16 @@ export default function CustomersTable() {
           flex-wrap: wrap;
           margin-top: 13px;
           padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
+          border-top: 1px solid var(--border);
         }
 
         .crm3-filter-btn {
           min-height: 30px;
           padding: 0 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border);
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.035);
-          color: #a9a9b0;
+          background: var(--bg-soft);
+          color: var(--muted);
           font-size: 11px;
           font-weight: 850;
           cursor: pointer;
@@ -348,15 +354,15 @@ export default function CustomersTable() {
         }
 
         .crm3-filter-btn:hover {
-          border-color: rgba(255, 255, 255, 0.2);
-          color: #fff;
+          border-color: var(--accent);
+          color: var(--text);
         }
 
         .crm3-filter-btn-active {
-          border-color: rgba(239, 68, 68, 0.48);
-          background: rgba(239, 68, 68, 0.16);
-          color: #fff;
-          box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.08);
+          border-color: rgba(91, 61, 245, 0.48);
+          background: var(--accent-soft);
+          color: var(--accent);
+          box-shadow: inset 0 0 0 1px rgba(91, 61, 245, 0.08);
         }
 
         .crm3-metrics {
@@ -372,9 +378,9 @@ export default function CustomersTable() {
           min-height: 76px;
           padding: 13px 15px;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--border);
           border-radius: 10px;
-          background: linear-gradient(145deg, rgba(20, 20, 22, 0.96), rgba(8, 8, 9, 0.98));
+          background: var(--panel-2);
         }
 
         .crm3-metric::after {
@@ -387,7 +393,7 @@ export default function CustomersTable() {
         }
 
         .crm3-metric-label {
-          color: #8e8e96;
+          color: var(--muted);
           font-size: 10px;
           font-weight: 900;
           letter-spacing: 0.08em;
@@ -407,7 +413,7 @@ export default function CustomersTable() {
 
         .crm3-metric-blue { --metric: #3b82f6; }
         .crm3-metric-green { --metric: #22c55e; }
-        .crm3-metric-red { --metric: #ef4444; }
+        .crm3-metric-red { --metric: #5b3df5; }
         .crm3-metric-yellow { --metric: #eab308; }
         .crm3-metric-neutral { --metric: #71717a; }
 
@@ -432,7 +438,7 @@ export default function CustomersTable() {
           align-items: center;
           gap: 12px;
           padding: 13px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid var(--border);
         }
 
         :global(.crm3-search) {
@@ -446,7 +452,7 @@ export default function CustomersTable() {
         }
 
         .crm3-count {
-          color: #777780;
+          color: var(--muted);
           font-size: 10px;
           font-weight: 800;
           white-space: nowrap;
@@ -469,16 +475,16 @@ export default function CustomersTable() {
           border: 1px solid transparent;
           border-radius: 8px;
           background: transparent;
-          color: #fff;
+          color: var(--text);
           text-align: left;
           cursor: pointer;
         }
 
-        .crm3-list-item:hover { background: rgba(255, 255, 255, 0.04); }
+        .crm3-list-item:hover { background: var(--bg-soft); }
 
         .crm3-list-item-active {
-          border-color: rgba(239, 68, 68, 0.3);
-          background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+          border-color: rgba(91, 61, 245, 0.3);
+          background: linear-gradient(90deg, rgba(91, 61, 245, 0.12), rgba(91, 61, 245, 0.03));
         }
 
         .crm3-avatar,
@@ -488,8 +494,8 @@ export default function CustomersTable() {
           flex: 0 0 auto;
           color: #fff;
           font-weight: 900;
-          background: linear-gradient(135deg, #ef4444, #7f1d1d);
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.18);
+          background: linear-gradient(135deg, #5b3df5, #3d2b99);
+          box-shadow: 0 8px 20px rgba(91, 61, 245, 0.18);
         }
 
         .crm3-avatar {
@@ -502,7 +508,7 @@ export default function CustomersTable() {
         .crm3-list-name {
           min-width: 0;
           overflow: hidden;
-          color: #f5f5f5;
+          color: var(--text);
           font-size: 13px;
           line-height: 1.2;
           font-weight: 900;
@@ -514,7 +520,7 @@ export default function CustomersTable() {
           min-width: 0;
           margin-top: 4px;
           overflow: hidden;
-          color: #777780;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 700;
           text-overflow: ellipsis;
@@ -530,7 +536,7 @@ export default function CustomersTable() {
         }
 
         .crm3-dot-green { --dot: #22c55e; }
-        .crm3-dot-red { --dot: #ef4444; }
+        .crm3-dot-red { --dot: #5b3df5; }
         .crm3-dot-yellow { --dot: #eab308; }
         .crm3-dot-blue,
         .crm3-dot-neutral { --dot: #71717a; }
@@ -547,7 +553,7 @@ export default function CustomersTable() {
           align-items: center;
           gap: 16px;
           padding-bottom: 13px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+          border-bottom: 1px solid var(--border);
         }
 
         .crm3-detail-main {
@@ -567,7 +573,7 @@ export default function CustomersTable() {
         .crm3-detail-name {
           min-width: 0;
           overflow: hidden;
-          color: #fff;
+          color: var(--text);
           font-size: clamp(20px, 2vw, 27px);
           line-height: 1.05;
           font-weight: 900;
@@ -580,7 +586,7 @@ export default function CustomersTable() {
           min-width: 0;
           margin-top: 5px;
           overflow: hidden;
-          color: #92929a;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 700;
           text-overflow: ellipsis;
@@ -597,14 +603,14 @@ export default function CustomersTable() {
           min-width: 0;
           min-height: 66px;
           padding: 11px 12px;
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          border: 1px solid var(--border);
           border-radius: 9px;
-          background: rgba(255, 255, 255, 0.028);
+          background: var(--panel-2);
         }
 
         .crm3-info span {
           display: block;
-          color: #777780;
+          color: var(--muted);
           font-size: 9px;
           font-weight: 900;
           letter-spacing: 0.09em;
@@ -616,7 +622,7 @@ export default function CustomersTable() {
           min-width: 0;
           margin-top: 7px;
           overflow: hidden;
-          color: #f4f4f5;
+          color: var(--text);
           font-size: 12px;
           line-height: 1.25;
           font-weight: 850;
@@ -638,24 +644,37 @@ export default function CustomersTable() {
           align-items: center;
           gap: 11px;
           padding: 11px 13px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--border);
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.032);
-          color: #fff;
+          background: var(--panel-2);
+          color: var(--text);
           text-decoration: none;
           transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
         }
 
         :global(.crm3-action:hover) {
           transform: translateY(-1px);
-          border-color: rgba(239, 68, 68, 0.45);
-          background: rgba(239, 68, 68, 0.09);
+          border-color: rgba(91, 61, 245, 0.45);
+          background: var(--accent-soft);
         }
 
         :global(.crm3-action-primary) {
-          border-color: rgba(239, 68, 68, 0.45);
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(153, 27, 27, 0.95));
-          box-shadow: 0 12px 28px rgba(239, 68, 68, 0.18);
+          border-color: rgba(91, 61, 245, 0.45);
+          background: linear-gradient(135deg, var(--accent), var(--accent-2));
+          box-shadow: 0 12px 28px rgba(91, 61, 245, 0.18);
+          color: #fff;
+        }
+
+        :global(.crm3-action-primary .crm3-action-icon) {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        :global(.crm3-action-primary .crm3-action-arrow) {
+          color: rgba(255, 255, 255, 0.75);
+        }
+
+        :global(.crm3-action-primary .crm3-action-copy span) {
+          color: rgba(255, 255, 255, 0.75);
         }
 
         :global(.crm3-action-icon) {
@@ -663,9 +682,9 @@ export default function CustomersTable() {
           height: 34px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255, 255, 255, 0.09);
+          border: 1px solid var(--border);
           border-radius: 8px;
-          background: rgba(255, 255, 255, 0.055);
+          background: var(--panel);
           font-size: 16px;
           font-weight: 900;
         }
@@ -686,7 +705,7 @@ export default function CustomersTable() {
 
         :global(.crm3-action-copy span) {
           overflow: hidden;
-          color: rgba(228, 228, 231, 0.68);
+          color: var(--muted);
           font-size: 10px;
           font-weight: 700;
           text-overflow: ellipsis;
@@ -694,7 +713,7 @@ export default function CustomersTable() {
         }
 
         :global(.crm3-action-arrow) {
-          color: rgba(255, 255, 255, 0.48);
+          color: var(--muted);
           font-size: 16px;
           text-align: right;
         }
@@ -702,15 +721,15 @@ export default function CustomersTable() {
         .crm3-message {
           padding: 16px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.04);
-          color: #d4d4d8;
+          background: var(--bg-soft);
+          color: var(--text);
           font-weight: 800;
         }
 
         .crm3-message-error {
-          border: 1px solid rgba(239, 68, 68, 0.28);
-          background: rgba(239, 68, 68, 0.08);
-          color: #fecaca;
+          border: 1px solid rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.08);
+          color: var(--danger);
         }
 
         @media (max-width: 1380px) {

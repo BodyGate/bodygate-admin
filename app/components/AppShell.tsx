@@ -15,6 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isPublicStandalonePage =
     pathname.startsWith("/mobile") ||
     pathname.startsWith("/staff-mobile") ||
+    pathname.startsWith("/pass") ||
     pathname.startsWith("/login") ||
     isReceiptPage ||
     isContractPrintPage;

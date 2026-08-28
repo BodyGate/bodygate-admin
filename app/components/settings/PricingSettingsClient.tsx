@@ -148,7 +148,7 @@ export default function PricingSettingsClient() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     padding: 28,
-    color: "#fff",
+    color: "var(--text)",
   },
 
   hero: {
@@ -157,13 +157,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 28,
 
     background:
-      "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(15,23,42,0.96) 45%, rgba(2,6,23,1))",
+      "linear-gradient(178deg, rgba(31,157,107,0.08), var(--panel) 55%)",
 
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
   },
 
   eyebrow: {
-    color: "#4ade80",
+    color: "#157a53",
     textTransform: "uppercase",
     fontSize: 13,
     fontWeight: 800,
@@ -174,10 +174,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 38,
     fontWeight: 900,
     marginTop: 10,
+    color: "var(--text)",
   },
 
   subtitle: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     maxWidth: 700,
   },
 
@@ -189,6 +190,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 26,
     fontWeight: 800,
     marginBottom: 20,
+    color: "var(--text)",
   },
 
   grid: {
@@ -202,9 +204,10 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 24,
     borderRadius: 24,
 
-    background: "rgba(15,23,42,0.92)",
+    background: "var(--panel)",
 
     border: "2px solid",
+    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
 
     display: "flex",
     flexDirection: "column",
@@ -214,19 +217,21 @@ const styles: Record<string, React.CSSProperties> = {
   cardTitle: {
     fontSize: 22,
     fontWeight: 800,
+    color: "var(--text)",
   },
 
   cardCategory: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     marginTop: 6,
   },
 
   price: {
     fontSize: 32,
     fontWeight: 900,
+    color: "var(--text)",
   },
 
   meta: {
-    color: "#64748b",
+    color: "var(--muted)",
   },
 };
