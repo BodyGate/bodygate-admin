@@ -196,22 +196,28 @@ export default function CustomersTable() {
   const filteredCustomers = useMemo(() => {
     const q = search.toLowerCase().trim();
 
-    if (!q) return customers;
+    const matches = !q
+      ? customers
+      : customers.filter((customer) => {
+          const name = getName(customer).toLowerCase();
 
-    return customers.filter((customer) => {
-      const name = getName(customer).toLowerCase();
+          return (
+            name.includes(q) ||
+            String(customer.phone || "")
+              .toLowerCase()
+              .includes(q) ||
+            String(customer.email || "")
+              .toLowerCase()
+              .includes(q) ||
+            getBadgeCode(customer).toLowerCase().includes(q)
+          );
+        });
 
-      return (
-        name.includes(q) ||
-        String(customer.phone || "")
-          .toLowerCase()
-          .includes(q) ||
-        String(customer.email || "")
-          .toLowerCase()
-          .includes(q) ||
-        getBadgeCode(customer).toLowerCase().includes(q)
+    return matches
+      .slice()
+      .sort((a, b) =>
+        getName(a).localeCompare(getName(b), "it", { sensitivity: "base" }),
       );
-    });
   }, [customers, search]);
 
   const selectedCustomer = useMemo(() => {
