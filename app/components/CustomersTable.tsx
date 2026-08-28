@@ -161,12 +161,14 @@ export default function CustomersTable() {
     setQueryError(null);
 
     try {
-      const params = new URLSearchParams({ status: listFilter });
-      if (debouncedSearch) params.set("q", debouncedSearch);
+      const searchParam = debouncedSearch
+        ? `&q=${encodeURIComponent(debouncedSearch)}`
+        : "";
 
-      const response = await fetch(`/api/customers/list?${params.toString()}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/customers/list?status=${listFilter}${searchParam}`,
+        { cache: "no-store" },
+      );
       const payload = await response.json();
 
       if (!response.ok || !payload?.ok) {
