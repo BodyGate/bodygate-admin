@@ -449,8 +449,8 @@ export default function NewCustomerPage() {
 
         .line {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          align-items: center;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: start;
           gap: 16px;
           padding: 14px 0;
           border-bottom: 1px solid rgba(21, 22, 28, 0.1);
@@ -461,7 +461,6 @@ export default function NewCustomerPage() {
 
         .line span {
           min-width: 0;
-          max-width: 45%;
           line-height: 1.35;
           overflow-wrap: anywhere;
         }
@@ -471,7 +470,6 @@ export default function NewCustomerPage() {
           text-align: right;
           line-height: 1.25;
           min-width: 0;
-          max-width: 65%;
           overflow-wrap: anywhere;
         }
 
