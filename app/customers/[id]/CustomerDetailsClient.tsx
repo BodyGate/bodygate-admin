@@ -2321,6 +2321,7 @@ export default function CustomerDetailsClient({
         textarea {
           width: 100%;
           max-width: 100%;
+          min-width: 0;
           border-radius: 16px;
           border: 1px solid var(--border);
           background: var(--bg-soft);
