@@ -127,7 +127,7 @@ export default function CustomerDocumentRows({ customerId, customer, pendingDocu
 
   return <div className="doc-panel">
     <style jsx>{`
-      .doc-panel { border:1px solid var(--border); border-radius:20px; background:var(--panel); padding:12px; color:var(--text); display:grid; gap:8px; }
+      .doc-panel { min-width:0; overflow-x:auto; border:1px solid var(--border); border-radius:20px; background:var(--panel); padding:12px; color:var(--text); display:grid; gap:8px; }
       .head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:2px 4px 6px; } .head b{font-size:17px;} .head span{color:var(--muted);font-size:12px;}
       .row { display:grid; grid-template-columns:minmax(190px,1.15fr) 118px minmax(150px,.9fr) auto; gap:9px; align-items:center; border:1px solid var(--border); border-radius:14px; padding:8px 10px; background:var(--panel-2); }
       .row.optional { border-style:dashed; background:var(--bg-soft); padding:7px 10px; }
