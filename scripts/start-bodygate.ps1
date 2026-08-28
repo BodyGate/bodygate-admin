@@ -7,7 +7,15 @@ param(
   [string]$EnvFile = ""
 )
 
-$ErrorActionPreference = "Stop"
+# NOT "Stop": with 2>&1 redirection (used throughout this script for git/npm
+# calls), PowerShell wraps every line a native command writes to stderr into
+# a terminating error under "Stop" - even a harmless npm/Next.js warning, not
+# just a real failure. That silently killed the whole script (including the
+# main `npm run start` loop below, ending the scheduled task with no restart)
+# the moment any child process printed a stray stderr line. Every native call
+# in this script checks $LASTEXITCODE explicitly instead, which is the only
+# reliable failure signal for native commands.
+$ErrorActionPreference = "Continue"
 
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
@@ -80,13 +88,6 @@ function Read-EnvValue {
 function Update-BodyGateCode {
   param([string]$LogFile)
 
-  # Local to this function only (PowerShell scoping reverts it automatically
-  # on return): with the script-wide "Stop" preference, *any* line a native
-  # command writes to stderr via `2>&1` - even a harmless npm/Next.js warning,
-  # not just a real failure - is wrapped into a terminating error and aborts
-  # the whole update mid-build. Exit codes are checked explicitly below
-  # instead, which is the only reliable signal for native commands.
-  $ErrorActionPreference = "Continue"
   $extraHeaderSet = $false
 
   try {
