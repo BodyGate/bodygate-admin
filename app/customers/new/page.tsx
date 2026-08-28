@@ -461,7 +461,9 @@ export default function NewCustomerPage() {
 
         .line span {
           min-width: 0;
+          max-width: 45%;
           line-height: 1.35;
+          overflow-wrap: anywhere;
         }
 
         .line strong {
@@ -469,6 +471,7 @@ export default function NewCustomerPage() {
           text-align: right;
           line-height: 1.25;
           min-width: 0;
+          max-width: 65%;
           overflow-wrap: anywhere;
         }
 
