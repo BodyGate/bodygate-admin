@@ -20,8 +20,8 @@ export default function PermissionGuard({
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          background: "#050505",
-          color: "white",
+          background: "var(--bg)",
+          color: "var(--text)",
           padding: 24,
         }}
       >
@@ -31,18 +31,18 @@ export default function PermissionGuard({
             borderRadius: 28,
             padding: 28,
             background:
-              "radial-gradient(circle at top left, rgba(91,61,245,0.20), transparent 36%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
-            border: "1px solid rgba(255,255,255,0.10)",
-            boxShadow: "0 28px 90px rgba(0,0,0,0.46)",
+              "radial-gradient(circle at top left, rgba(91,61,245,0.06), transparent 36%), var(--panel)",
+            border: "1px solid var(--border)",
+            boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
           }}
         >
-          <p style={{ color: "#f87171", textTransform: "uppercase", letterSpacing: 2, fontSize: 12, fontWeight: 950, margin: 0 }}>
+          <p style={{ color: "var(--accent)", textTransform: "uppercase", letterSpacing: 2, fontSize: 12, fontWeight: 950, margin: 0 }}>
             BodyGate Security
           </p>
           <h1 style={{ fontSize: 30, fontWeight: 950, margin: "10px 0" }}>
             Verifica permessi in corso
           </h1>
-          <p style={{ color: "#cbd5e1", lineHeight: 1.6, margin: 0 }}>
+          <p style={{ color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
             Stiamo validando sessione, ruolo e permessi prima di aprire la sezione richiesta.
           </p>
         </section>
@@ -57,8 +57,8 @@ export default function PermissionGuard({
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          background: "#050505",
-          color: "white",
+          background: "var(--bg)",
+          color: "var(--text)",
           padding: 24,
         }}
       >
@@ -69,26 +69,26 @@ export default function PermissionGuard({
             borderRadius: 30,
             padding: 32,
             background:
-              "radial-gradient(circle at top left, rgba(91,61,245,0.24), transparent 34%), linear-gradient(135deg, rgba(24,24,27,0.98), rgba(5,5,6,0.98))",
-            border: "1px solid rgba(248,113,113,0.28)",
-            boxShadow: "0 28px 90px rgba(0,0,0,0.46)",
+              "radial-gradient(circle at top left, rgba(214,49,74,0.08), transparent 34%), var(--panel)",
+            border: "1px solid rgba(214,49,74,0.28)",
+            boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
           }}
         >
-          <p style={{ color: "#f87171", textTransform: "uppercase", letterSpacing: 2, fontSize: 13, fontWeight: 950, margin: 0 }}>
+          <p style={{ color: "var(--danger)", textTransform: "uppercase", letterSpacing: 2, fontSize: 13, fontWeight: 950, margin: 0 }}>
             BodyGate Security
           </p>
           <h1 style={{ fontSize: 38, fontWeight: 950, margin: "12px 0" }}>
             Area protetta
           </h1>
-          <p style={{ color: "#cbd5e1", lineHeight: 1.65, marginBottom: 18 }}>
+          <p style={{ color: "var(--muted)", lineHeight: 1.65, marginBottom: 18 }}>
             Il comando richiesto è protetto e i permessi non risultano configurati per il tuo profilo. Se devi accedere a {section}, chiedi a un amministratore di assegnare il permesso richiesto.
           </p>
-          <div style={{ display: "grid", gap: 10, marginBottom: 24, color: "#f8fafc", fontWeight: 800 }}>
+          <div style={{ display: "grid", gap: 10, marginBottom: 24, color: "var(--text)", fontWeight: 800 }}>
             <span>Permesso richiesto: {permission}</span>
             <span>Profilo: {staffName || "sessione non riconosciuta"}</span>
             <span>Ruolo: {roleKey || "non configurato"}{isAdmin ? " · amministrazione" : ""}</span>
           </div>
-          <Link href="/" style={{ display: "inline-flex", textDecoration: "none", background: "#5b3df5", color: "white", padding: "13px 18px", borderRadius: 16, fontWeight: 900 }}>
+          <Link href="/" style={{ display: "inline-flex", textDecoration: "none", background: "var(--accent)", color: "white", padding: "13px 18px", borderRadius: 16, fontWeight: 900 }}>
             Torna alla Dashboard
           </Link>
         </section>

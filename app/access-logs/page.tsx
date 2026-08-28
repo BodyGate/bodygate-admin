@@ -8,7 +8,7 @@ export default function AccessLogsPage() {
       <BGPageHeader
         eyebrow="Access Control"
         title="Access Logs"
-        subtitle="Monitoraggio in tempo reale degli accessi al tornello BodyGate con badge stato premium e tabella dark enterprise."
+        subtitle="Monitoraggio in tempo reale degli accessi al tornello BodyGate con badge stato premium e tabella enterprise."
       />
 
       <AccessLogsTable />

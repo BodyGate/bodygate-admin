@@ -172,7 +172,7 @@
   --glow: rgba(56, 189, 248, 0.22);
 }
 .bg-stat-label {
-  color: #9b9b9b;
+  color: var(--muted, #6b7080);
   font-size: 12px;
   font-weight: 950;
   text-transform: uppercase;
@@ -188,7 +188,7 @@
 }
 .bg-stat-note {
   margin-top: 13px;
-  color: #858585;
+  color: var(--muted, #6b7080);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -201,7 +201,7 @@
   padding: 7px 10px;
   border-radius: 999px;
   border: 1px solid rgba(21, 22, 28, 0.1);
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--bg-canvas-raised, #f4f5f9);
   color: var(--bg-muted, #6b7080);
   font-size: 11px;
   font-weight: 950;
@@ -257,7 +257,7 @@
 }
 .bg-empty-description {
   margin-top: 0;
-  color: #8d8d8d;
+  color: var(--muted, #6b7080);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -299,7 +299,7 @@
 }
 .bg-section-header p {
   margin: 8px 0 0;
-  color: #9ca3af;
+  color: var(--muted, #6b7080);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -328,14 +328,14 @@
   min-width: 0;
 }
 .bg-field-label {
-  color: #8b8b8b;
+  color: var(--muted, #6b7080);
   font-size: 11px;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .bg-field-hint {
-  color: #737373;
+  color: var(--muted, #6b7080);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -487,7 +487,7 @@
 }
 .bg-table th {
   padding: 15px 18px;
-  color: #8b8b8b;
+  color: var(--muted, #6b7080);
   font-size: 11px;
   font-weight: 950;
   letter-spacing: 0.09em;
@@ -510,12 +510,12 @@
   border-bottom: 0;
 }
 .bg-table-code {
-  color: #e5e7eb;
+  color: var(--ink, #15161c);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 800;
 }
 .bg-table-muted {
-  color: #9ca3af;
+  color: var(--muted, #6b7080);
   line-height: 1.5;
 }
 .bg-table-align-center {
@@ -640,8 +640,8 @@
 .bg-inline-message {
   border-radius: 16px;
   padding: 14px;
-  background: rgba(91, 61, 245, 0.1);
-  border: 1px solid rgba(91, 61, 245, 0.28);
+  background: rgba(214, 49, 74, 0.1);
+  border: 1px solid rgba(214, 49, 74, 0.32);
   color: #b5233c;
   font-weight: 850;
   line-height: 1.45;
@@ -712,7 +712,7 @@
 
 .bg-section-subtitle {
   margin: 8px 0 0;
-  color: #9ca3af;
+  color: var(--muted, #6b7080);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -771,7 +771,7 @@
 }
 .bg-form-label,
 .bg-field-label {
-  color: #a1a1aa;
+  color: var(--muted, #6b7080);
   font-size: 11px;
   font-weight: 950;
   text-transform: uppercase;
@@ -780,7 +780,7 @@
 }
 .bg-form-help,
 .bg-field-hint {
-  color: #737373;
+  color: var(--muted, #6b7080);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -824,7 +824,7 @@
 .bg-kpi-label {
   display: block;
   margin-top: 9px;
-  color: #9b9b9b;
+  color: var(--muted, #6b7080);
   font-size: 12px;
   font-weight: 950;
   letter-spacing: .08em;
@@ -883,7 +883,7 @@
   left: 0;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #5b3df5, rgba(153, 27, 27, 0.28));
+  background: linear-gradient(180deg, #5b3df5, rgba(91, 61, 245, 0.28));
   box-shadow: 0 0 22px rgba(91, 61, 245, 0.38);
 }
 .bg-action-card:hover {
@@ -943,7 +943,7 @@
 .bg-action-description {
   display: block;
   max-width: 36ch;
-  color: #a1a1aa;
+  color: var(--muted, #6b7080);
   font-size: 12.5px;
   line-height: 1.5;
   font-weight: 760;
@@ -993,14 +993,14 @@
   padding: 24px;
   text-align: center;
 }
-.bg-empty-state { border: 1px dashed rgba(255,255,255,.14); background: rgba(255,255,255,.025); }
+.bg-empty-state { border: 1px dashed rgba(21,22,28,.14); background: rgba(21,22,28,.02); }
 .bg-error-state,
 .bg-inline-alert {
   border: 1px solid rgba(214, 49, 74, .32);
   background: rgba(214, 49, 74, .1);
   color: #b5233c;
 }
-.bg-loading-state { border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: var(--ink, #15161c); }
+.bg-loading-state { border: 1px solid rgba(21,22,28,.1); background: rgba(21,22,28,.03); color: var(--ink, #15161c); }
 .bg-inline-alert {
   border-radius: 16px;
   padding: 14px;
@@ -1091,7 +1091,7 @@
   min-width: 0;
 }
 .bg-premium-section-nav-eyebrow {
-  color: #8f8f8f;
+  color: var(--muted, #6b7080);
   font-size: 10px;
   font-weight: 950;
   letter-spacing: 0.09em;
@@ -1172,7 +1172,7 @@
   min-width: 0;
 }
 .bg-premium-tab-eyebrow {
-  color: #8f8f8f;
+  color: var(--muted, #6b7080);
   font-size: 10px;
   font-weight: 950;
   letter-spacing: 0.09em;
