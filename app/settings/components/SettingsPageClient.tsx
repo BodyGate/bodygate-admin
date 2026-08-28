@@ -67,8 +67,8 @@ export default function SettingsPageClient() {
       <style jsx>{`
         .settings-page {
           padding: 32px;
-          color: #ffffff;
-          background: #050505;
+          color: var(--text);
+          background: var(--bg);
           min-height: 100vh;
         }
 
@@ -98,18 +98,18 @@ export default function SettingsPageClient() {
 
         .subtitle {
           margin-top: 8px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 15px;
         }
 
         .branch-card,
         .panel,
         .loading-card {
-          background: linear-gradient(135deg, #141414, #080808);
-          border: 1px solid #262626;
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 26px;
           padding: 24px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 18px 45px -18px rgba(21, 22, 28, 0.14);
         }
 
         .branch-card {
@@ -119,7 +119,7 @@ export default function SettingsPageClient() {
         label {
           display: block;
           margin-bottom: 8px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 900;
           text-transform: uppercase;
@@ -130,9 +130,9 @@ export default function SettingsPageClient() {
         input {
           width: 100%;
           border-radius: 16px;
-          border: 1px solid #303030;
-          background: #050505;
-          color: #ffffff;
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
+          color: var(--text);
           padding: 14px 15px;
           font-size: 14px;
           outline: none;
@@ -140,12 +140,12 @@ export default function SettingsPageClient() {
 
         select:focus,
         input:focus {
-          border-color: #5b3df5;
+          border-color: var(--accent);
         }
 
         .branch-meta {
           margin-top: 12px;
-          color: #737373;
+          color: var(--muted);
           font-size: 13px;
         }
 
@@ -157,9 +157,9 @@ export default function SettingsPageClient() {
         }
 
         .tab {
-          border: 1px solid #262626;
-          background: #101010;
-          color: #a3a3a3;
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
+          color: var(--muted);
           border-radius: 999px;
           padding: 12px 16px;
           font-size: 13px;
@@ -169,14 +169,14 @@ export default function SettingsPageClient() {
         }
 
         .tab:hover {
-          color: #ffffff;
-          border-color: #404040;
+          color: var(--text);
+          border-color: var(--accent);
           transform: translateY(-1px);
         }
 
         .tab-active {
-          background: #5b3df5;
-          border-color: #5b3df5;
+          background: var(--accent);
+          border-color: var(--accent);
           color: #ffffff;
           box-shadow: 0 12px 30px rgba(91, 61, 245, 0.22);
         }
@@ -185,10 +185,11 @@ export default function SettingsPageClient() {
           margin: 0;
           font-size: 22px;
           font-weight: 950;
+          color: var(--text);
         }
 
         .panel p {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 14px;
           line-height: 1.6;
         }
@@ -201,14 +202,14 @@ export default function SettingsPageClient() {
         }
 
         .mini-card {
-          background: #080808;
-          border: 1px solid #262626;
+          background: var(--panel-2);
+          border: 1px solid var(--border);
           border-radius: 20px;
           padding: 18px;
         }
 
         .mini-label {
-          color: #737373;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 900;
           text-transform: uppercase;
@@ -217,7 +218,7 @@ export default function SettingsPageClient() {
         }
 
         .mini-value {
-          color: #ffffff;
+          color: var(--text);
           font-size: 18px;
           font-weight: 950;
         }
@@ -230,8 +231,8 @@ export default function SettingsPageClient() {
         }
 
         .setting-box {
-          background: #080808;
-          border: 1px solid #262626;
+          background: var(--panel-2);
+          border: 1px solid var(--border);
           border-radius: 20px;
           padding: 18px;
         }
@@ -240,10 +241,11 @@ export default function SettingsPageClient() {
           font-size: 16px;
           font-weight: 950;
           margin-bottom: 6px;
+          color: var(--text);
         }
 
         .setting-text {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.5;
         }
@@ -254,17 +256,17 @@ export default function SettingsPageClient() {
           margin-top: 12px;
           padding: 8px 10px;
           border-radius: 999px;
-          background: rgba(34, 197, 94, 0.12);
-          color: #4ade80;
-          border: 1px solid rgba(34, 197, 94, 0.3);
+          background: rgba(31, 157, 107, 0.1);
+          color: var(--success);
+          border: 1px solid rgba(31, 157, 107, 0.3);
           font-size: 12px;
           font-weight: 900;
         }
 
         .badge-red {
-          background: rgba(91, 61, 245, 0.12);
-          color: #fb7185;
-          border-color: rgba(91, 61, 245, 0.3);
+          background: rgba(214, 49, 74, 0.1);
+          color: var(--danger);
+          border-color: rgba(214, 49, 74, 0.3);
         }
 
         @media (max-width: 1100px) {
@@ -521,12 +523,12 @@ export default function SettingsPageClient() {
 
             <div className="setting-box">
               <label>Colore principale</label>
-              <input value="Rosso premium" readOnly />
+              <input value="Viola Platinum" readOnly />
             </div>
 
             <InfoBox
-              title="Tema dark premium"
-              text="Interfaccia nera, rossa e bianca coerente con Body Energy."
+              title="Tema Platinum"
+              text="Interfaccia chiara, bianca e viola coerente con Body Energy."
               status="Attiva"
             />
 

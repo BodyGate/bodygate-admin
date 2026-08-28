@@ -389,7 +389,7 @@ export default function PaymentsClient() {
 
       <style jsx>{`
         .payments-page {
-          color: #ffffff;
+          color: var(--text);
         }
 
         .payments-readonly-alert {
@@ -407,7 +407,7 @@ export default function PaymentsClient() {
         .payments-alert-content h2,
         .payments-section-header h2 {
           margin: 6px 0 8px;
-          color: #ffffff;
+          color: var(--text);
           font-size: 24px;
           font-weight: 900;
         }
@@ -416,7 +416,7 @@ export default function PaymentsClient() {
         .payments-section-header p {
           margin: 0;
           max-width: 860px;
-          color: rgba(255, 255, 255, 0.72);
+          color: var(--muted);
           line-height: 1.55;
         }
 
@@ -434,12 +434,12 @@ export default function PaymentsClient() {
 
         .payments-description {
           max-width: 320px;
-          color: rgba(255, 255, 255, 0.82);
+          color: var(--muted);
           line-height: 1.45;
         }
 
         .payments-amount {
-          color: #ffffff;
+          color: var(--text);
           font-weight: 900;
           white-space: nowrap;
         }
@@ -451,7 +451,7 @@ export default function PaymentsClient() {
 
         .payments-receipt-reference,
         .payments-no-action {
-          color: rgba(255, 255, 255, 0.52);
+          color: var(--muted);
           font-size: 12px;
           font-weight: 800;
         }
@@ -462,14 +462,14 @@ export default function PaymentsClient() {
           justify-content: space-between;
           gap: 14px;
           padding: 18px;
-          border: 1px solid rgba(91, 61, 245, 0.35);
+          border: 1px solid rgba(214, 49, 74, 0.32);
           border-radius: 20px;
-          background: rgba(61, 43, 153, 0.24);
-          color: #ffffff;
+          background: rgba(214, 49, 74, 0.1);
+          color: #b5233c;
         }
 
         .payments-error span {
-          color: rgba(255, 255, 255, 0.72);
+          color: rgba(181, 35, 60, 0.8);
         }
 
         @media (max-width: 860px) {

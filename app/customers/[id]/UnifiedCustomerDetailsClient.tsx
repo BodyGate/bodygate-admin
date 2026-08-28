@@ -148,7 +148,7 @@ export default function UnifiedCustomerDetailsClient({
               rgba(91, 61, 245, 0.12),
               transparent 38%
             ),
-            rgba(8, 8, 10, 0.82) !important;
+            var(--panel) !important;
         }
 
         .customer-page
@@ -159,7 +159,7 @@ export default function UnifiedCustomerDetailsClient({
           border: 1px solid rgba(21, 22, 28, 0.1) !important;
           border-top: 0 !important;
           border-radius: 0 0 22px 22px !important;
-          background: rgba(8, 8, 10, 0.82) !important;
+          background: var(--panel) !important;
         }
 
         .customer-page
@@ -174,7 +174,7 @@ export default function UnifiedCustomerDetailsClient({
           > .credential-section:nth-last-child(2)
           > .credential-section-title::after {
           content: "Pass digitale BodyGate";
-          color: #fff;
+          color: var(--text);
           font-size: 16px;
           font-weight: 950;
           letter-spacing: -0.02em;

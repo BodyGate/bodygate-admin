@@ -372,7 +372,7 @@ export default function NewCustomerPage() {
     <main className="new-customer-page bg-page-shell">
       <style jsx>{`
         .new-customer-page {
-          color: white;
+          color: var(--text);
           display: grid;
           gap: 22px;
           min-width: 0;
@@ -432,13 +432,8 @@ export default function NewCustomerPage() {
               rgba(91, 61, 245, 0.2),
               transparent 44%
             ),
-            linear-gradient(
-              145deg,
-              rgba(255, 255, 255, 0.07),
-              rgba(255, 255, 255, 0.02)
-            ),
-            rgba(8, 8, 10, 0.96);
-          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+            var(--panel);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 24px 70px -24px rgba(21, 22, 28, 0.16);
           backdrop-filter: blur(14px);
           min-width: 0;
           max-width: 100%;
@@ -454,12 +449,12 @@ export default function NewCustomerPage() {
 
         .line {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          align-items: center;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: start;
           gap: 16px;
           padding: 14px 0;
           border-bottom: 1px solid rgba(21, 22, 28, 0.1);
-          color: #d4d4d8;
+          color: var(--muted);
           font-size: 14px;
           font-weight: 800;
         }
@@ -467,6 +462,7 @@ export default function NewCustomerPage() {
         .line span {
           min-width: 0;
           line-height: 1.35;
+          overflow-wrap: anywhere;
         }
 
         .line strong {
@@ -509,7 +505,7 @@ export default function NewCustomerPage() {
         }
 
         .branch-card span {
-          color: #fca5a5;
+          color: var(--accent);
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.16em;
@@ -517,13 +513,13 @@ export default function NewCustomerPage() {
         }
 
         .branch-card strong {
-          color: #fff;
+          color: var(--text);
           font-size: 18px;
           font-weight: 950;
         }
 
         .branch-card small {
-          color: #d4d4d8;
+          color: var(--muted);
           font-weight: 800;
         }
 
@@ -540,21 +536,21 @@ export default function NewCustomerPage() {
           border: 1px solid rgba(21, 22, 28, 0.1);
           border-radius: 999px;
           padding: 10px 14px;
-          background: rgba(255,255,255,0.08);
-          color: white;
+          background: var(--bg-soft);
+          color: var(--text);
           font-weight: 950;
           cursor: pointer;
         }
-        .badge-charge-card button.active { background: #5b3df5; border-color: #fca5a5; }
-        .hint { color: #a1a1aa; font-size: 13px; font-weight: 800; }
+        .badge-charge-card button.active { background: #5b3df5; color: #fff; border-color: #5b3df5; }
+        .hint { color: var(--muted); font-size: 13px; font-weight: 800; }
 
         .message {
           margin-top: 14px;
           border-radius: 16px;
           padding: 14px;
-          background: rgba(91, 61, 245, 0.1);
-          border: 1px solid rgba(91, 61, 245, 0.28);
-          color: #fecaca;
+          background: rgba(214, 49, 74, 0.1);
+          border: 1px solid rgba(214, 49, 74, 0.32);
+          color: #b5233c;
           font-weight: 800;
         }
 

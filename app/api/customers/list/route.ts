@@ -75,10 +75,33 @@ function applyListFilter(customers: CustomerRow[], filter: string) {
   }
 }
 
+const DEFAULT_LIST_LIMIT = 60;
+const MAX_LIST_LIMIT = 200;
+
+function customerBadgeCode(customer: CustomerRow) {
+  return String(customer?.badge_code || customer?.controller_code || "").trim();
+}
+
+function matchesSearch(customer: CustomerRow, query: string) {
+  const name = `${customer.first_name || ""} ${customer.last_name || ""}`.trim().toLowerCase();
+
+  return (
+    name.includes(query) ||
+    String(customer.phone || "").toLowerCase().includes(query) ||
+    String(customer.email || "").toLowerCase().includes(query) ||
+    customerBadgeCode(customer).toLowerCase().includes(query)
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
     const filter = request.nextUrl.searchParams.get("status") || "active";
+    const query = (request.nextUrl.searchParams.get("q") || "").trim().toLowerCase();
+    const requestedLimit = Number(request.nextUrl.searchParams.get("limit"));
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_LIST_LIMIT)
+      : DEFAULT_LIST_LIMIT;
 
     const customerFields = [
       "id",
@@ -169,12 +192,30 @@ export async function GET(request: NextRequest) {
       without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,
     };
 
+    const searchedCustomers = query
+      ? filteredCustomers.filter((customer) => matchesSearch(customer, query))
+      : filteredCustomers;
+
+    const sortedCustomers = searchedCustomers
+      .slice()
+      .sort((a, b) =>
+        String(a.full_name || "").localeCompare(String(b.full_name || ""), "it", {
+          sensitivity: "base",
+        })
+      );
+
+    const matchedCount = sortedCustomers.length;
+    const pageCustomers = sortedCustomers.slice(0, limit);
+
     return NextResponse.json({
       ok: true,
-      customers: filteredCustomers,
-      count: filteredCustomers.length,
+      customers: pageCustomers,
+      count: pageCustomers.length,
       total: filteredCustomers.length,
       total_records: normalizedCustomers.length,
+      matched_count: matchedCount,
+      has_more: matchedCount > pageCustomers.length,
+      query,
       filter,
       stats,
     });

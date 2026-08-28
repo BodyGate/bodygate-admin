@@ -381,8 +381,8 @@ export default function AccountingClient() {
       <style jsx>{`
         .accounting-page {
           min-height: 100vh;
-          background: #050505;
-          color: #ffffff;
+          background: var(--bg);
+          color: var(--text);
           padding: 32px;
         }
 
@@ -412,7 +412,7 @@ export default function AccountingClient() {
 
         .subtitle {
           margin-top: 8px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 15px;
         }
 
@@ -420,11 +420,11 @@ export default function AccountingClient() {
         .panel,
         .summary-card,
         .tools-card {
-          background: linear-gradient(135deg, #141414, #080808);
-          border: 1px solid #262626;
+          background: var(--panel);
+          border: 1px solid var(--border);
           border-radius: 26px;
           padding: 24px;
-          box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 18px 45px -18px rgba(21, 22, 28, 0.14);
         }
 
         .branch-card {
@@ -434,7 +434,7 @@ export default function AccountingClient() {
         label {
           display: block;
           margin-bottom: 8px;
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 900;
           text-transform: uppercase;
@@ -445,9 +445,9 @@ export default function AccountingClient() {
         select {
           width: 100%;
           border-radius: 16px;
-          border: 1px solid #303030;
-          background: #050505;
-          color: #ffffff;
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
+          color: var(--text);
           padding: 14px 15px;
           font-size: 14px;
           outline: none;
@@ -455,7 +455,7 @@ export default function AccountingClient() {
 
         input:focus,
         select:focus {
-          border-color: #5b3df5;
+          border-color: var(--accent);
         }
 
         .summary-grid {
@@ -466,7 +466,7 @@ export default function AccountingClient() {
         }
 
         .summary-label {
-          color: #737373;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 900;
           text-transform: uppercase;
@@ -480,11 +480,11 @@ export default function AccountingClient() {
         }
 
         .green {
-          color: #4ade80;
+          color: var(--success);
         }
 
         .red {
-          color: #fb7185;
+          color: var(--danger);
         }
 
         .tools-card {
@@ -511,8 +511,9 @@ export default function AccountingClient() {
         }
 
         .export-btn {
-          background: #ffffff;
-          color: #000000;
+          background: var(--bg-soft);
+          color: var(--text);
+          border: 1px solid var(--border);
         }
 
         .print-btn {
@@ -551,25 +552,25 @@ export default function AccountingClient() {
         }
 
         .direction-btn {
-          border: 1px solid #303030;
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 14px;
-          background: #101010;
-          color: #a3a3a3;
+          background: var(--bg-soft);
+          color: var(--muted);
           font-weight: 950;
           cursor: pointer;
         }
 
         .direction-btn.active-income {
-          background: rgba(34, 197, 94, 0.14);
-          color: #4ade80;
-          border-color: rgba(34, 197, 94, 0.35);
+          background: rgba(31, 157, 107, 0.12);
+          color: var(--success);
+          border-color: rgba(31, 157, 107, 0.35);
         }
 
         .direction-btn.active-expense {
-          background: rgba(91, 61, 245, 0.14);
-          color: #fb7185;
-          border-color: rgba(91, 61, 245, 0.35);
+          background: rgba(214, 49, 74, 0.1);
+          color: var(--danger);
+          border-color: rgba(214, 49, 74, 0.35);
         }
 
         .save-btn {
@@ -588,7 +589,7 @@ export default function AccountingClient() {
 
         .save-btn:hover {
           transform: translateY(-1px);
-          background: #f87171;
+          background: #3d2b99;
         }
 
         .save-btn:disabled {
@@ -606,8 +607,8 @@ export default function AccountingClient() {
           display: grid;
           grid-template-columns: 1fr auto;
           gap: 18px;
-          background: #080808;
-          border: 1px solid #262626;
+          background: var(--panel-2);
+          border: 1px solid var(--border);
           border-radius: 18px;
           padding: 16px;
         }
@@ -619,7 +620,7 @@ export default function AccountingClient() {
         }
 
         .entry-desc {
-          color: #a3a3a3;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.45;
         }
@@ -636,9 +637,9 @@ export default function AccountingClient() {
           width: fit-content;
           padding: 6px 9px;
           border-radius: 999px;
-          background: #171717;
-          border: 1px solid #303030;
-          color: #a3a3a3;
+          background: var(--bg-soft);
+          border: 1px solid var(--border);
+          color: var(--muted);
           font-size: 11px;
           font-weight: 900;
           text-transform: uppercase;
@@ -665,19 +666,19 @@ export default function AccountingClient() {
         }
 
         .income {
-          color: #4ade80;
-          background: rgba(34, 197, 94, 0.12);
-          border: 1px solid rgba(34, 197, 94, 0.32);
+          color: #157a53;
+          background: rgba(31, 157, 107, 0.1);
+          border: 1px solid rgba(31, 157, 107, 0.32);
         }
 
         .expense {
-          color: #fb7185;
-          background: rgba(91, 61, 245, 0.12);
-          border: 1px solid rgba(91, 61, 245, 0.32);
+          color: #b5233c;
+          background: rgba(214, 49, 74, 0.1);
+          border: 1px solid rgba(214, 49, 74, 0.32);
         }
 
         .empty {
-          color: #737373;
+          color: var(--muted);
           font-size: 14px;
           padding: 14px 0;
         }

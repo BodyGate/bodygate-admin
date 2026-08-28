@@ -59,7 +59,7 @@ export default function TrainingPremiumClient({ view, programId, exerciseId }: P
 
   return <main className={styles.page}>
     <section className={styles.hero}>
-      <div><p className={styles.kicker}>BodyGate Premium Training</p><h1>Training rebuild</h1><p>Modulo unico nero, rosso e bianco: dashboard, atleti, programmi atomici, builder, catalogo esercizi canonico e sessioni.</p></div>
+      <div><p className={styles.kicker}>BodyGate Premium Training</p><h1>Training rebuild</h1><p>Modulo unico Platinum: dashboard, atleti, programmi atomici, builder, catalogo esercizi canonico e sessioni.</p></div>
       <div className={styles.heroCard}><strong>{activePrograms.length}</strong><span>programmi attivi</span></div>
     </section>
     {notice && <div className={styles.notice}>{notice}</div>}

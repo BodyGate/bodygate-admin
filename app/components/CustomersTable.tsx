@@ -142,25 +142,40 @@ export default function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadedOnce, setLoadedOnce] = useState(false);
   const [queryError, setQueryError] = useState<string | null>(null);
   const [listFilter, setListFilter] = useState<ListFilter>("active");
   const [serverStats, setServerStats] = useState<CustomerListStats | null>(null);
+  const [matchedCount, setMatchedCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   async function loadCustomers() {
     setLoading(true);
     setQueryError(null);
 
     try {
-      const response = await fetch(`/api/customers/list?status=${listFilter}`, {
-        cache: "no-store",
-      });
+      const searchParam = debouncedSearch
+        ? `&q=${encodeURIComponent(debouncedSearch)}`
+        : "";
+
+      const response = await fetch(
+        `/api/customers/list?status=${listFilter}${searchParam}`,
+        { cache: "no-store" },
+      );
       const payload = await response.json();
 
       if (!response.ok || !payload?.ok) {
         setCustomers([]);
         setServerStats(null);
+        setMatchedCount(0);
+        setHasMore(false);
         setQueryError(payload?.error || "Impossibile caricare i clienti.");
         return;
       }
@@ -168,6 +183,8 @@ export default function CustomersTable() {
       const list = (payload.customers || []) as Customer[];
       setCustomers(list);
       setServerStats(payload.stats || null);
+      setMatchedCount(payload.matched_count ?? list.length);
+      setHasMore(Boolean(payload.has_more));
 
       setSelectedId((current) => {
         if (current && list.some((customer) => customer.id === current)) {
@@ -179,6 +196,8 @@ export default function CustomersTable() {
     } catch (error) {
       setCustomers([]);
       setServerStats(null);
+      setMatchedCount(0);
+      setHasMore(false);
       setQueryError(
         error instanceof Error ? error.message : "Errore imprevisto.",
       );
@@ -191,34 +210,12 @@ export default function CustomersTable() {
   useEffect(() => {
     void Promise.resolve().then(loadCustomers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listFilter]);
+  }, [listFilter, debouncedSearch]);
 
-  const filteredCustomers = useMemo(() => {
-    const q = search.toLowerCase().trim();
-
-    const matches = !q
-      ? customers
-      : customers.filter((customer) => {
-          const name = getName(customer).toLowerCase();
-
-          return (
-            name.includes(q) ||
-            String(customer.phone || "")
-              .toLowerCase()
-              .includes(q) ||
-            String(customer.email || "")
-              .toLowerCase()
-              .includes(q) ||
-            getBadgeCode(customer).toLowerCase().includes(q)
-          );
-        });
-
-    return matches
-      .slice()
-      .sort((a, b) =>
-        getName(a).localeCompare(getName(b), "it", { sensitivity: "base" }),
-      );
-  }, [customers, search]);
+  // The server already applies the status filter and search query and
+  // returns a capped, alphabetically sorted page, so `customers` is the
+  // list to render as-is.
+  const filteredCustomers = customers;
 
   const selectedCustomer = useMemo(() => {
     return (
@@ -832,8 +829,16 @@ export default function CustomersTable() {
 
         {!queryError && loadedOnce && customers.length === 0 && (
           <BGEmptyState
-            title="Nessun cliente trovato"
-            description="Crea un nuovo cliente per popolare il CRM operativo."
+            title={
+              debouncedSearch
+                ? `Nessun cliente trovato per "${debouncedSearch}"`
+                : "Nessun cliente trovato"
+            }
+            description={
+              debouncedSearch
+                ? "Prova con un altro nome, telefono, email o codice badge."
+                : "Crea un nuovo cliente per popolare il CRM operativo."
+            }
           />
         )}
 
@@ -848,8 +853,9 @@ export default function CustomersTable() {
                   placeholder="Cerca cliente, badge, telefono o email..."
                 />
                 <div className="crm3-count">
-                  {filteredCustomers.length} risultati su {customers.length}
-                  {serverStats ? ` · ${serverStats.total_records} record totali` : ""}
+                  {debouncedSearch
+                    ? `${matchedCount} risultat${matchedCount === 1 ? "o" : "i"} per "${debouncedSearch}"${hasMore ? ` · primi ${filteredCustomers.length} mostrati` : ""}`
+                    : `Ultimi ${filteredCustomers.length} clienti${serverStats ? ` su ${serverStats.total_records} totali` : ""} · cerca per trovarne uno specifico`}
                 </div>
               </div>
 

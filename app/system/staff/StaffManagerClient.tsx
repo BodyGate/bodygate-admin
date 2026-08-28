@@ -337,9 +337,9 @@ export default function StaffManagerClient() {
                           style={{
                             ...styles.badge,
                             background: user.is_active
-                              ? "rgba(34,197,94,.14)"
-                              : "rgba(91,61,245,.14)",
-                            color: user.is_active ? "#4ade80" : "#f87171",
+                              ? "rgba(31,157,107,.1)"
+                              : "rgba(214,49,74,.1)",
+                            color: user.is_active ? "#157a53" : "#b5233c",
                           }}
                         >
                           {user.is_active ? "Attivo" : "Disattivato"}
@@ -435,7 +435,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "360px 1fr",
+    gridTemplateColumns: "360px minmax(0, 1fr)",
     gap: 24,
   },
   card: {
@@ -453,6 +453,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
     padding: 22,
     overflow: "hidden",
+    minWidth: 0,
   },
   cardTitle: {
     marginTop: 0,
