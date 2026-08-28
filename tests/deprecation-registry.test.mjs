@@ -74,7 +74,7 @@ test("protected and unrelated mandatory files remain present", () => {
   for (const file of mandatory) assert.ok(existsSync(file), `${file} must not be deleted`);
   let output = "";
   try {
-    output = execFileSync("git", ["grep", "-n", "deprecation-registry", "--", "app", "middleware.ts"], { encoding: "utf8" });
+    output = execFileSync("git", ["grep", "-n", "deprecation-registry", "--", "app", "proxy.ts"], { encoding: "utf8" });
   } catch (error) {
     assert.equal(error.status, 1, "git grep itself failed");
   }
