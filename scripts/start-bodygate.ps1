@@ -80,6 +80,13 @@ function Read-EnvValue {
 function Update-BodyGateCode {
   param([string]$LogFile)
 
+  # Local to this function only (PowerShell scoping reverts it automatically
+  # on return): with the script-wide "Stop" preference, *any* line a native
+  # command writes to stderr via `2>&1` - even a harmless npm/Next.js warning,
+  # not just a real failure - is wrapped into a terminating error and aborts
+  # the whole update mid-build. Exit codes are checked explicitly below
+  # instead, which is the only reliable signal for native commands.
+  $ErrorActionPreference = "Continue"
   $extraHeaderSet = $false
 
   try {
@@ -122,10 +129,18 @@ function Update-BodyGateCode {
     }
 
     Write-BodyGateLog -LogFile $LogFile -Message "Codice aggiornato da $beforeCommit a $afterCommit. Installazione dipendenze..."
-    & npm.cmd ci --no-audit --no-fund 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Null
+    $ciOutput = & npm.cmd ci --no-audit --no-fund 2>&1
+    Add-Content -Path $LogFile -Value $ciOutput
+    if ($LASTEXITCODE -ne 0) {
+      throw "npm ci fallito (exit code $LASTEXITCODE)"
+    }
 
     Write-BodyGateLog -LogFile $LogFile -Message "Compilazione build di produzione..."
-    & npm.cmd run build 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Null
+    $buildOutput = & npm.cmd run build 2>&1
+    Add-Content -Path $LogFile -Value $buildOutput
+    if ($LASTEXITCODE -ne 0) {
+      throw "npm run build fallito (exit code $LASTEXITCODE)"
+    }
 
     Write-BodyGateLog -LogFile $LogFile -Message "Aggiornamento completato: ora in esecuzione $afterCommit."
   }
