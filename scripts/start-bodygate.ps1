@@ -81,10 +81,12 @@ function Read-EnvValue {
 }
 
 # Pulls the latest code from $GitBranch (fast-forward only, never rewrites or
-# discards local state) and rebuilds only when there is actually a new commit
-# to run. On any failure it logs and falls through to start the server with
-# whatever build is already on disk, so a network blip or a bad commit never
-# takes the reception PC offline.
+# discards local state) and rebuilds when there is a new commit to run, or
+# when .next\BUILD_ID is missing even without one (a previous build that
+# never completed must not be mistaken for "nothing to do", or the server
+# would fail to start forever). On any other failure it logs and falls
+# through to start the server with whatever build is already on disk, so a
+# network blip or a bad commit never takes the reception PC offline.
 function Update-BodyGateCode {
   param([string]$LogFile)
 
@@ -123,13 +125,24 @@ function Update-BodyGateCode {
     }
 
     $afterCommit = (& git rev-parse HEAD).Trim()
+    $buildIdPath = Join-Path $Root ".next\BUILD_ID"
 
-    if ($afterCommit -eq $beforeCommit) {
+    if ($afterCommit -eq $beforeCommit -and (Test-Path $buildIdPath)) {
       Write-BodyGateLog -LogFile $LogFile -Message "Nessun aggiornamento disponibile (commit corrente: $afterCommit)."
       return
     }
 
-    Write-BodyGateLog -LogFile $LogFile -Message "Codice aggiornato da $beforeCommit a $afterCommit. Installazione dipendenze..."
+    if ($afterCommit -eq $beforeCommit) {
+      # No new commit, but .next\BUILD_ID is missing - a previous build never
+      # completed (e.g. it was interrupted by the stderr-as-fatal bug fixed
+      # in a prior version of this script) and "no update" would otherwise
+      # mean permanently starting a server with no build to serve, forever.
+      Write-BodyGateLog -LogFile $LogFile -Message "Nessuna build valida trovata (.next\BUILD_ID assente) pur senza nuovo commit. Ricompilo."
+    }
+    else {
+      Write-BodyGateLog -LogFile $LogFile -Message "Codice aggiornato da $beforeCommit a $afterCommit. Installazione dipendenze..."
+    }
+
     $ciOutput = & npm.cmd ci --no-audit --no-fund 2>&1
     Add-Content -Path $LogFile -Value $ciOutput
     if ($LASTEXITCODE -ne 0) {
