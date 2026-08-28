@@ -15,7 +15,7 @@ export default function ModulesSettingsClient() {
           marginBottom: 20,
         }}
       >
-        Modules Management
+        Gestione moduli
       </h1>
 
       <div
