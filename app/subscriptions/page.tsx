@@ -617,19 +617,14 @@ export default function SubscriptionsPage() {
         .subscriptions-page-v2 {
           min-height: 100vh;
           padding: 18px 20px 26px;
-          color: #fff;
+          color: var(--text);
           background:
             radial-gradient(
               circle at top left,
-              rgba(91, 61, 245, 0.24),
+              rgba(91, 61, 245, 0.08),
               transparent 30%
             ),
-            radial-gradient(
-              circle at 76% 8%,
-              rgba(255, 255, 255, 0.08),
-              transparent 25%
-            ),
-            linear-gradient(135deg, #050505, #090909 48%, #111);
+            var(--bg);
         }
 
         .subscriptions-page-v2 :global([class*="pageShell"]) {
@@ -720,7 +715,7 @@ export default function SubscriptionsPage() {
           gap: 16px;
           padding-bottom: 14px;
           margin-bottom: 12px;
-          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
+          border-bottom: 1px solid var(--border);
         }
 
         .subscriptions-panel-title {
@@ -732,7 +727,7 @@ export default function SubscriptionsPage() {
 
         .subscriptions-panel-subtitle {
           margin-top: 6px;
-          color: #9f9f9f;
+          color: var(--muted);
           font-size: 12px;
           line-height: 1.42;
         }
@@ -758,10 +753,10 @@ export default function SubscriptionsPage() {
 
         .subscriptions-filter {
           min-height: 31px;
-          border: 1px solid rgba(21, 22, 28, 0.1);
+          border: 1px solid var(--border);
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.055);
-          color: #bdbdbd;
+          background: var(--bg-soft);
+          color: var(--muted);
           cursor: pointer;
           font-size: 11px;
           font-weight: 900;
@@ -775,8 +770,8 @@ export default function SubscriptionsPage() {
         .subscriptions-filter:hover,
         .subscriptions-filter.active {
           border-color: rgba(91, 61, 245, 0.42);
-          background: rgba(91, 61, 245, 0.14);
-          color: #fff;
+          background: var(--accent-soft);
+          color: var(--accent);
         }
 
         .subscriptions-search {
@@ -785,9 +780,9 @@ export default function SubscriptionsPage() {
           width: 100%;
           min-height: 38px;
           border-radius: 8px;
-          border: 1px solid rgba(21, 22, 28, 0.1);
-          background: rgba(5, 5, 6, 0.78);
-          color: #fff;
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
+          color: var(--text);
           outline: none;
           padding: 0 12px;
           font-size: 12px;
@@ -795,13 +790,13 @@ export default function SubscriptionsPage() {
         }
 
         .subscriptions-search::placeholder {
-          color: #777;
+          color: var(--muted);
         }
 
         .subscriptions-found-count {
           grid-column: 2 / 3;
           justify-self: end;
-          color: #bdbdbd;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 900;
         }
@@ -810,22 +805,22 @@ export default function SubscriptionsPage() {
         .subscriptions-loading {
           border-radius: 18px;
           padding: 16px;
-          border: 1px solid rgba(91, 61, 245, 0.28);
-          background: rgba(91, 61, 245, 0.1);
-          color: #fecaca;
+          border: 1px solid rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.08);
+          color: var(--danger);
           font-size: 13px;
           font-weight: 850;
         }
 
         .subscriptions-loading {
-          border-color: rgba(21, 22, 28, 0.1);
-          background: rgba(255, 255, 255, 0.045);
-          color: #d4d4d4;
+          border-color: var(--border);
+          background: var(--panel);
+          color: var(--muted);
         }
 
         .subscriptions-table-wrap {
           overflow-x: auto;
-          border: 1px solid rgba(21, 22, 28, 0.1);
+          border: 1px solid var(--border);
           border-radius: 8px;
         }
 
@@ -838,8 +833,8 @@ export default function SubscriptionsPage() {
         .subscriptions-table th {
           padding: 11px 12px;
           text-align: left;
-          color: #a3a3a3;
-          background: rgba(255, 255, 255, 0.045);
+          color: var(--muted);
+          background: var(--panel-2);
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.08em;
@@ -848,14 +843,14 @@ export default function SubscriptionsPage() {
 
         .subscriptions-table td {
           padding: 11px 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.075);
-          color: #e5e5e5;
+          border-top: 1px solid var(--border);
+          color: var(--text);
           font-size: 12px;
           vertical-align: middle;
         }
 
         .subscriptions-table tbody tr {
-          background: rgba(255, 255, 255, 0.018);
+          background: var(--panel);
         }
 
         .subscriptions-table tbody tr.subscription-row-expired {
@@ -887,7 +882,7 @@ export default function SubscriptionsPage() {
         .customer-name,
         .plan-name,
         .amount-cell {
-          color: #fff;
+          color: var(--text);
           font-weight: 950;
           max-width: 240px;
           white-space: normal;
@@ -899,7 +894,7 @@ export default function SubscriptionsPage() {
         .plan-state,
         .contact-stack,
         .period-range {
-          color: #9f9f9f;
+          color: var(--muted);
           font-size: 11px;
           line-height: 1.35;
         }
@@ -921,21 +916,21 @@ export default function SubscriptionsPage() {
           padding: 6px 9px;
           border: 1px solid rgba(34, 197, 94, 0.24);
           background: rgba(34, 197, 94, 0.09);
-          color: #86efac;
+          color: var(--success);
           font-size: 11px;
           font-weight: 950;
         }
 
         .days-pill.warning {
-          border-color: rgba(250, 204, 21, 0.28);
-          background: rgba(250, 204, 21, 0.09);
-          color: #fde68a;
+          border-color: rgba(179, 121, 10, 0.28);
+          background: rgba(179, 121, 10, 0.09);
+          color: var(--warning);
         }
 
         .days-pill.danger {
-          border-color: rgba(91, 61, 245, 0.3);
-          background: rgba(91, 61, 245, 0.1);
-          color: #fecaca;
+          border-color: rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.09);
+          color: var(--danger);
         }
 
         .subscription-action-stack {

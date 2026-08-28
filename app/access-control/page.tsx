@@ -91,9 +91,7 @@ function DisabledCard({ card }: { card: (typeof disabledCards)[number] }) {
       <div className={styles.disabledContent}>
         <div className={styles.cardTop}>
           <StatusBadge tone="warning" label={card.status} />
-          <span className="rounded-full border border-black/10 bg-black/[0.04] px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
-            Non cliccabile
-          </span>
+          <BGStatusBadge tone="neutral">Non cliccabile</BGStatusBadge>
         </div>
         <div>
           <h2 className={styles.disabledTitle}>

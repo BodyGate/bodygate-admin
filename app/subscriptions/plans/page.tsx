@@ -560,11 +560,10 @@ export default function SubscriptionPlansPage() {
           min-height: 100vh;
           overflow-x: hidden;
           padding: 26px;
-          color: #fff;
+          color: var(--text);
           background:
-            radial-gradient(circle at top left, rgba(91, 61, 245, 0.24), transparent 30%),
-            radial-gradient(circle at 78% 10%, rgba(255, 255, 255, 0.08), transparent 25%),
-            linear-gradient(135deg, #050505, #090909 48%, #111);
+            radial-gradient(circle at top left, rgba(91, 61, 245, 0.08), transparent 30%),
+            var(--bg);
         }
 
         .plans-header-actions,
@@ -583,15 +582,15 @@ export default function SubscriptionPlansPage() {
           gap: 14px;
           margin-bottom: 16px;
           padding: 16px 18px;
-          border: 1px solid rgba(21, 22, 28, 0.1);
+          border: 1px solid var(--border);
           border-radius: 22px;
-          background: rgba(255, 255, 255, 0.045);
+          background: var(--panel);
         }
 
         .field-label {
           display: block;
           margin-bottom: 8px;
-          color: #9b9b9b;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.09em;
@@ -602,10 +601,10 @@ export default function SubscriptionPlansPage() {
         .field-input,
         .field-checkbox {
           width: 100%;
-          border: 1px solid rgba(21, 22, 28, 0.1);
+          border: 1px solid var(--border);
           border-radius: 16px;
-          background: rgba(5, 5, 5, 0.78);
-          color: #fff;
+          background: var(--bg-soft);
+          color: var(--text);
           font-size: 14px;
           font-weight: 800;
           outline: none;
@@ -624,7 +623,7 @@ export default function SubscriptionPlansPage() {
           gap: 14px;
           min-height: 50px;
           padding: 12px 14px;
-          color: #d6d6d6;
+          color: var(--muted);
         }
 
         .field-checkbox input {
@@ -642,15 +641,15 @@ export default function SubscriptionPlansPage() {
         }
 
         .plans-alert.success {
-          color: #86efac;
+          color: var(--success);
           border: 1px solid rgba(34, 197, 94, 0.22);
           background: rgba(34, 197, 94, 0.08);
         }
 
         .plans-alert.danger {
-          color: #fecaca;
-          border: 1px solid rgba(91, 61, 245, 0.3);
-          background: rgba(91, 61, 245, 0.1);
+          color: var(--danger);
+          border: 1px solid rgba(214, 49, 74, 0.28);
+          background: rgba(214, 49, 74, 0.08);
         }
 
         .plans-kpi-grid {
@@ -684,7 +683,7 @@ export default function SubscriptionPlansPage() {
           gap: 18px;
           padding-bottom: 18px;
           margin-bottom: 18px;
-          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
+          border-bottom: 1px solid var(--border);
         }
 
         .plans-card-head.stacked {
@@ -693,7 +692,7 @@ export default function SubscriptionPlansPage() {
 
         .plans-card-head h2 {
           margin: 0;
-          color: #fff;
+          color: var(--text);
           font-size: 24px;
           line-height: 1;
           font-weight: 950;
@@ -702,7 +701,7 @@ export default function SubscriptionPlansPage() {
 
         .plans-card-head p {
           margin: 8px 0 0;
-          color: #9f9f9f;
+          color: var(--muted);
           font-size: 13px;
           line-height: 1.5;
         }
@@ -721,13 +720,13 @@ export default function SubscriptionPlansPage() {
         .plans-table th,
         .plans-table td {
           padding: 14px 12px;
-          border-bottom: 1px solid rgba(21, 22, 28, 0.1);
+          border-bottom: 1px solid var(--border);
           text-align: left;
           vertical-align: middle;
         }
 
         .plans-table th {
-          color: #858585;
+          color: var(--muted);
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.08em;
@@ -735,18 +734,18 @@ export default function SubscriptionPlansPage() {
         }
 
         .plans-table td {
-          color: #e7e7e7;
+          color: var(--text);
           font-size: 13px;
           font-weight: 800;
         }
 
         .plans-table tr.inactive td {
-          color: #9a9a9a;
-          background: rgba(255, 255, 255, 0.018);
+          color: var(--muted);
+          background: var(--bg-soft);
         }
 
         .plan-name {
-          color: #fff;
+          color: var(--text);
           font-size: 15px;
           font-weight: 950;
           letter-spacing: -0.02em;
@@ -757,12 +756,12 @@ export default function SubscriptionPlansPage() {
         }
 
         .promo-price {
-          color: #86efac;
+          color: var(--success);
           font-weight: 950;
         }
 
         .muted {
-          color: #777;
+          color: var(--muted);
         }
 
         .sort-pill {
@@ -771,9 +770,9 @@ export default function SubscriptionPlansPage() {
           justify-content: center;
           padding: 7px 10px;
           border-radius: 999px;
-          color: #d4d4d4;
-          border: 1px solid rgba(21, 22, 28, 0.1);
-          background: rgba(255, 255, 255, 0.055);
+          color: var(--text);
+          border: 1px solid var(--border);
+          background: var(--bg-soft);
         }
 
         .preset-grid {
@@ -790,7 +789,7 @@ export default function SubscriptionPlansPage() {
           border-radius: 18px;
           padding: 13px;
           background: rgba(91, 61, 245, 0.075);
-          color: #fff;
+          color: var(--text);
           min-width: 0;
           white-space: normal;
           overflow-wrap: anywhere;
@@ -810,7 +809,7 @@ export default function SubscriptionPlansPage() {
 
         .preset-button span {
           margin-top: 6px;
-          color: #bdbdbd;
+          color: var(--muted);
           font-size: 12px;
           font-weight: 800;
         }
