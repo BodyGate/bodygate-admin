@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
 import { BGAlert, BGButton, BGInput, BGSelect } from "@/components/bodygate-ui";
 
 type CustomerFormProps = {
@@ -64,35 +63,26 @@ export default function CustomerForm({
       active,
     };
 
-    if (mode === "edit" && customer) {
-      const { error } = await supabase
-        .from("customers")
-        .update(payload)
-        .eq("id", customer.id);
+    const response = await fetch("/api/customers/legacy-form-save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        mode === "edit" && customer
+          ? { mode: "edit", customer_id: customer.id, payload }
+          : { mode: "create", payload },
+      ),
+    });
+    const result = await response.json().catch(() => null);
 
-      if (error) {
-        setMessage(`Errore aggiornamento cliente: ${error.message}`);
-        setSaving(false);
-        return;
-      }
-
-      router.push(`/customers/${customer.id}`);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("customers")
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      setMessage(`Errore salvataggio cliente: ${error.message}`);
+    if (!response.ok || !result?.ok) {
+      setMessage(
+        `Errore salvataggio cliente: ${result?.error || "Errore sconosciuto"}`,
+      );
       setSaving(false);
       return;
     }
 
-    router.push(`/customers/${data.id}`);
+    router.push(`/customers/${result.id}`);
   }
 
   return (

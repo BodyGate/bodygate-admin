@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 
 type Branch = {
   id: string;
@@ -51,11 +50,11 @@ export default function AccountingClient() {
   }, [selectedBranchId]);
 
   async function loadBranches() {
-    const { data } = await supabase
-      .from("branches")
-      .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
+    const response = await fetch("/api/settings/branches", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
+    const data = result?.ok ? result.branches : [];
 
     setBranches(data || []);
 
@@ -69,19 +68,17 @@ export default function AccountingClient() {
   async function loadEntries() {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("accounting_entries")
-      .select("*")
-      .eq("branch_id", selectedBranchId)
-      .order("entry_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const response = await fetch(
+      `/api/accounting/entries?branch_id=${encodeURIComponent(selectedBranchId)}`,
+      { cache: "no-store" },
+    );
+    const result = await response.json().catch(() => null);
 
-    if (error) {
-      console.error("Errore prima nota:", error);
+    if (!response.ok || !result?.ok) {
+      console.error("Errore prima nota:", result?.error);
       setEntries([]);
     } else {
-      setEntries(data || []);
+      setEntries(result.entries || []);
     }
 
     setLoading(false);
@@ -94,22 +91,25 @@ export default function AccountingClient() {
 
     setSaving(true);
 
-    const { error } = await supabase.from("accounting_entries").insert({
-      branch_id: selectedBranchId,
-      direction,
-      category: category.trim(),
-      description: description.trim() || null,
-      amount: Number(amount),
-      payment_method: paymentMethod,
-      entry_date: entryDate,
-      source: "manual",
-      operator_name: "Operatore",
+    const response = await fetch("/api/accounting/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        branch_id: selectedBranchId,
+        direction,
+        category: category.trim(),
+        description: description.trim() || null,
+        amount: Number(amount),
+        payment_method: paymentMethod,
+        entry_date: entryDate,
+      }),
     });
+    const result = await response.json().catch(() => null);
 
     setSaving(false);
 
-    if (error) {
-      console.error(error);
+    if (!response.ok || !result?.ok) {
+      console.error(result?.error);
       alert("Errore salvataggio movimento.");
       return;
     }

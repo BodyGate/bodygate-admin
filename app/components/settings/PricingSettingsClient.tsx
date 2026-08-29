@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type SubscriptionPlan = {
   id: string;
@@ -30,20 +29,13 @@ export default function PricingSettingsClient() {
   const [services, setServices] = useState<TrainingService[]>([]);
 
   async function loadData() {
-    const { data: plansData } = await supabase
-      .from("subscription_plans")
-      .select("*")
-      .order("sort_order");
+    const response = await fetch("/api/settings/pricing", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    const { data: servicesData } = await supabase
-      .from("training_services")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      });
-
-    setPlans(plansData || []);
-    setServices(servicesData || []);
+    setPlans(result?.ok ? result.plans || [] : []);
+    setServices(result?.ok ? result.services || [] : []);
   }
 
   useEffect(() => {

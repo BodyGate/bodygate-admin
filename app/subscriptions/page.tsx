@@ -2,7 +2,6 @@
 
 import { BGButton, BGCard, BGEmptyState, BGPageHeader, BGPageShell, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 
 type Customer = {
   id: string;
@@ -248,40 +247,17 @@ export default function SubscriptionsPage() {
         setErrorMessage("");
       }
 
-      const { data, error } = await supabase
-        .from("customer_subscriptions")
-        .select(
-          `
-          id,
-          customer_id,
-          starts_at,
-          ends_at,
-          is_active,
-          amount,
-          created_at,
-          customers (
-            id,
-            first_name,
-            last_name,
-            phone,
-            badge_code,
-            is_active
-          ),
-          subscription_plans (
-            id,
-            name,
-            is_active
-          )
-        `,
-        )
-        .order("created_at", { ascending: false })
-        .order("starts_at", { ascending: false })
-        .order("ends_at", { ascending: false });
+      const response = await fetch("/api/subscriptions/list", {
+        cache: "no-store",
+      });
+      const result = await response.json().catch(() => null);
 
-      if (error) throw error;
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Errore caricamento abbonamenti.");
+      }
 
       const latestSubscriptions = latestSubscriptionsByCustomer(
-        (data || []) as SubscriptionRow[],
+        (result.subscriptions || []) as SubscriptionRow[],
       );
       setSubscriptions(sortSubscriptions(latestSubscriptions));
     } catch (error) {
