@@ -4,7 +4,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
-import { supabase } from "../../lib/supabaseClient";
 import CustomerPhotoUpload from "../components/CustomerPhotoUpload";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
 import CustomerTimeline from "../components/CustomerTimeline";
@@ -431,38 +430,29 @@ export default function CustomerDetailsClient({
     setErrorMessage("");
 
     try {
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("id", customerId)
-        .maybeSingle();
+      const detailsResponse = await fetch(
+        `/api/customers/${encodeURIComponent(customerId)}/details`,
+        { cache: "no-store" },
+      );
+      const details = await detailsResponse.json().catch(() => null);
 
-      if (customerError || !customerData) {
-        const diagnostic = {
+      if (!detailsResponse.ok || !details?.ok || !details.customer) {
+        console.error("BODYGATE CUSTOMER LOAD ERROR", {
           customerId,
-          found: !!customerData,
-          supabaseError: customerError
-            ? {
-                message: customerError.message,
-                details: customerError.details,
-                hint: customerError.hint,
-                code: customerError.code,
-              }
-            : null,
-        };
-
-        console.error("BODYGATE CUSTOMER LOAD ERROR", diagnostic);
+          status: detailsResponse.status,
+          error: details?.error || null,
+        });
 
         setErrorMessage(
-          customerError?.code
-            ? `Cliente non trovato o non leggibile. Codice diagnostico: ${customerError.code}. Apri la console tecnica per i dettagli.`
-            : "Cliente non trovato o non leggibile. Verifica l’anagrafica dalla lista clienti.",
+          details?.error ||
+            "Cliente non trovato o non leggibile. Verifica l’anagrafica dalla lista clienti.",
         );
 
         setCustomer(null);
         return;
       }
 
+      const customerData = details.customer;
       setCustomer(customerData);
 
       const overviewResponse = await fetch(
@@ -482,96 +472,26 @@ export default function CustomerDetailsClient({
       }
 
       if (customerData.branch_id) {
-        const { data: branchData } = await supabase
-          .from("branches")
-          .select("id, name, address, city")
-          .eq("id", customerData.branch_id)
-          .maybeSingle();
-        if (!overviewBranch) setCustomerBranch(branchData || null);
+        if (!overviewBranch) setCustomerBranch(details.branch || null);
       } else {
         setCustomerBranch(null);
       }
 
-      let plansQuery = supabase
-        .from("subscription_plans")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-
-      if (customerData.branch_id) {
-        plansQuery = plansQuery.eq("branch_id", customerData.branch_id);
-      }
-
-      const { data: plansData } = await plansQuery;
       setPlans(
-        (plansData || []).filter((plan) =>
+        (details.plans || []).filter((plan: Plan) =>
           isOfficialSubscriptionPlanName(plan.name),
         ),
       );
 
-      const { data: subs } = await supabase
-        .from("customer_subscriptions")
-        .select("*, subscription_plans(name)")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setSubscriptions(subs || []);
-
-      const { data: fees } = await supabase
-        .from("customer_membership_fees")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setMembershipFees(fees || []);
-
-      const { data: blockList } = await supabase
-        .from("customer_blocks")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setBlocks(blockList || []);
-
-      const { data: noteList } = await supabase
-        .from("customer_internal_notes")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setNotes(noteList || []);
-
-      const { data: logs } = await supabase
-        .from("customer_access_logs")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("access_time", { ascending: false })
-        .limit(50);
-
-      setAccessLogs(logs || []);
-
-      const { data: credentials } = await supabase
-        .from("access_credentials")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setAccessCredentials(credentials || []);
-
-      const { data: dnakeList } = await supabase
-        .from("customer_dnake_users")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-
-      setDnakeUsers(dnakeList || []);
-
-      const { data: mobilePasses } = await supabase
-        .from("customer_mobile_passes")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
-      if (!mobilePassRecord) setMobilePassRecord(mobilePasses?.[0] || null);
+      setSubscriptions(details.subscriptions || []);
+      setMembershipFees(details.membershipFees || []);
+      setBlocks(details.blocks || []);
+      setNotes(details.notes || []);
+      setAccessLogs(details.accessLogs || []);
+      setAccessCredentials(details.accessCredentials || []);
+      setDnakeUsers(details.dnakeUsers || []);
+      if (!mobilePassRecord)
+        setMobilePassRecord(details.mobilePasses?.[0] || null);
     } catch (error) {
       console.error(error);
       setErrorMessage("Errore imprevisto durante il caricamento.");
