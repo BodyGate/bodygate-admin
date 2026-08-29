@@ -35,30 +35,25 @@ export default function NotificationCenterClient() {
 
     const generated: BodyGateNotification[] = [];
 
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("*")
-      .eq("is_active", true);
+    const response = await fetch("/api/notifications/feed", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    const { data: subscriptions } = await supabase
-      .from("customer_subscriptions")
-      .select("*, customers(first_name,last_name)")
-      .eq("is_active", true);
+    if (!response.ok || !result?.ok) {
+      console.error("Errore caricamento notifiche:", result?.error);
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
 
-    const { data: membershipFees } = await supabase
-      .from("customer_membership_fees")
-      .select("*, customers(first_name,last_name)");
-
-    const { data: blocks } = await supabase
-      .from("customer_blocks")
-      .select("*, customers(first_name,last_name)")
-      .eq("is_active", true);
-
-    const { data: unknownBadges } = await supabase
-      .from("unknown_badge_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const {
+      customers,
+      subscriptions,
+      membershipFees,
+      blocks,
+      unknownBadges,
+    } = result;
 
     customers?.forEach((customer: any) => {
       const name = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();

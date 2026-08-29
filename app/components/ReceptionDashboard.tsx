@@ -131,99 +131,26 @@ export default function ReceptionDashboard() {
     return new Date().toISOString().slice(0, 10);
   }
 
-  function addDays(days: number) {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    return date.toISOString().slice(0, 10);
-  }
-
   const loadData = useCallback(async () => {
     setLoading(true);
 
-    const today = todayString();
-    const in30Days = addDays(30);
+    const response = await fetch("/api/reception/dashboard", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    const [
-      { data: customersData, error: customersError },
-      { data: logsData, error: logsError },
-      { data: certificatesData, error: certificatesError },
-      { data: subscriptionsData, error: subscriptionsError },
-      { data: gymPresenceData, error: presenceError },
-    ] = await Promise.all([
-      supabase
-        .from("customers")
-        .select(
-          "id, first_name, last_name, is_active, medical_certificate_start_date, medical_certificate_end_date, medical_certificate_status, medical_certificate_start, medical_certificate_end",
-        )
-        .order("created_at", { ascending: false }),
+    if (!response.ok || !result?.ok) {
+      setDataError(result?.error || "Errore caricamento dashboard reception.");
+      setLoading(false);
+      return;
+    }
 
-      supabase
-        .from("customer_access_logs")
-        .select(
-          `
-          id,
-          created_at,
-          access_time,
-          customer_id,
-          badge_code,
-          controller_code,
-          was_allowed,
-          reason,
-          customers (
-            first_name,
-            last_name
-          )
-        `,
-        )
-        .gte("created_at", `${today}T00:00:00`)
-        .order("created_at", { ascending: false })
-        .limit(120),
-
-      supabase
-        .from("customers")
-        .select(
-          "id, first_name, last_name, is_active, medical_certificate_start_date, medical_certificate_end_date, medical_certificate_status, medical_certificate_start, medical_certificate_end",
-        )
-        .eq("is_active", true)
-        .gte("medical_certificate_end_date", today)
-        .lte("medical_certificate_end_date", in30Days)
-        .order("medical_certificate_end_date", { ascending: true })
-        .limit(20),
-
-      supabase
-        .from("customer_subscriptions")
-        .select(
-          `
-          id,
-          customer_id,
-          starts_at,
-          ends_at,
-          is_active,
-          customers (
-            first_name,
-            last_name
-          )
-        `,
-        )
-        .eq("is_active", true)
-        .lte("ends_at", in30Days)
-        .order("ends_at", { ascending: true })
-        .limit(120),
-
-      supabase
-        .from("gym_presence")
-        .select("id, customer_id, badge_code, is_inside, updated_at")
-        .order("updated_at", { ascending: false })
-        .limit(120),
-    ]);
-
-    const firstError = customersError || logsError || certificatesError || subscriptionsError || presenceError;
-    setDataError(firstError?.message || "");
-    setCustomers((customersData || []) as Customer[]);
-    setLogs((logsData || []) as AccessLog[]);
-    setCertificates((certificatesData || []) as Customer[]);
-    setSubscriptions((subscriptionsData || []) as SubscriptionAlert[]);
-    setGymPresence((gymPresenceData || []) as GymPresence[]);
+    setDataError(result.error || "");
+    setCustomers((result.customers || []) as Customer[]);
+    setLogs((result.logs || []) as AccessLog[]);
+    setCertificates((result.certificates || []) as Customer[]);
+    setSubscriptions((result.subscriptions || []) as SubscriptionAlert[]);
+    setGymPresence((result.gymPresence || []) as GymPresence[]);
     setLoading(false);
   }, []);
 

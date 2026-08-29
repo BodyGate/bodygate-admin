@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type Props = {
   customerId: string;
@@ -28,30 +27,21 @@ export default function CustomerPhotoUpload({
 
       setUploading(true);
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${customerId}-${Date.now()}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("customer-photos")
-        .upload(fileName, file, { upsert: true });
+      const response = await fetch(
+        `/api/customers/${encodeURIComponent(customerId)}/photo`,
+        { method: "POST", body: formData },
+      );
+      const result = await response.json().catch(() => null);
 
-      if (uploadError) throw uploadError;
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Errore upload foto");
+      }
 
-      const { data } = supabase.storage
-        .from("customer-photos")
-        .getPublicUrl(fileName);
-
-      const publicUrl = data.publicUrl;
-
-      const { error: updateError } = await supabase
-        .from("customers")
-        .update({ photo_url: publicUrl })
-        .eq("id", customerId);
-
-      if (updateError) throw updateError;
-
-      setPreview(publicUrl);
-      onUploaded?.(publicUrl);
+      setPreview(result.url);
+      onUploaded?.(result.url);
     } catch (error: any) {
       console.error(error);
       setErrorMessage(error?.message || "Errore upload foto");
