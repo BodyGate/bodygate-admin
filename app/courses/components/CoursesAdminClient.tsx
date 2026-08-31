@@ -12,6 +12,7 @@ import {
   BGStatusBadge,
 } from "@/components/bodygate-ui";
 import { safeRandomId } from "../../lib/safeRandomId";
+import CoursesNav from "./CoursesNav";
 
 type Branch = { id: string; name: string; city?: string | null };
 
@@ -336,6 +337,8 @@ export default function CoursesAdminClient() {
           ) : null
         }
       />
+
+      <CoursesNav />
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <BGButton variant={activeTab === "types" ? "primary" : "secondary"} onClick={() => setActiveTab("types")}>
