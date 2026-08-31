@@ -21,7 +21,7 @@ export type PlatinumNavigationItem = {
   label: string
   shortLabel: string
   href: string
-  icon: "dashboard" | "reception" | "customers" | "access" | "payments" | "subscriptions" | "notifications" | "training" | "reports" | "accounting" | "staff" | "settings" | "system" | "credentials" | "debug" | "audit"
+  icon: "dashboard" | "reception" | "customers" | "access" | "payments" | "subscriptions" | "courses" | "notifications" | "training" | "reports" | "accounting" | "staff" | "settings" | "system" | "credentials" | "debug" | "audit"
   group: PlatinumGroup
   permission: string
   roles: readonly PlatinumRole[]
@@ -46,6 +46,11 @@ export const PLATINUM_NAVIGATION: readonly PlatinumNavigationItem[] = [
   ] },
   { id: "payments", label: "Incassi", shortLabel: "Incassi", href: "/payments", icon: "payments", group: "operations", permission: "payments.view", roles: allRoles, desktopPlacement: "primary", mobilePlacement: "more", children: [] },
   { id: "subscriptions", label: "Abbonamenti", shortLabel: "Abbonamenti", href: "/subscriptions", icon: "subscriptions", group: "operations", permission: "subscriptions.view", roles: allRoles, desktopPlacement: "primary", mobilePlacement: "more", children: [] },
+  { id: "courses", label: "Corsi", shortLabel: "Corsi", href: "/courses/admin", icon: "courses", group: "operations", permission: "courses.view", roles: allRoles, desktopPlacement: "primary", mobilePlacement: "more", children: [
+    { id: "courses-calendar", label: "Calendario corsi", shortLabel: "Calendario", href: "/courses/calendar", icon: "courses", group: "operations", permission: "courses.view", roles: allRoles, desktopPlacement: "child", mobilePlacement: "hidden", children: [] },
+    { id: "courses-bookings", label: "Prenotazioni e iscrizioni", shortLabel: "Prenotazioni", href: "/courses/bookings", icon: "courses", group: "operations", permission: "courses.view", roles: allRoles, desktopPlacement: "child", mobilePlacement: "hidden", children: [] },
+    { id: "courses-payments", label: "Pagamenti corsi", shortLabel: "Pagamenti", href: "/courses/payments", icon: "courses", group: "operations", permission: "courses.view", roles: allRoles, desktopPlacement: "child", mobilePlacement: "hidden", children: [] },
+  ] },
   { id: "notifications", label: "Scadenze e notifiche", shortLabel: "Scadenze", href: "/notifications", icon: "notifications", group: "operations", permission: "notifications.view", roles: allRoles, desktopPlacement: "primary", mobilePlacement: "more", children: [] },
   { id: "training", label: "Training", shortLabel: "Training", href: "/training", icon: "training", group: "services", permission: "training.view", roles: allRoles, desktopPlacement: "primary", mobilePlacement: "more", children: [] },
   { id: "reports", label: "Report", shortLabel: "Report", href: "/analytics", icon: "reports", group: "direction", permission: "reports.view", roles: leaders, desktopPlacement: "primary", mobilePlacement: "more", children: [] },

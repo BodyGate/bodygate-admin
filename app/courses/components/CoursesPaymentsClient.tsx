@@ -127,7 +127,7 @@ export default function CoursesPaymentsClient() {
     const response = await fetch(`/api/courses/sessions?${params.toString()}`, { cache: "no-store" });
     const result = await response.json().catch(() => null);
     const list: CourseSession[] = result?.ok ? result.course_sessions : [];
-    setSessions(list.filter((session) => session.status === "scheduled" || session.status === "completed"));
+    setSessions(list.filter((session) => session.status !== "cancelled"));
   }
 
   async function loadSchedules(currentBranchId: string) {

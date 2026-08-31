@@ -68,9 +68,13 @@ function formatTimeRange(startsAt: string, endsAt: string) {
 
 const STATUS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
   scheduled: "success",
+  open: "success",
+  closed: "warning",
   cancelled: "danger",
   completed: "neutral",
 };
+
+const ACTIONABLE_SESSION_STATUSES = new Set(["scheduled", "open", "closed"]);
 
 export default function CoursesCalendarClient() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -280,7 +284,7 @@ export default function CoursesCalendarClient() {
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           <BGStatusBadge tone={STATUS_TONE[session.status] || "neutral"}>{session.status}</BGStatusBadge>
-                          {session.status === "scheduled" && (
+                          {ACTIONABLE_SESSION_STATUSES.has(session.status) && (
                             <>
                               <BGButton
                                 variant="secondary"

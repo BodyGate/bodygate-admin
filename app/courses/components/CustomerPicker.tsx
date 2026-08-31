@@ -15,6 +15,15 @@ export default function CustomerPicker({ selected, onSelect }: Props) {
   const [results, setResults] = useState<CustomerOption[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [prevSelected, setPrevSelected] = useState(selected);
+
+  if (selected !== prevSelected) {
+    setPrevSelected(selected);
+    if (!selected) {
+      setQuery("");
+      setResults([]);
+    }
+  }
 
   function updateQuery(value: string) {
     setQuery(value);
@@ -59,10 +68,7 @@ export default function CustomerPicker({ selected, onSelect }: Props) {
         <span style={{ fontWeight: 700 }}>{selected.full_name}</span>
         <button
           type="button"
-          onClick={() => {
-            onSelect(null);
-            setQuery("");
-          }}
+          onClick={() => onSelect(null)}
           style={{
             background: "none",
             border: "none",
