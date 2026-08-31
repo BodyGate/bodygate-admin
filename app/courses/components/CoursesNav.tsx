@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/courses/admin", label: "Amministrazione" },
   { href: "/courses/calendar", label: "Calendario" },
   { href: "/courses/bookings", label: "Prenotazioni e iscrizioni" },
+  { href: "/courses/payments", label: "Pagamenti" },
 ];
 
 export default function CoursesNav() {
