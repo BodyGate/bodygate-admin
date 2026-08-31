@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/courses/admin", label: "Amministrazione" },
   { href: "/courses/calendar", label: "Calendario" },
+  { href: "/courses/bookings", label: "Prenotazioni e iscrizioni" },
 ];
 
 export default function CoursesNav() {
