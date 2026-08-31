@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 
 type CustomerBadge = {
   id: string;
@@ -21,23 +20,13 @@ export default function BadgesTable() {
   async function loadBadges() {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select(
-        `
-        id,
-        full_name,
-        badge_code,
-        active,
-        subscription_status,
-        subscription_expiry
-      `
-      )
-      .not("badge_code", "is", null)
-      .order("full_name", { ascending: true });
+    const response = await fetch("/api/customers/badges-list", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (!error && data) {
-      setCustomers(data as CustomerBadge[]);
+    if (response.ok && result?.ok) {
+      setCustomers(result.customers as CustomerBadge[]);
     }
 
     setLoading(false);

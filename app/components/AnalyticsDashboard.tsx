@@ -35,18 +35,19 @@ export default function AnalyticsDashboard() {
   async function loadAnalytics() {
     setLoading(true);
 
-    const { data: logsData } = await supabase
-      .from("access_logs")
-      .select("id, allowed, created_at")
-      .order("created_at", { ascending: false })
-      .limit(1000);
+    const response = await fetch("/api/analytics/summary", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    const { data: customersData } = await supabase
-      .from("customers")
-      .select("id, active, subscription_status");
+    if (!response.ok || !result?.ok) {
+      console.error("Errore caricamento analytics:", result?.error);
+      setLoading(false);
+      return;
+    }
 
-    setLogs((logsData || []) as AccessLog[]);
-    setCustomers((customersData || []) as Customer[]);
+    setLogs((result.logs || []) as AccessLog[]);
+    setCustomers((result.customers || []) as Customer[]);
 
     setLoading(false);
   }

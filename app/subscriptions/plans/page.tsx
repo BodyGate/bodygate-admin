@@ -2,7 +2,6 @@
 
 import { BGButton, BGCard, BGEmptyState, BGPageHeader, BGPageShell, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type Branch = {
   id: string;
@@ -168,42 +167,35 @@ export default function SubscriptionPlansPage() {
   }, [plans]);
 
   async function loadBranches() {
-    const { data, error } = await supabase
-      .from("branches")
-      .select("id, name, city")
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
+    const response = await fetch("/api/settings/branches", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setErrorMessage("Impossibile caricare le sedi attive.");
       setBranches([]);
       return;
     }
 
-    setBranches(data || []);
+    setBranches(result.branches || []);
   }
 
   async function loadPlans(branchId = ALL_BRANCHES_VALUE) {
     setLoading(true);
     setErrorMessage("");
 
-    let query = supabase
-      .from("subscription_plans")
-      .select("id, branch_id, name, price, promo_price, duration_days, sort_order, is_active")
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const response = await fetch(`/api/subscriptions/plans-admin${query}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (branchId) {
-      query = query.eq("branch_id", branchId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setErrorMessage("Impossibile caricare i piani abbonamento.");
       setPlans([]);
     } else {
-      const sortedPlans = sortPlansByDisplayOrder(data || []);
+      const sortedPlans = sortPlansByDisplayOrder(result.plans || []);
       setPlans(sortedPlans);
       setNewPlan((current) => ({
         ...current,
@@ -269,17 +261,22 @@ export default function SubscriptionPlansPage() {
 
     setSaving(true);
 
-    const { error } = await supabase.from("subscription_plans").insert({
-      branch_id: selectedBranchId,
-      name: newPlan.name.trim(),
-      price: Number(newPlan.price),
-      promo_price: newPlan.promoPrice.trim() ? Number(newPlan.promoPrice) : null,
-      duration_days: Number(newPlan.durationDays),
-      sort_order: Number(newPlan.sortOrder),
-      is_active: newPlan.isActive,
+    const response = await fetch("/api/subscriptions/plans-admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        branch_id: selectedBranchId,
+        name: newPlan.name.trim(),
+        price: Number(newPlan.price),
+        promo_price: newPlan.promoPrice.trim() ? Number(newPlan.promoPrice) : null,
+        duration_days: Number(newPlan.durationDays),
+        sort_order: Number(newPlan.sortOrder),
+        is_active: newPlan.isActive,
+      }),
     });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setErrorMessage("Creazione piano non riuscita.");
     } else {
       setMessage("Piano abbonamento creato.");
@@ -308,9 +305,11 @@ export default function SubscriptionPlansPage() {
 
     setSaving(true);
 
-    const { error } = await supabase
-      .from("subscription_plans")
-      .update({
+    const response = await fetch("/api/subscriptions/plans-admin", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingPlan.id,
         name: editForm.name.trim(),
         price: Number(editForm.price),
         promo_price: editForm.promoPrice.trim()
@@ -319,10 +318,11 @@ export default function SubscriptionPlansPage() {
         duration_days: Number(editForm.durationDays),
         sort_order: Number(editForm.sortOrder),
         is_active: editForm.isActive,
-      })
-      .eq("id", editingPlan.id);
+      }),
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setErrorMessage("Aggiornamento piano non riuscito.");
     } else {
       setMessage("Piano abbonamento aggiornato.");
@@ -339,12 +339,14 @@ export default function SubscriptionPlansPage() {
     setSaving(true);
 
     const nextActiveState = plan.is_active === false;
-    const { error } = await supabase
-      .from("subscription_plans")
-      .update({ is_active: nextActiveState })
-      .eq("id", plan.id);
+    const response = await fetch("/api/subscriptions/plans-admin", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: plan.id, is_active: nextActiveState }),
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setErrorMessage("Cambio stato non riuscito.");
     } else {
       setMessage(nextActiveState ? "Piano riattivato." : "Piano disattivato.");

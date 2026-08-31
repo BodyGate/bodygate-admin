@@ -131,41 +131,18 @@ export default function PaymentsClient() {
     setLoading(true);
     setLoadError("");
 
-    const { data, error } = await supabase
-      .from("payments")
-      .select(
-        `
-        id,
-        customer_id,
-        amount,
-        payment_type,
-        description,
-        status,
-        paid_at,
-        created_at,
-        customers (
-          first_name,
-          last_name
-        ),
-        payment_methods (
-          name,
-          method_key
-        )
-      `,
-      )
-      .order("paid_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .limit(100);
+    const response = await fetch("/api/payments/list", { cache: "no-store" });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
-      console.error("Errore caricamento pagamenti:", error);
+    if (!response.ok || !result?.ok) {
+      console.error("Errore caricamento pagamenti:", result?.error);
       setPayments([]);
-      setLoadError(error.message || "Errore caricamento pagamenti.");
+      setLoadError(result?.error || "Errore caricamento pagamenti.");
       setLoading(false);
       return;
     }
 
-    setPayments((data || []) as unknown as Payment[]);
+    setPayments((result.payments || []) as unknown as Payment[]);
     setLoading(false);
   }
 

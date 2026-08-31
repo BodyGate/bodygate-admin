@@ -34,35 +34,19 @@ export default function AccessLogsTable() {
 
     setErrorMessage("");
 
-    const { data, error } = await supabase
-      .from("customer_access_logs")
-      .select(
-        `
-        id,
-        access_time,
-        customer_id,
-        branch_id,
-        was_allowed,
-        reason,
-        badge_code,
-        controller_code,
-        customers (
-          first_name,
-          last_name
-        )
-      `,
-      )
-      .order("access_time", { ascending: false })
-      .limit(50);
+    const response = await fetch("/api/access/logs-feed", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
+    if (!response.ok || !result?.ok) {
       setLogs([]);
-      setErrorMessage(error.message || "Errore caricamento access logs.");
+      setErrorMessage(result?.error || "Errore caricamento access logs.");
       setLoading(false);
       return;
     }
 
-    setLogs((data || []) as unknown as AccessLog[]);
+    setLogs((result.logs || []) as unknown as AccessLog[]);
     setLoading(false);
   }
 

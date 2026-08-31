@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type MembershipFee = {
   id: string;
@@ -28,14 +27,13 @@ export default function MembershipFeeSettings({
   async function loadFee() {
     setLoading(true);
 
-    const { data } = await supabase
-      .from("membership_fee_settings")
-      .select("*")
-      .eq("branch_id", branchId)
-      .limit(1)
-      .maybeSingle();
+    const response = await fetch(
+      `/api/settings/membership-fee?branch_id=${encodeURIComponent(branchId)}`,
+      { cache: "no-store" },
+    );
+    const result = await response.json().catch(() => null);
 
-    setFee(data);
+    setFee(result?.ok ? result.fee : null);
     setLoading(false);
   }
 
@@ -44,16 +42,18 @@ export default function MembershipFeeSettings({
 
     setSaving(true);
 
-    await supabase
-      .from("membership_fee_settings")
-      .update({
+    await fetch("/api/settings/membership-fee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: fee.id,
         name: fee.name,
         price: fee.price,
         validity_days: fee.validity_days,
         required_for_access: fee.required_for_access,
         is_active: fee.is_active,
-      })
-      .eq("id", fee.id);
+      }),
+    });
 
     setSaving(false);
     alert("Quota associativa aggiornata");

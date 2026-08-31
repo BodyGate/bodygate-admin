@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type Category = {
   id: string;
@@ -33,34 +32,30 @@ export default function SubscriptionPlansSettings({
   async function loadData() {
     setLoading(true);
 
-    const { data: cats } = await supabase
-      .from("subscription_categories")
-      .select("id, name")
-      .eq("branch_id", branchId)
-      .order("sort_order", { ascending: true });
+    const response = await fetch(
+      `/api/settings/subscription-plans?branch_id=${encodeURIComponent(branchId)}`,
+      { cache: "no-store" },
+    );
+    const result = await response.json().catch(() => null);
 
-    const { data: pls } = await supabase
-      .from("subscription_plans")
-      .select("*")
-      .eq("branch_id", branchId)
-      .order("sort_order", { ascending: true });
-
-    setCategories(cats || []);
-    setPlans(pls || []);
+    setCategories(result?.ok ? result.categories || [] : []);
+    setPlans(result?.ok ? result.plans || [] : []);
     setLoading(false);
   }
 
   async function updatePlan(plan: Plan) {
-    await supabase
-      .from("subscription_plans")
-      .update({
+    await fetch("/api/settings/subscription-plans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: plan.id,
         name: plan.name,
         price: plan.price,
         duration_days: plan.duration_days,
         is_active: plan.is_active,
         category_id: plan.category_id,
-      })
-      .eq("id", plan.id);
+      }),
+    });
 
     alert("Abbonamento aggiornato");
   }
@@ -68,14 +63,14 @@ export default function SubscriptionPlansSettings({
   async function addPlan() {
     const categoryId = categories[0]?.id || null;
 
-    await supabase.from("subscription_plans").insert({
-      branch_id: branchId,
-      category_id: categoryId,
-      name: "Nuovo abbonamento",
-      price: 0,
-      duration_days: 30,
-      is_active: true,
-      sort_order: plans.length + 1,
+    await fetch("/api/settings/subscription-plans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        branch_id: branchId,
+        category_id: categoryId,
+        sort_order: plans.length + 1,
+      }),
     });
 
     loadData();

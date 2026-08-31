@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type Role = {
   id: string;
@@ -31,50 +30,33 @@ export default function PermissionsSettingsClient() {
   async function loadData() {
     setLoading(true);
 
-    const { data: rolesData } = await supabase
-      .from("staff_roles")
-      .select("*")
-      .order("role_name");
+    const response = await fetch("/api/staff/permissions-matrix", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    const { data: permissionsData } = await supabase
-      .from("staff_permissions")
-      .select("*")
-      .order("category");
+    if (!response.ok || !result?.ok) {
+      console.error("Errore caricamento permessi:", result?.error);
+      setRoles([]);
+      setPermissions([]);
+      setRolePermissions([]);
+      setLoading(false);
+      return;
+    }
 
-    const { data: rolePermissionsData } = await supabase
-      .from("staff_role_permissions")
-      .select("*");
-
-    setRoles(rolesData || []);
-    setPermissions(permissionsData || []);
-    setRolePermissions(rolePermissionsData || []);
+    setRoles(result.roles || []);
+    setPermissions(result.permissions || []);
+    setRolePermissions(result.rolePermissions || []);
 
     setLoading(false);
   }
 
   async function togglePermission(roleId: string, permissionId: string) {
-    const exists = rolePermissions.some(
-      (rp) =>
-        rp.role_id === roleId &&
-        rp.permission_id === permissionId
-    );
-
-    if (exists) {
-      await supabase
-        .from("staff_role_permissions")
-        .delete()
-        .match({
-          role_id: roleId,
-          permission_id: permissionId,
-        });
-    } else {
-      await supabase
-        .from("staff_role_permissions")
-        .insert({
-          role_id: roleId,
-          permission_id: permissionId,
-        });
-    }
+    await fetch("/api/staff/permissions-matrix", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role_id: roleId, permission_id: permissionId }),
+    });
 
     loadData();
   }

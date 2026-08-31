@@ -21,15 +21,12 @@ export default function AuditLogsClient() {
   async function loadLogs() {
     setLoading(true);
 
-    const { data } = await supabase
-      .from("audit_logs")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(100);
+    const response = await fetch("/api/system/audit-logs", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    setLogs(data || []);
+    setLogs(result?.ok ? result.logs || [] : []);
     setLoading(false);
   }
 

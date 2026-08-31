@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 type BadgeColor = "green" | "blue" | "red" | "yellow" | "purple" | "gray";
 
@@ -34,7 +33,6 @@ type Props = {
   customerId: string;
 };
 
-const MAX_ITEMS_PER_SOURCE = 80;
 const MAX_TOTAL_ITEMS = 200;
 
 function asBadgeColor(color: BadgeColor): BadgeColor {
@@ -49,24 +47,6 @@ export default function CustomerTimeline({ customerId }: Props) {
     loadTimeline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
-
-  async function safeSelect<T = any>(table: string, queryBuilder: (qb: any) => any) {
-    try {
-      const base = supabase.from(table);
-      const q = queryBuilder(base);
-      const { data, error } = await q;
-
-      if (error) {
-        console.warn(`[Timeline] source non disponibile: ${table}`, error.message);
-        return [] as T[];
-      }
-
-      return (data || []) as T[];
-    } catch (error) {
-      console.warn(`[Timeline] errore fallback su tabella ${table}`, error);
-      return [] as T[];
-    }
-  }
 
   function pickDate(item: any, fields: string[]) {
     for (const field of fields) {
@@ -86,44 +66,23 @@ export default function CustomerTimeline({ customerId }: Props) {
   async function loadTimeline() {
     setLoading(true);
 
-    const customers = await safeSelect<any>("customers", (qb) =>
-      qb.select("id, badge_code, first_name, last_name").eq("id", customerId).limit(1)
+    const response = await fetch(
+      `/api/customers/${encodeURIComponent(customerId)}/timeline-feed`,
+      { cache: "no-store" },
     );
+    const feed = await response.json().catch(() => null);
 
-    const customer = customers[0] || null;
-    const directBadgeCode = customer?.badge_code || null;
+    if (!response.ok || !feed?.ok) {
+      console.warn("[Timeline] errore caricamento feed", feed?.error);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
 
-    const customerBadges = await safeSelect<any>("customer_badges", (qb) =>
-      qb
-        .select("id, badge_code, badge_type, is_primary, is_active, notes, created_at")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false })
-        .limit(MAX_ITEMS_PER_SOURCE)
-    );
-
-    const accessCredentials = await safeSelect<any>("access_credentials", (qb) =>
-      qb
-        .select("id, type, code, status, created_at, controller_code")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false })
-        .limit(MAX_ITEMS_PER_SOURCE)
-    );
-
-    const badgeCodes = new Set<string>();
-
-    if (directBadgeCode) badgeCodes.add(String(directBadgeCode));
-
-    customerBadges.forEach((b) => {
-      if (b?.badge_code) badgeCodes.add(String(b.badge_code));
-    });
-
-    accessCredentials.forEach((c) => {
-      if (c?.code) badgeCodes.add(String(c.code));
-      if (c?.controller_code) badgeCodes.add(String(c.controller_code));
-    });
-
-    const [
+    const {
       customerAccessLogs,
+      technicalAccessByCustomerId,
+      technicalAccessByBadge,
       subscriptions,
       membershipFees,
       medicalCertificates,
@@ -133,114 +92,13 @@ export default function CustomerTimeline({ customerId }: Props) {
       customerPayments,
       customerDocuments,
       documents,
+      customerBadges,
+      accessCredentials,
       timelineLegacy,
-    ] = await Promise.all([
-      safeSelect<any>("customer_access_logs", (qb) =>
-        qb
-          .select("id, created_at, access_time, badge_code, controller_code, was_allowed, reason")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_subscriptions", (qb) =>
-        qb
-          .select("id, created_at, starts_at, ends_at, is_active, amount, payment_method, notes, plan_id")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_membership_fees", (qb) =>
-        qb
-          .select("id, created_at, paid_at, valid_from, valid_until, amount, payment_method, notes")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("medical_certificates", (qb) =>
-        qb
-          .select("id, created_at, valid_from, valid_until, expiry_date, status, certificate_type, notes, file_name")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_blocks", (qb) =>
-        qb
-          .select("id, created_at, starts_at, ends_at, is_active, reason")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_internal_notes", (qb) =>
-        qb
-          .select("id, created_at, note, is_important, created_by")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("payments", (qb) =>
-        qb
-          .select("id, created_at, paid_at, amount, status, payment_type, description")
-          .eq("customer_id", customerId)
-          .order("paid_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_payments", (qb) =>
-        qb
-          .select("id, created_at, paid_at, amount, type, description, payment_method")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_documents", (qb) =>
-        qb
-          .select("id, created_at, title, type, document_type, status, notes")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("documents", (qb) =>
-        qb
-          .select("id, created_at, title, type, file_name, status, signed_at, expires_at")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-      safeSelect<any>("customer_timeline", (qb) =>
-        qb
-          .select("id, created_at, type, title, description")
-          .eq("customer_id", customerId)
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      ),
-    ]);
-
-    const technicalAccessByCustomerId = await safeSelect<any>("access_logs", (qb) =>
-      qb
-        .select("id, created_at, badge_code, controller_code, allowed, reason, event_type")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false })
-        .limit(MAX_ITEMS_PER_SOURCE)
-    );
-
-    let technicalAccessByBadge: any[] = [];
-    const badgeArray = Array.from(badgeCodes);
-
-    if (badgeArray.length > 0) {
-      technicalAccessByBadge = await safeSelect<any>("access_logs", (qb) =>
-        qb
-          .select("id, created_at, badge_code, controller_code, allowed, reason, event_type")
-          .or(
-            `badge_code.in.(${badgeArray.map((b) => `"${b}"`).join(",")}),controller_code.in.(${badgeArray
-              .map((b) => `"${b}"`)
-              .join(",")})`
-          )
-          .order("created_at", { ascending: false })
-          .limit(MAX_ITEMS_PER_SOURCE)
-      );
-    }
+    } = feed;
 
     const eventList: TimelineEvent[] = [
-      ...customerAccessLogs.map((log): TimelineEvent => ({
+      ...customerAccessLogs.map((log: any): TimelineEvent => ({
         id: `customer_access_${log.id}`,
         source: "customer_access_logs",
         type: "customer_access",
@@ -256,7 +114,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(log.was_allowed ? "green" : "red"),
       })),
 
-      ...[...technicalAccessByCustomerId, ...technicalAccessByBadge].map((log): TimelineEvent => ({
+      ...[...technicalAccessByCustomerId, ...technicalAccessByBadge].map((log: any): TimelineEvent => ({
         id: `technical_access_${log.id}`,
         source: "access_logs",
         type: "technical_access",
@@ -273,7 +131,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(log.allowed ? "blue" : "red"),
       })),
 
-      ...subscriptions.map((sub): TimelineEvent => ({
+      ...subscriptions.map((sub: any): TimelineEvent => ({
         id: `subscription_${sub.id}`,
         source: "customer_subscriptions",
         type: "subscription",
@@ -291,7 +149,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "green",
       })),
 
-      ...membershipFees.map((fee): TimelineEvent => ({
+      ...membershipFees.map((fee: any): TimelineEvent => ({
         id: `membership_${fee.id}`,
         source: "customer_membership_fees",
         type: "membership_fee",
@@ -309,7 +167,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "yellow",
       })),
 
-      ...medicalCertificates.map((cert): TimelineEvent => {
+      ...medicalCertificates.map((cert: any): TimelineEvent => {
         const startDate = cert.valid_from;
         const endDate = cert.valid_until || cert.expiry_date;
 
@@ -331,7 +189,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         };
       }),
 
-      ...blocks.map((block): TimelineEvent => ({
+      ...blocks.map((block: any): TimelineEvent => ({
         id: `block_${block.id}`,
         source: "customer_blocks",
         type: "block",
@@ -347,7 +205,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(block.is_active ? "red" : "gray"),
       })),
 
-      ...notes.map((note): TimelineEvent => ({
+      ...notes.map((note: any): TimelineEvent => ({
         id: `note_${note.id}`,
         source: "customer_internal_notes",
         type: "note",
@@ -358,7 +216,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(note.is_important ? "yellow" : "blue"),
       })),
 
-      ...payments.map((payment): TimelineEvent => ({
+      ...payments.map((payment: any): TimelineEvent => ({
         id: `payment_${payment.id}`,
         source: "payments",
         type: "payment",
@@ -370,7 +228,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "green",
       })),
 
-      ...customerPayments.map((payment): TimelineEvent => ({
+      ...customerPayments.map((payment: any): TimelineEvent => ({
         id: `customer_payment_${payment.id}`,
         source: "customer_payments",
         type: "payment",
@@ -384,7 +242,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "green",
       })),
 
-      ...customerDocuments.map((doc): TimelineEvent => ({
+      ...customerDocuments.map((doc: any): TimelineEvent => ({
         id: `customer_document_${doc.id}`,
         source: "customer_documents",
         type: "document",
@@ -397,7 +255,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "gray",
       })),
 
-      ...documents.map((doc): TimelineEvent => ({
+      ...documents.map((doc: any): TimelineEvent => ({
         id: `document_${doc.id}`,
         source: "documents",
         type: "document",
@@ -408,7 +266,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: "gray",
       })),
 
-      ...customerBadges.map((credential): TimelineEvent => ({
+      ...customerBadges.map((credential: any): TimelineEvent => ({
         id: `badge_${credential.id}`,
         source: "customer_badges",
         type: "access_credential",
@@ -425,7 +283,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(credential.is_active ? "blue" : "gray"),
       })),
 
-      ...accessCredentials.map((credential): TimelineEvent => ({
+      ...accessCredentials.map((credential: any): TimelineEvent => ({
         id: `access_credential_${credential.id}`,
         source: "access_credentials",
         type: "access_credential",
@@ -441,7 +299,7 @@ export default function CustomerTimeline({ customerId }: Props) {
         badgeColor: asBadgeColor(credential.status === "active" ? "blue" : "gray"),
       })),
 
-      ...timelineLegacy.map((item): TimelineEvent => ({
+      ...timelineLegacy.map((item: any): TimelineEvent => ({
         id: `legacy_timeline_${item.id}`,
         source: "customer_timeline",
         type: "generic",

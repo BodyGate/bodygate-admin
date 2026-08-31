@@ -2,7 +2,6 @@
 
 import { useState, type MouseEvent } from "react";
 import CustomerDetailsClient from "./CustomerDetailsClient";
-import { supabase } from "../../lib/supabaseClient";
 
 const ACTIVATION_LABELS = [
   "genera qr dnake",
@@ -51,7 +50,7 @@ export default function UnifiedCustomerDetailsClient({
     setWorking(true);
 
     try {
-      const [response, customerResult] = await Promise.all([
+      const [response, customerResponse] = await Promise.all([
         fetch("/api/customers/ensure-digital-pass", {
           method: "POST",
           headers: {
@@ -59,14 +58,11 @@ export default function UnifiedCustomerDetailsClient({
           },
           body: JSON.stringify({ customer_id: customerId }),
         }),
-        supabase
-          .from("customers")
-          .select("first_name, phone")
-          .eq("id", customerId)
-          .maybeSingle(),
+        fetch(`/api/customers/${encodeURIComponent(customerId)}/contact`),
       ]);
 
       const result = await response.json().catch(() => null);
+      const customerResult = await customerResponse.json().catch(() => null);
 
       if (!response.ok || !result?.ok) {
         throw new Error(
@@ -86,15 +82,15 @@ export default function UnifiedCustomerDetailsClient({
         throw new Error("Pass creato, ma il link mobile non è disponibile.");
       }
 
-      if (customerResult.error) {
-        console.warn("Impossibile leggere il telefono cliente:", customerResult.error);
+      if (!customerResponse.ok || !customerResult?.ok) {
+        console.warn("Impossibile leggere il telefono cliente:", customerResult?.error);
       }
 
       const firstName =
-        customerResult.data?.first_name ||
+        customerResult?.customer?.first_name ||
         String(result.customer_name || "").split(" ")[0] ||
         "";
-      const phone = normalizePhone(customerResult.data?.phone);
+      const phone = normalizePhone(customerResult?.customer?.phone);
       const message =
         `Ciao ${firstName}, ecco il tuo Pass digitale BodyGate di Body Energy:\n\n` +
         `${passUrl}\n\n` +

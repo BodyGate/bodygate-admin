@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("admin@bodygate.it");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 

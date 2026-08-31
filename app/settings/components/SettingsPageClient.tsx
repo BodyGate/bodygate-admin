@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 import MembershipFeeSettings from "./MembershipFeeSettings";
 import SubscriptionPlansSettings from "./SubscriptionPlansSettings";
 
@@ -25,15 +24,14 @@ export default function SettingsPageClient() {
   async function loadBranches() {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("branches")
-      .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
+    const response = await fetch("/api/settings/branches", {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
 
-    if (!error && data) {
-      setBranches(data);
-      if (data.length > 0) setSelectedBranchId(data[0].id);
+    if (response.ok && result?.ok) {
+      setBranches(result.branches);
+      if (result.branches.length > 0) setSelectedBranchId(result.branches[0].id);
     }
 
     setLoading(false);

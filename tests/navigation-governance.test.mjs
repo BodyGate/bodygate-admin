@@ -29,7 +29,7 @@ test("desktop and mobile derive from one complete configuration", () => {
 
 test("required groups and labels are represented without duplicates", () => {
   assert.deepEqual([...new Set(PLATINUM_NAVIGATION.map((item) => item.group))], [...PLATINUM_GROUPS])
-  const expected = ["Dashboard", "Reception", "Clienti", "Accessi", "Incassi", "Abbonamenti", "Scadenze e notifiche", "Training", "Report", "Contabilità", "Staff", "Configurazione", "Sistema"]
+  const expected = ["Dashboard", "Reception", "Clienti", "Accessi", "Incassi", "Abbonamenti", "Corsi", "Scadenze e notifiche", "Training", "Report", "Contabilità", "Staff", "Configurazione", "Sistema"]
   assert.deepEqual(PLATINUM_NAVIGATION.map((item) => item.label), expected)
 })
 

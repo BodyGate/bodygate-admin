@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getDefaultOperationalBranch } from "../../../lib/server/defaultBranch";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL mancante");
+  if (!supabaseServiceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY mancante");
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+const supabase = getSupabaseClient();
 
 function isMissingTableError(message: string) {
   const lower = message.toLowerCase();
