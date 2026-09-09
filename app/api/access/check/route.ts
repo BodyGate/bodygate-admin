@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
+import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -341,6 +342,23 @@ async function findStaffAccess(
 
 export async function POST(req: Request) {
   const accessStartedAt = Date.now();
+
+  // This endpoint is reachable without a session (the physical bridge has
+  // none) and returns customer name + medical/subscription status on a
+  // match, so a guessable badge code is an enumeration vector. Machine-key
+  // auth (see proxy.ts) is the primary control; this is a second layer that
+  // holds even where machine auth isn't enforced yet.
+  if (
+    isRateLimited(`access-check:${getClientIp(req)}`, {
+      limit: 30,
+      windowMs: 60_000,
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, allowed: false, reason: "Troppe richieste" },
+      { status: 429 }
+    );
+  }
 
   try {
     const body = await req.json();
