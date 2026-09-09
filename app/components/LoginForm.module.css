@@ -1,0 +1,52 @@
+.form {
+  width: 100%;
+  max-width: 440px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 34px;
+  display: grid;
+  gap: 26px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.fields {
+  display: grid;
+  gap: 16px;
+}
+
+.brand {
+  font-size: 42px;
+  font-weight: bold;
+  color: var(--text);
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.message {
+  background: rgba(214, 49, 74, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(214, 49, 74, 0.35);
+  border-radius: 14px;
+  padding: 14px;
+  font-weight: bold;
+}
+
+.submit {
+  width: 100%;
+  font-size: 15px;
+}
