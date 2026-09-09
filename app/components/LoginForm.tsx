@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { BGButton, BGInput } from "@/components/bodygate-ui";
+import styles from "./LoginForm.module.css";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -41,107 +43,45 @@ export default function LoginForm() {
   }
 
   return (
-    <div style={formStyle}>
+    <div className={styles.form}>
       <div>
-        <div style={brandStyle}>BodyGate</div>
+        <div className={styles.brand}>BodyGate</div>
 
-        <div style={subtitleStyle}>
+        <div className={styles.subtitle}>
           Access Control Platform
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: "16px" }}>
-        <label style={labelStyle}>
+      <div className={styles.fields}>
+        <label className={styles.label}>
           EMAIL
-          <input
+          <BGInput
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
             placeholder="Email"
           />
         </label>
 
-        <label style={labelStyle}>
+        <label className={styles.label}>
           PASSWORD
-          <input
+          <BGInput
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
             placeholder="Password"
           />
         </label>
       </div>
 
-      {message && <div style={messageStyle}>{message}</div>}
+      {message && <div className={styles.message}>{message}</div>}
 
-      <button type="button" onClick={doLogin} disabled={loading} style={buttonStyle}>
+      <BGButton
+        onClick={doLogin}
+        disabled={loading}
+        className={styles.submit}
+      >
         {loading ? "Accesso..." : "Accedi"}
-      </button>
+      </BGButton>
     </div>
   );
 }
-
-const formStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: "440px",
-  background: "var(--panel)",
-  border: "1px solid var(--border)",
-  borderRadius: "28px",
-  padding: "34px",
-  display: "grid",
-  gap: "26px",
-  boxShadow: "0 30px 80px rgba(0,0,0,0.35)",
-};
-
-const brandStyle: React.CSSProperties = {
-  fontSize: "42px",
-  fontWeight: "bold",
-  color: "var(--text)",
-  fontFamily: "var(--font-display)",
-  letterSpacing: "-0.02em",
-};
-
-const subtitleStyle: React.CSSProperties = {
-  marginTop: "8px",
-  color: "var(--muted)",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "8px",
-  color: "var(--muted)",
-  fontSize: "13px",
-  fontWeight: 700,
-  letterSpacing: "0.06em",
-};
-
-const inputStyle: React.CSSProperties = {
-  background: "var(--bg-soft)",
-  color: "var(--text)",
-  border: "1px solid var(--border)",
-  borderRadius: "14px",
-  padding: "16px",
-  outline: "none",
-  fontWeight: 600,
-};
-
-const buttonStyle: React.CSSProperties = {
-  background: "var(--accent)",
-  color: "white",
-  border: "none",
-  borderRadius: "14px",
-  padding: "16px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  fontSize: "15px",
-};
-
-const messageStyle: React.CSSProperties = {
-  background: "rgba(214,49,74,0.1)",
-  color: "var(--danger)",
-  border: "1px solid rgba(214,49,74,0.35)",
-  borderRadius: "14px",
-  padding: "14px",
-  fontWeight: "bold",
-};
