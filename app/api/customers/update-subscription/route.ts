@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
 
@@ -40,16 +41,6 @@ function parseAmount(value: unknown) {
   if (!Number.isFinite(amount)) return null;
 
   return amount;
-}
-
-function normalizePaymentMethod(value: string) {
-  const method = String(value || "cash").trim();
-
-  if (method === "cash") return "cash";
-  if (method === "pos") return "pos";
-  if (method === "bank_transfer") return "bank_transfer";
-
-  return "cash";
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {
@@ -192,6 +183,13 @@ export async function POST(req: Request) {
       ),
     );
     const notes = String(body.notes || "").trim();
+
+    if (!paymentMethod) {
+      return NextResponse.json(
+        { ok: false, error: "Metodo pagamento non valido." },
+        { status: 400 },
+      );
+    }
 
     if (!planId) {
       return NextResponse.json(

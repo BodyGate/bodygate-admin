@@ -10,6 +10,7 @@ import {
   getDefaultBadgeFee,
   normalizeBadgeChargeMode,
 } from "../../../lib/server/badgeFee";
+import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -150,16 +151,6 @@ async function getPlatinumConfig(
     plans,
     badge_fee: getDefaultBadgeFee(),
   };
-}
-
-function normalizePaymentMethod(value: unknown) {
-  const method = String(value || "cash").trim().toLowerCase();
-
-  if (method === "cash") return "cash";
-  if (method === "pos") return "pos";
-  if (method === "bank_transfer") return "bank_transfer";
-
-  return null;
 }
 
 function normalizeOptionalDate(value: unknown) {
