@@ -5,6 +5,7 @@ import {
   getDefaultBadgeFee,
   normalizeBadgeChargeMode,
 } from "../../../lib/server/badgeFee";
+import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,16 +25,6 @@ function admin() {
       persistSession: false,
     },
   });
-}
-
-function normalizePaymentMethod(value: unknown) {
-  const method = String(value || "cash").trim();
-
-  if (method === "cash") return "cash";
-  if (method === "pos") return "pos";
-  if (method === "bank_transfer") return "bank_transfer";
-
-  return null;
 }
 
 function normalizeDateOnly(value: unknown) {

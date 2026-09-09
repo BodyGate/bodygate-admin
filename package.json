@@ -21,7 +21,8 @@
     "qa:platinum-customers": "node --test tests/platinum-customers.test.mjs",
     "qa:platinum-completion": "node --test tests/platinum-completion.test.mjs",
     "qa:access-eligibility": "node --experimental-strip-types --test tests/accessEligibility.test.mjs",
-    "test": "npm run qa:access-eligibility"
+    "qa:payment-method": "node --experimental-strip-types --test tests/paymentMethod.test.mjs",
+    "test": "npm run qa:access-eligibility && npm run qa:payment-method"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -41,16 +42,6 @@ function normalizeDate(value: unknown) {
   if (Number.isNaN(parsed.getTime())) return null;
 
   return date;
-}
-
-function normalizePaymentMethod(value: unknown) {
-  const method = String(value || "").trim().toLowerCase();
-
-  if (method === "cash") return "cash";
-  if (method === "pos") return "pos";
-  if (method === "bank_transfer") return "bank_transfer";
-
-  return null;
 }
 
 function getIdempotencyKey(
