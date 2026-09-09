@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -349,6 +350,23 @@ async function saveTechnicalLog(params: {
 }
 
 async function handleDnakeEvent(req: Request) {
+  // This endpoint can open the physical turnstile (via openTurnstile()
+  // below) in response to an unauthenticated request - it exists for DNAKE
+  // hardware that posts events directly rather than through the C# bridge.
+  // Machine-key auth (proxy.ts) is the primary control; this rate limit is
+  // a second layer against badge-code brute forcing.
+  if (
+    isRateLimited(`dnake-event:${getClientIp(req)}`, {
+      limit: 30,
+      windowMs: 60_000,
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, allowed: false, reason: "Troppe richieste" },
+      { status: 429 }
+    );
+  }
+
   const url = new URL(req.url);
   const query = getQueryParams(url);
   const body = await parseBody(req);

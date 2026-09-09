@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -77,6 +78,20 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  // Public endpoint (the physical bridge has no session) - a second layer
+  // against write-amplification alongside machine-key auth in proxy.ts.
+  if (
+    isRateLimited(`access-log:${getClientIp(req)}`, {
+      limit: 30,
+      windowMs: 60_000,
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Troppe richieste" },
+      { status: 429 }
+    );
+  }
+
   try {
     const supabase = getSupabaseClient();
     const body = await req.json();

@@ -24,6 +24,7 @@ const publicExactPaths = new Set([
 const machineProtectedPaths = new Set([
   "/api/access/check",
   "/api/access/log",
+  "/api/dnake/event",
 ]);
 
 // /ui-lab/platinum is a self-contained design-preview lab: local demo data
