@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
 import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
+import { evaluateAccessEligibility } from "../../../lib/server/accessEligibility";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -537,82 +538,34 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
-    const { data: activeBlock } = await activeBlockPromise;
-
-    if (activeBlock) {
-      const reason = `Accesso bloccato: ${activeBlock.reason}`;
-      await logAccess(false, reason);
-
-      return NextResponse.json({
-        ok: true,
-        allowed: false,
-        reason,
-        customer_id: customerId,
-        badge_code: badgeMatch.badge_code,
-        credential_source: badgeMatch.source,
-      });
-    }
-
-    const medicalCertificateStart =
-      customer.medical_certificate_start_date || customer.medical_certificate_start;
-    const medicalCertificateEnd =
-      customer.medical_certificate_end_date || customer.medical_certificate_end;
-    const medicalCertificateStatus = String(
-      customer.medical_certificate_status || ""
-    ).toLowerCase();
-
-    if (
-      !medicalCertificateStart ||
-      !medicalCertificateEnd ||
-      medicalCertificateStart > today ||
-      medicalCertificateEnd < today ||
-      medicalCertificateStatus === "expired"
-    ) {
-      await logAccess(false, "Certificato medico scaduto o mancante");
-
-      return NextResponse.json({
-        ok: true,
-        allowed: false,
-        reason: "Certificato medico scaduto o mancante",
-        customer_id: customerId,
-        badge_code: badgeMatch.badge_code,
-        credential_source: badgeMatch.source,
-      });
-    }
-
     const [
+      { data: activeBlock },
       { data: membershipSetting },
       { data: validMembershipFee },
       { data: validSubscription },
     ] = await Promise.all([
+      activeBlockPromise,
       membershipSettingPromise,
       validMembershipFeePromise,
       validSubscriptionPromise,
     ]);
 
-    if (membershipSetting?.required_for_access) {
+    const eligibility = evaluateAccessEligibility({
+      customer,
+      today,
+      activeBlock,
+      membershipSetting,
+      validMembershipFee,
+      validSubscription,
+    });
 
-      if (!validMembershipFee) {
-        await logAccess(false, "Quota associativa assente o scaduta");
-
-        return NextResponse.json({
-          ok: true,
-          allowed: false,
-          reason: "Quota associativa assente o scaduta",
-          customer_id: customerId,
-          badge_code: badgeMatch.badge_code,
-          credential_source: badgeMatch.source,
-        });
-      }
-    }
-
-    if (!validSubscription) {
-      await logAccess(false, "Abbonamento assente o scaduto");
+    if (!eligibility.allowed) {
+      await logAccess(false, eligibility.reason);
 
       return NextResponse.json({
         ok: true,
         allowed: false,
-        reason: "Abbonamento assente o scaduto",
+        reason: eligibility.reason,
         customer_id: customerId,
         badge_code: badgeMatch.badge_code,
         credential_source: badgeMatch.source,

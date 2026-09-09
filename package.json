@@ -19,7 +19,9 @@
     "qa:platinum-screens": "node scripts/qa-platinum-screens.mjs",
     "qa:platinum-runtime": "node --test tests/platinum-runtime.test.mjs",
     "qa:platinum-customers": "node --test tests/platinum-customers.test.mjs",
-    "qa:platinum-completion": "node --test tests/platinum-completion.test.mjs"
+    "qa:platinum-completion": "node --test tests/platinum-completion.test.mjs",
+    "qa:access-eligibility": "node --experimental-strip-types --test tests/accessEligibility.test.mjs",
+    "test": "npm run qa:access-eligibility"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
