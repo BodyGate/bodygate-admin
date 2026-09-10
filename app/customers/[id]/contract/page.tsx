@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import CustomerContract from "../../../components/CustomerContract";
 import CustomerContractActions from "../../../components/CustomerContractActions";
 import ContractOtpPanel from "../../../components/ContractOtpPanel";
+import OnboardingWarningBanner from "../../../components/OnboardingWarningBanner";
 
 type Props = {
   params: Promise<{
@@ -98,22 +99,7 @@ export default async function ContractPage({ params, searchParams }: Props) {
       <CustomerContractActions customerId={id} />
 
       {onboardingWarning ? (
-        <div
-          className="no-print"
-          style={{
-            width: "210mm",
-            margin: "0 auto 20px auto",
-            background: "rgba(179, 121, 10, 0.1)",
-            border: "1px solid rgba(179, 121, 10, 0.32)",
-            color: "#8f620c",
-            padding: "16px",
-            borderRadius: "16px",
-            fontWeight: 700,
-          }}
-        >
-          Cliente creato correttamente. Alcuni passaggi accessori richiedono
-          un secondo tentativo: {onboardingWarning}
-        </div>
+        <OnboardingWarningBanner message={onboardingWarning} />
       ) : null}
 
       <div
