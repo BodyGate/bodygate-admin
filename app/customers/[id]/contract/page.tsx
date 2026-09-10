@@ -8,10 +8,14 @@ type Props = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    onboarding_warning?: string;
+  }>;
 };
 
-export default async function ContractPage({ params }: Props) {
+export default async function ContractPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { onboarding_warning: onboardingWarning } = await searchParams;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,6 +96,25 @@ export default async function ContractPage({ params }: Props) {
       }}
     >
       <CustomerContractActions customerId={id} />
+
+      {onboardingWarning ? (
+        <div
+          className="no-print"
+          style={{
+            width: "210mm",
+            margin: "0 auto 20px auto",
+            background: "rgba(179, 121, 10, 0.1)",
+            border: "1px solid rgba(179, 121, 10, 0.32)",
+            color: "#8f620c",
+            padding: "16px",
+            borderRadius: "16px",
+            fontWeight: 700,
+          }}
+        >
+          Cliente creato correttamente. Alcuni passaggi accessori richiedono
+          un secondo tentativo: {onboardingWarning}
+        </div>
+      ) : null}
 
       <div
         className="no-print"
