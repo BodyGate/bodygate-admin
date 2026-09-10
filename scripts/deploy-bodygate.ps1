@@ -106,33 +106,49 @@ try {
     Write-DeployLog "Nessun nuovo commit (attuale: $afterCommit). Deploy non necessario."
   }
   else {
-    Write-DeployLog "Codice aggiornato da $beforeCommit a $afterCommit. Installazione dipendenze..."
+    Write-DeployLog "Codice aggiornato da $beforeCommit a $afterCommit."
 
-    $ciOutput = & npm.cmd ci --no-audit --no-fund 2>&1
-    Add-Content -Path $logFile -Value $ciOutput
-    if ($LASTEXITCODE -ne 0) {
-      throw "npm ci fallito (exit code $LASTEXITCODE)"
-    }
-
-    Write-DeployLog "Compilazione build di produzione..."
-    $buildOutput = & npm.cmd run build 2>&1
-    Add-Content -Path $logFile -Value $buildOutput
-    if ($LASTEXITCODE -ne 0) {
-      throw "npm run build fallito (exit code $LASTEXITCODE)"
-    }
-
-    Write-DeployLog "Build completata su $afterCommit. Riavvio il servizio BodyGate Admin..."
+    # Il vecchio processo Node.js tiene aperti dei binari nativi (es.
+    # next-swc.win32-x64-msvc.node): su Windows `npm ci`/`npm run build`
+    # falliscono con EPERM/unlink se lanciati mentre il servizio gira ancora.
+    # Va quindi fermato PRIMA di installare/compilare, non dopo.
+    Write-DeployLog "Arresto del servizio BodyGate Admin per liberare i file..."
     Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-    Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Start-ScheduledTask -ErrorAction SilentlyContinue
-    Write-DeployLog "Servizio riavviato con la nuova build."
+    Start-Sleep -Seconds 3
+
+    try {
+      Write-DeployLog "Installazione dipendenze..."
+      $ciOutput = & npm.cmd ci --no-audit --no-fund 2>&1
+      Add-Content -Path $logFile -Value $ciOutput
+      if ($LASTEXITCODE -ne 0) {
+        throw "npm ci fallito (exit code $LASTEXITCODE)"
+      }
+
+      Write-DeployLog "Compilazione build di produzione..."
+      $buildOutput = & npm.cmd run build 2>&1
+      Add-Content -Path $logFile -Value $buildOutput
+      if ($LASTEXITCODE -ne 0) {
+        throw "npm run build fallito (exit code $LASTEXITCODE)"
+      }
+
+      Write-DeployLog "Build completata su $afterCommit."
+    }
+    finally {
+      # Riavvia SEMPRE, che la build sia riuscita o fallita: un servizio
+      # fermo per un deploy fallito sarebbe l'esatta interruzione silenziosa
+      # che questa separazione degli script doveva eliminare. Se la build e'
+      # fallita, riparte con quanto presente su disco (che potrebbe essere
+      # una build parziale/rotta: l'errore sotto lo segnala esplicitamente).
+      Write-DeployLog "Riavvio il servizio BodyGate Admin..."
+      Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Start-ScheduledTask -ErrorAction SilentlyContinue
+    }
   }
 
   Write-DeployLog "=== DEPLOY CONTROLLATO: completato con successo ==="
 }
 catch {
   Write-DeployLog "ERRORE DEPLOY: $($_.Exception.Message)"
-  Write-DeployLog "Il servizio in esecuzione NON e' stato toccato: continua a girare con la build precedente."
+  Write-DeployLog "ATTENZIONE: il servizio e' stato riavviato comunque, ma la build su disco potrebbe essere parziale o rotta. Verificare /api/health e i log sopra."
   exit 1
 }
 finally {
