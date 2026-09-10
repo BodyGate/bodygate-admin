@@ -75,9 +75,15 @@ file nativi aperti (es. `next-swc.win32-x64-msvc.node`). Se si lancia
 rifiuta di sostituire quei file (`EPERM: operation not permitted, unlink`).
 `deploy-bodygate.ps1` ferma quindi lo Scheduled Task **prima** di
 `npm ci`/`npm run build` e lo riavvia sempre al termine, così il servizio
-non resta mai fermo in caso di errore di build — riparte con qualunque
-build sia presente su disco (che in caso di build fallita a metà potrebbe
-essere parziale: lo script lo segnala esplicitamente nel log).
+non resta mai fermo in caso di errore di build.
+
+Prima di installare/compilare, lo script mette da parte `node_modules` e
+`.next` correnti (rinominandoli in `node_modules.backup` / `.next.backup`):
+`npm ci` cancella `node_modules` per conto suo e una build fallita può
+lasciare `.next` a metà, quindi se l'aggiornamento fallisce lo script
+ripristina automaticamente questo backup prima di riavviare — il servizio
+riparte sempre sull'ultima build che funzionava davvero, mai su uno stato
+a metà installazione/compilazione.
 
 ## Timeout attesi
 
