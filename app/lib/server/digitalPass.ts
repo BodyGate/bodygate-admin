@@ -319,10 +319,15 @@ async function allocateAvailableDnakeUserId(
       await assertLiveDnakeIdAvailable(sessionId, candidateId);
       return candidateId;
     } catch (error) {
-      // The sequence itself cannot repeat a value until it cycles back
-      // through 999,999 allocations, so a conflict here only means a
-      // legacy (pre-sequence) id is still in use - retry with the next
-      // sequence value rather than failing the whole onboarding step.
+      // Only retry a genuine collision (409 - the sequence itself cannot
+      // repeat a value until it cycles through 999,999 allocations, so a
+      // conflict here only means a legacy pre-sequence id is still in
+      // use). Any other failure (device unreachable, read error, ...)
+      // would just fail identically on every retry - surface it
+      // immediately instead of spending 5x the DNAKE round-trips first.
+      if (!(error instanceof DigitalPassError) || error.statusCode !== 409) {
+        throw error;
+      }
       lastError = error;
     }
   }
