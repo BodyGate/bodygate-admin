@@ -1,6 +1,8 @@
 export { default as PlatinumAppShell } from "./PlatinumAppShell"
 export { BGDialog } from "./BGDialog"
 export { default as BGButton } from "./BGButton"
+export { default as BGContractStatus } from "./BGContractStatus"
+export type { ContractSignState } from "./BGContractStatus"
 export { default as BGCard } from "./BGCard"
 export { default as BGEmptyState } from "./BGEmptyState"
 export { default as BGPageHeader } from "./BGPageHeader"

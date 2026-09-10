@@ -416,3 +416,50 @@
     width: 100%;
   }
 }
+
+/* BGContractStatus */
+
+.contractStatus {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.contractStatusSigned {
+  border-color: rgba(31, 157, 107, 0.26);
+  background: rgba(31, 157, 107, 0.05);
+}
+
+.contractStatusPending {
+  border-color: rgba(179, 121, 10, 0.26);
+  background: rgba(179, 121, 10, 0.06);
+}
+
+.contractStatusBody {
+  display: grid;
+  gap: 4px;
+}
+
+.contractStatusTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--bg-muted, #6b7080);
+}
+
+.contractStatusMeta {
+  font-size: 0.9rem;
+  font-weight: 550;
+  color: var(--ink, #15161c);
+}
+
+.contractStatusActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
