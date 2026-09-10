@@ -1,4 +1,5 @@
 import BGButton from "./BGButton"
+import BGStatusBadge from "./BGStatusBadge"
 import styles from "./bodygate-ui.module.css"
 
 export type ContractSignState = "signed" | "pending" | "not_generated"
@@ -19,16 +20,16 @@ const stateClass: Record<ContractSignState, string> = {
   not_generated: "",
 }
 
-const stateIcon: Record<ContractSignState, string> = {
-  signed: "✓",
-  pending: "⏳",
-  not_generated: "–",
+const stateBadgeTone: Record<ContractSignState, "success" | "warning" | "neutral"> = {
+  signed: "success",
+  pending: "warning",
+  not_generated: "neutral",
 }
 
-const stateTitle: Record<ContractSignState, string> = {
-  signed: "Contratto firmato",
+const stateBadgeLabel: Record<ContractSignState, string> = {
+  signed: "Firmato",
   pending: "In attesa di firma",
-  not_generated: "Contratto da generare",
+  not_generated: "Non disponibile",
 }
 
 export default function BGContractStatus({
@@ -43,19 +44,23 @@ export default function BGContractStatus({
     state === "signed"
       ? signedAtLabel
         ? `Firmato il ${signedAtLabel}`
-        : "Firmato"
+        : "Documento firmato"
       : state === "pending"
         ? otpSentAtLabel
-          ? `OTP inviato il ${otpSentAtLabel} — firma non ancora completata`
-          : "Contratto generato, firma da avviare"
-        : "Nessun contratto collegato a questo cliente";
+          ? `Codice OTP inviato il ${otpSentAtLabel}, firma da completare`
+          : "Firma non ancora avviata"
+        : "Nessun documento contrattuale collegato a questo cliente";
 
   return (
     <div className={`${styles.contractStatus} ${stateClass[state]}`.trim()}>
-      <div className={styles.contractStatusIcon}>{stateIcon[state]}</div>
-
       <div className={styles.contractStatusBody}>
-        <div className={styles.contractStatusTitle}>{stateTitle[state]}</div>
+        <div className={styles.contractStatusTitle}>
+          Contratto
+          <BGStatusBadge tone={stateBadgeTone[state]}>
+            {stateBadgeLabel[state]}
+          </BGStatusBadge>
+        </div>
+
         <div className={styles.contractStatusMeta}>{meta}</div>
 
         <div className={styles.contractStatusActions}>

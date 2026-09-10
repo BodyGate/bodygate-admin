@@ -420,9 +420,6 @@
 /* BGContractStatus */
 
 .contractStatus {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
   padding: 16px;
   border-radius: 14px;
   border: 1px solid var(--bg-border, #e7e8ee);
@@ -439,45 +436,25 @@
   background: rgba(179, 121, 10, 0.06);
 }
 
-.contractStatusIcon {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  background: var(--bg-surface, #ffffff);
-  border: 1px solid var(--bg-border, #e7e8ee);
-}
-
-.contractStatusSigned .contractStatusIcon {
-  color: #157a53;
-  border-color: rgba(31, 157, 107, 0.3);
-}
-
-.contractStatusPending .contractStatusIcon {
-  color: #8f620c;
-  border-color: rgba(179, 121, 10, 0.3);
-}
-
 .contractStatusBody {
-  flex: 1;
-  min-width: 0;
   display: grid;
   gap: 4px;
 }
 
 .contractStatusTitle {
-  font-weight: 800;
-  font-size: 0.98rem;
-  color: var(--ink, #15161c);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--bg-muted, #6b7080);
 }
 
 .contractStatusMeta {
-  font-size: 0.82rem;
-  color: var(--bg-muted, #6b7080);
+  font-size: 0.9rem;
+  font-weight: 550;
+  color: var(--ink, #15161c);
 }
 
 .contractStatusActions {
