@@ -73,6 +73,7 @@ function Read-EnvValue {
 Write-DeployLog "=== DEPLOY CONTROLLATO: inizio (branch $GitBranch) ==="
 
 $extraHeaderSet = $false
+$serviceStopped = $false
 
 try {
   $beforeCommit = (& git rev-parse HEAD).Trim()
@@ -114,7 +115,26 @@ try {
     # Va quindi fermato PRIMA di installare/compilare, non dopo.
     Write-DeployLog "Arresto del servizio BodyGate Admin per liberare i file..."
     Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue
+    $serviceStopped = $true
     Start-Sleep -Seconds 3
+
+    $nodeModulesPath = Join-Path $Root "node_modules"
+    $nodeModulesBackup = Join-Path $Root "node_modules.backup"
+    $nextPath = Join-Path $Root ".next"
+    $nextBackup = Join-Path $Root ".next.backup"
+
+    # `npm ci` deletes node_modules itself before reinstalling, and a failed
+    # `npm run build` can leave .next half-written - so a mid-update failure
+    # (e.g. a network blip during npm ci) could otherwise leave neither a
+    # working install nor a working build on disk, and the restart below
+    # would just bring the service back up broken. Move the last known-good
+    # node_modules/.next aside first so they can be restored on failure,
+    # instead of restarting on whatever half-finished state npm/next left.
+    Remove-Item -Recurse -Force $nodeModulesBackup, $nextBackup -ErrorAction SilentlyContinue
+    if (Test-Path $nodeModulesPath) { Rename-Item -Path $nodeModulesPath -NewName "node_modules.backup" }
+    if (Test-Path $nextPath) { Rename-Item -Path $nextPath -NewName ".next.backup" }
+
+    $buildSucceeded = $false
 
     try {
       Write-DeployLog "Installazione dipendenze..."
@@ -132,13 +152,25 @@ try {
       }
 
       Write-DeployLog "Build completata su $afterCommit."
+      $buildSucceeded = $true
     }
     finally {
+      if ($buildSucceeded) {
+        Write-DeployLog "Nuova build valida: rimuovo il backup della versione precedente."
+        Remove-Item -Recurse -Force $nodeModulesBackup, $nextBackup -ErrorAction SilentlyContinue
+      }
+      else {
+        Write-DeployLog "Aggiornamento fallito: ripristino l'ultima build funzionante prima di riavviare."
+        Remove-Item -Recurse -Force $nodeModulesPath, $nextPath -ErrorAction SilentlyContinue
+        if (Test-Path $nodeModulesBackup) { Rename-Item -Path $nodeModulesBackup -NewName "node_modules" }
+        if (Test-Path $nextBackup) { Rename-Item -Path $nextBackup -NewName ".next" }
+      }
+
       # Riavvia SEMPRE, che la build sia riuscita o fallita: un servizio
       # fermo per un deploy fallito sarebbe l'esatta interruzione silenziosa
-      # che questa separazione degli script doveva eliminare. Se la build e'
-      # fallita, riparte con quanto presente su disco (che potrebbe essere
-      # una build parziale/rotta: l'errore sotto lo segnala esplicitamente).
+      # che questa separazione degli script doveva eliminare. Grazie al
+      # backup/ripristino sopra, in caso di fallimento riparte esattamente
+      # sull'ultima build che funzionava, non su uno stato a meta'.
       Write-DeployLog "Riavvio il servizio BodyGate Admin..."
       Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Start-ScheduledTask -ErrorAction SilentlyContinue
     }
@@ -148,7 +180,12 @@ try {
 }
 catch {
   Write-DeployLog "ERRORE DEPLOY: $($_.Exception.Message)"
-  Write-DeployLog "ATTENZIONE: il servizio e' stato riavviato comunque, ma la build su disco potrebbe essere parziale o rotta. Verificare /api/health e i log sopra."
+  if ($serviceStopped) {
+    Write-DeployLog "Il servizio e' stato riavviato con l'ultima build funzionante precedente (ripristinata automaticamente)."
+  }
+  else {
+    Write-DeployLog "Il servizio in esecuzione NON e' stato toccato: l'errore e' avvenuto prima dell'arresto (es. git fetch/merge)."
+  }
   exit 1
 }
 finally {
