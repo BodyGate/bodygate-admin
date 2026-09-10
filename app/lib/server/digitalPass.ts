@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeNumericControllerCode } from "../accessCodeNormalizer";
 import {
   DnakeUserDirectoryError,
@@ -53,9 +53,24 @@ function customerName(customer: Customer) {
   return `${customer.first_name || ""} ${customer.last_name || ""}`.trim().slice(0, 26) || "BodyGate User";
 }
 
-function makeDnakeUserId(customerId: string) {
-  const digits = customerId.replace(/\D/g, "");
-  return (digits || Date.now().toString()).slice(0, 6);
+// Was: derived from the customer's UUID by stripping non-digit characters
+// and keeping the first 6 - only ~1,000,000 possible values, drawn
+// non-uniformly, with no real collision resistance. Since the write path
+// upserts on dnake_user_id (see createDnakeQr below), a collision silently
+// reassigned one customer's physical DNAKE identity (and QR) to another.
+// A dedicated sequence (public.dnake_user_id_seq) makes allocation
+// collision-free by construction, the same pattern already used for
+// receipt numbers (next_bodygate_receipt_number_v2).
+async function allocateDnakeUserId(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase.rpc("nextval_dnake_user_id");
+
+  if (error || data === null || data === undefined) {
+    throw new DigitalPassError(
+      `Errore allocazione ID DNake: ${error?.message || "sequenza non disponibile"}`,
+    );
+  }
+
+  return String(data).padStart(6, "0");
 }
 
 function activeCredential(row: any) {
@@ -287,14 +302,41 @@ async function findExistingQr(supabase: any, customer: Customer): Promise<QrResu
   };
 }
 
+const MAX_DNAKE_ID_ALLOCATION_ATTEMPTS = 5;
+
+async function allocateAvailableDnakeUserId(
+  supabase: SupabaseClient,
+  customer: Customer,
+  sessionId: string,
+) {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < MAX_DNAKE_ID_ALLOCATION_ATTEMPTS; attempt += 1) {
+    const candidateId = await allocateDnakeUserId(supabase);
+
+    try {
+      await assertDatabaseIdAvailable(supabase, customer.id, candidateId);
+      await assertLiveDnakeIdAvailable(sessionId, candidateId);
+      return candidateId;
+    } catch (error) {
+      // The sequence itself cannot repeat a value until it cycles back
+      // through 999,999 allocations, so a conflict here only means a
+      // legacy (pre-sequence) id is still in use - retry with the next
+      // sequence value rather than failing the whole onboarding step.
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new DigitalPassError("Impossibile allocare un ID DNake libero dopo diversi tentativi.");
+}
+
 async function createDnakeQr(supabase: any, customer: Customer): Promise<QrResult> {
   const dnakeName = customerName(customer);
-  const dnakeUserId = makeDnakeUserId(customer.id);
-  const controllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
-
-  await assertDatabaseIdAvailable(supabase, customer.id, dnakeUserId);
   const sessionId = await loginDnake();
-  await assertLiveDnakeIdAvailable(sessionId, dnakeUserId);
+  const dnakeUserId = await allocateAvailableDnakeUserId(supabase, customer, sessionId);
+  const controllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const form = new FormData();
