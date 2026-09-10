@@ -416,3 +416,73 @@
     width: 100%;
   }
 }
+
+/* BGContractStatus */
+
+.contractStatus {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.contractStatusSigned {
+  border-color: rgba(31, 157, 107, 0.26);
+  background: rgba(31, 157, 107, 0.05);
+}
+
+.contractStatusPending {
+  border-color: rgba(179, 121, 10, 0.26);
+  background: rgba(179, 121, 10, 0.06);
+}
+
+.contractStatusIcon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--bg-border, #e7e8ee);
+}
+
+.contractStatusSigned .contractStatusIcon {
+  color: #157a53;
+  border-color: rgba(31, 157, 107, 0.3);
+}
+
+.contractStatusPending .contractStatusIcon {
+  color: #8f620c;
+  border-color: rgba(179, 121, 10, 0.3);
+}
+
+.contractStatusBody {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.contractStatusTitle {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--ink, #15161c);
+}
+
+.contractStatusMeta {
+  font-size: 0.82rem;
+  color: var(--bg-muted, #6b7080);
+}
+
+.contractStatusActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
