@@ -348,20 +348,25 @@ export default function NewCustomerPage() {
       }
 
       const documentFailures = await uploadPendingDocuments(customerId);
-      if (documentFailures.length) {
-        setMessage(`Cliente creato. ${provisioning.join(" · ")} ${provisioningWarnings.join(" · ")} Documenti da completare: ${documentFailures.join("; ")}. Apri la scheda cliente o vai al contratto quando lo stato è chiaro.`);
-        setSaving(false);
-        return;
-      }
 
-      if (provisioningWarnings.length) {
-        setMessage(`Cliente creato con riepilogo: quota creata · ${withSubscription ? "abbonamento creato · " : "solo quota associativa · "}pagamento creato · ricevuta creata · ${form.badge_code ? "badge creato · " : ""}${provisioning.join(" · ")} · contratto da firmare. Warning: ${provisioningWarnings.join(" · ")}. Azioni: riprova dalla scheda cliente oppure vai al contratto.`);
-        setSaving(false);
-        return;
-      }
+      // The customer record (anagrafica, quota, abbonamento, pagamento,
+      // contratto) is already created and paid for at this point - QR/Mobile
+      // Pass/documenti are retriable extras, same as the badge. Blocking
+      // navigation here used to leave the operator staring at the same empty
+      // form with no sign anything happened, even though the customer had
+      // already been created successfully.
+      const warnings = [...provisioningWarnings, ...documentFailures];
 
       setOnboardingOperationId("");
-      router.push(result.next_url || `/customers/${customerId}/contract`);
+
+      const destination = warnings.length
+        ? `/customers/${customerId}/contract`
+        : result.next_url || `/customers/${customerId}/contract`;
+      const query = warnings.length
+        ? `?onboarding_warning=${encodeURIComponent(warnings.join(" · "))}`
+        : "";
+
+      router.push(`${destination}${query}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Errore imprevisto.");
       setSaving(false);
