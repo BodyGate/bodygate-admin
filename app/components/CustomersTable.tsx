@@ -820,29 +820,11 @@ export default function CustomersTable() {
           </article>
         </section>
 
-        {loading && (
-          <div className="crm3-message">Caricamento CRM clienti...</div>
-        )}
         {queryError && (
           <div className="crm3-message crm3-message-error">{queryError}</div>
         )}
 
-        {!queryError && loadedOnce && customers.length === 0 && (
-          <BGEmptyState
-            title={
-              debouncedSearch
-                ? `Nessun cliente trovato per "${debouncedSearch}"`
-                : "Nessun cliente trovato"
-            }
-            description={
-              debouncedSearch
-                ? "Prova con un altro nome, telefono, email o codice badge."
-                : "Crea un nuovo cliente per popolare il CRM operativo."
-            }
-          />
-        )}
-
-        {!loading && !queryError && customers.length > 0 && (
+        {!queryError && (
           <section className="crm3-workspace">
             <aside className="crm3-list-panel">
               <div className="crm3-list-head">
@@ -853,42 +835,63 @@ export default function CustomersTable() {
                   placeholder="Cerca cliente, badge, telefono o email..."
                 />
                 <div className="crm3-count">
-                  {debouncedSearch
-                    ? `${matchedCount} risultat${matchedCount === 1 ? "o" : "i"} per "${debouncedSearch}"${hasMore ? ` · primi ${filteredCustomers.length} mostrati` : ""}`
-                    : `Ultimi ${filteredCustomers.length} clienti${serverStats ? ` su ${serverStats.total_records} totali` : ""} · cerca per trovarne uno specifico`}
+                  {!loadedOnce
+                    ? "Caricamento..."
+                    : loading
+                      ? "Aggiornamento..."
+                      : debouncedSearch
+                        ? `${matchedCount} risultat${matchedCount === 1 ? "o" : "i"} per "${debouncedSearch}"${hasMore ? ` · primi ${filteredCustomers.length} mostrati` : ""}`
+                        : `Ultimi ${filteredCustomers.length} clienti${serverStats ? ` su ${serverStats.total_records} totali` : ""} · cerca per trovarne uno specifico`}
                 </div>
               </div>
 
-              <div className="crm3-list">
-                {filteredCustomers.map((customer) => {
-                  const name = getName(customer);
-                  const state = getAccessState(customer);
-                  const contact =
-                    customer.phone ||
-                    customer.email ||
-                    getBadgeCode(customer) ||
-                    "Dati da completare";
-                  const active = selectedCustomer?.id === customer.id;
+              {!loadedOnce ? (
+                <div className="crm3-message">Caricamento CRM clienti...</div>
+              ) : filteredCustomers.length === 0 ? (
+                <BGEmptyState
+                  title={
+                    debouncedSearch
+                      ? `Nessun cliente trovato per "${debouncedSearch}"`
+                      : "Nessun cliente trovato"
+                  }
+                  description={
+                    debouncedSearch
+                      ? "Prova con un altro nome, telefono, email o codice badge."
+                      : "Crea un nuovo cliente per popolare il CRM operativo."
+                  }
+                />
+              ) : (
+                <div className="crm3-list">
+                  {filteredCustomers.map((customer) => {
+                    const name = getName(customer);
+                    const state = getAccessState(customer);
+                    const contact =
+                      customer.phone ||
+                      customer.email ||
+                      getBadgeCode(customer) ||
+                      "Dati da completare";
+                    const active = selectedCustomer?.id === customer.id;
 
-                  return (
-                    <button
-                      key={customer.id}
-                      type="button"
-                      className={`crm3-list-item ${active ? "crm3-list-item-active" : ""}`}
-                      onClick={() => setSelectedId(customer.id)}
-                    >
-                      <div className="crm3-avatar">{initials(name)}</div>
-                      <div>
-                        <div className="crm3-list-name">{name}</div>
-                        <div className="crm3-list-sub">{contact}</div>
-                      </div>
-                      <span
-                        className={`crm3-mini-dot crm3-dot-${state.tone}`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className={`crm3-list-item ${active ? "crm3-list-item-active" : ""}`}
+                        onClick={() => setSelectedId(customer.id)}
+                      >
+                        <div className="crm3-avatar">{initials(name)}</div>
+                        <div>
+                          <div className="crm3-list-name">{name}</div>
+                          <div className="crm3-list-sub">{contact}</div>
+                        </div>
+                        <span
+                          className={`crm3-mini-dot crm3-dot-${state.tone}`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </aside>
 
             <section className="crm3-detail-panel">
