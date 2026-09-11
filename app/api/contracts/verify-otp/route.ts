@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isRateLimited } from "../../../lib/server/rateLimit";
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,22 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { ok: false, message: "Dati mancanti." },
         { status: 400 }
+      );
+    }
+
+    // The OTP is a 6-digit code with a 10-minute validity window - without a
+    // guess limit, nothing stops scripted brute-forcing of the ~1M possible
+    // codes for one document before it expires. Keyed by document (not IP),
+    // since that's the actual thing being protected.
+    if (
+      isRateLimited(`verify-otp:${documentId}`, {
+        limit: 10,
+        windowMs: 15 * 60_000,
+      })
+    ) {
+      return NextResponse.json(
+        { ok: false, message: "Troppi tentativi. Genera un nuovo OTP e riprova." },
+        { status: 429 }
       );
     }
 
