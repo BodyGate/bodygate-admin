@@ -8,7 +8,7 @@ type Customer = { id: string; first_name: string | null; last_name: string | nul
 type Program = { id: string; customer_id: string | null; title: string; goal: string | null; coach_name: string | null; is_active: boolean | null; created_at: string; customers?: { first_name: string | null; last_name: string | null } | null };
 type Exercise = { id: string; name: string; muscle_group: string | null; equipment: string | null; difficulty: string | null; machine_brand?: string | null; machine_name?: string | null; machine_code?: string | null; is_active?: boolean | null };
 type Session = { id: string; status: string | null; started_at: string | null; completed_at: string | null; created_at: string | null };
-type TrainingData = { customers: Customer[]; programs: Program[]; exercises: Exercise[]; sessions: Session[] };
+type TrainingData = { customers: Customer[]; customers_total?: number; programs: Program[]; exercises: Exercise[]; sessions: Session[] };
 type View = "dashboard" | "clients" | "programs" | "library" | "exercise" | "sessions" | "builder";
 
 type Props = { view: View; programId?: string; exerciseId?: string };
@@ -75,7 +75,9 @@ export default function TrainingPremiumClient({ view, programId, exerciseId }: P
 }
 
 function Dashboard({ data, activeExercises }: { data: TrainingData; activeExercises: number }) {
-  const cards = [{ label: "Atleti", value: data.customers.length }, { label: "Programmi", value: data.programs.length }, { label: "Esercizi canonici", value: activeExercises }, { label: "Sessioni", value: data.sessions.length }];
+  const athletesTruncated = typeof data.customers_total === "number" && data.customers_total > data.customers.length;
+  const athletesValue = athletesTruncated ? `${data.customers.length} di ${data.customers_total}` : data.customers.length;
+  const cards = [{ label: "Atleti", value: athletesValue }, { label: "Programmi", value: data.programs.length }, { label: "Esercizi canonici", value: activeExercises }, { label: "Sessioni", value: data.sessions.length }];
   return <section className={styles.grid}>{cards.map((card) => <article className={styles.card} key={card.label}><span>{card.label}</span><strong>{card.value}</strong></article>)}</section>;
 }
 
