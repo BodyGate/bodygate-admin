@@ -42,6 +42,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build metadata (written by scripts/write-build-commit.mjs after a
+# successful `npm run build`, read by /api/health)
+/.build-commit
 # BodyGate Bridge Logs
 *.log
 logs/
