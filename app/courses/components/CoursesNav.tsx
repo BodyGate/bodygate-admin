@@ -11,7 +11,7 @@ const ITEMS = [
 ];
 
 export default function CoursesNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>

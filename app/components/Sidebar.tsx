@@ -48,7 +48,7 @@ function isActive(pathname: string, href: string) {
 }
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const { loading, hasPermission } = useCurrentPermissions();
 
   return (
