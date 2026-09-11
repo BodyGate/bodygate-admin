@@ -5,7 +5,7 @@ import { PlatinumAppShell } from "@/components/bodygate-ui";
 import { useCurrentPermissions } from "../hooks/useCurrentPermissions";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   const isReceiptPage =
     pathname.startsWith("/customers/") && pathname.includes("/receipt/");

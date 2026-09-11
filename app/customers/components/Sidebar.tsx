@@ -74,7 +74,7 @@ const menu: MenuItem[] = [
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
 
   async function logout() {

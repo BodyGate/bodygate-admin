@@ -13,7 +13,7 @@ const menu = [
 ];
 
 export default function TrainingSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   return <aside className={styles.sidebar}>
     <p className={styles.kicker}>BodyGate</p><h2>Training</h2>
     <nav className={styles.list}>{menu.map((item) => <Link className={pathname === item.href ? styles.activeLink : styles.navLink} key={item.href} href={item.href}>{item.label}</Link>)}</nav>

@@ -28,7 +28,7 @@ function RuntimeNavigation({ pathname, onNavigate, paymentsAccess }: { pathname:
 
 export default function PlatinumAppShell({ children, activeScreen, runtime = false, systemStatus = "Da verificare", paymentsAccess = "allowed" }: { children: ReactNode; activeScreen?: string; runtime?: boolean; systemStatus?: string; paymentsAccess?: PaymentsAccess }) {
   const [drawer, setDrawer] = useState(false)
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const menuTrigger = useRef<HTMLButtonElement>(null)
   const drawerClose = useRef<HTMLButtonElement>(null)
   useEffect(() => {
