@@ -318,6 +318,26 @@ export default function CoursesAdminClient() {
     );
   }
 
+  async function updateScheduleStatus(scheduleId: string, status: string) {
+    setMessage("");
+    const { ok, result } = await postJson(`/api/courses/schedules/${scheduleId}`, { status });
+    if (!ok) {
+      setMessage(result?.error || "Errore aggiornamento stato orario.");
+      return;
+    }
+    if (branchId) await loadAll(branchId);
+  }
+
+  async function updateCourseTypeActive(typeId: string, isActive: boolean) {
+    setMessage("");
+    const { ok, result } = await postJson(`/api/courses/types/${typeId}`, { is_active: isActive });
+    if (!ok) {
+      setMessage(result?.error || "Errore aggiornamento tipo corso.");
+      return;
+    }
+    if (branchId) await loadAll(branchId);
+  }
+
   return (
     <BGPageShell>
       <BGPageHeader
@@ -408,10 +428,16 @@ export default function CoursesAdminClient() {
                             </div>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
                           {type.requires_medical_certificate && <BGStatusBadge tone="warning">Certificato</BGStatusBadge>}
                           {type.requires_active_subscription && <BGStatusBadge tone="info">Abbonamento</BGStatusBadge>}
                           {!type.is_active && <BGStatusBadge tone="danger">Non attivo</BGStatusBadge>}
+                          <BGButton
+                            variant="secondary"
+                            onClick={() => updateCourseTypeActive(type.id, !type.is_active)}
+                          >
+                            {type.is_active ? "Disattiva" : "Attiva"}
+                          </BGButton>
                         </div>
                       </div>
                     ))}
@@ -493,9 +519,15 @@ export default function CoursesAdminClient() {
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <BGStatusBadge tone={schedule.status === "active" ? "success" : "neutral"}>
-                            {schedule.status}
-                          </BGStatusBadge>
+                          <BGSelect
+                            value={schedule.status}
+                            onChange={(e) => updateScheduleStatus(schedule.id, e.target.value)}
+                          >
+                            <option value="draft">Bozza</option>
+                            <option value="active">Attivo</option>
+                            <option value="paused">In pausa</option>
+                            <option value="archived">Archiviato</option>
+                          </BGSelect>
                           <BGButton
                             variant="secondary"
                             onClick={() => generateSessions(schedule.id)}
