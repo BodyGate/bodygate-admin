@@ -7,8 +7,8 @@ import { useSearchParams } from "next/navigation"
 
 function AccessDeniedContent() {
   const searchParams = useSearchParams()
-  const permission = searchParams.get("permission")
-  const section = searchParams.get("section")
+  const permission = searchParams?.get("permission")
+  const section = searchParams?.get("section")
 
   return (
     <main>
