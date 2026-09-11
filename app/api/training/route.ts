@@ -28,18 +28,25 @@ async function fetchAllCustomers(
   supabase: ReturnType<typeof serverSupabase>,
 ) {
   const pageSize = 1000;
+  const hardCap = 20000;
   const rows: NonNullable<
     Awaited<ReturnType<typeof queryCustomersPage>>["data"]
   > = [];
 
-  for (let from = 0; from < 20000; from += pageSize) {
+  for (let from = 0; from < hardCap; from += pageSize) {
     const { data, error } = await queryCustomersPage(supabase, from, pageSize);
     if (error) throw new Error(error.message);
     rows.push(...(data ?? []));
-    if (!data || data.length < pageSize) break;
+    if (!data || data.length < pageSize) return rows;
   }
 
-  return rows;
+  // Every page up to the safety cap was full - there may be more rows
+  // beyond it. Fail loudly instead of silently returning a truncated set
+  // that the client would treat as complete (the exact bug this function
+  // was written to fix in the first place).
+  throw new Error(
+    `Trovati oltre ${hardCap} clienti: paginazione interrotta per sicurezza, aumenta il limite.`,
+  );
 }
 
 function queryCustomersPage(
