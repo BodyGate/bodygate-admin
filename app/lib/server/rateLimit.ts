@@ -41,6 +41,10 @@ export function isRateLimited(
   return existing.count > limit;
 }
 
+export function resetRateLimit(key: string) {
+  buckets.delete(key);
+}
+
 export function getClientIp(req: Request) {
   const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) {

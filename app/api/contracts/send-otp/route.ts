@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { resetRateLimit } from "../../../lib/server/rateLimit";
 
 export async function POST(req: Request) {
   try {
@@ -49,6 +50,12 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // A fresh OTP invalidates whatever the visitor was guessing against
+    // before - without this, an operator who correctly regenerates a code
+    // after a lockout stays locked out on verify-otp for the rest of that
+    // 15-minute window, even entering the new, correct code.
+    resetRateLimit(`verify-otp:${documentId}`);
 
     return NextResponse.json({
       ok: true,
