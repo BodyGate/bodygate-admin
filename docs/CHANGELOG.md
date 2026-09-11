@@ -1,0 +1,37 @@
+# Changelog
+
+Registro dei lavori svolti sul progetto, in ordine cronologico inverso (più recente in cima). Ogni voce indica la PR, cosa è stato trovato/fatto e come è stato verificato — non solo letto nel codice ma riprodotto dal vivo prima e dopo il fix, quando applicabile.
+
+## 2026-09-11 — Giro di QA live: caccia sistematica ai bug (PR #172–#180)
+
+Richiesta: valutazione e sistemazione di tutti i bug — software, grafiche, logiche di sistema e di lavoro. Metodo: per ogni area, navigazione reale dell'app (Playwright), verifica dei sospetti sui dati reali di produzione prima di dichiararli bug, fix minimo e mirato, verifica post-fix, PR con CI (typecheck, lint baseline, test di governance, build) prima del merge.
+
+- **PR [#172](https://github.com/BodyGate/bodygate-admin/pull/172)** — La barra di ricerca clienti perdeva il focus durante la digitazione: il pannello con la ricerca veniva smontato dal DOM ogni volta che il debounce (300ms) faceva scattare un ricaricamento, cosa che capita con qualsiasi pausa normale tra un carattere e l'altro. Riprodotto dal vivo (digitando "Mario" restava bloccato su "M"), corretto tenendo il box sempre montato. Nella stessa PR: creato `docs/OPERATIONS.md` (runbook di deploy sul PC palestra) e corretto l'ordine build/stop nello script `deploy-bodygate.ps1` (causava EPERM su Windows).
+- **PR [#173](https://github.com/BodyGate/bodygate-admin/pull/173)** — Un reviewer automatico ha segnalato che `deploy-bodygate.ps1`, in caso di `npm ci`/`npm run build` fallito, non ripristinava la build precedente prima di riavviare il servizio. Aggiunto backup/ripristino automatico dell'ultima build funzionante.
+- **PR [#174](https://github.com/BodyGate/bodygate-admin/pull/174)** — Due bug di dati reali: (1) Reception interrogava una colonna DB inesistente (`gym_presence.updated_at`), causando errore visibile e "Presenti ora" bloccato a 0; (2) Dashboard: le card "Alert operativi" mostravano un conteggio limitato dalla query dell'anteprima (max 6), quindi **24 alert mostrati contro 1522 reali** (1318 certificati scaduti nascosti).
+- **PR [#175](https://github.com/BodyGate/bodygate-admin/pull/175)** — Pagina Incassi: il totale "Incassi mese" sommava solo i 100 pagamenti più recenti senza avvisare, un bug latente che sarebbe diventato attivo al primo mese con >100 transazioni. Aggiunto conteggio reale e avviso esplicito quando i dati sono parziali.
+- **PR [#176](https://github.com/BodyGate/bodygate-admin/pull/176)** — Staff: la colonna "Telefono" era sempre vuota per una query che non selezionava il campo (7 numeri WhatsApp reali su 8 erano nascosti). Training: limite implicito di PostgREST (1000 righe) rendeva **745 clienti su 1745 impossibili da assegnare** a un programma di allenamento. Corretto con paginazione server-side. Fuori PR: ripristinate via dati 3 voci contabili orfane (€165) rimaste invisibili in Prima Nota per un `branch_id` nullo lasciato da un flusso di onboarding ormai dismesso.
+- **PR [#177](https://github.com/BodyGate/bodygate-admin/pull/177)** — Modulo Corsi con **zero sessioni prenotabili** in produzione: 34 orari ricorrenti reali (in preparazione per un lancio il 14/09) restavano bloccati in stato "Bozza" senza alcun controllo nell'interfaccia per attivarli. Aggiunta la funzione di attivazione mancante (API + UI) per orari e tipi corso.
+- **PR [#178](https://github.com/BodyGate/bodygate-admin/pull/178)** — La verifica OTP per la firma contratti non aveva alcun limite di tentativi (codice a 6 cifre, nessun contatore). Aggiunto rate-limiting (10 tentativi/15 min per documento). Un reviewer automatico ha poi trovato che, dopo un blocco, rigenerare un OTP corretto sarebbe rimasto comunque bloccato: corretto resettando il contatore alla generazione di un nuovo codice. Segnalato ma non risolto (richiede decisione di prodotto): l'OTP è visibile sullo schermo della reception perché il messaggio WhatsApp è composto lato client.
+- **PR [#179](https://github.com/BodyGate/bodygate-admin/pull/179)** — Stesso bug del limite implicito di 1000 righe di PostgREST trovato su Training, questa volta su Abbonamenti: **2102 abbonamenti reali**, oltre la metà nascosti silenziosamente. Corretto con paginazione server-side.
+- **PR [#180](https://github.com/BodyGate/bodygate-admin/pull/180)** — Un reviewer automatico ha trovato che i limiti di sicurezza della paginazione (introdotti in #176 e #179) troncavano silenziosamente se mai raggiunti, invece di segnalare un errore esplicito. Corretto per fallire in modo visibile. Un secondo giro di review ha poi trovato un caso limite (conteggio esattamente pari al limite → falso errore): corretto con un probe di una riga oltre il limite prima di dichiarare i dati incompleti.
+
+**Non ancora affrontato**, segnalato per decisione futura:
+- Paginazione di `customer_documents`/altre liste non ancora controllate con lo stesso metodo (Contabilità oltre Prima Nota, Report/Analytics, Notifiche, Settings).
+- Invio OTP via WhatsApp lato server (per non esporre il codice all'operatore reception).
+
+## 2026-09-09/10 — Audit di vendibilità "da software house" (PR #161–#171)
+
+Richiesta: revisione critica completa del codebase come se dovesse essere venduto, seguita dalla sistemazione sistematica di quanto trovato.
+
+- **Sicurezza**: chiusi endpoint hardware pubblici e non autenticati (`/api/access/check`, `/api/access/log`, `/api/dnake/event`) che esponevano dati cliente e potevano azionare il tornello fisico; aggiunta chiave macchina + rate limiting.
+- **Copertura di test**: aggiunti i primi test reali di logica di business (`evaluateAccessEligibility`, normalizzazione metodo di pagamento) — prima esistevano solo test di "governance" sui nomi delle route.
+- **Bug di integrità dati**: consolidati 4 normalizzatori del metodo di pagamento divergenti che silenziosamente miscodificavano pagamenti non riconosciuti come "contanti"; sostituita la derivazione collision-prone dell'ID utente DNAKE (basata su UUID troncato) con una sequenza Postgres, dopo aver verificato che una collisione riassegnava silenziosamente il QR fisico di un cliente a un altro.
+- **Pulizia codice morto**: rimossi componenti dashboard senza alcun importatore.
+- **Migrazione UI**: avviata (poi messa in pausa su richiesta) la migrazione dallo stile inline al design system `bodygate-ui`, partendo dalla schermata di login.
+- **Bug trovati testando dal vivo (non nel codice)**: l'onboarding di un nuovo cliente sembrava "bloccarsi" quando il provisioning del QR falliva — in realtà il cliente veniva creato correttamente ma senza redirect, dando l'impressione di un fallimento totale; corretto navigando sempre in avanti con un avviso non bloccante. Retry-loop del provisioning DNAKE che riprovava su qualsiasi errore invece che solo su collisioni reali (409) — trovato in un'autoverifica critica richiesta esplicitamente dall'utente.
+- **Affidabilità operativa**: diagnosticato e risolto un blackout reale di produzione (tornello attivo, server fermo da 7 giorni per un auto-update rotto); separati `start` (solo restart) da `deploy` (unico punto che tocca git/npm/build) per evitare che un aggiornamento fallito diventi un'interruzione silenziosa multi-giorno; aggiunto `bodygate-watchdog.ps1` con alert Telegram.
+
+## Prima di questa sessione
+
+Vedi `docs/SECURITY_HOTFIX_0_1.md`, `docs/SECURITY_HOTFIX_0_2.md` e la cronologia Git per il lavoro precedente (fondamenta Platinum, migrazione route, governance).
