@@ -93,8 +93,8 @@ export async function GET() {
 
         supabase
           .from("gym_presence")
-          .select("id, customer_id, badge_code, is_inside, updated_at")
-          .order("updated_at", { ascending: false })
+          .select("id, customer_id, badge_code, is_inside, created_at")
+          .order("created_at", { ascending: false })
           .limit(120),
       ]);
 

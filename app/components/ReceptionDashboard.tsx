@@ -41,7 +41,7 @@ type GymPresence = {
   customer_id: string;
   badge_code: string | null;
   is_inside: boolean | null;
-  updated_at: string;
+  created_at: string;
 };
 
 type ReceptionAlert = {

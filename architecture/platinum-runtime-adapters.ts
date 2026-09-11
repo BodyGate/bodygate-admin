@@ -4,6 +4,7 @@ export type DashboardOverviewInput = {
   kpis?: Partial<Record<"active_customers" | "accesses_today" | "denied_today" | "revenue_today" | "revenue_month" | "active_blocks", number | null>> | null
   bridge?: { status?: string | null } | null
   alerts?: Partial<Record<"expired_medical" | "expiring_medical" | "expired_subscriptions" | "expiring_subscriptions", unknown[] | null>> | null
+  alert_counts?: Partial<Record<"expired_medical" | "expiring_medical" | "expired_subscriptions" | "expiring_subscriptions", number | null>> | null
 }
 
 const present = (value: number | null | undefined): number | null =>
@@ -11,7 +12,7 @@ const present = (value: number | null | undefined): number | null =>
 
 export function adaptDashboardOverview(input?: DashboardOverviewInput | null) {
   const kpis = input?.kpis
-  const alerts = input?.alerts
+  const alertCounts = input?.alert_counts
   return {
     kpis: {
       activeCustomers: present(kpis?.active_customers), accessesToday: present(kpis?.accesses_today),
@@ -19,11 +20,15 @@ export function adaptDashboardOverview(input?: DashboardOverviewInput | null) {
       revenueMonth: present(kpis?.revenue_month), activeBlocks: present(kpis?.active_blocks),
     },
     bridgeStatus: input?.bridge?.status?.trim() || null,
+    // These are real counts from the API (alert_counts), not the length of
+    // the preview arrays in `alerts` - those are capped at 6 rows for the
+    // "Scadenze imminenti" list and would silently understate the true
+    // total once it exceeds 6.
     alertCounts: {
-      expiredMedical: Array.isArray(alerts?.expired_medical) ? alerts.expired_medical.length : null,
-      expiringMedical: Array.isArray(alerts?.expiring_medical) ? alerts.expiring_medical.length : null,
-      expiredSubscriptions: Array.isArray(alerts?.expired_subscriptions) ? alerts.expired_subscriptions.length : null,
-      expiringSubscriptions: Array.isArray(alerts?.expiring_subscriptions) ? alerts.expiring_subscriptions.length : null,
+      expiredMedical: present(alertCounts?.expired_medical),
+      expiringMedical: present(alertCounts?.expiring_medical),
+      expiredSubscriptions: present(alertCounts?.expired_subscriptions),
+      expiringSubscriptions: present(alertCounts?.expiring_subscriptions),
     },
   }
 }

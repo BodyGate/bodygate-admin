@@ -155,6 +155,10 @@ export async function GET() {
       expiringMedicalResult,
       expiredSubscriptionsResult,
       expiringSubscriptionsResult,
+      expiredMedicalCountResult,
+      expiringMedicalCountResult,
+      expiredSubscriptionsCountResult,
+      expiringSubscriptionsCountResult,
       activeBlocksResult,
       bridgeResult,
       bridgeLiveResult,
@@ -261,6 +265,36 @@ export async function GET() {
         .lte("ends_at", plus15Date)
         .limit(6),
 
+      // Real totals for the "Alert operativi" tiles: the queries above are
+      // capped at 6 rows for the preview list, so their .length would
+      // silently stay stuck at 6 once the true count exceeds it. head:true
+      // count queries don't fetch rows, only the total.
+      supabase
+        .from("customers")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .lt("medical_certificate_end", todayDate),
+
+      supabase
+        .from("customers")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .gte("medical_certificate_end", todayDate)
+        .lte("medical_certificate_end", plus15Date),
+
+      supabase
+        .from("customer_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .lt("ends_at", todayDate),
+
+      supabase
+        .from("customer_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .gte("ends_at", todayDate)
+        .lte("ends_at", plus15Date),
+
       supabase
         .from("customer_blocks")
         .select("id", { count: "exact", head: true })
@@ -328,6 +362,12 @@ export async function GET() {
         expiring_subscriptions: (expiringSubscriptionsResult.data || []).map(
           normalizeSubscriptionAlert
         ),
+      },
+      alert_counts: {
+        expired_medical: expiredMedicalCountResult.count || 0,
+        expiring_medical: expiringMedicalCountResult.count || 0,
+        expired_subscriptions: expiredSubscriptionsCountResult.count || 0,
+        expiring_subscriptions: expiringSubscriptionsCountResult.count || 0,
       },
       latest_access: (latestCustomerAccessResult.data || []).map(
         normalizeAccessLog
