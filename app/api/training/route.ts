@@ -17,17 +17,61 @@ function fail(message: string, status = 500) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
+// PostgREST enforces its own server-side max row count (currently 1000 on
+// this project) regardless of any .limit() requested by the client - with
+// 1745 real customers, a plain unpaginated query silently dropped 745 of
+// them everywhere this list is used, including the program customer picker
+// (staff simply couldn't assign a program to them). Page through with
+// .range() to fetch the true full set instead of raising the app-side
+// limit, which the server would have ignored anyway.
+async function fetchAllCustomers(
+  supabase: ReturnType<typeof serverSupabase>,
+) {
+  const pageSize = 1000;
+  const rows: NonNullable<
+    Awaited<ReturnType<typeof queryCustomersPage>>["data"]
+  > = [];
+
+  for (let from = 0; from < 20000; from += pageSize) {
+    const { data, error } = await queryCustomersPage(supabase, from, pageSize);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+function queryCustomersPage(
+  supabase: ReturnType<typeof serverSupabase>,
+  from: number,
+  pageSize: number,
+) {
+  return supabase
+    .from("customers")
+    .select("id, first_name, last_name, email, phone, is_active, status")
+    .order("last_name", { ascending: true })
+    .order("id", { ascending: true })
+    .range(from, from + pageSize - 1);
+}
+
 async function listTrainingData() {
   const supabase = serverSupabase();
   const [programs, customers, exercises, sessions] = await Promise.all([
     supabase.from("training_programs").select("id, customer_id, title, description, coach_name, goal, is_active, starts_at, ends_at, created_at, customers(first_name,last_name)").order("created_at", { ascending: false }),
-    supabase.from("customers").select("id, first_name, last_name, email, phone, is_active, status").order("last_name", { ascending: true }),
+    fetchAllCustomers(supabase),
     supabase.from("exercises").select("id, name, muscle_group, equipment, difficulty, machine_brand, machine_name, machine_code, thumbnail_url, video_url, instructions, is_active, created_at").order("name", { ascending: true }),
     supabase.from("workout_sessions").select("id, program_id, customer_id, status, started_at, completed_at, created_at").order("created_at", { ascending: false }).limit(50),
   ]);
-  const firstError = programs.error || customers.error || exercises.error || sessions.error;
+  const firstError = programs.error || exercises.error || sessions.error;
   if (firstError) throw new Error(firstError.message);
-  return { programs: programs.data ?? [], customers: customers.data ?? [], exercises: exercises.data ?? [], sessions: sessions.data ?? [] };
+  return {
+    programs: programs.data ?? [],
+    customers,
+    customers_total: customers.length,
+    exercises: exercises.data ?? [],
+    sessions: sessions.data ?? [],
+  };
 }
 
 export async function GET() {
