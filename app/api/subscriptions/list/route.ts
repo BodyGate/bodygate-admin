@@ -74,10 +74,18 @@ async function fetchAllSubscriptions(
     if (!data || data.length < pageSize) return rows;
   }
 
-  // Every page up to the safety cap was full - there may be more rows
-  // beyond it. Fail loudly instead of silently returning a truncated set
-  // that the client would treat as complete (the exact bug this function
-  // was written to fix in the first place).
+  // Every page up to the safety cap was full - that only proves the count
+  // is at least the cap, not beyond it (e.g. exactly 50000 rows). Probe one
+  // row past it before deciding whether the fetched set is actually
+  // incomplete.
+  const { data: probe, error: probeError } = await querySubscriptionsPage(
+    supabase,
+    hardCap,
+    1,
+  );
+  if (probeError) throw new Error(probeError.message);
+  if (!probe || probe.length === 0) return rows;
+
   throw new Error(
     `Trovati oltre ${hardCap} abbonamenti: paginazione interrotta per sicurezza, aumenta il limite.`,
   );
