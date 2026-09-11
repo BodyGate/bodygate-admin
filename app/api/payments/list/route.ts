@@ -17,35 +17,49 @@ export async function GET() {
   try {
     const supabase = getSupabaseClient();
 
-    const { data, error } = await supabase
-      .from("payments")
-      .select(
-        `
-        id,
-        customer_id,
-        amount,
-        payment_type,
-        description,
-        status,
-        paid_at,
-        created_at,
-        customers (
-          first_name,
-          last_name
-        ),
-        payment_methods (
-          name,
-          method_key
-        )
-      `
-      )
-      .order("paid_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .limit(100);
+    const [{ data, error }, { count: totalCount, error: countError }] =
+      await Promise.all([
+        supabase
+          .from("payments")
+          .select(
+            `
+            id,
+            customer_id,
+            amount,
+            payment_type,
+            description,
+            status,
+            paid_at,
+            created_at,
+            customers (
+              first_name,
+              last_name
+            ),
+            payment_methods (
+              name,
+              method_key
+            )
+          `
+          )
+          .order("paid_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false, nullsFirst: false })
+          .limit(100),
+
+        // Real total so the client can tell whether the 100-row page above
+        // is the whole history or a truncated view - the KPI cards sum
+        // only what's loaded, and silently look like a full total once
+        // monthly volume passes the cap.
+        supabase.from("payments").select("id", { count: "exact", head: true }),
+      ]);
 
     if (error) throw new Error(error.message);
+    if (countError) throw new Error(countError.message);
 
-    return NextResponse.json({ ok: true, payments: data || [] });
+    return NextResponse.json({
+      ok: true,
+      payments: data || [],
+      total_count: totalCount ?? (data || []).length,
+    });
   } catch (error) {
     return NextResponse.json(
       {

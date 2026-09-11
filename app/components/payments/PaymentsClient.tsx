@@ -124,6 +124,7 @@ function statusTone(
 
 export default function PaymentsClient() {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -137,12 +138,16 @@ export default function PaymentsClient() {
     if (!response.ok || !result?.ok) {
       console.error("Errore caricamento pagamenti:", result?.error);
       setPayments([]);
+      setTotalCount(null);
       setLoadError(result?.error || "Errore caricamento pagamenti.");
       setLoading(false);
       return;
     }
 
     setPayments((result.payments || []) as unknown as Payment[]);
+    setTotalCount(
+      typeof result.total_count === "number" ? result.total_count : null,
+    );
     setLoading(false);
   }
 
@@ -187,6 +192,12 @@ export default function PaymentsClient() {
       0,
     );
   }, [payments]);
+
+  // The API caps this list at the 100 most recent payments. Once total
+  // volume exceeds that, "Incassi mese" et al. only sum what's loaded,
+  // not the true total - surface that instead of showing a number that
+  // silently looks complete.
+  const isTruncated = totalCount !== null && totalCount > payments.length;
 
   return (
     <main className="payments-page bg-page-shell">
@@ -235,12 +246,18 @@ export default function PaymentsClient() {
         <BGStatCard
           label="Incassi mese"
           value={formatMoney(monthTotal)}
-          note="Somma pagamenti caricati nel mese corrente"
-          tone="blue"
+          note={
+            isTruncated
+              ? "Parziale: oltre 100 pagamenti in totale, alcuni più vecchi non sono caricati"
+              : "Somma pagamenti caricati nel mese corrente"
+          }
+          tone={isTruncated ? "yellow" : "blue"}
         />
         <BGStatCard
           label="Operazioni caricate"
-          value={payments.length}
+          value={
+            isTruncated ? `${payments.length} di ${totalCount}` : payments.length
+          }
           note="Ultimi pagamenti letti dallo storico"
           tone="neutral"
         />
@@ -263,13 +280,23 @@ export default function PaymentsClient() {
             </p>
           </div>
           <BGStatusBadge
-            tone={loadError ? "danger" : loading ? "warning" : "info"}
+            tone={
+              loadError
+                ? "danger"
+                : loading
+                  ? "warning"
+                  : isTruncated
+                    ? "warning"
+                    : "info"
+            }
           >
             {loadError
               ? "Errore"
               : loading
                 ? "Caricamento"
-                : `${payments.length} operazioni`}
+                : isTruncated
+                  ? `${payments.length} di ${totalCount} operazioni`
+                  : `${payments.length} operazioni`}
           </BGStatusBadge>
         </div>
 
