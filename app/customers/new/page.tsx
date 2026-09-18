@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BGButton, BGInput, BGPageHeader, BGSelect } from "@/components/bodygate-ui";
+import { BGButton, BGInput, BGInputGroup, BGPageHeader, BGSelect } from "@/components/bodygate-ui";
 import { normalizeAccessCode } from "../../lib/accessCodeNormalizer";
 import { safeRandomId } from "../../lib/safeRandomId";
 import CustomerDocumentRows from "../components/CustomerDocumentRows";
@@ -103,6 +103,7 @@ export default function NewCustomerPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [generatingFiscalCode, setGeneratingFiscalCode] = useState(false);
   const [onboardingOperationId, setOnboardingOperationId] = useState("");
   const [configLoading, setConfigLoading] = useState(true);
   const [plans, setPlans] = useState<PlatinumPlan[]>(fallbackPlans);
@@ -231,6 +232,27 @@ export default function NewCustomerPage() {
 
   function update(field: string, value: string | boolean) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function generateFiscalCode() {
+    setGeneratingFiscalCode(true);
+    setMessage("");
+
+    try {
+      const result = await postJson("/api/customers/generate-fiscal-code", {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        gender: form.gender,
+        birth_date: form.birth_date,
+        birth_place: form.birth_place,
+      });
+
+      update("fiscal_code", String(result.fiscal_code || "").toUpperCase());
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Impossibile generare il codice fiscale.");
+    } finally {
+      setGeneratingFiscalCode(false);
+    }
   }
 
   useEffect(() => {
@@ -631,11 +653,23 @@ export default function NewCustomerPage() {
                 value={form.birth_place}
                 onChange={(v) => update("birth_place", v)}
               />
-              <Field
-                label="Codice fiscale *"
-                value={form.fiscal_code}
-                onChange={(v) => update("fiscal_code", v)}
-              />
+              <label className="bg-field bg-form-field">
+                <span className="bg-field-label bg-form-label">Codice fiscale *</span>
+                <BGInputGroup>
+                  <BGInput
+                    value={form.fiscal_code}
+                    onChange={(event) => update("fiscal_code", event.target.value)}
+                  />
+                  <BGButton
+                    type="button"
+                    variant="secondary"
+                    onClick={generateFiscalCode}
+                    disabled={generatingFiscalCode}
+                  >
+                    {generatingFiscalCode ? "Generazione..." : "Genera"}
+                  </BGButton>
+                </BGInputGroup>
+              </label>
               <Field
                 label="Telefono *"
                 value={form.phone}
