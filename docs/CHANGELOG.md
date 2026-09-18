@@ -2,6 +2,16 @@
 
 Registro dei lavori svolti sul progetto, in ordine cronologico inverso (più recente in cima). Ogni voce indica la PR, cosa è stato trovato/fatto e come è stato verificato — non solo letto nel codice ma riprodotto dal vivo prima e dopo il fix, quando applicabile.
 
+## 2026-09-17 — HOTFIX 0.3: cliente bloccato al gate anche dopo rinnovo pagato
+
+Segnalazione: Giuseppe ha chiesto di verificare la scheda cliente di Fabio Ciaramitaro (badge 292002), che mostrava "Non può entrare" / "Cliente disattivo" nonostante abbonamento, certificato medico e quota associativa tutti validi, e continuava a farlo anche dopo un rinnovo appena pagato.
+
+Causa: `app/api/access/check/route.ts` nega l'accesso in base a `customers.is_active`, un flag indipendente controllato prima di qualsiasi verifica su abbonamento/quota. La RPC di rinnovo (`renew_subscription_atomic_v1`, HOTFIX 0.2) aggiornava solo l'abbonamento, mai quel flag: un cliente disattivato restava bloccato per sempre, anche pagando, finché non lo si riattivava a mano da "Modifica cliente".
+
+Fix: la RPC ora riattiva automaticamente il cliente (`is_active`, `active`, `status`) quando un rinnovo va a buon fine, con traccia in timeline. Applicato come migration sul database Supabase live e verificato (nessun nuovo advisory di sicurezza, badge cliente tornati coerenti in scheda). Corretto manualmente anche il record di Fabio Ciaramitaro, il cui rinnovo era avvenuto prima del deploy della fix. Dettagli in `docs/SECURITY_HOTFIX_0_3.md`.
+
+Segnalata ma non corretta (richiede una decisione di Giuseppe, non è un bug di codice): incongruenza tra codice fiscale e nome sul profilo dello stesso cliente — `CRMFBA95E66G273W` codifica sesso femminile nel giorno di nascita, il cliente si chiama Fabio e il campo "Sesso" è vuoto.
+
 ## 2026-09-11 — Giro di QA live: caccia sistematica ai bug (PR #172–#180)
 
 Richiesta: valutazione e sistemazione di tutti i bug — software, grafiche, logiche di sistema e di lavoro. Metodo: per ogni area, navigazione reale dell'app (Playwright), verifica dei sospetti sui dati reali di produzione prima di dichiararli bug, fix minimo e mirato, verifica post-fix, PR con CI (typecheck, lint baseline, test di governance, build) prima del merge.
