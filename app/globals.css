@@ -45,6 +45,19 @@ body {
   overflow-x: hidden;
 }
 
+/*
+ * min-height: 100vh on this wrapper is unreliable during print — Chrome/Firefox
+ * compute print "vh" from a virtual viewport that rarely matches the physical
+ * page height, so it can add a trailing blank page after any print stylesheet
+ * that positions its own content with `position: absolute` (contract/receipt
+ * print views). Neutralize it while printing.
+ */
+@media print {
+  .app-standalone-shell {
+    min-height: 0 !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
