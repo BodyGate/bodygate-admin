@@ -1,4 +1,5 @@
 import { BGButton, BGCard, BGPageHeader, BGPageShell } from "@/components/bodygate-ui";
+import AccessHealthCard from "../components/AccessHealthCard";
 import PermissionGuard from "../components/security/PermissionGuard";
 import SystemLivePanel from "../components/SystemLivePanel";
 import SystemStatusCard from "../components/SystemStatusCard";
@@ -15,8 +16,7 @@ export default function SystemPage() {
       />
 
       <section className="bg-kpi-grid">
-        <SystemStatusCard title="Bridge" value="ONLINE" status="online" />
-        <SystemStatusCard title="Controller" value="CONNECTED" status="online" />
+        <AccessHealthCard />
         <SystemStatusCard title="Supabase" value="SYNCED" status="online" />
         <SystemStatusCard title="Realtime" value="ACTIVE" status="online" />
       </section>
