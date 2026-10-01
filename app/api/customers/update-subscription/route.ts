@@ -40,7 +40,8 @@ function parseAmount(value: unknown) {
 
   if (!Number.isFinite(amount)) return null;
 
-  return amount;
+  // Importi sempre al centesimo (come nei rinnovi).
+  return Number(amount.toFixed(2));
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {
