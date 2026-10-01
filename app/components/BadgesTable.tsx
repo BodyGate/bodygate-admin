@@ -1,7 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import {
+  BGButton,
+  BGCard,
+  BGEmptyState,
+  BGInput,
+  BGSectionHeader,
+  BGStatCard,
+  BGStatGrid,
+  BGStatusBadge,
+  BGTable,
+} from "@/components/bodygate-ui";
 
 type CustomerBadge = {
   id: string;
@@ -57,267 +67,82 @@ export default function BadgesTable() {
 
   return (
     <div className="bg-stack-lg">
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-          gap: "18px",
-        }}
-      >
-        <StatsCard
-          title="Badge attivi"
-          value={activeBadges.toString()}
-          color="#22c55e"
+      <BGStatGrid>
+        <BGStatCard label="Badge attivi" value={activeBadges} tone="green" />
+        <BGStatCard label="Badge bloccati" value={blockedBadges} tone="red" />
+        <BGStatCard label="Badge scaduti" value={expiredBadges} tone="yellow" />
+        <BGStatCard label="Totale badge" value={customers.length} tone="blue" />
+      </BGStatGrid>
+
+      <BGCard>
+        <BGSectionHeader
+          title="Badge Management"
+          subtitle="Gestione badge e associazioni clienti."
+          actions={
+            <BGInput
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Ricerca badge o cliente..."
+            />
+          }
         />
-
-        <StatsCard
-          title="Badge bloccati"
-          value={blockedBadges.toString()}
-          color="#5b3df5"
-        />
-
-        <StatsCard
-          title="Badge scaduti"
-          value={expiredBadges.toString()}
-          color="#f59e0b"
-        />
-
-        <StatsCard
-          title="Totale badge"
-          value={customers.length.toString()}
-          color="#3b82f6"
-        />
-      </div>
-
-      <div
-        style={{
-          background: "var(--panel)",
-          border: "1px solid var(--border)",
-          borderRadius: "26px",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "24px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "20px",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-              }}
-            >
-              Badge Management
-            </div>
-
-            <div
-              style={{
-                marginTop: "6px",
-                color: "var(--muted)",
-              }}
-            >
-              Gestione badge e associazioni clienti.
-            </div>
-          </div>
-
-          <input
-            className="bg-input bg-form-control"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ricerca badge o cliente..."
-          />
-        </div>
 
         {loading ? (
-          <div
-            style={{
-              padding: "28px",
-              color: "var(--muted)",
-            }}
-          >
-            Caricamento badge...
-          </div>
+          <BGEmptyState title="Caricamento badge..." />
         ) : filteredCustomers.length === 0 ? (
-          <div
-            style={{
-              padding: "28px",
-              color: "var(--muted)",
-            }}
-          >
-            Nessun badge trovato.
-          </div>
+          <BGEmptyState title="Nessun badge trovato." />
         ) : (
-          <div className="bg-table-wrap">
-            <table className="bg-table" style={{ minWidth: "900px" }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Cliente</th>
-                  <th style={thStyle}>Badge</th>
-                  <th style={thStyle}>Stato</th>
-                  <th style={thStyle}>Abbonamento</th>
-                  <th style={thStyle}>Scadenza</th>
-                  <th style={thStyle}>Azioni</th>
-                </tr>
-              </thead>
+          <BGTable wide>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Badge</th>
+                <th>Stato</th>
+                <th>Abbonamento</th>
+                <th>Scadenza</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {filteredCustomers.map((customer) => {
-                  const status = !customer.active
-                    ? {
-                        label: "BLOCCATO",
-                        color: "#5b3df5",
-                        bg: "rgba(91,61,245,0.12)",
-                      }
+            <tbody>
+              {filteredCustomers.map((customer) => {
+                const status: { label: string; tone: "danger" | "warning" | "success" } =
+                  !customer.active
+                    ? { label: "BLOCCATO", tone: "danger" }
                     : customer.subscription_status === "expired"
-                    ? {
-                        label: "SCADUTO",
-                        color: "#f59e0b",
-                        bg: "rgba(245,158,11,0.12)",
-                      }
-                    : {
-                        label: "ATTIVO",
-                        color: "#22c55e",
-                        bg: "rgba(34,197,94,0.12)",
-                      };
+                    ? { label: "SCADUTO", tone: "warning" }
+                    : { label: "ATTIVO", tone: "success" };
 
-                  return (
-                    <tr key={customer.id} className="bg-table-row">
-                      <td style={tdStyle}>
-                        <div style={{ fontWeight: "bold" }}>
-                          {customer.full_name}
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "4px",
-                            color: "var(--muted)",
-                            fontSize: "12px",
-                          }}
-                        >
-                          ID {customer.id.slice(0, 8)}
-                        </div>
-                      </td>
-
-                      <td style={tdStyle}>
-                        <div
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "18px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {customer.badge_code}
-                        </div>
-                      </td>
-
-                      <td style={tdStyle}>
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px 14px",
-                            borderRadius: "999px",
-                            background: status.bg,
-                            color: status.color,
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          ● {status.label}
-                        </div>
-                      </td>
-
-                      <td style={tdStyle}>
-                        {customer.subscription_status || "-"}
-                      </td>
-
-                      <td style={tdStyle}>
-                        {customer.subscription_expiry
-                          ? new Date(
-                              customer.subscription_expiry
-                            ).toLocaleDateString("it-IT")
-                          : "-"}
-                      </td>
-
-                      <td style={tdStyle}>
-                        <Link
-                          href={`/customers/${customer.id}`}
-                          className="bg-action-link bg-action-link-primary"
-                        >
-                          Apri scheda
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                return (
+                  <tr key={customer.id}>
+                    <td>
+                      <strong>{customer.full_name}</strong>
+                      <div>ID {customer.id.slice(0, 8)}</div>
+                    </td>
+                    <td>
+                      <strong>{customer.badge_code}</strong>
+                    </td>
+                    <td>
+                      <BGStatusBadge tone={status.tone}>{status.label}</BGStatusBadge>
+                    </td>
+                    <td>{customer.subscription_status || "-"}</td>
+                    <td>
+                      {customer.subscription_expiry
+                        ? new Date(customer.subscription_expiry).toLocaleDateString("it-IT")
+                        : "-"}
+                    </td>
+                    <td>
+                      <BGButton href={`/customers/${customer.id}`} variant="secondary">
+                        Apri scheda
+                      </BGButton>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </BGTable>
         )}
-      </div>
+      </BGCard>
     </div>
   );
 }
-
-function StatsCard({
-  title,
-  value,
-  color,
-}: {
-  title: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--panel)",
-        border: `1px solid ${color}33`,
-        borderRadius: "22px",
-        padding: "22px",
-      }}
-    >
-      <div
-        style={{
-          color: "var(--muted)",
-          fontSize: "13px",
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-        }}
-      >
-        {title.toUpperCase()}
-      </div>
-
-      <div
-        style={{
-          marginTop: "12px",
-          fontSize: "42px",
-          fontWeight: "bold",
-          color,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-const thStyle: React.CSSProperties = {
-  padding: "18px",
-  color: "var(--muted)",
-  fontSize: "13px",
-  letterSpacing: "0.04em",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "18px",
-};
