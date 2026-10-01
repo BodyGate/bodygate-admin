@@ -12,7 +12,9 @@ function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
-  return amount;
+  // Allineato a renew-subscription / renew-membership-fee: importi a 2 decimali.
+  const rounded = Number(amount.toFixed(2));
+  return rounded > 0 ? rounded : null;
 }
 
 function normalizePaymentType(value: unknown) {
