@@ -12,7 +12,11 @@ function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
-  return amount;
+  // Allineato a renew-subscription / renew-membership-fee: importi a 2 decimali.
+  // toFixed(2) direttamente sul double sbaglia i punti medi (1.005 -> 1.00):
+  // si arrotonda sulla rappresentazione decimale, come round(numeric, 2) di Postgres.
+  const rounded = Number(`${Math.round(Number(`${amount.toFixed(8)}e2`))}e-2`);
+  return rounded > 0 ? rounded : null;
 }
 
 function normalizePaymentType(value: unknown) {
