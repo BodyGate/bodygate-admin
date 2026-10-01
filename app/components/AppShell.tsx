@@ -29,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isPublicStandalonePage) {
     return (
       <main
+        className="app-standalone-shell"
         style={{
           minHeight: "100vh",
           background: isReceiptPage || isContractPrintPage ? "#ffffff" : "#050505",
