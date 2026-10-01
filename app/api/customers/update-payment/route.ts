@@ -12,7 +12,10 @@ function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
-  return amount;
+  // Importi sempre al centesimo (come nei rinnovi): evita 12.345 salvato/mostrato in modo incoerente.
+  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizeText(value: unknown) {
