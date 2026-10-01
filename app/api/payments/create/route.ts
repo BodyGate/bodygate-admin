@@ -13,7 +13,9 @@ function parseAmount(value: unknown) {
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
   // Allineato a renew-subscription / renew-membership-fee: importi a 2 decimali.
-  const rounded = Number(amount.toFixed(2));
+  // toFixed(2) direttamente sul double sbaglia i punti medi (1.005 -> 1.00):
+  // si arrotonda sulla rappresentazione decimale, come round(numeric, 2) di Postgres.
+  const rounded = Number(`${Math.round(Number(`${amount.toFixed(8)}e2`))}e-2`);
   return rounded > 0 ? rounded : null;
 }
 
