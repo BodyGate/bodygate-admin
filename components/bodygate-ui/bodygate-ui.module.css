@@ -474,3 +474,9 @@
   flex-wrap: wrap;
   margin-top: 8px;
 }
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
