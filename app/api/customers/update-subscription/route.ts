@@ -41,7 +41,7 @@ function parseAmount(value: unknown) {
   if (!Number.isFinite(amount)) return null;
 
   // Importi sempre al centesimo (come nei rinnovi).
-  return Math.round((amount + Number.EPSILON) * 100) / 100;
+  return Number(amount.toFixed(2));
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {

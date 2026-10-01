@@ -13,7 +13,7 @@ function parseAmount(value: unknown) {
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
   // Importi sempre al centesimo (come nei rinnovi): evita 12.345 salvato/mostrato in modo incoerente.
-  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  const rounded = Number(amount.toFixed(2));
   if (rounded <= 0) return null;
   return rounded;
 }
