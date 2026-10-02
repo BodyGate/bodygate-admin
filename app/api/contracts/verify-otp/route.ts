@@ -64,6 +64,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // The OTP is not cleared after signing, so a repeated request with the
+    // same code (double click, network retry) inside its 10-minute window
+    // would overwrite signed_at/signed_ip/signed_user_agent - the evidence of
+    // the original signature - and re-run the customer activation logic.
+    // Already signed: succeed idempotently without touching anything.
+    if (document.status === "signed") {
+      return NextResponse.json({
+        ok: true,
+        message: "Documento già firmato.",
+        customer_id: document.customer_id ?? null,
+        already_signed: true,
+      });
+    }
+
     const now = new Date().toISOString();
     const today = new Date().toISOString().slice(0, 10);
     const ip = req.headers.get("x-forwarded-for") || "unknown";
