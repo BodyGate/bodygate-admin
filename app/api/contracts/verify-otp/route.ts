@@ -80,7 +80,10 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    const { error: updateError } = await supabase
+    // Conditional transition: two concurrent requests can both pass the
+    // status check above, so only the one that actually flips the row from an
+    // unsigned state may proceed (status can be NULL, hence the explicit or).
+    const { data: signedRows, error: updateError } = await supabase
       .from("customer_documents")
       .update({
         status: "signed",
@@ -88,12 +91,21 @@ export async function POST(req: Request) {
         signed_ip: ip,
         signed_user_agent: userAgent,
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, message: "Errore firma documento." },
         { status: 500 }
+      );
+    }
+
+    if (!signedRows || signedRows.length === 0) {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
       );
     }
 
