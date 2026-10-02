@@ -50,6 +50,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // A signed document must never be re-signed: the OTP is not cleared after
+    // use, so within its 10-minute validity the same code would otherwise pass
+    // again, overwriting signed_at / signed_ip / signed_user_agent (the legal
+    // evidence of the signature) and re-running the customer activation logic.
+    if (document.status === "signed") {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
+      );
+    }
+
     if (document.otp_code !== otp) {
       return NextResponse.json(
         { ok: false, message: "OTP non valido." },
