@@ -90,7 +90,7 @@ export default function BadgesTable() {
         ) : filteredCustomers.length === 0 ? (
           <BGEmptyState title="Nessun badge trovato." />
         ) : (
-          <BGTable aria-label="Elenco badge clienti">
+          <BGTable wide aria-label="Elenco badge clienti">
             <thead>
               <tr>
                 <th>Cliente</th>
