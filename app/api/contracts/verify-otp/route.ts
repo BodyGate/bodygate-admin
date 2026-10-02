@@ -83,7 +83,10 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    const { error: updateError } = await supabase
+    // Conditional transition: only the request that actually flips the row
+    // from unsigned to signed proceeds, so overlapping requests cannot both
+    // pass the check above and repeat the side effects.
+    const { data: signedRows, error: updateError } = await supabase
       .from("customer_documents")
       .update({
         status: "signed",
@@ -91,13 +94,24 @@ export async function POST(req: Request) {
         signed_ip: ip,
         signed_user_agent: userAgent,
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, message: "Errore firma documento." },
         { status: 500 }
       );
+    }
+
+    if (!signedRows || signedRows.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        message: "Documento già firmato.",
+        customer_id: document.customer_id ?? null,
+        already_signed: true,
+      });
     }
 
     const customerId = document.customer_id;
