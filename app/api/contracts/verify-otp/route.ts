@@ -64,12 +64,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // The OTP is not cleared after signing, so a repeated request with the
+    // same code (double click, network retry) inside its 10-minute window
+    // would overwrite signed_at/signed_ip/signed_user_agent - the evidence of
+    // the original signature - and re-run the customer activation logic.
+    // Already signed: succeed idempotently without touching anything.
+    if (document.status === "signed") {
+      return NextResponse.json({
+        ok: true,
+        message: "Documento già firmato.",
+        customer_id: document.customer_id ?? null,
+        already_signed: true,
+      });
+    }
+
     const now = new Date().toISOString();
     const today = new Date().toISOString().slice(0, 10);
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    const { error: updateError } = await supabase
+    // Conditional transition: only the request that actually flips the row
+    // from unsigned to signed proceeds, so overlapping requests cannot both
+    // pass the check above and repeat the side effects.
+    const { data: signedRows, error: updateError } = await supabase
       .from("customer_documents")
       .update({
         status: "signed",
@@ -77,13 +94,24 @@ export async function POST(req: Request) {
         signed_ip: ip,
         signed_user_agent: userAgent,
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, message: "Errore firma documento." },
         { status: 500 }
       );
+    }
+
+    if (!signedRows || signedRows.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        message: "Documento già firmato.",
+        customer_id: document.customer_id ?? null,
+        already_signed: true,
+      });
     }
 
     const customerId = document.customer_id;
