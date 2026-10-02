@@ -50,6 +50,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // A signed document must never be re-signed: the OTP is not cleared after
+    // use, so within its 10-minute validity the same code would otherwise pass
+    // again, overwriting signed_at / signed_ip / signed_user_agent (the legal
+    // evidence of the signature) and re-running the customer activation logic.
+    if (document.status === "signed") {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
+      );
+    }
+
     if (document.otp_code !== otp) {
       return NextResponse.json(
         { ok: false, message: "OTP non valido." },
@@ -69,7 +80,10 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    const { error: updateError } = await supabase
+    // Conditional transition: two concurrent requests can both pass the
+    // status check above, so only the one that actually flips the row from an
+    // unsigned state may proceed (status can be NULL, hence the explicit or).
+    const { data: signedRows, error: updateError } = await supabase
       .from("customer_documents")
       .update({
         status: "signed",
@@ -77,12 +91,21 @@ export async function POST(req: Request) {
         signed_ip: ip,
         signed_user_agent: userAgent,
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, message: "Errore firma documento." },
         { status: 500 }
+      );
+    }
+
+    if (!signedRows || signedRows.length === 0) {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
       );
     }
 
