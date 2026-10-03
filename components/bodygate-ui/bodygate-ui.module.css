@@ -499,3 +499,7 @@
   color: var(--bg-muted, #6b7080);
   font-size: 0.75rem;
 }
+
+.tableWide {
+  min-width: 900px;
+}
