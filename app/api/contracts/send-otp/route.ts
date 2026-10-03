@@ -31,19 +31,20 @@ export async function POST(req: Request) {
       Date.now() + 10 * 60 * 1000
     ).toISOString();
 
-    // TODO(business): this overwrites status with "pending_otp" even when the
-    // document is already "signed", which would silently un-sign a legal
-    // contract (signed_at/signed_ip are kept but status is not). Needs a
-    // product decision on whether re-sending an OTP for a signed document
-    // should be rejected (409) before changing behavior here.
-    const { error } = await supabase
+    // A signed contract is a legal record: never move it back to
+    // "pending_otp" (that would make verify-otp accept a fresh OTP and
+    // overwrite signed_at / signed_ip / signed_user_agent). The status filter
+    // is part of the update itself, so it also holds against a concurrent sign.
+    const { data: updatedRows, error } = await supabase
       .from("customer_documents")
       .update({
         otp_code: otp,
         otp_expires_at: expiresAt,
         status: "pending_otp",
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (error) {
       return NextResponse.json(
@@ -53,6 +54,24 @@ export async function POST(req: Request) {
           error: error.message,
         },
         { status: 500 }
+      );
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { data: existing } = await supabase
+        .from("customer_documents")
+        .select("status")
+        .eq("id", documentId)
+        .maybeSingle();
+
+      return NextResponse.json(
+        {
+          ok: false,
+          message: existing
+            ? "Documento già firmato: non è possibile generare un nuovo OTP."
+            : "Documento non trovato.",
+        },
+        { status: existing ? 409 : 404 }
       );
     }
 
