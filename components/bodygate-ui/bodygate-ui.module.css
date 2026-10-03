@@ -474,3 +474,32 @@
   flex-wrap: wrap;
   margin-top: 8px;
 }
+
+.stack {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+}
+
+.cellSecondary {
+  margin-top: 2px;
+  color: var(--bg-muted, #6b7080);
+  font-size: 0.75rem;
+}
+
+.tableWide {
+  min-width: 900px;
+}
