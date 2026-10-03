@@ -31,6 +31,11 @@ export async function POST(req: Request) {
       Date.now() + 10 * 60 * 1000
     ).toISOString();
 
+    // TODO(business): this overwrites status with "pending_otp" even when the
+    // document is already "signed", which would silently un-sign a legal
+    // contract (signed_at/signed_ip are kept but status is not). Needs a
+    // product decision on whether re-sending an OTP for a signed document
+    // should be rejected (409) before changing behavior here.
     const { error } = await supabase
       .from("customer_documents")
       .update({

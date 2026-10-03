@@ -64,12 +64,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // A signed contract is a legal record: a second verification (same code
+    // still inside its 10-minute window, or a double submit) cannot overwrite signed_at / signed_ip / signed_user_agent
+    // of the original signature.
+    if (document.status === "signed") {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
+      );
+    }
+
     const now = new Date().toISOString();
     const today = new Date().toISOString().slice(0, 10);
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    const { error: updateError } = await supabase
+    // Conditional update: of two concurrent verifications only one matches a
+    // not-yet-signed row, the other gets zero rows back.
+    const { data: signedRows, error: updateError } = await supabase
       .from("customer_documents")
       .update({
         status: "signed",
@@ -77,12 +89,21 @@ export async function POST(req: Request) {
         signed_ip: ip,
         signed_user_agent: userAgent,
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, message: "Errore firma documento." },
         { status: 500 }
+      );
+    }
+
+    if (!signedRows || signedRows.length === 0) {
+      return NextResponse.json(
+        { ok: false, message: "Documento già firmato." },
+        { status: 409 }
       );
     }
 
