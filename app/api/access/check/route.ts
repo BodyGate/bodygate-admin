@@ -450,6 +450,12 @@ export async function POST(req: Request) {
 
     const customerId = customer.id;
     const branchId = customer.branch_id;
+    // TODO(business-logic): `today` is the UTC date, while valid_from/valid_until,
+    // starts_at/ends_at and the medical certificate dates are gym-local (Europe/Rome)
+    // calendar days. Between 00:00 and 01:59/02:59 Rome time the gate evaluates
+    // "yesterday" (a subscription starting today is denied, one that ended yesterday
+    // is still allowed). Harmless if the gym is closed then; needs a product decision
+    // before changing this protected access rule.
     const today = new Date().toISOString().slice(0, 10);
 
     async function logAccess(wasAllowed: boolean, reason: string) {
