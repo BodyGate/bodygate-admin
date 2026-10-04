@@ -11,8 +11,9 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
+  const rounded = Number(amount.toFixed(2));
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizeText(value: unknown) {
