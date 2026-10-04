@@ -145,6 +145,13 @@
   font-weight: 550;
 }
 
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
 .toneRed {
   border-color: rgba(214, 49, 74, 0.28);
 }
