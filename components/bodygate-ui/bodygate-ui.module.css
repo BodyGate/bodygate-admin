@@ -488,3 +488,7 @@
   min-width: 0;
 }
 
+
+.tableWide {
+  min-width: 900px;
+}
