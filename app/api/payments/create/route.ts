@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { roundMoney } from "../../../lib/server/roundMoney";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
+  const rounded = roundMoney(amount);
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizePaymentType(value: unknown) {
