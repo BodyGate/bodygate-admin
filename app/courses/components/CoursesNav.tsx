@@ -15,6 +15,7 @@ export default function CoursesNav() {
 
   return (
     <BGPillNav
+      label="Navigazione corsi"
       items={ITEMS.map((item) => ({
         ...item,
         active: pathname === item.href || pathname.startsWith(`${item.href}/`),

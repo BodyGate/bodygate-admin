@@ -10,12 +10,13 @@ type BGPillNavItem = {
 
 type BGPillNavProps = {
   items: BGPillNavItem[]
+  label: string
   className?: string
 }
 
-export default function BGPillNav({ items, className = "" }: BGPillNavProps) {
+export default function BGPillNav({ items, label, className = "" }: BGPillNavProps) {
   return (
-    <nav className={`${styles.pillNav} ${className}`.trim()}>
+    <nav aria-label={label} className={`${styles.pillNav} ${className}`.trim()}>
       {items.map((item) => (
         <Link
           key={item.href}
