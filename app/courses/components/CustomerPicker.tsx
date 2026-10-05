@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BGInput } from "@/components/bodygate-ui";
+import { BGInput, BGPicker, BGPickerMenu, BGPickerMessage, BGPickerOption, BGPickerSelected } from "@/components/bodygate-ui";
 
 type CustomerOption = { id: string; full_name: string; phone?: string | null };
 
@@ -52,92 +52,37 @@ export default function CustomerPicker({ selected, onSelect }: Props) {
   }, [query]);
 
   if (selected) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 10,
-          padding: "10px 12px",
-          borderRadius: 12,
-          border: "1px solid var(--border)",
-          background: "var(--bg-soft)",
-        }}
-      >
-        <span style={{ fontWeight: 700 }}>{selected.full_name}</span>
-        <button
-          type="button"
-          onClick={() => onSelect(null)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--muted)",
-            cursor: "pointer",
-            fontSize: 13,
-          }}
-        >
-          Cambia
-        </button>
-      </div>
-    );
+    return <BGPickerSelected label={selected.full_name} onAction={() => onSelect(null)} />;
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <BGPicker>
       <BGInput
         value={query}
         onChange={(e) => updateQuery(e.target.value)}
         placeholder="Cerca cliente per nome, telefono o email..."
       />
       {query.trim().length >= 2 && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 10,
-            top: "100%",
-            left: 0,
-            right: 0,
-            marginTop: 4,
-            background: "var(--bg-elevated, #fff)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            maxHeight: 220,
-            overflowY: "auto",
-            boxShadow: "0 12px 24px rgba(0,0,0,0.12)",
-          }}
-        >
+        <BGPickerMenu>
           {searching ? (
-            <div style={{ padding: 12, fontSize: 13, color: "var(--muted)" }}>Ricerca...</div>
+            <BGPickerMessage>Ricerca...</BGPickerMessage>
           ) : results.length === 0 ? (
-            <div style={{ padding: 12, fontSize: 13, color: "var(--muted)" }}>Nessun cliente trovato.</div>
+            <BGPickerMessage>Nessun cliente trovato.</BGPickerMessage>
           ) : (
             results.map((customer) => (
-              <button
+              <BGPickerOption
                 key={customer.id}
-                type="button"
+                title={customer.full_name}
+                meta={customer.phone}
                 onClick={() => {
                   onSelect(customer);
                   setResults([]);
                 }}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 14,
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{customer.full_name}</div>
-                {customer.phone && <div style={{ fontSize: 12, color: "var(--muted)" }}>{customer.phone}</div>}
-              </button>
+              />
             ))
           )}
-        </div>
+        </BGPickerMenu>
       )}
-    </div>
+    </BGPicker>
   );
 }

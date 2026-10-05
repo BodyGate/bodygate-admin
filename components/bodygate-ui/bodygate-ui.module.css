@@ -480,3 +480,94 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.pillNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  background: var(--bg-surface, #ffffff);
+  color: var(--platinum-text-muted, #6b7080);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pill:hover {
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.pillActive,
+.pillActive:hover {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b3df5, #c04bd6);
+  color: #ffffff;
+}
+
+.picker {
+  position: relative;
+}
+
+.pickerSelected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  background: var(--bg-canvas-raised, #f4f5f9);
+  font-weight: 700;
+}
+
+.pickerMenu {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  border-radius: 10px;
+  background: var(--bg-surface, #ffffff);
+  box-shadow: 0 12px 24px rgba(21, 22, 28, 0.12);
+}
+
+.pickerMessage {
+  padding: 12px;
+  font-size: 0.82rem;
+  color: var(--platinum-text-muted, #6b7080);
+}
+
+.pickerOption {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pickerOption:hover {
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.pickerOptionTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.pickerOptionMeta {
+  font-size: 0.75rem;
+  color: var(--platinum-text-muted, #6b7080);
+}
