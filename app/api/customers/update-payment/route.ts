@@ -213,7 +213,7 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
-      .neq("status", "cancelled")
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
       .maybeSingle();
 
