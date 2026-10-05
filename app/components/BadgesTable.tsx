@@ -90,7 +90,7 @@ export default function BadgesTable() {
         ) : filteredCustomers.length === 0 ? (
           <BGEmptyState title="Nessun badge trovato." />
         ) : (
-          <BGTable>
+          <BGTable minWidth={900}>
             <thead>
               <tr>
                 <th>Cliente</th>
