@@ -115,6 +115,12 @@
   background: rgba(179, 121, 10, 0.06);
 }
 
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
 .statCard {
   min-height: 132px;
   display: grid;
