@@ -127,4 +127,25 @@ Ruoli amministrativi (`admin, administrator, owner, proprietario, super_admin, a
 
 ## Playbook per gli agenti BodyGate
 
-_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Vuota al primo popolamento — verrà riempita dopo la prima settimana di attività degli agenti "Cura Grafica UI" e "Cura Logiche di Business", con pattern di errore ricorrenti da evitare._
+_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-10-04. Leggila prima di ogni esecuzione._
+
+### Regole valide per tutti gli agenti (Cura Grafica UI e Cura Logiche di Business)
+
+1. **Controlla le PR aperte prima di iniziare.** Nella prima settimana (01–04/10) sono state aperte 17 PR `agents/*`, nessuna mergiata né commentata da umani: la UI ha riproposto ~9 volte la stessa migrazione di `BadgesTable`/`BGStatGrid`, la logica ~4 volte l'arrotondamento degli importi e ~4 volte il fix di `verify-otp`. Ogni run parte da `origin/main`, che non contiene il lavoro delle PR precedenti, quindi rifà lo stesso lavoro. Prima di scegliere il task: elenca le PR aperte con prefisso `agents/ui/` o `agents/logic/` (titolo + file toccati).
+2. **Se esiste già una PR aperta sullo stesso tema, non aprirne un'altra.** Scegli un'area/bug diverso e non sovrapposto. Se non ne trovi, termina senza commit. Non basare un branch su un'altra PR agente aperta se non per un lavoro realmente dipendente.
+3. **Una PR = un solo problema, diff piccolo.** Niente primitive nuove "di passaggio" insieme a una migrazione: se serve una primitiva in `bodygate-ui` (es. `BGStatGrid`), valuta se è già in una PR aperta.
+4. Prima di aprire la PR esegui `npm run typecheck`, `npm run lint:baseline` e `npm test` e riporta l'esito nella descrizione.
+5. Nel titolo e nel corpo indica cosa è stato verificato e cosa no (es. "non testato a runtime"). Non dichiarare un fix come certo se non lo è.
+
+### Cura Grafica UI
+
+- Rispetta AGENTS.md: solo componenti `components/bodygate-ui`; se manca un primitivo, aggiungilo lì (una sola volta) invece di inline style o shadcn.
+- Una pagina/componente per PR. Non toccare logica di business, query o permessi.
+- Le PR di migrazione non devono cambiare il comportamento visivo oltre lo stretto necessario (per le tabelle larghe controlla l'overflow orizzontale su mobile con ciò che `BGTable` offre oggi su `main`; non presumere props non presenti, come `wide`, che esistono solo in PR aperte).
+
+### Cura Logiche di Business
+
+- **Soldi, contratti, OTP: un fix per PR e sempre atomico/idempotente** (UPDATE condizionale, non read-then-write). Hanno area di intersezione: `verify-otp`/`send-otp`, `update-payment`, `update-subscription`, `payments/create`. Prima di toccarle verifica le PR aperte su questi file.
+- Per l'arrotondamento importi usa un'unica utility condivisa (decimal-safe, punti medi tipo 1.005/2.675) invece di replicare `toFixed(2)` in ogni route; una sola PR deve introdurla.
+- Rispetta l'ordine di controllo del tornello (vedi sezione Permessi): non riordinarlo senza aggiornare i test.
+- Dubbio non certo = nota nella PR, mai fix indovinato.
