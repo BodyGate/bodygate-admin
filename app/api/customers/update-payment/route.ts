@@ -119,6 +119,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Un pagamento annullato non è rettificabile: l'UI disabilita il pulsante,
+    // ma una scheda aperta prima dell'annullamento (o una chiamata diretta)
+    // reinvierebbe status "paid" e lo riporterebbe in vita silenziosamente.
+    if (existingPayment.status === "cancelled") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_CANCELLED",
+          error: "Il pagamento è stato annullato e non può essere modificato.",
+        },
+        { status: 409 },
+      );
+    }
+
     const { data: linkedReceipts, error: receiptsError } = await supabase
       .from("customer_receipts")
       .select("id, receipt_number, amount, receipt_type, subscription_id")
@@ -199,13 +213,25 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, error: updateError.message },
         { status: 500 },
+      );
+    }
+
+    if (!updatedPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_CANCELLED",
+          error: "Il pagamento è stato annullato e non può essere modificato.",
+        },
+        { status: 409 },
       );
     }
 
