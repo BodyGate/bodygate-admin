@@ -168,6 +168,13 @@ export async function POST(req: Request) {
       .eq("payment_type", existingPayment.type)
       .limit(20);
 
+    // TODO(business-logic, richiede decisione di prodotto): il match con la riga
+    // contabile `payments` e' euristico e `.find` prende la PRIMA corrispondenza
+    // (query senza ORDER BY, limit 20). Scenario: due pagamenti dello stesso
+    // cliente/tipo con stessa descrizione (o stesso giorno+importo); rettificando
+    // il secondo puo' essere aggiornata la riga contabile del primo (importo,
+    // stato, data sovrascritti). Soluzione consigliata: salvare un riferimento
+    // esplicito customer_payments -> payments (FK) e usare solo quello.
     const accountingPayment = (plausibleAccountingPayments || []).find(
       (payment) => {
         return (
