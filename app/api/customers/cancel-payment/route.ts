@@ -79,6 +79,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Idempotenza: un secondo annullamento duplicherebbe note e voce timeline.
+    if (String(existingPayment.status || "").toLowerCase() === "cancelled") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error: "Il pagamento è già stato annullato.",
+        },
+        { status: 409 },
+      );
+    }
+
     const cancellationNote = `[Annullamento ${new Date().toLocaleString(
       "it-IT"
     )}] ${cancellationReason}`;
