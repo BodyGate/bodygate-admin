@@ -243,7 +243,7 @@ export default function AnalyticsDashboard() {
         {logs.length === 0 ? (
           <BGEmptyState title="Nessun accesso registrato." />
         ) : (
-          <BGTable aria-label="Ultimi accessi palestra">
+          <BGTable wide aria-label="Ultimi accessi palestra">
             <thead>
               <tr>
                 <th>Esito</th>
