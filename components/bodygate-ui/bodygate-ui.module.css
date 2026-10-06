@@ -330,6 +330,10 @@
   font-size: 0.88rem;
 }
 
+.tableWide {
+  min-width: 560px;
+}
+
 .table th {
   height: 42px;
   padding: 0 14px;
@@ -479,4 +483,16 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .splitGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
