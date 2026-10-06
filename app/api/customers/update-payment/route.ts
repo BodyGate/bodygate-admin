@@ -119,6 +119,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Un pagamento annullato non si rettifica: una scheda cliente non
+    // aggiornata permetterebbe di riportarlo a "paid" senza traccia chiara.
+    if (String(existingPayment.status || "").toLowerCase() === "cancelled") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error:
+            "Il pagamento è già stato annullato e non può essere rettificato. Aggiorna la scheda cliente.",
+        },
+        { status: 409 },
+      );
+    }
+
     const { data: linkedReceipts, error: receiptsError } = await supabase
       .from("customer_receipts")
       .select("id, receipt_number, amount, receipt_type, subscription_id")
@@ -199,13 +213,25 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, error: updateError.message },
         { status: 500 },
+      );
+    }
+
+    if (!updatedPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error: "Il pagamento è stato annullato nel frattempo e non può essere rettificato. Aggiorna la scheda cliente.",
+        },
+        { status: 409 },
       );
     }
 
