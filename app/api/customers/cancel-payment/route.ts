@@ -103,13 +103,25 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (cancelError) {
       return NextResponse.json(
         { ok: false, error: cancelError.message },
         { status: 500 }
+      );
+    }
+
+    if (!cancelledPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error: "Il pagamento è già stato annullato.",
+        },
+        { status: 409 },
       );
     }
 

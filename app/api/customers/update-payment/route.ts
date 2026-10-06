@@ -213,13 +213,25 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, error: updateError.message },
         { status: 500 },
+      );
+    }
+
+    if (!updatedPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error: "Il pagamento è stato annullato nel frattempo e non può essere rettificato. Aggiorna la scheda cliente.",
+        },
+        { status: 409 },
       );
     }
 
