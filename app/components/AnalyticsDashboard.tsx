@@ -4,6 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 import {
+  BGEmptyState,
+  BGSection,
+  BGSplitGrid,
+  BGStatCard,
+  BGStatGrid,
+  BGStatusBadge,
+  BGTable,
+} from "@/components/bodygate-ui";
+
+import {
   ResponsiveContainer,
   LineChart,
   Line,
@@ -162,47 +172,36 @@ export default function AnalyticsDashboard() {
   }, [logs]);
 
   if (loading) {
-    return (
-      <div style={loadingStyle}>
-        Caricamento analytics...
-      </div>
-    );
+    return <BGEmptyState title="Caricamento analytics..." />;
   }
 
   return (
-    <div style={{ display: "grid", gap: "22px" }}>
-      <div style={cardsGrid}>
-        <StatCard
-          title="Accessi oggi"
-          value={stats.todayAccesses.toString()}
-          color="#22c55e"
+    <>
+      <BGStatGrid>
+        <BGStatCard
+          label="Accessi oggi"
+          value={stats.todayAccesses}
+          tone="green"
         />
-
-        <StatCard
-          title="Accessi settimana"
-          value={stats.weeklyAccesses.toString()}
-          color="#3b82f6"
+        <BGStatCard
+          label="Accessi settimana"
+          value={stats.weeklyAccesses}
+          tone="blue"
         />
-
-        <StatCard
-          title="Accessi negati"
-          value={stats.deniedAccesses.toString()}
-          color="#5b3df5"
+        <BGStatCard
+          label="Accessi negati"
+          value={stats.deniedAccesses}
+          tone="red"
         />
-
-        <StatCard
-          title="Clienti attivi"
-          value={stats.activeCustomers.toString()}
-          color="#f59e0b"
+        <BGStatCard
+          label="Clienti attivi"
+          value={stats.activeCustomers}
+          tone="yellow"
         />
-      </div>
+      </BGStatGrid>
 
-      <div style={chartsGrid}>
-        <div style={panelStyle}>
-          <div style={sectionTitle}>
-            Trend accessi ultimi 14 giorni
-          </div>
-
+      <BGSplitGrid>
+        <BGSection title="Trend accessi ultimi 14 giorni">
           <div style={{ width: "100%", height: 320 }}>
             <ResponsiveContainer>
               <LineChart data={dailyChartData}>
@@ -219,13 +218,9 @@ export default function AnalyticsDashboard() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </BGSection>
 
-        <div style={panelStyle}>
-          <div style={sectionTitle}>
-            Affluenza oraria palestra
-          </div>
-
+        <BGSection title="Affluenza oraria palestra">
           <div style={{ width: "100%", height: 320 }}>
             <ResponsiveContainer>
               <BarChart data={hourlyChartData}>
@@ -241,135 +236,41 @@ export default function AnalyticsDashboard() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </div>
+        </BGSection>
+      </BGSplitGrid>
 
-      <div style={panelStyle}>
-        <div style={sectionTitle}>
-          Attività realtime palestra
-        </div>
-
-        <div style={{ display: "grid", gap: "14px" }}>
-          {logs.slice(0, 12).map((log) => (
-            <div
-              key={log.id}
-              style={{
-                background: "var(--bg-soft)",
-                border: "1px solid var(--border)",
-                borderRadius: "16px",
-                padding: "16px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: "bold" }}>
-                  {log.allowed
-                    ? "Accesso consentito"
-                    : "Accesso negato"}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "4px",
-                    color: "var(--muted)",
-                    fontSize: "13px",
-                  }}
-                >
-                  {new Date(
-                    log.created_at
-                  ).toLocaleString("it-IT")}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  color: log.allowed
-                    ? "#22c55e"
-                    : "#5b3df5",
-                  fontWeight: "bold",
-                }}
-              >
-                {log.allowed ? "OK" : "DENIED"}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      <BGSection title="Attività realtime palestra">
+        {logs.length === 0 ? (
+          <BGEmptyState title="Nessun accesso registrato." />
+        ) : (
+          <BGTable aria-label="Ultimi accessi palestra">
+            <thead>
+              <tr>
+                <th>Esito</th>
+                <th>Data e ora</th>
+                <th>Stato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.slice(0, 12).map((log) => (
+                <tr key={log.id}>
+                  <td>
+                    <strong>
+                      {log.allowed ? "Accesso consentito" : "Accesso negato"}
+                    </strong>
+                  </td>
+                  <td>{new Date(log.created_at).toLocaleString("it-IT")}</td>
+                  <td>
+                    <BGStatusBadge tone={log.allowed ? "success" : "danger"}>
+                      {log.allowed ? "OK" : "DENIED"}
+                    </BGStatusBadge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </BGTable>
+        )}
+      </BGSection>
+    </>
   );
 }
-
-function StatCard({
-  title,
-  value,
-  color,
-}: {
-  title: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--panel)",
-        border: `1px solid ${color}33`,
-        borderRadius: "22px",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          color: "var(--muted)",
-          fontSize: "13px",
-          fontWeight: 700,
-        }}
-      >
-        {title.toUpperCase()}
-      </div>
-
-      <div
-        style={{
-          marginTop: "14px",
-          fontSize: "46px",
-          fontWeight: "bold",
-          color,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-const cardsGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit,minmax(240px,1fr))",
-  gap: "18px",
-};
-
-const chartsGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "22px",
-};
-
-const panelStyle: React.CSSProperties = {
-  background: "var(--panel)",
-  border: "1px solid var(--border)",
-  borderRadius: "24px",
-  padding: "24px",
-};
-
-const sectionTitle: React.CSSProperties = {
-  fontSize: "24px",
-  fontWeight: "bold",
-  marginBottom: "20px",
-};
-
-const loadingStyle: React.CSSProperties = {
-  padding: "28px",
-  color: "var(--muted)",
-};
