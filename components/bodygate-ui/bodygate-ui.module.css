@@ -480,3 +480,34 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.linkTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.linkTab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  background: var(--bg-canvas-raised, #f4f5f9);
+  color: var(--bg-muted, #6b7080);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.linkTab:hover {
+  border-color: var(--bg-border-strong, #d7d9e3);
+}
+
+.linkTabActive,
+.linkTabActive:hover {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b3df5, #3d2b99);
+  color: #ffffff;
+}
