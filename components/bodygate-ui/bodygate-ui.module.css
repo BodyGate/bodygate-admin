@@ -480,3 +480,82 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.lookup {
+  position: relative;
+}
+
+.lookupSelected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  border-radius: 10px;
+  background: var(--bg-canvas-raised, #f4f5f9);
+  font-weight: 700;
+  color: var(--ink, #15161c);
+}
+
+.lookupClear {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--muted, #6b7085);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lookupClear:hover {
+  color: var(--ink, #15161c);
+}
+
+.lookupMenu {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  border-radius: 10px;
+  background: var(--bg-surface, #ffffff);
+  box-shadow: 0 12px 24px rgba(21, 22, 28, 0.12);
+}
+
+.lookupMessage {
+  padding: 12px;
+  font-size: 0.8125rem;
+  color: var(--muted, #6b7085);
+}
+
+.lookupOption {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink, #15161c);
+  cursor: pointer;
+}
+
+.lookupOption:hover {
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.lookupOptionLabel {
+  font-weight: 600;
+}
+
+.lookupOptionMeta {
+  font-size: 0.75rem;
+  color: var(--muted, #6b7085);
+}
