@@ -480,3 +480,26 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.linkNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.linkNavItem {
+  padding: 8px 16px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  border-radius: 999px;
+  background: var(--bg-soft, #eceef3);
+  color: var(--bg-muted, #6b7080);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.linkNavItemActive {
+  background: linear-gradient(135deg, #5b3df5, #3d2b99);
+  color: #fff;
+}
