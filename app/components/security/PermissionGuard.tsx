@@ -44,14 +44,12 @@ export default function PermissionGuard({
             actions={<BGButton href="/">Torna alla Dashboard</BGButton>}
           />
           <BGCard variant="danger">
-            <BGStatusBadge tone="danger">Permesso richiesto: {permission}</BGStatusBadge>{" "}
-            <BGStatusBadge tone="neutral">
-              Profilo: {staffName || "sessione non riconosciuta"}
-            </BGStatusBadge>{" "}
-            <BGStatusBadge tone="neutral">
+            <BGStatusBadge tone="danger">Permesso richiesto: {permission}</BGStatusBadge>
+            <p>Profilo: {staffName || "sessione non riconosciuta"}</p>
+            <p>
               Ruolo: {roleKey || "non configurato"}
               {isAdmin ? " · amministrazione" : ""}
-            </BGStatusBadge>
+            </p>
           </BGCard>
         </BGPageShell>
       </main>
