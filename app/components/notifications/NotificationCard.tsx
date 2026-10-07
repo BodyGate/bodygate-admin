@@ -24,10 +24,8 @@ export default function NotificationCard({ notification }: { notification: BodyG
 
         <BGStack direction="row">
           <BGStatusBadge>{notification.type}</BGStatusBadge>
-          {notification.customerName && <BGStatusBadge>{notification.customerName}</BGStatusBadge>}
-          {notification.createdAt && (
-            <BGStatusBadge>{new Date(notification.createdAt).toLocaleString("it-IT")}</BGStatusBadge>
-          )}
+          {notification.customerName && <span>{notification.customerName}</span>}
+          {notification.createdAt && <span>{new Date(notification.createdAt).toLocaleString("it-IT")}</span>}
         </BGStack>
       </BGStack>
     </BGCard>
