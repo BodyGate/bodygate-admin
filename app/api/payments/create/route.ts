@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { parseMoneyAmount } from "../../../lib/server/moneyAmount";
 
 export const dynamic = "force-dynamic";
 
@@ -7,13 +8,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-function parseAmount(value: unknown) {
-  const amount = Number(String(value ?? "").replace(",", "."));
-  if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
-}
 
 function normalizePaymentType(value: unknown) {
   return String(value || "").trim();
@@ -44,7 +38,7 @@ export async function POST(req: Request) {
     const paymentType = normalizePaymentType(
       body.paymentType || body.payment_type,
     );
-    const amount = parseAmount(body.amount);
+    const amount = parseMoneyAmount(body.amount);
     const description = normalizeDescription(body.description);
     const now = new Date();
     const nowIso = now.toISOString();
