@@ -1,5 +1,6 @@
 "use client";
 
+import { BGButton, BGStack } from "@/components/bodygate-ui";
 import type { NotificationSeverity } from "./NotificationCenterClient";
 
 type Filter = "all" | NotificationSeverity;
@@ -19,42 +20,16 @@ export default function NotificationFilters({
   ];
 
   return (
-    <div style={styles.wrapper}>
+    <BGStack direction="row">
       {filters.map((filter) => (
-        <button
+        <BGButton
           key={filter.value}
+          variant={activeFilter === filter.value ? "primary" : "secondary"}
           onClick={() => onChange(filter.value)}
-          style={{
-            ...styles.button,
-            ...(activeFilter === filter.value ? styles.active : {}),
-          }}
         >
           {filter.label}
-        </button>
+        </BGButton>
       ))}
-    </div>
+    </BGStack>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    marginTop: 20,
-  },
-  button: {
-    border: "1px solid var(--border)",
-    background: "var(--panel)",
-    color: "var(--muted)",
-    padding: "10px 14px",
-    borderRadius: 14,
-    cursor: "pointer",
-    fontWeight: 800,
-  },
-  active: {
-    background: "rgba(91,61,245,0.12)",
-    color: "var(--accent)",
-    borderColor: "rgba(91,61,245,0.4)",
-  },
-};
