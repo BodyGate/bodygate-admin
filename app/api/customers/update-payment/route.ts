@@ -160,6 +160,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // TODO(logica-business, decisione di prodotto): la riconciliazione con
+    // `payments` e' euristica e puo' rettificare la riga contabile sbagliata.
+    // Scenario: stesso cliente e stesso `type`, due pagamenti con descrizione
+    // identica (es. due "Pagamento Mensile" in mesi diversi) -> il match per
+    // sola descrizione (o per data+importo) con `.find()` su un `limit(20)`
+    // senza `order` restituisce la prima riga che capita, anche una piu'
+    // vecchia, e ne sovrascrive importo/stato. Soluzione da valutare: un
+    // collegamento esplicito customer_payments -> payments (id condiviso o
+    // FK) al posto del match euristico, e ordinamento deterministico.
     const previousDescription = normalizeText(existingPayment.description);
     const { data: plausibleAccountingPayments } = await supabase
       .from("payments")
