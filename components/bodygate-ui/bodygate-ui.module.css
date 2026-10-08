@@ -29,6 +29,37 @@
   box-shadow: 0 1px 2px rgba(21, 22, 28, 0.04), 0 12px 32px -12px rgba(21, 22, 28, 0.1);
 }
 
+.centeredScreen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg, #f4f5f9);
+  color: var(--ink, #15161c);
+}
+
+.centeredScreen > * {
+  width: 100%;
+}
+
+.centeredScreenNarrow > * {
+  max-width: 520px;
+}
+
+.centeredScreenWide > * {
+  max-width: 680px;
+}
+
+.factList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+}
+
 .pageHeader {
   display: flex;
   align-items: flex-end;
