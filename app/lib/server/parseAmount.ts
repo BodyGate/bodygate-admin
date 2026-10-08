@@ -5,7 +5,9 @@
 export function parseAmount(value: unknown): number | null {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  const rounded = Number(amount.toFixed(2));
+  // toPrecision(15) strips binary float noise so ties round half-up
+  // ("2.675" -> 2.68, whereas toFixed(2) would give 2.67).
+  const rounded = Math.round(Number((amount * 100).toPrecision(15))) / 100;
   if (rounded <= 0) return null;
   return rounded;
 }
