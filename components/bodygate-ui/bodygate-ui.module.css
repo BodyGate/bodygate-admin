@@ -480,3 +480,19 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.fullPageState {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg-canvas, var(--bg, #f8f9fc));
+  color: var(--ink, #15161c);
+}
+
+.fullPageStateInner {
+  width: min(680px, 100%);
+  display: grid;
+  gap: 18px;
+}
