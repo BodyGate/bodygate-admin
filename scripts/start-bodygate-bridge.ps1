@@ -1,5 +1,5 @@
 param(
-    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.3-performance\BodyGateBridge.exe",
+    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.4-alerts\BodyGateBridge.exe",
     [string]$EnvFile = "C:\bodygate-admin\.env.local",
     [string]$LogDirectory = "C:\bodygate-admin\logs"
 )
@@ -127,6 +127,24 @@ while ($true) {
 
     try {
         $env:BODYGATE_MACHINE_KEY = $machineKey
+
+        # Optional: ntfy alerts topic. Kept out of the source tree (the repo may
+        # be public); without it the bridge simply runs with alerts disabled.
+        try {
+            $ntfyTopic = Read-EnvValue `
+                -Path $EnvFile `
+                -Name "BODYGATE_NTFY_TOPIC"
+        }
+        catch {
+            $ntfyTopic = $null
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($ntfyTopic)) {
+            $env:BODYGATE_NTFY_TOPIC = $ntfyTopic
+        }
+        else {
+            Write-BridgeLog "ATTENZIONE: BODYGATE_NTFY_TOPIC non presente in .env.local, alert ntfy disattivati."
+        }
 
         Write-BridgeLog "Avvio Bridge ufficiale: $BridgePath"
 

@@ -115,3 +115,48 @@ Il Bridge non deve restare bloccato in modo silenzioso. Tre livelli:
    `BodyGateBridge.exe` e, se il task `BodyGate Bridge` non è `Running`, lo
    riabilita/avvia. Ripete a ogni controllo finché il Bridge non risponde.
 
+
+### Bridge fermo: "Error while copying content to a stream" (database DNake troncato)
+
+Sintomo: il Bridge è vivo, `/status` risponde, ma non registra nessun accesso
+(`lastProcessedEventKey` vuoto) e `bridge.log` è pieno di
+`Error while copying content to a stream`. Un riavvio non serve.
+
+Causa (confermata il 2026-10-09): il bridge scarica per intero
+`http://192.168.1.22/data/unlock_sql.db` dal DNake. Quando il file supera circa
+284 KB il `mini_httpd` del DNake lo consegna **troncato** (osservato: 290816
+byte consegnati su `Content-Length: 311296`). Il client .NET rifiuta la risposta
+incompleta; `curl` la accetta in silenzio (exit code 18), per questo a mano
+sembra funzionare. Controllo:
+
+```powershell
+curl.exe -s -D - -o NUL -u admin:<password> http://192.168.1.22/data/unlock_sql.db
+```
+
+`Content-Length` va confrontato con i byte realmente scaricati
+(`-w "%{size_download}"`, poi `$LASTEXITCODE`: 18 = troncato).
+
+Rimedio: svuotare i registri/record di sblocco dal pannello web del DNake (mai il
+reset di fabbrica: cancella badge e configurazione). Poi verificare che
+`Content-Length` sia sceso e che il bridge scriva "Polling DNake ripreso".
+
+Dal Bridge V3.9.4 in poi (sorgente: `bridge/bridge-v2/Program.cs`):
+
+- riconosce il file troncato (`DnakeDbIncompleteException`) e lo scrive nel log
+  con l'errore interno, una volta ogni 30s con il conteggio dei ripetuti;
+- manda un alert ntfy "database del DNake quasi pieno" quando il file supera
+  250 KB, prima del blocco, e "database del DNake troncato" se il blocco c'è già;
+- riprova con backoff (max 5s) e riparte da solo appena il DNake torna a posto;
+- `/status` espone `pollHealthy`, `consecutivePollFailures`, `lastPollError`,
+  `dnakeDbExpectedBytes`, `dnakeDbReceivedBytes`; il watchdog allerta su
+  `pollHealthy=false` (senza riavviare il bridge, che non servirebbe).
+
+Gli alert ntfy leggono il topic da `BODYGATE_NTFY_TOPIC` in `.env.local`
+(caricato da `start-bodygate-bridge.ps1`, come la machine key). Il topic non va
+mai scritto nel sorgente. Senza la variabile il bridge parte con gli alert
+disattivati e lo scrive nel log.
+
+Dopo ogni modifica a `Program.cs`: ricompilare con
+`build-bodygate-bridge-v3.9.4-alerts-staging.ps1` (con il bridge fermo, perché la
+release precedente viene spostata) e copiare gli hash stampati in
+`verify-bodygate-bridge-v3.9.4-alerts.ps1`.

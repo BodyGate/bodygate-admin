@@ -123,16 +123,45 @@ function Repair-Bridge {
   }
 }
 
+function Test-BridgePolling {
+  # The bridge answers /status even while it can no longer read the DNake (e.g. the
+  # DNake serves a truncated unlock_sql.db and every poll fails), so a plain HTTP
+  # check says "online" while no badge is processed. /status reports pollHealthy.
+  # An endpoint that is down is handled by the other target; a bridge build that
+  # doesn't report pollHealthy yet is treated as healthy.
+  try {
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:5050/status" -UseBasicParsing -TimeoutSec 5
+    $status = $response.Content | ConvertFrom-Json
+
+    if ($null -eq $status.pollHealthy) {
+      return $true
+    }
+
+    return [bool]$status.pollHealthy
+  }
+  catch {
+    return $true
+  }
+}
+
+# Restarting the bridge does not fix a DNake that serves a truncated database, so
+# the polling target only alerts (no Repair).
 $targets = @(
   @{ Name = "BodyGate Admin (server locale)"; Url = "http://127.0.0.1:3000/api/health"; Fails = 0; Alerted = $false },
-  @{ Name = "BodyGate Bridge (tornello)"; Url = "http://127.0.0.1:5050/status"; Fails = 0; Alerted = $false; RepairAfter = 2; Repair = ${function:Repair-Bridge} }
+  @{ Name = "BodyGate Bridge (tornello)"; Url = "http://127.0.0.1:5050/status"; Fails = 0; Alerted = $false; RepairAfter = 2; Repair = ${function:Repair-Bridge} },
+  @{ Name = "BodyGate Bridge (lettura badge dal DNake)"; Url = "http://127.0.0.1:5050/status (pollHealthy)"; Fails = 0; Alerted = $false; Check = ${function:Test-BridgePolling} }
 )
 
 Write-WatchdogLog ("Watchdog avviato. Controllo ogni {0}s, soglia {1} controlli falliti (~{2}s prima dell'alert)." -f $IntervalSeconds, $FailureThreshold, ($IntervalSeconds * $FailureThreshold))
 
 while ($true) {
   foreach ($target in $targets) {
-    $ok = Test-Endpoint -Url $target.Url
+    if ($target.Check) {
+      $ok = & $target.Check
+    }
+    else {
+      $ok = Test-Endpoint -Url $target.Url
+    }
 
     if ($ok) {
       if ($target.Alerted) {
