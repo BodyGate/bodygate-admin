@@ -98,3 +98,17 @@ Non è un blocco: è normale. Va invece considerata bloccata se il processo
 `bodygate-watchdog.ps1` legge `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` da
 `.env.local`. Se non configurati, si limita a loggare l'alert localmente
 senza inviarlo (nessun errore bloccante).
+
+### Auto-riparazione del Bridge
+
+Il Bridge non deve restare bloccato in modo silenzioso. Tre livelli:
+
+1. **Bridge** (`Program.cs`): esce da solo se il thread HTTP muore o se il
+   polling DNake non gira da più di 90s.
+2. **Launcher** (`start-bodygate-bridge.ps1`): rilancia il Bridge quando il
+   processo esce; se mancano eseguibile o `BODYGATE_MACHINE_KEY` riprova ogni
+   30s invece di terminare.
+3. **Watchdog**: dopo 2 controlli falliti su `:5050/status` termina il processo
+   `BodyGateBridge.exe` e, se il task `BodyGate Bridge` non è `Running`, lo
+   riabilita/avvia. Ripete a ogni controllo finché il Bridge non risponde.
+

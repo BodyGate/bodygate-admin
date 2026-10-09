@@ -62,18 +62,31 @@ function Read-EnvValue {
     return $null
 }
 
-if (-not (Test-Path $BridgePath)) {
-    Write-BridgeLog "ERRORE: eseguibile non trovato: $BridgePath"
-    throw "BodyGate Bridge non trovato."
-}
+# Never exit on a missing exe/key: the scheduled task would end and nothing
+# restarts it. Keep retrying so the bridge comes up as soon as it is fixed.
+$machineKey = $null
+while ($true) {
+    if (-not (Test-Path $BridgePath)) {
+        Write-BridgeLog "ERRORE: eseguibile non trovato: $BridgePath. Riprovo tra 30 secondi."
+    }
+    else {
+        try {
+            $machineKey = Read-EnvValue `
+                -Path $EnvFile `
+                -Name "BODYGATE_MACHINE_KEY"
+        }
+        catch {
+            Write-BridgeLog "ERRORE: $($_.Exception.Message). Riprovo tra 30 secondi."
+        }
 
-$machineKey = Read-EnvValue `
-    -Path $EnvFile `
-    -Name "BODYGATE_MACHINE_KEY"
+        if (-not [string]::IsNullOrWhiteSpace($machineKey)) {
+            break
+        }
 
-if ([string]::IsNullOrWhiteSpace($machineKey)) {
-    Write-BridgeLog "ERRORE: BODYGATE_MACHINE_KEY non configurata."
-    throw "BODYGATE_MACHINE_KEY non configurata."
+        Write-BridgeLog "ERRORE: BODYGATE_MACHINE_KEY non configurata. Riprovo tra 30 secondi."
+    }
+
+    Start-Sleep -Seconds 30
 }
 
 $expectedPath = [System.IO.Path]::GetFullPath($BridgePath)

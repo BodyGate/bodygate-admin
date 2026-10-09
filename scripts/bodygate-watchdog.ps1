@@ -94,9 +94,38 @@ function Test-Endpoint {
   }
 }
 
+function Repair-Bridge {
+  # start-bodygate-bridge.ps1 only restarts the bridge when its process exits, so a
+  # bridge that is alive but unresponsive is never recovered by the launcher alone.
+  # 1) kill the stuck process, 2) make sure the scheduled task (the launcher loop)
+  # is actually running, and start it if it ended or was disabled.
+  $stuck = Get-Process -Name "BodyGateBridge" -ErrorAction SilentlyContinue
+  if ($stuck) {
+    $stuck | Stop-Process -Force -ErrorAction SilentlyContinue
+    Write-WatchdogLog "Bridge bloccato: processo terminato."
+    Send-TelegramAlert -Text "Bridge bloccato: processo terminato, riavvio automatico in corso."
+  }
+
+  $task = Get-ScheduledTask -TaskName "BodyGate Bridge" -ErrorAction SilentlyContinue
+  if (-not $task) {
+    Write-WatchdogLog "Task pianificato 'BodyGate Bridge' non trovato."
+    return
+  }
+
+  if ($task.State -eq "Disabled") {
+    Enable-ScheduledTask -TaskName "BodyGate Bridge" -ErrorAction SilentlyContinue | Out-Null
+  }
+
+  if ($task.State -ne "Running") {
+    Start-ScheduledTask -TaskName "BodyGate Bridge" -ErrorAction SilentlyContinue
+    Write-WatchdogLog "Task 'BodyGate Bridge' non attivo (stato $($task.State)): avviato."
+    Send-TelegramAlert -Text "Task 'BodyGate Bridge' non era attivo: riavviato."
+  }
+}
+
 $targets = @(
   @{ Name = "BodyGate Admin (server locale)"; Url = "http://127.0.0.1:3000/api/health"; Fails = 0; Alerted = $false },
-  @{ Name = "BodyGate Bridge (tornello)"; Url = "http://127.0.0.1:5050/status"; Fails = 0; Alerted = $false }
+  @{ Name = "BodyGate Bridge (tornello)"; Url = "http://127.0.0.1:5050/status"; Fails = 0; Alerted = $false; RepairAfter = 2; Repair = ${function:Repair-Bridge} }
 )
 
 Write-WatchdogLog ("Watchdog avviato. Controllo ogni {0}s, soglia {1} controlli falliti (~{2}s prima dell'alert)." -f $IntervalSeconds, $FailureThreshold, ($IntervalSeconds * $FailureThreshold))
@@ -120,17 +149,12 @@ while ($true) {
         $downForSeconds = $FailureThreshold * $IntervalSeconds
         Send-TelegramAlert -Text ("GUASTO: {0} non risponde da almeno {1}s ({2}). Controlla il PC in reception." -f $target.Name, $downForSeconds, $target.Url)
         $target.Alerted = $true
+      }
 
-        # Bridge alive but unresponsive: start-bodygate-bridge.ps1 only restarts on
-        # process exit, so kill it and let the launcher bring up a fresh instance.
-        if ($target.Url -like "*:5050/*") {
-          $stuck = Get-Process -Name "BodyGateBridge" -ErrorAction SilentlyContinue
-          if ($stuck) {
-            $stuck | Stop-Process -Force -ErrorAction SilentlyContinue
-            Write-WatchdogLog "Bridge bloccato: processo terminato, il launcher lo riavvia."
-            Send-TelegramAlert -Text "Bridge bloccato: riavvio automatico eseguito."
-          }
-        }
+      # Self-heal the bridge on every failing check (not only the first), so a
+      # single failed repair never leaves the turnstile down until someone notices.
+      if ($target.Repair -and $target.Fails -ge $target.RepairAfter) {
+        & $target.Repair
       }
     }
   }
