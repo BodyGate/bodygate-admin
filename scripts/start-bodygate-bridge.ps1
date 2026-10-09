@@ -89,29 +89,38 @@ while ($true) {
     Start-Sleep -Seconds 30
 }
 
-$expectedPath = [System.IO.Path]::GetFullPath($BridgePath)
-
 while ($true) {
-    $existingBridge = Get-CimInstance Win32_Process `
-        -Filter "Name = 'BodyGateBridge.exe'" `
-        -ErrorAction SilentlyContinue |
-    Where-Object {
-        $_.ExecutablePath -and
-        [System.IO.Path]::GetFullPath($_.ExecutablePath) -eq $expectedPath
-    } |
-    Select-Object -First 1
-
-    if ($existingBridge) {
-        Write-BridgeLog (
-            "Bridge già attivo. PID: {0}. Attendo la sua chiusura." -f
-            $existingBridge.ProcessId
-        )
-
-        Wait-Process `
-            -Id $existingBridge.ProcessId `
+    # A bridge still running when this script starts is an orphan: the task
+    # was ended/restarted (schtasks /End only stops this script, not the child
+    # exe) and nobody supervises it. Waiting for it would make every restart a
+    # no-op while a stuck bridge keeps holding port 5050, so terminate it and
+    # start a fresh instance. Any BodyGateBridge.exe is stopped, whatever its
+    # path, because an older release would also hold the port.
+    $existingBridges = @(
+        Get-CimInstance Win32_Process `
+            -Filter "Name = 'BodyGateBridge.exe'" `
             -ErrorAction SilentlyContinue
+    )
 
-        Write-BridgeLog "Bridge arrestato. Riavvio tra 3 secondi."
+    if ($existingBridges.Count -gt 0) {
+        foreach ($existingBridge in $existingBridges) {
+            Write-BridgeLog (
+                "Bridge orfano trovato. PID: {0}. Lo termino per avviare un'istanza pulita." -f
+                $existingBridge.ProcessId
+            )
+
+            Stop-Process `
+                -Id $existingBridge.ProcessId `
+                -Force `
+                -ErrorAction SilentlyContinue
+
+            Wait-Process `
+                -Id $existingBridge.ProcessId `
+                -Timeout 10 `
+                -ErrorAction SilentlyContinue
+        }
+
+        # If a process refused to die this retries (and logs) every 3s, not in a hot loop.
         Start-Sleep -Seconds 3
         continue
     }

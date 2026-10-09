@@ -106,7 +106,10 @@ Il Bridge non deve restare bloccato in modo silenzioso. Tre livelli:
 1. **Bridge** (`Program.cs`): esce da solo se il thread HTTP muore o se il
    polling DNake non gira da più di 90s.
 2. **Launcher** (`start-bodygate-bridge.ps1`): rilancia il Bridge quando il
-   processo esce; se mancano eseguibile o `BODYGATE_MACHINE_KEY` riprova ogni
+   processo esce. All'avvio termina qualsiasi `BodyGateBridge.exe` ancora in
+   esecuzione (orfano): `schtasks /End` ferma solo lo script, non l'exe, quindi
+   prima un "Riavvia" dal launcher lasciava vivo il vecchio Bridge (log:
+   "Bridge già attivo ... Attendo la sua chiusura"). Se mancano eseguibile o `BODYGATE_MACHINE_KEY` riprova ogni
    30s invece di terminare.
 3. **Watchdog**: dopo 2 controlli falliti su `:5050/status` termina il processo
    `BodyGateBridge.exe` e, se il task `BodyGate Bridge` non è `Running`, lo
