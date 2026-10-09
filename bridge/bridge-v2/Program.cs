@@ -89,8 +89,23 @@ namespace BodyGateAccessBridge
             while (true)
             {
                 Thread.Sleep(1000);
+
+                // Polling thread stuck (e.g. a hung DB download/read): exit so the launcher
+                // restarts the bridge instead of leaving it alive but deaf to badges.
+                if (
+                    pollingStarted &&
+                    DateTime.UtcNow - lastPollHeartbeatUtc > PollStallTimeout
+                )
+                {
+                    Log("Polling DNake bloccato da oltre " + PollStallTimeout.TotalSeconds + "s, uscita per riavvio.");
+                    Environment.Exit(1);
+                }
             }
         }
+
+        private static readonly TimeSpan PollStallTimeout = TimeSpan.FromSeconds(90);
+
+        private static DateTime lastPollHeartbeatUtc = DateTime.UtcNow;
 
         private static void AddBodyGateMachineAuth(HttpRequestMessage request)
         {
@@ -120,6 +135,8 @@ namespace BodyGateAccessBridge
 
                 while (true)
                 {
+                    lastPollHeartbeatUtc = DateTime.UtcNow;
+
                     try
                     {
                         DnakeUnlockEvent? latestEvent = ReadLatestDnakeEvent();
@@ -778,7 +795,11 @@ if (!listener.IsListening)
                 }
                 catch (Exception ex)
                 {
-                    Log("Errore HTTP server: " + ex.Message);
+                    // Without the HTTP listener the bridge is unusable, but Main's loop would
+                    // keep the process alive and start-bodygate-bridge.ps1 only restarts on
+                    // process exit. Exit so the launcher brings up a clean instance.
+                    Log("Errore HTTP server, uscita per riavvio: " + ex.Message);
+                    Environment.Exit(1);
                 }
             });
 

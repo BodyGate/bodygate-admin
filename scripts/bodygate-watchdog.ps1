@@ -120,6 +120,17 @@ while ($true) {
         $downForSeconds = $FailureThreshold * $IntervalSeconds
         Send-TelegramAlert -Text ("GUASTO: {0} non risponde da almeno {1}s ({2}). Controlla il PC in reception." -f $target.Name, $downForSeconds, $target.Url)
         $target.Alerted = $true
+
+        # Bridge alive but unresponsive: start-bodygate-bridge.ps1 only restarts on
+        # process exit, so kill it and let the launcher bring up a fresh instance.
+        if ($target.Url -like "*:5050/*") {
+          $stuck = Get-Process -Name "BodyGateBridge" -ErrorAction SilentlyContinue
+          if ($stuck) {
+            $stuck | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-WatchdogLog "Bridge bloccato: processo terminato, il launcher lo riavvia."
+            Send-TelegramAlert -Text "Bridge bloccato: riavvio automatico eseguito."
+          }
+        }
       }
     }
   }
