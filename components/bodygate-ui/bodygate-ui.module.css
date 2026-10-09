@@ -480,3 +480,56 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.stackRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stackSm {
+  gap: 10px;
+}
+
+.stackLg {
+  gap: 20px;
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  border-radius: 14px;
+  background: var(--bg-soft, #eceef3);
+}
+
+.listRowCompact {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.listRowTitle {
+  font-weight: 700;
+}
+
+.listRowMeta {
+  font-size: 12px;
+  color: var(--muted, #6b7080);
+}
+
+.listRowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
