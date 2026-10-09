@@ -39,6 +39,18 @@ function appendNote(previousNotes: string | null, newNote: string) {
   return `${previous}\n\n${newNote}`;
 }
 
+function paymentAlreadyCancelledResponse() {
+  return NextResponse.json(
+    {
+      ok: false,
+      code: "PAYMENT_ALREADY_CANCELLED",
+      error:
+        "Il pagamento è stato annullato e non può essere modificato. Aggiorna la scheda cliente.",
+    },
+    { status: 409 },
+  );
+}
+
 export async function POST(req: Request) {
   try {
     if (!supabaseUrl || !serviceRoleKey) {
@@ -117,6 +129,13 @@ export async function POST(req: Request) {
         { ok: false, error: "Pagamento cliente non trovato." },
         { status: 404 },
       );
+    }
+
+    // Un pagamento annullato e' definitivo (la UI disabilita la modifica):
+    // senza questo controllo server-side una scheda cliente non aggiornata
+    // potrebbe riportarlo a "paid" e farlo rientrare nei totali incassati.
+    if (String(existingPayment.status || "").toLowerCase() === "cancelled") {
+      return paymentAlreadyCancelledResponse();
     }
 
     const { data: linkedReceipts, error: receiptsError } = await supabase
@@ -199,8 +218,15 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      // Guard atomico: se un annullamento concorrente e' stato committato dopo
+      // la lettura sopra, non sovrascrivere la riga annullata.
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
+
+    if (!updateError && !updatedPayment) {
+      return paymentAlreadyCancelledResponse();
+    }
 
     if (updateError) {
       return NextResponse.json(
@@ -219,7 +245,8 @@ export async function POST(req: Request) {
           paid_at: paidAt ? paidAt.toISOString() : existingPayment.paid_at,
         })
         .eq("id", accountingPayment.id)
-        .eq("customer_id", customerId);
+        .eq("customer_id", customerId)
+        .or("status.is.null,status.neq.cancelled");
     }
 
     await supabase.from("customer_timeline").insert({
