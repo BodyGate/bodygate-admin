@@ -65,6 +65,13 @@ export async function POST(req: Request) {
     }
 
     const now = new Date().toISOString();
+    // TODO(logic-agent): `today` is the UTC date, but starts_at/ends_at/valid_from/valid_until
+    // and the medical certificate dates are Europe/Rome calendar dates. Between 00:00 and
+    // 01:00/02:00 Rome time (CET/CEST) `today` is still yesterday: a subscription that ended
+    // yesterday is still accepted and one starting today is refused. Also differs between the
+    // Vercel (UTC) and the reception PC (local TZ) instances. Fix = derive the date with
+    // Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }); needs a product decision
+    // (protected access-decision invariant) so it is intentionally not changed here.
     const today = new Date().toISOString().slice(0, 10);
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
