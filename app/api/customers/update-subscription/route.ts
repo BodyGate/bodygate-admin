@@ -356,7 +356,7 @@ export async function POST(req: Request) {
           status: "paid",
         })
         .eq("customer_id", customerId)
-        .neq("status", "cancelled")
+        .or("status.is.null,status.neq.cancelled")
         .in("id", activeLinkedPaymentIds);
     }
 
