@@ -480,3 +480,32 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.linkNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.linkNavItem {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--bg-border-strong, #d7d9e3);
+  background: var(--bg-surface, #ffffff);
+  color: var(--muted, #5d6070);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.linkNavItem:hover {
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.linkNavItemActive,
+.linkNavItemActive:hover {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b3df5, #3d2b99);
+  color: #ffffff;
+}
