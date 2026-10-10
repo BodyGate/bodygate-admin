@@ -319,12 +319,21 @@ export async function POST(req: Request) {
     if (linkedCustomerPaymentIds.length > 0) {
       const { data: linkedCustomerPayments } = await supabaseAdmin
         .from("customer_payments")
-        .select("id, notes")
+        .select("id, notes, status")
         .eq("customer_id", customerId)
         .in("id", linkedCustomerPaymentIds);
 
+      // I pagamenti annullati (cancel-payment lascia la ricevuta collegata)
+      // non devono essere modificati né riportati a "paid".
+      const activeLinkedPayments = (linkedCustomerPayments || []).filter(
+        (payment) => String(payment.status || "").toLowerCase() !== "cancelled",
+      );
+      const activeLinkedPaymentIds = activeLinkedPayments.map(
+        (payment) => payment.id,
+      );
+
       await Promise.all(
-        (linkedCustomerPayments || []).map((payment) =>
+        activeLinkedPayments.map((payment) =>
           supabaseAdmin
             .from("customer_payments")
             .update({
@@ -347,7 +356,8 @@ export async function POST(req: Request) {
           status: "paid",
         })
         .eq("customer_id", customerId)
-        .in("id", linkedCustomerPaymentIds);
+        .neq("status", "cancelled")
+        .in("id", activeLinkedPaymentIds);
     }
 
     await supabaseAdmin
