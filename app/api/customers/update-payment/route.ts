@@ -168,10 +168,16 @@ export async function POST(req: Request) {
       .eq("payment_type", existingPayment.type)
       .limit(20);
 
-    const accountingPayment = (plausibleAccountingPayments || []).find(
-      (payment) => {
+    // Un match esatto per id ha sempre la precedenza sulle euristiche
+    // (stessa data+importo, stessa descrizione): senza questa priorità,
+    // con due pagamenti dello stesso tipo/giorno/importo `.find` poteva
+    // restituire la riga contabile sbagliata (ordine non garantito) e
+    // rettificarla al posto di quella corretta.
+    const accountingCandidates = plausibleAccountingPayments || [];
+    const accountingPayment =
+      accountingCandidates.find((payment) => payment.id === paymentId) ||
+      accountingCandidates.find((payment) => {
         return (
-          payment.id === paymentId ||
           (sameDate(
             payment.paid_at || payment.created_at,
             existingPayment.paid_at || existingPayment.created_at,
@@ -180,8 +186,7 @@ export async function POST(req: Request) {
           (previousDescription &&
             normalizeText(payment.description) === previousDescription)
         );
-      },
-    );
+      });
 
     const correctionNote = `[Rettifica ${new Date().toLocaleString(
       "it-IT",
