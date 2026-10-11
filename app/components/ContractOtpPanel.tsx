@@ -6,9 +6,9 @@ import {
   BGActionBar,
   BGButton,
   BGCard,
+  BGCodeValue,
   BGInput,
   BGSectionHeader,
-  BGStatusBadge,
 } from "@/components/bodygate-ui";
 
 export default function ContractOtpPanel({
@@ -157,7 +157,7 @@ export default function ContractOtpPanel({
 
       {generatedOtp && (
         <BGCard variant="soft">
-          <BGStatusBadge tone="info">OTP: {generatedOtp}</BGStatusBadge>
+          <BGCodeValue>OTP: {generatedOtp}</BGCodeValue>
         </BGCard>
       )}
 
