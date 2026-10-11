@@ -33,6 +33,16 @@ function startOfMonth() {
   return d.toISOString();
 }
 
+function romeDateString(date: Date) {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function extractStaffName(reason?: string | null) {
   const text = String(reason || "");
   const prefix = "Accesso staff autorizzato:";
@@ -139,10 +149,14 @@ export async function GET() {
   try {
     const todayIso = startOfToday();
     const monthIso = startOfMonth();
-    const todayDate = todayIso.slice(0, 10);
-    const plus15Date = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15)
-      .toISOString()
-      .slice(0, 10);
+    // Calendar dates for the date-only columns (ends_at, medical certificate
+    // end) in the gym's business time zone. Not derived from todayIso (local
+    // midnight converted to UTC, i.e. yesterday on a server ahead of UTC) and
+    // not from plain UTC (still yesterday between local midnight and 00:00Z).
+    const todayDate = romeDateString(new Date());
+    const plus15Date = romeDateString(
+      new Date(Date.now() + 1000 * 60 * 60 * 24 * 15)
+    );
 
     const [
       customersResult,
