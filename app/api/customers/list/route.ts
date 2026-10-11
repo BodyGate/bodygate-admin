@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isCertificateExpiringWithin } from "@/app/lib/server/certificateExpiry";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -176,18 +177,12 @@ export async function GET(request: NextRequest) {
           String(customer.access_activation_status || "").toLowerCase() === "active"
       ).length,
       to_check: activeCustomers.filter(needsVerification).length,
-      expiring_soon: activeCustomers.filter((customer) => {
-        if (!customer.medical_certificate_end_date) return false;
-
-        const end = new Date(customer.medical_certificate_end_date);
-        if (Number.isNaN(end.getTime())) return false;
-
-        const today = new Date();
-        const in30Days = new Date();
-        in30Days.setDate(today.getDate() + 30);
-
-        return end >= today && end <= in30Days;
-      }).length,
+      expiring_soon: activeCustomers.filter((customer) =>
+        isCertificateExpiringWithin(
+          customer.medical_certificate_end_date,
+          new Date().toISOString().slice(0, 10)
+        )
+      ).length,
       with_badge: activeCustomers.filter(hasBadge).length,
       without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,
     };
