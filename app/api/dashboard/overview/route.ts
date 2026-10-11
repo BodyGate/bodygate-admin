@@ -139,7 +139,12 @@ export async function GET() {
   try {
     const todayIso = startOfToday();
     const monthIso = startOfMonth();
-    const todayDate = todayIso.slice(0, 10);
+    // Calendar date used for the date-only columns (ends_at, medical
+    // certificate end). Must NOT be derived from todayIso: that is local
+    // midnight converted to UTC, which on a server ahead of UTC (e.g. the
+    // reception PC in Italy) falls on the previous day. Same convention as
+    // /api/access/check and /api/reception/dashboard.
+    const todayDate = new Date().toISOString().slice(0, 10);
     const plus15Date = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15)
       .toISOString()
       .slice(0, 10);
