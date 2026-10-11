@@ -8,7 +8,10 @@ import {
   BGInput,
   BGPageHeader,
   BGPageShell,
+  BGListRow,
+  BGSection,
   BGSelect,
+  BGStack,
   BGStatusBadge,
 } from "@/components/bodygate-ui";
 import { safeRandomId } from "../../lib/safeRandomId";
@@ -271,17 +274,17 @@ export default function CoursesPaymentsClient() {
 
       <CoursesNav />
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+      <BGStack direction="row" gap="sm" wrap>
         <BGButton variant={activeTab === "sessions" ? "primary" : "secondary"} onClick={() => setActiveTab("sessions")}>
           Pagamenti a lezione
         </BGButton>
         <BGButton variant={activeTab === "enrollments" ? "primary" : "secondary"} onClick={() => setActiveTab("enrollments")}>
           Rinnovi iscrizioni fisse
         </BGButton>
-      </div>
+      </BGStack>
 
       {message && (
-        <BGCard variant="soft" style={{ marginBottom: 18 }}>
+        <BGCard variant="soft">
           {message}
         </BGCard>
       )}
@@ -295,7 +298,7 @@ export default function CoursesPaymentsClient() {
           <BGEmptyState title="Nessuna sede attiva" description="Configura almeno una sede prima di gestire i corsi." />
         </BGCard>
       ) : activeTab === "sessions" ? (
-        <div style={{ display: "grid", gap: 16 }}>
+        <BGStack>
           <BGCard variant="soft">
             <label>
               Sessione (ultimi 7 giorni)
@@ -323,87 +326,67 @@ export default function CoursesPaymentsClient() {
               <BGEmptyState title="Seleziona una sessione" description="Scegli una sessione per vedere le prenotazioni da incassare." />
             </BGCard>
           ) : (
-            <BGCard>
-              <h2 style={{ marginTop: 0 }}>Da incassare</h2>
+            <>
+            <BGSection title="Da incassare">
               {payableBookings.length === 0 ? (
-                <p style={{ color: "var(--muted)" }}>Nessuna prenotazione da incassare per questa sessione.</p>
+                <BGEmptyState title="Nessuna prenotazione da incassare" description="Non ci sono prenotazioni da incassare per questa sessione." />
               ) : (
-                <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+                <BGStack>
                   {payableBookings.map((item) => (
-                    <div
+                    <BGListRow
                       key={item.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 14,
-                        padding: 14,
-                        borderRadius: 14,
-                        border: "1px solid var(--border)",
-                        background: "var(--bg-soft)",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{customerFullName(item.customers)}</div>
-                        <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {item.booking_source === "system" ? "Generata da iscrizione fissa" : "Prenotazione diretta"}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <BGInput
-                          type="number"
-                          step="0.01"
-                          style={{ width: 100 }}
-                          value={payAmounts[item.id] ?? ""}
-                          onChange={(e) => setPayAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                          placeholder="€"
-                        />
-                        <BGSelect
-                          value={payMethods[item.id] ?? "cash"}
-                          onChange={(e) => setPayMethods((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                        >
-                          <option value="cash">Contanti</option>
-                          <option value="pos">POS</option>
-                          <option value="bank_transfer">Bonifico</option>
-                        </BGSelect>
-                        <BGButton onClick={() => payBooking(item.id)} disabled={busyBookingId === item.id}>
-                          {busyBookingId === item.id ? "Incasso..." : "Incassa"}
-                        </BGButton>
-                      </div>
-                    </div>
+                      variant="soft"
+                      title={customerFullName(item.customers)}
+                      meta={item.booking_source === "system" ? "Generata da iscrizione fissa" : "Prenotazione diretta"}
+                      actions={
+                        <>
+                          <BGInput
+                            type="number"
+                            step="0.01"
+                            compact="sm"
+                            value={payAmounts[item.id] ?? ""}
+                            onChange={(e) => setPayAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                            placeholder="€"
+                          />
+                          <BGSelect
+                            value={payMethods[item.id] ?? "cash"}
+                            onChange={(e) => setPayMethods((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                          >
+                            <option value="cash">Contanti</option>
+                            <option value="pos">POS</option>
+                            <option value="bank_transfer">Bonifico</option>
+                          </BGSelect>
+                          <BGButton onClick={() => payBooking(item.id)} disabled={busyBookingId === item.id}>
+                            {busyBookingId === item.id ? "Incasso..." : "Incassa"}
+                          </BGButton>
+                        </>
+                      }
+                    />
                   ))}
-                </div>
+                </BGStack>
               )}
+            </BGSection>
 
-              <h2>Già incassate</h2>
+            <BGSection title="Già incassate">
               {paidBookings.length === 0 ? (
-                <p style={{ color: "var(--muted)" }}>Nessun incasso registrato per questa sessione.</p>
+                <BGEmptyState title="Nessun incasso registrato" description="Non ci sono incassi registrati per questa sessione." />
               ) : (
-                <div style={{ display: "grid", gap: 10 }}>
+                <BGStack gap="sm">
                   {paidBookings.map((item) => (
-                    <div
+                    <BGListRow
                       key={item.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "10px 14px",
-                        borderRadius: 12,
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <span>{customerFullName(item.customers)}</span>
-                      <BGStatusBadge tone="success">Pagato</BGStatusBadge>
-                    </div>
+                      title={customerFullName(item.customers)}
+                      actions={<BGStatusBadge tone="success">Pagato</BGStatusBadge>}
+                    />
                   ))}
-                </div>
+                </BGStack>
               )}
-            </BGCard>
+            </BGSection>
+            </>
           )}
-        </div>
+        </BGStack>
       ) : (
-        <div style={{ display: "grid", gap: 16 }}>
+        <BGStack>
           <BGCard variant="soft">
             <label>
               Orario ricorrente
@@ -423,67 +406,53 @@ export default function CoursesPaymentsClient() {
               <BGEmptyState title="Seleziona un orario" description="Scegli un orario ricorrente per vedere gli iscritti a prezzo fisso." />
             </BGCard>
           ) : (
-            <BGCard>
-              <h2 style={{ marginTop: 0 }}>Iscritti a prezzo fisso</h2>
+            <BGSection title="Iscritti a prezzo fisso">
               {enrollments.length === 0 ? (
                 <BGEmptyState title="Nessun iscritto a prezzo fisso" description="Non ci sono iscrizioni attive con prezzo fisso su questo orario." />
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <BGStack>
                   {enrollments.map((item) => (
-                    <div
+                    <BGListRow
                       key={item.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 14,
-                        padding: 14,
-                        borderRadius: 14,
-                        border: "1px solid var(--border)",
-                        background: "var(--bg-soft)",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{customerFullName(item.customers)}</div>
-                        <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                          € {Number(item.fixed_price).toFixed(2)} / {item.billing_cycle}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <BGInput
-                          style={{ width: 130 }}
-                          value={renewLabels[item.id] ?? ""}
-                          onChange={(e) => setRenewLabels((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                          placeholder="Periodo"
-                        />
-                        <BGInput
-                          type="number"
-                          step="0.01"
-                          style={{ width: 100 }}
-                          value={renewAmounts[item.id] ?? ""}
-                          onChange={(e) => setRenewAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                          placeholder="€"
-                        />
-                        <BGSelect
-                          value={renewMethods[item.id] ?? "cash"}
-                          onChange={(e) => setRenewMethods((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                        >
-                          <option value="cash">Contanti</option>
-                          <option value="pos">POS</option>
-                          <option value="bank_transfer">Bonifico</option>
-                        </BGSelect>
-                        <BGButton onClick={() => renewEnrollment(item.id)} disabled={busyEnrollmentId === item.id}>
-                          {busyEnrollmentId === item.id ? "Registrazione..." : "Registra pagamento"}
-                        </BGButton>
-                      </div>
-                    </div>
+                      variant="soft"
+                      title={customerFullName(item.customers)}
+                      meta={`€ ${Number(item.fixed_price).toFixed(2)} / ${item.billing_cycle}`}
+                      actions={
+                        <>
+                          <BGInput
+                            compact="md"
+                            value={renewLabels[item.id] ?? ""}
+                            onChange={(e) => setRenewLabels((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                            placeholder="Periodo"
+                          />
+                          <BGInput
+                            type="number"
+                            step="0.01"
+                            compact="sm"
+                            value={renewAmounts[item.id] ?? ""}
+                            onChange={(e) => setRenewAmounts((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                            placeholder="€"
+                          />
+                          <BGSelect
+                            value={renewMethods[item.id] ?? "cash"}
+                            onChange={(e) => setRenewMethods((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                          >
+                            <option value="cash">Contanti</option>
+                            <option value="pos">POS</option>
+                            <option value="bank_transfer">Bonifico</option>
+                          </BGSelect>
+                          <BGButton onClick={() => renewEnrollment(item.id)} disabled={busyEnrollmentId === item.id}>
+                            {busyEnrollmentId === item.id ? "Registrazione..." : "Registra pagamento"}
+                          </BGButton>
+                        </>
+                      }
+                    />
                   ))}
-                </div>
+                </BGStack>
               )}
-            </BGCard>
+            </BGSection>
           )}
-        </div>
+        </BGStack>
       )}
     </BGPageShell>
   );
