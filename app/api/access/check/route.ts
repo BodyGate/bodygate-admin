@@ -450,6 +450,10 @@ export async function POST(req: Request) {
 
     const customerId = customer.id;
     const branchId = customer.branch_id;
+    // TODO(logic-agent): `today` è la data UTC. Per Palermo (UTC+1/+2) tra 00:00 e 01:00/02:00
+    // locali è ancora 'ieri': certificato/quota/abbonamento che iniziano oggi risultano non validi
+    // e quelli scaduti ieri risultano ancora validi. Impatto basso (palestra chiusa), ma valutare
+    // la data nel fuso Europe/Rome. Non modificato: altera il gate fisico.
     const today = new Date().toISOString().slice(0, 10);
 
     async function logAccess(wasAllowed: boolean, reason: string) {
