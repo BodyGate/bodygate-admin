@@ -518,6 +518,10 @@
   flex-wrap: wrap;
 }
 
+.stackAlignStart {
+  align-items: flex-start;
+}
+
 .stackAlignCenter {
   align-items: center;
 }

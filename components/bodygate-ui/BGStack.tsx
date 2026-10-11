@@ -35,7 +35,7 @@ export default function BGStack({
     direction === "row" ? styles.stackRow : "",
     gapClass[gap],
     wrap ? styles.stackWrap : "",
-    align === "center" ? styles.stackAlignCenter : "",
+    align === "start" ? styles.stackAlignStart : align === "center" ? styles.stackAlignCenter : "",
     justify === "between" ? styles.stackJustifyBetween : "",
     className,
   ]
