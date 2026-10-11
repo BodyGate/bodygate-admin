@@ -8,6 +8,11 @@ async function runCheckExpired() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // TODO(logic-agent): se customers.subscription_expiry è di tipo `date` (ultimo giorno
+    // di validità, come ends_at in /api/access/check che usa `ends_at >= today`), confrontarlo
+    // con un timestamp fa risultare 'expired' un cliente già dal 00:00 dell'ultimo giorno valido
+    // (active=false). Verificare il tipo colonna in produzione; se è `date` usare
+    // la data odierna (YYYY-MM-DD) invece di toISOString(). Decisione di prodotto/DB: non modificato.
     const now = new Date().toISOString();
 
     const { data, error } = await supabase
