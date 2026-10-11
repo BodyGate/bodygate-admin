@@ -146,7 +146,7 @@ _Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ult
 
 ### Cura Logiche di Business
 
-- **Soldi, contratti, OTP: un fix per PR e sempre atomico/idempotente** (UPDATE condizionale, non read-then-write). Hanno area di intersezione: `verify-otp`/`send-otp`, `update-payment`, `update-subscription`, `payments/create`. Prima di toccarle verifica le PR aperte su questi file.
+- **Soldi, contratti, OTP: un fix per PR e sempre atomico** (UPDATE condizionale, non read-then-write), con replay idempotente dove la ripetizione deve restituire il primo risultato (es. `verify-otp`, `update-payment`). **Eccezione: `send-otp` non è idempotente per scelta** — ogni chiamata genera un nuovo codice/scadenza e azzera il blocco dei tentativi; qui servono solo atomicità e protezione dalle race, mai il riuso del vecchio OTP. Hanno area di intersezione: `verify-otp`/`send-otp`, `update-payment`, `update-subscription`, `payments/create`. Prima di toccarle verifica le PR aperte su questi file.
 - Per l'arrotondamento importi usa un'unica utility condivisa (decimal-safe, punti medi tipo 1.005/2.675) invece di replicare `toFixed(2)` in ogni route; una sola PR deve introdurla.
 - Rispetta l'ordine di controllo del tornello (vedi sezione Permessi): non riordinarlo senza aggiornare i test.
 - Dubbio non certo = nota nella PR, mai fix indovinato.
