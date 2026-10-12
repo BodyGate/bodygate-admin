@@ -40,7 +40,7 @@ function parseAmount(value: unknown) {
 
   if (!Number.isFinite(amount)) return null;
 
-  return amount;
+  return Number(amount.toFixed(2));
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {

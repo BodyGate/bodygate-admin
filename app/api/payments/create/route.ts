@@ -12,7 +12,7 @@ function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
-  return amount;
+  return Number(amount.toFixed(2));
 }
 
 function normalizePaymentType(value: unknown) {
