@@ -169,3 +169,21 @@ Dopo ogni modifica a `Program.cs`: ricompilare con
 `build-bodygate-bridge-v3.9.4-alerts-staging.ps1` (con il bridge fermo, perché la
 release precedente viene spostata) e copiare gli hash stampati in
 `verify-bodygate-bridge-v3.9.4-alerts.ps1`.
+
+### Svuotare i registri del DNake da PowerShell
+
+`scripts/dnake-clear-unlock-logs.ps1` esegue lo stesso comando del pulsante
+"Elimina tutto" della pagina Logs del pannello del DNake
+(`POST /cgi-bin/webapi.cgi?api=unlock_logs`, `action=0`, `index=-1`, con login
+`api=login` e password MD5). Utile perche' il pannello carica `unlock_sql.db`
+nel browser: se il file e' troncato la pagina Logs non funziona e il pulsante
+puo' non avere effetto. Cancella solo i registri di sblocco (non utenti, badge,
+configurazione ne' allarmi).
+
+```powershell
+.\scripts\dnake-clear-unlock-logs.ps1            # prova a secco: login e controllo
+.\scripts\dnake-clear-unlock-logs.ps1 -Execute   # chiede di scrivere CANCELLA
+```
+
+Poi controllare che `Content-Length` di `unlock_sql.db` sia sceso e che il
+bridge scriva "Baseline DNake caricata".
