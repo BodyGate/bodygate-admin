@@ -29,6 +29,8 @@ $basicHeaders = @{
     Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${User}:$Password"))
 }
 
+$script:GoodCandidate = $null
+
 function Get-Md5Hex([string]$Text) {
     $md5 = [Security.Cryptography.MD5]::Create()
     return ([BitConverter]::ToString($md5.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text)))).Replace("-", "")
@@ -99,6 +101,11 @@ function Invoke-DnakeLogin([bool]$Verbose) {
     $candidates += @{ Label = "MD5 minuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password).ToLower() }
     $candidates += @{ Label = "MD5 maiuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password) }
 
+    # Dopo il primo login verificato si usa solo quella combinazione.
+    if ($script:GoodCandidate) {
+        $candidates = @($script:GoodCandidate)
+    }
+
     foreach ($candidate in $candidates) {
         try {
             $loginUrl = "$base/cgi-bin/webapi.cgi?api=login&username=$([uri]::EscapeDataString($candidate.User))&password=$($candidate.Hash)"
@@ -120,7 +127,34 @@ function Invoke-DnakeLogin([bool]$Verbose) {
                 Write-Host ("  login [{0}]: HTTP {1}, cookie SessionID: {2}, risposta: {3}" -f $candidate.Label, [int]$login.StatusCode, $(if ($hasCookie) { "si" } else { "no" }), $text)
             }
 
-            if ($sid) {
+            if (-not $sid) {
+                continue
+            }
+
+            if ($script:GoodCandidate) {
+                return $sid
+            }
+
+            # Il DNake risponde 200 con un cookie anche a credenziali sbagliate:
+            # la sessione va verificata con una lettura (solo codice HTTP).
+            $valid = $false
+
+            try {
+                $check = Invoke-WebRequest -Uri "$base/cgi-bin/webapi.cgi?api=user" `
+                    -Headers @{ Cookie = "SessionID=$sid"; Accept = "application/json, text/plain, */*"; pragma = "no-cache" } `
+                    -UseBasicParsing -TimeoutSec 15
+                $valid = ([int]$check.StatusCode -eq 200)
+            }
+            catch {
+                $valid = $false
+            }
+
+            if ($Verbose) {
+                Write-Host ("    sessione valida: {0}" -f $(if ($valid) { "si" } else { "NO (credenziali non accettate)" }))
+            }
+
+            if ($valid) {
+                $script:GoodCandidate = $candidate
                 return $sid
             }
         }
