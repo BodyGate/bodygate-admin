@@ -189,6 +189,20 @@ namespace BodyGateAccessBridge
 
                         if (latestEvent == null)
                         {
+                            // Database DNake senza eventi (es. appena svuotato): la
+                            // baseline e' "vuota", cosi' il primo badge che arriva viene
+                            // elaborato invece di essere scambiato per il punto di partenza.
+                            if (!baselineLoaded)
+                            {
+                                lastProcessedEventKey = "";
+                                baselineLoaded = true;
+                                lock (badgeLock)
+                                {
+                                    lastBadgeTime = DateTime.Now;
+                                }
+                                Log("Baseline DNake vuota (nessun evento presente). In attesa di nuovi accessi...");
+                            }
+
                             Thread.Sleep(PollIntervalMs);
                             continue;
                         }
