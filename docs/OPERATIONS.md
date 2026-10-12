@@ -142,6 +142,9 @@ reset di fabbrica: cancella badge e configurazione). Poi verificare che
 
 Dal Bridge V3.9.4 in poi (sorgente: `bridge/bridge-v2/Program.cs`):
 
+- se il DNake tronca il download, chiede il resto con una richiesta HTTP `Range`
+  e completa il file (`dnakeDbResumedDownloads` in `/status`): il bridge funziona
+  anche con il database oltre il limite del DNake, se il DNake supporta `Range`;
 - riconosce il file troncato (`DnakeDbIncompleteException`) e lo scrive nel log
   con l'errore interno, una volta ogni 30s con il conteggio dei ripetuti;
 - manda un alert ntfy "database del DNake quasi pieno" quando il file supera
