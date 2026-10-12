@@ -480,3 +480,75 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.picker {
+  position: relative;
+}
+
+.pickerSelected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  border-radius: 12px;
+  background: var(--bg-canvas-raised, #f4f5f9);
+  font-weight: 700;
+}
+
+.pickerClear {
+  border: 0;
+  background: none;
+  color: var(--bg-muted, #6b7080);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pickerMenu {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--bg-border, #e7e8ee);
+  border-radius: 12px;
+  background: var(--bg-surface, #ffffff);
+  box-shadow: 0 12px 24px rgba(21, 22, 28, 0.12);
+}
+
+.pickerMessage {
+  padding: 12px;
+  color: var(--bg-muted, #6b7080);
+  font-size: 0.8125rem;
+}
+
+.pickerOption {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink, #15161c);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickerOption:hover {
+  background: var(--bg-canvas-raised, #f4f5f9);
+}
+
+.pickerOptionDetail {
+  display: block;
+  color: var(--bg-muted, #6b7080);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
