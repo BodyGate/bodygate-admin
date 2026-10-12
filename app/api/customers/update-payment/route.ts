@@ -12,8 +12,8 @@ function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
   if (amount <= 0) return null;
-  // Importi in euro: massimo 2 decimali (evita es. 10.005 o 0.004 salvati non arrotondati).
-  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  // Importi in euro: massimo 2 decimali, come negli helper di rinnovo (evita es. 10.005 o 0.004 salvati non arrotondati).
+  const rounded = Number(amount.toFixed(2));
   if (rounded <= 0) return null;
   return rounded;
 }
