@@ -8,6 +8,8 @@ param(
     [string]$EnvFile = "",
     # Senza -Execute fa solo login e controllo, non cancella niente.
     [switch]$Execute,
+    # Prove di sola lettura per capire perche' il DNake rifiuta un comando.
+    [switch]$Diagnose,
     # Salta la domanda di conferma (solo per prove automatiche).
     [switch]$Yes
 )
@@ -183,6 +185,45 @@ function Send-Action([string]$Body, [bool]$FreshLogin) {
 
 Write-Host "DNake: $base" -ForegroundColor Cyan
 Write-Host "Database ora: $(Get-DbInfo)"
+
+if ($Diagnose) {
+    $sid = Invoke-DnakeLogin $true
+
+    if (-not $sid) {
+        throw "Login al DNake non riuscito."
+    }
+
+    $probeHeaders = @{ Cookie = "SessionID=$sid"; Accept = "application/json, text/plain, */*"; pragma = "no-cache" }
+
+    function Show-Probe([string]$Label, [scriptblock]$Call, [int]$MaxChars) {
+        try {
+            $r = & $Call
+            $t = ([string]$r.Content).Trim()
+
+            if ($t.Length -gt $MaxChars) { $t = $t.Substring(0, $MaxChars) }
+
+            Write-Host ("  {0}: HTTP {1}  {2}" -f $Label, [int]$r.StatusCode, $t)
+        }
+        catch {
+            $st = ""
+
+            try { $st = [int]$_.Exception.Response.StatusCode } catch { }
+
+            Write-Host ("  {0}: errore HTTP {1}" -f $Label, $st)
+        }
+    }
+
+    Write-Host "Prove di sola lettura (nessuna cancellazione):" -ForegroundColor Cyan
+    # api=user: solo il codice HTTP, la risposta contiene i nomi degli utenti.
+    Show-Probe "GET api=user (come fa BodyGate)" { Invoke-WebRequest -Uri "$base/cgi-bin/webapi.cgi?api=user" -Headers $probeHeaders -UseBasicParsing -TimeoutSec 15 } 0
+    Show-Probe "GET api=unlock_logs" { Invoke-WebRequest -Uri $apiUrl -Headers $probeHeaders -UseBasicParsing -TimeoutSec 15 } 80
+    Show-Probe "POST action=3 (urlencoded)" { Invoke-WebRequest -Uri $apiUrl -Method Post -Body "action=3" -ContentType "application/x-www-form-urlencoded; charset=UTF-8" -Headers $probeHeaders -UseBasicParsing -TimeoutSec 15 } 80
+
+    $boundary = [guid]::NewGuid().ToString()
+    $multipart = "--$boundary`r`nContent-Disposition: form-data; name=`"action`"`r`n`r`n3`r`n--$boundary--`r`n"
+    Show-Probe "POST action=3 (multipart)" { Invoke-WebRequest -Uri $apiUrl -Method Post -Body $multipart -ContentType "multipart/form-data; boundary=$boundary" -Headers $probeHeaders -UseBasicParsing -TimeoutSec 15 } 80
+    return
+}
 
 if (-not $Execute) {
     $sid = Invoke-DnakeLogin $true
