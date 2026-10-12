@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+import {
+  BGActionBar,
+  BGButton,
+  BGCard,
+  BGInput,
+  BGSection,
+} from "@/components/bodygate-ui";
+
 export default function ContractOtpPanel({
   documentId,
   customerPhone,
@@ -116,119 +124,47 @@ export default function ContractOtpPanel({
   }
 
   return (
-    <div
-      className="no-print"
-      style={{
-        width: "210mm",
-        margin: "0 auto 20px auto",
-        background: "white",
-        borderRadius: "18px",
-        padding: "22px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "22px",
-          fontWeight: "bold",
-          color: "black",
-        }}
+    <BGCard className="no-print">
+      <BGSection
+        title="Firma OTP contratto"
+        description="Genera il codice OTP e invialo al cliente tramite WhatsApp."
       >
-        Firma OTP contratto
-      </div>
+        <BGActionBar>
+          <BGButton onClick={generateOtp} disabled={loading}>
+            Genera OTP
+          </BGButton>
 
-      <div
-        style={{
-          marginTop: "10px",
-          color: "#555",
-        }}
-      >
-        Genera il codice OTP e invialo al cliente tramite WhatsApp.
-      </div>
+          <BGButton
+            variant="secondary"
+            onClick={sendWhatsappOtp}
+            disabled={!generatedOtp}
+          >
+            Invia OTP WhatsApp
+          </BGButton>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginTop: "20px",
-          flexWrap: "wrap",
-        }}
-      >
-        <button onClick={generateOtp} disabled={loading} style={buttonStyle}>
-          Genera OTP
-        </button>
+          <BGInput
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="Inserisci OTP"
+          />
 
-        <button
-          onClick={sendWhatsappOtp}
-          disabled={!generatedOtp}
-          style={{
-            ...buttonStyle,
-            background: "#25D366",
-          }}
-        >
-          Invia OTP WhatsApp
-        </button>
+          <BGButton onClick={verifyOtp} disabled={loading}>
+            Conferma firma
+          </BGButton>
+        </BGActionBar>
 
-        <input
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          placeholder="Inserisci OTP"
-          style={inputStyle}
-        />
+        {generatedOtp && (
+          <BGCard variant="soft">
+            <strong>OTP: {generatedOtp}</strong>
+          </BGCard>
+        )}
 
-        <button onClick={verifyOtp} disabled={loading} style={buttonStyle}>
-          Conferma firma
-        </button>
-      </div>
-
-      {generatedOtp && (
-        <div
-          style={{
-            marginTop: "18px",
-            padding: "16px",
-            borderRadius: "14px",
-            background: "#f3f4f6",
-            color: "black",
-            fontWeight: "bold",
-            fontSize: "24px",
-            letterSpacing: "0.2em",
-          }}
-        >
-          OTP: {generatedOtp}
-        </div>
-      )}
-
-      {message && (
-        <div
-          style={{
-            marginTop: "18px",
-            padding: "14px 16px",
-            borderRadius: "14px",
-            background: "#f3f4f6",
-            color: "black",
-            fontWeight: "bold",
-          }}
-        >
-          {message}
-        </div>
-      )}
-    </div>
+        {message && (
+          <BGCard variant="soft" role="status">
+            <strong>{message}</strong>
+          </BGCard>
+        )}
+      </BGSection>
+    </BGCard>
   );
 }
-
-const buttonStyle: React.CSSProperties = {
-  background: "black",
-  color: "white",
-  border: "none",
-  borderRadius: "12px",
-  padding: "14px 18px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const inputStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
-  borderRadius: "12px",
-  padding: "14px 16px",
-  minWidth: "220px",
-};
