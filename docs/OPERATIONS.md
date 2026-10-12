@@ -136,15 +136,21 @@ curl.exe -s -D - -o NUL -u admin:<password> http://192.168.1.22/data/unlock_sql.
 `Content-Length` va confrontato con i byte realmente scaricati
 (`-w "%{size_download}"`, poi `$LASTEXITCODE`: 18 = troncato).
 
-Rimedio: svuotare i registri/record di sblocco dal pannello web del DNake (mai il
-reset di fabbrica: cancella badge e configurazione). Poi verificare che
-`Content-Length` sia sceso e che il bridge scriva "Polling DNake ripreso".
+Rimedio: svuotare i registri dal pannello web del DNake (Logs, Sblocco Logs,
+"Elimina tutto"; mai il reset di fabbrica: cancella badge e configurazione). Il
+file NON si rimpicciolisce (SQLite lascia le pagine libere), ma il bridge V3.9.4
+risistemato lo legge comunque dalle prime pagine. Il pannello Logs del DNake
+carica lo stesso file: se e' troncato mostra "Nessun dato" e la dashboard "Logs 0".
 
 Dal Bridge V3.9.4 in poi (sorgente: `bridge/bridge-v2/Program.cs`):
 
-- se il DNake tronca il download, chiede il resto con una richiesta HTTP `Range`
-  e completa il file (`dnakeDbResumedDownloads` in `/status`): il bridge funziona
-  anche con il database oltre il limite del DNake, se il DNake supporta `Range`;
+- se il DNake tronca il download (il suo `mini_httpd` consegna al massimo 290816
+  byte e **non supporta `Range`**), il bridge azzera `version-valid-for` (byte
+  92-95 dell'intestazione SQLite): SQLite smette di fidarsi del numero di pagine
+  dichiarato e legge `unlock_info` finche' tutte le pagine che servono sono
+  arrivate. Funziona dopo "Elimina tutto" nei Logs del DNake (il file resta
+  grande perche' SQLite non lo ricompatta, ma i dati vivi stanno nelle prime
+  pagine); `dnakeDbPartial` in `/status` e un alert ntfy lo segnalano;
 - riconosce il file troncato (`DnakeDbIncompleteException`) e lo scrive nel log
   con l'errore interno, una volta ogni 30s con il conteggio dei ripetuti;
 - manda un alert ntfy "database del DNake quasi pieno" quando il file supera

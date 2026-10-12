@@ -55,7 +55,6 @@ namespace BodyGateAccessBridge
         // dichiarati). Avviso in anticipo, prima di arrivarci.
         private static readonly long DbSizeWarnBytes = 250 * 1024;
         private static readonly int DownloadBodyTimeoutSeconds = 5;
-        private static readonly int MaxDownloadAttempts = 6;
         private static readonly int PollErrorLogIntervalSeconds = 30;
         private static readonly int MaxPollBackoffMs = 5000;
         private static readonly int PollHealthySeconds = 30;
@@ -88,8 +87,8 @@ namespace BodyGateAccessBridge
         private static string lastPollError = "";
         private static long lastDbExpectedBytes = -1;
         private static long lastDbReceivedBytes = -1;
-        private static int dbResumeCount = 0;
-        private static bool resumeLogged = false;
+        private static bool lastDbPartial = false;
+        private static bool partialDbAlertSent = false;
 
         private static readonly string WorkDir =
             Path.Combine(AppContext.BaseDirectory, "dnake-db");
@@ -262,7 +261,26 @@ namespace BodyGateAccessBridge
                 Log("Polling DNake ripreso dopo " + previousFailures + " errori consecutivi.");
             }
 
-            CheckDbSizeWarning();
+            if (lastDbPartial)
+            {
+                if (!partialDbAlertSent)
+                {
+                    partialDbAlertSent = true;
+                    Log("Il DNake consegna il database troncato (" + lastDbReceivedBytes + " su " + lastDbExpectedBytes + " byte) ma i dati utili sono leggibili: funziona finche' gli eventi restano nelle prime pagine.");
+                    SendNtfyAlert(
+                        "BodyGate: database del DNake troncato ma leggibile",
+                        "Il DNake consegna solo " + (lastDbReceivedBytes / 1024) + " KB di " + (lastDbExpectedBytes / 1024) +
+                        " KB: il bridge legge ancora i badge, ma si bloccherebbe se gli eventi superassero la parte consegnata. " +
+                        "Svuota i registri dal pannello web del DNake (Logs, Elimina tutto; NON il reset di fabbrica).",
+                        "high"
+                    );
+                }
+            }
+            else
+            {
+                partialDbAlertSent = false;
+                CheckDbSizeWarning();
+            }
 
             if (firstPollFailureTime == null)
             {
@@ -617,6 +635,12 @@ namespace BodyGateAccessBridge
                         EventKey = timeSec + ":" + id + ":" + unlockType + ":" + credentialCode
                     };
                 }
+                catch (SqliteException ex) when (lastDbPartial)
+                {
+                    // File troncato e una pagina che serve non e' arrivata: i dati vivi
+                    // arrivano oltre il limite del DNake. Va svuotato il registro.
+                    throw new DnakeDbIncompleteException(lastDbReceivedBytes, lastDbExpectedBytes, ex);
+                }
                 finally
                 {
                     try
@@ -634,105 +658,17 @@ namespace BodyGateAccessBridge
             }
         }
 
-        // Scarica unlock_sql.db dal DNake. Il mini_httpd del DNake puo' chiudere la
-        // connessione prima della fine (file troncato): in quel caso chiedo il resto
-        // con una richiesta HTTP Range a partire dal byte gia' ricevuto, cosi' il
-        // bridge funziona anche con un database oltre il limite del DNake. Se il
-        // DNake non supporta Range l'errore resta esplicito (DnakeDbIncompleteException).
+        // Scarica unlock_sql.db dal DNake. Il mini_httpd del DNake chiude la connessione
+        // dopo circa 284 KB (290816 byte) e non supporta Range, quindi un database piu'
+        // grande arriva troncato. Un SQLite troncato viene rifiutato ("malformed")
+        // perche' l'intestazione dichiara piu' pagine di quelle presenti; azzerando
+        // "version-valid-for" (byte 92-95) SQLite usa la dimensione reale del file e
+        // legge le tabelle le cui pagine sono tutte arrivate. Dopo una cancellazione dei
+        // registri i dati vivi stanno nelle prime pagine, quindi il bridge funziona anche
+        // se il file resta grande. Se una pagina che serve manca, SQLite da' errore e il
+        // bridge lo segnala come database troncato (DnakeDbIncompleteException).
         private static void DownloadDnakeDb(string destinationPath)
         {
-            using MemoryStream buffer = new MemoryStream();
-            Exception? firstError = null;
-            Exception? lastError = null;
-            bool completedByResume = false;
-
-            lastDbExpectedBytes = -1;
-            lastDbReceivedBytes = -1;
-
-            for (int attempt = 0; attempt < MaxDownloadAttempts; attempt++)
-            {
-                long before = buffer.Length;
-
-                try
-                {
-                    FetchDnakeDbPart(buffer);
-                    lastError = null;
-                }
-                catch (Exception ex)
-                {
-                    if (attempt == 0)
-                    {
-                        firstError = ex;
-                        lastError = ex;
-                    }
-                    else
-                    {
-                        lastError = new Exception(
-                            "Ripresa con Range non riuscita: " + ex.Message,
-                            firstError
-                        );
-                    }
-                }
-
-                lastDbReceivedBytes = buffer.Length;
-
-                bool sizeKnown = lastDbExpectedBytes >= 0;
-
-                if (sizeKnown && buffer.Length == lastDbExpectedBytes)
-                {
-                    completedByResume = attempt > 0;
-                    lastError = null;
-                    break;
-                }
-
-                if (!sizeKnown && lastError == null)
-                {
-                    break;
-                }
-
-                // Nessun progresso (o troppi byte): inutile insistere.
-                if (buffer.Length <= before || (sizeKnown && buffer.Length > lastDbExpectedBytes))
-                {
-                    break;
-                }
-            }
-
-            if (lastDbExpectedBytes >= 0 && buffer.Length != lastDbExpectedBytes)
-            {
-                throw new DnakeDbIncompleteException(buffer.Length, lastDbExpectedBytes, lastError);
-            }
-
-            if (lastError != null)
-            {
-                throw lastError;
-            }
-
-            if (completedByResume)
-            {
-                System.Threading.Interlocked.Increment(ref dbResumeCount);
-
-                if (!resumeLogged)
-                {
-                    resumeLogged = true;
-                    Log("Il DNake consegna il database a pezzi: completato con richieste Range (" + buffer.Length + " byte). Non verra' piu' loggato.");
-                }
-            }
-
-            if (buffer.Length < 100)
-            {
-                throw new Exception("Download DNake DB troppo piccolo: " + buffer.Length + " bytes");
-            }
-
-            File.WriteAllBytes(destinationPath, buffer.ToArray());
-        }
-
-        // Un singolo GET (con Range se il buffer contiene gia' dei byte). I byte letti
-        // vengono accodati al buffer anche se la connessione cade a meta': servono
-        // per riprendere da li'.
-        private static void FetchDnakeDbPart(MemoryStream buffer)
-        {
-            long offset = buffer.Length;
-
             using HttpRequestMessage request = new HttpRequestMessage(
                 HttpMethod.Get,
                 DnakeDbUrl
@@ -745,55 +681,77 @@ namespace BodyGateAccessBridge
             request.Headers.Authorization =
                 new AuthenticationHeaderValue("Basic", credentials);
 
-            if (offset > 0)
-            {
-                request.Headers.Range = new RangeHeaderValue(offset, null);
-            }
-
             using HttpResponseMessage response = httpClient.Send(
                 request,
                 HttpCompletionOption.ResponseHeadersRead
             );
 
-            if (offset > 0)
+            if (!response.IsSuccessStatusCode)
             {
-                ContentRangeHeaderValue? contentRange = response.Content.Headers.ContentRange;
-
-                if (
-                    response.StatusCode != HttpStatusCode.PartialContent ||
-                    contentRange == null ||
-                    contentRange.From != offset
-                )
-                {
-                    throw new Exception(
-                        "il DNake non supporta la ripresa del download (HTTP " + (int)response.StatusCode + ")"
-                    );
-                }
-
-                if (contentRange.Length.HasValue)
-                {
-                    lastDbExpectedBytes = contentRange.Length.Value;
-                }
-            }
-            else
-            {
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new Exception("Download DNake DB fallito: HTTP " + (int)response.StatusCode + " " + response.ReasonPhrase);
-                }
-
-                lastDbExpectedBytes = response.Content.Headers.ContentLength ?? -1;
+                throw new Exception("Download DNake DB fallito: HTTP " + (int)response.StatusCode + " " + response.ReasonPhrase);
             }
 
-            // HttpClient.Timeout non copre la lettura del corpo con
-            // ResponseHeadersRead: serve un timeout esplicito, altrimenti un
-            // download appeso bloccherebbe il polling.
-            using CancellationTokenSource cts = new CancellationTokenSource(
-                TimeSpan.FromSeconds(DownloadBodyTimeoutSeconds)
-            );
+            long? expectedBytes = response.Content.Headers.ContentLength;
+            lastDbExpectedBytes = expectedBytes ?? -1;
+            lastDbReceivedBytes = -1;
+            lastDbPartial = false;
 
-            using Stream body = response.Content.ReadAsStream(cts.Token);
-            body.CopyToAsync(buffer, 81920, cts.Token).GetAwaiter().GetResult();
+            using MemoryStream buffer = new MemoryStream();
+            Exception? readError = null;
+
+            try
+            {
+                // HttpClient.Timeout non copre la lettura del corpo con
+                // ResponseHeadersRead: serve un timeout esplicito, altrimenti un
+                // download appeso bloccherebbe il polling.
+                using CancellationTokenSource cts = new CancellationTokenSource(
+                    TimeSpan.FromSeconds(DownloadBodyTimeoutSeconds)
+                );
+
+                using Stream body = response.Content.ReadAsStream(cts.Token);
+                body.CopyToAsync(buffer, 81920, cts.Token).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                readError = ex;
+            }
+
+            lastDbReceivedBytes = buffer.Length;
+
+            bool incomplete =
+                readError != null ||
+                (expectedBytes.HasValue && buffer.Length != expectedBytes.Value);
+
+            if (buffer.Length < 100)
+            {
+                if (incomplete)
+                {
+                    throw new DnakeDbIncompleteException(buffer.Length, expectedBytes, readError);
+                }
+
+                throw new Exception("Download DNake DB troppo piccolo: " + buffer.Length + " bytes");
+            }
+
+            byte[] bytes = buffer.ToArray();
+
+            if (incomplete)
+            {
+                // Solo se e' davvero un SQLite troncato (meno byte di quelli dichiarati).
+                bool isSqlite = bytes.Length >= 100 && Encoding.ASCII.GetString(bytes, 0, 15) == "SQLite format 3";
+
+                if (!isSqlite || !expectedBytes.HasValue || buffer.Length >= expectedBytes.Value)
+                {
+                    throw new DnakeDbIncompleteException(buffer.Length, expectedBytes, readError);
+                }
+
+                bytes[92] = 0;
+                bytes[93] = 0;
+                bytes[94] = 0;
+                bytes[95] = 0;
+                lastDbPartial = true;
+            }
+
+            File.WriteAllBytes(destinationPath, bytes);
         }
 
         private sealed class DnakeDbIncompleteException : Exception
@@ -1321,7 +1279,7 @@ if (!listener.IsListening)
                                 : new DateTime(System.Threading.Interlocked.Read(ref lastSuccessfulPollTicks)).ToString("s"),
                             dnakeDbExpectedBytes = lastDbExpectedBytes,
                             dnakeDbReceivedBytes = lastDbReceivedBytes,
-                            dnakeDbResumedDownloads = dbResumeCount,
+                            dnakeDbPartial = lastDbPartial,
                             uptimeSeconds = (int)(DateTime.Now - ProcessStartTime).TotalSeconds
                         }
                     );
