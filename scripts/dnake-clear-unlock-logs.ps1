@@ -78,84 +78,141 @@ function Read-ApiResult($Response) {
     }
 }
 
-Write-Host "DNake: $base" -ForegroundColor Cyan
-Write-Host "Database ora: $(Get-DbInfo)"
-
-# Login: la password si manda come MD5 (come fa anche BodyGate in list-users).
 if ([string]::IsNullOrWhiteSpace($EnvFile)) {
     $EnvFile = Join-Path (Split-Path -Parent $PSScriptRoot) ".env.local"
 }
 
-$candidates = @()
-$envUser = Read-EnvValue $EnvFile "DNAKE_USERNAME"
-$envHash = Read-EnvValue $EnvFile "DNAKE_PASSWORD_MD5"
+# Login: la password si manda come MD5 (come fa anche BodyGate in list-users).
+# Ritorna il SessionID. La sessione del DNake e' breve: va chiamato subito prima
+# di ogni comando, mai prima di una pausa (conferma, attese).
+function Invoke-DnakeLogin([bool]$Verbose) {
+    $candidates = @()
+    $envUser = Read-EnvValue $EnvFile "DNAKE_USERNAME"
+    $envHash = Read-EnvValue $EnvFile "DNAKE_PASSWORD_MD5"
 
-if ($envHash) {
-    $candidates += @{ Label = "da .env.local (DNAKE_PASSWORD_MD5)"; User = $(if ($envUser) { $envUser } else { $User }); Hash = $envHash }
-}
+    if ($envHash) {
+        $candidates += @{ Label = "da .env.local (DNAKE_PASSWORD_MD5)"; User = $(if ($envUser) { $envUser } else { $User }); Hash = $envHash }
+    }
 
-$candidates += @{ Label = "MD5 minuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password).ToLower() }
-$candidates += @{ Label = "MD5 maiuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password) }
+    $candidates += @{ Label = "MD5 minuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password).ToLower() }
+    $candidates += @{ Label = "MD5 maiuscolo della password indicata"; User = $User; Hash = (Get-Md5Hex $Password) }
 
-$sessionId = $null
+    foreach ($candidate in $candidates) {
+        try {
+            $loginUrl = "$base/cgi-bin/webapi.cgi?api=login&username=$([uri]::EscapeDataString($candidate.User))&password=$($candidate.Hash)"
+            $login = Invoke-WebRequest -Uri $loginUrl -UseBasicParsing -TimeoutSec 10 `
+                -Headers @{ Accept = "application/json, text/plain, */*"; pragma = "no-cache" }
+            $cookies = ($login.Headers["Set-Cookie"] | ForEach-Object { $_ }) -join ";"
+            $hasCookie = $cookies -match "SessionID=([^;,\s]+)"
+            $sid = $null
 
-foreach ($candidate in $candidates) {
-    try {
-        $loginUrl = "$base/cgi-bin/webapi.cgi?api=login&username=$([uri]::EscapeDataString($candidate.User))&password=$($candidate.Hash)"
-        $login = Invoke-WebRequest -Uri $loginUrl -UseBasicParsing -TimeoutSec 10
-        $cookies = ($login.Headers["Set-Cookie"] | ForEach-Object { $_ }) -join ";"
-        $hasCookie = $cookies -match "SessionID=([^;,\s]+)"
-        $text = ([string]$login.Content).Trim()
+            if ($hasCookie) {
+                $sid = $Matches[1]
+            }
 
-        if ($text.Length -gt 160) { $text = $text.Substring(0, 160) }
+            $text = ([string]$login.Content).Trim()
 
-        Write-Host ("  login [{0}]: HTTP {1}, cookie SessionID: {2}, risposta: {3}" -f $candidate.Label, [int]$login.StatusCode, $(if ($hasCookie) { "si" } else { "no" }), $text)
+            if ($text.Length -gt 160) { $text = $text.Substring(0, 160) }
 
-        if ($hasCookie) {
-            $sessionId = $Matches[1]
-            break
+            if ($Verbose) {
+                Write-Host ("  login [{0}]: HTTP {1}, cookie SessionID: {2}, risposta: {3}" -f $candidate.Label, [int]$login.StatusCode, $(if ($hasCookie) { "si" } else { "no" }), $text)
+            }
+
+            if ($sid) {
+                return $sid
+            }
+        }
+        catch {
+            if ($Verbose) {
+                Write-Host ("  login [{0}]: errore {1}" -f $candidate.Label, $_.Exception.Message)
+            }
         }
     }
+
+    return $null
+}
+
+function Get-ErrorBody($ErrorRecord) {
+    try {
+        $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+        $reader = New-Object IO.StreamReader($stream)
+        $text = $reader.ReadToEnd()
+
+        if ($text.Length -gt 300) { $text = $text.Substring(0, 300) }
+
+        return $text
+    }
     catch {
-        Write-Host ("  login [{0}]: errore {1}" -f $candidate.Label, $_.Exception.Message)
+        return ""
     }
 }
 
-if (-not $sessionId) {
-    throw "Login al DNake non riuscito. Non e' stato cancellato niente."
+# Un comando al DNake con login fresco. Ritorna la risposta numerica "result".
+# Su 401 ripete il login e riprova una volta.
+function Send-Action([string]$Body, [bool]$FreshLogin) {
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        $sid = Invoke-DnakeLogin $false
+
+        if (-not $sid) {
+            throw "Login al DNake non riuscito durante il comando."
+        }
+
+        try {
+            $response = Invoke-WebRequest -Uri $apiUrl -Method Post -Body $Body `
+                -ContentType "application/x-www-form-urlencoded; charset=UTF-8" `
+                -Headers @{ Cookie = "SessionID=$sid"; Accept = "application/json, text/plain, */*"; pragma = "no-cache" } `
+                -UseBasicParsing -TimeoutSec 30
+
+            return Read-ApiResult $response
+        }
+        catch {
+            $status = ""
+
+            try { $status = [int]$_.Exception.Response.StatusCode } catch { }
+
+            if ($status -eq 401 -and $attempt -eq 1) {
+                Write-Host "  401 dal DNake: nuovo login e secondo tentativo..." -ForegroundColor Yellow
+                continue
+            }
+
+            $detail = Get-ErrorBody $_
+            throw "Il DNake ha rifiutato il comando (HTTP $status). $detail"
+        }
+    }
 }
 
-Write-Host "Login: OK" -ForegroundColor Green
-
-$apiHeaders = @{ Cookie = "SessionID=$sessionId" }
+Write-Host "DNake: $base" -ForegroundColor Cyan
+Write-Host "Database ora: $(Get-DbInfo)"
 
 if (-not $Execute) {
+    $sid = Invoke-DnakeLogin $true
+
+    if (-not $sid) {
+        throw "Login al DNake non riuscito. Non e' stato cancellato niente."
+    }
+
+    Write-Host "Login: OK" -ForegroundColor Green
     Write-Host ""
     Write-Host "PROVA A SECCO: non e' stato cancellato niente." -ForegroundColor Yellow
     Write-Host "Per svuotare i registri di sblocco rilancia con -Execute." -ForegroundColor Yellow
     return
 }
 
+# La conferma si chiede PRIMA del login: la sessione del DNake scade presto.
 if (-not $Yes) {
     Write-Host ""
     Write-Host "Sto per CANCELLARE TUTTI i registri di sblocco del DNake (non utenti ne' badge)." -ForegroundColor Yellow
     $answer = Read-Host "Scrivi CANCELLA per confermare"
 
-    if ($answer -ne "CANCELLA") {
+    if ($answer -cne "CANCELLA") {
         Write-Host "Annullato: non e' stato cancellato niente."
         return
     }
 }
 
-function Send-Action([string]$Body) {
-    return Invoke-WebRequest -Uri $apiUrl -Method Post -Body $Body `
-        -ContentType "application/x-www-form-urlencoded; charset=UTF-8" `
-        -Headers $apiHeaders -UseBasicParsing -TimeoutSec 30
-}
-
 # action=0 (DEL), index=-1 (tutti). Risposta: 100 = occupato, riprova con
 # action=3 (TABLE_WAIT); numero negativo = errore; altro = fatto.
-$result = Read-ApiResult (Send-Action "action=0&index=-1")
+$result = Send-Action "action=0&index=-1" $true
 Write-Host "Risposta del DNake alla cancellazione: $result"
 
 $tries = 0
@@ -163,7 +220,7 @@ $tries = 0
 while ($result -eq 100 -and $tries -lt 60) {
     Start-Sleep -Milliseconds 500
     $tries++
-    $result = Read-ApiResult (Send-Action "action=3")
+    $result = Send-Action "action=3" $true
     Write-Host "  attesa $tries : risposta $result"
 }
 
