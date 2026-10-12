@@ -139,7 +139,10 @@ export async function GET() {
   try {
     const todayIso = startOfToday();
     const monthIso = startOfMonth();
-    const todayDate = todayIso.slice(0, 10);
+    // Stessa convenzione di /api/access/check (data UTC). Non derivarla da
+    // todayIso: e' la mezzanotte *locale* convertita in UTC, che con server in
+    // fuso Europe/Rome (PC reception) cade nel giorno precedente.
+    const todayDate = new Date().toISOString().slice(0, 10);
     const plus15Date = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15)
       .toISOString()
       .slice(0, 10);
