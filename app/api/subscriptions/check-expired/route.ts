@@ -8,6 +8,12 @@ async function runCheckExpired() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // TODO(business-logic review): se `customers.subscription_expiry` e' di tipo
+    // `date` (come `customer_subscriptions.ends_at`, che il gate considera valido
+    // fino a fine giornata: `ends_at >= today`), il confronto `.lt(..., now)` con un
+    // timestamp fa risultare "expired" gia' il giorno stesso della scadenza, un
+    // giorno prima rispetto al gate. Verificare il tipo colonna in produzione e,
+    // se e' `date`, confrontare con la data odierna (YYYY-MM-DD). Decisione umana.
     const now = new Date().toISOString();
 
     const { data, error } = await supabase
