@@ -480,3 +480,34 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stackRow {
+  flex-direction: row;
+  align-items: center;
+}
+
+.stackWrap {
+  flex-wrap: wrap;
+}
+
+.stackBetween {
+  justify-content: space-between;
+}
+
+.stackGapSm {
+  gap: 8px;
+}
+
+.stackGapMd {
+  gap: 12px;
+}
+
+.stackGapLg {
+  gap: 16px;
+}
