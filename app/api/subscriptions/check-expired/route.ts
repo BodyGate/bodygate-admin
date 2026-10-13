@@ -10,6 +10,22 @@ async function runCheckExpired() {
 
     const now = new Date().toISOString();
 
+    // TODO(logic-review, decisione di prodotto - non corretto automaticamente):
+    // 1. Questo job legge customers.subscription_expiry/subscription_status, ma
+    //    renew_subscription_atomic_v1 (security-hotfix-0-3) aggiorna solo
+    //    customer_subscriptions e non questi due campi. Scenario: cliente con
+    //    subscription_expiry = 2026-09-30 rinnova il 2026-10-02; il job vede
+    //    ancora la scadenza vecchia e imposta subscription_status='expired' e
+    //    active=false su un cliente con abbonamento valido (la lista clienti
+    //    mostra "scaduto"; il gate fisico usa is_active, quindi non e' bloccato).
+    //    Valutare: sincronizzare i campi nella RPC, oppure derivare lo stato da
+    //    customer_subscriptions.
+    // 2. Se subscription_expiry e' di tipo date, il confronto con un timestamp
+    //    (`now`) lo considera scaduto dalle 00:00 UTC dell'ultimo giorno valido
+    //    invece del giorno dopo. Verificare il tipo colonna (nessun DDL nel repo).
+    // 3. GET e POST modificano dati senza controllo permessi in questo handler:
+    //    verificare che proxy.ts lo protegga.
+
     const { data, error } = await supabase
       .from("customers")
       .update({
