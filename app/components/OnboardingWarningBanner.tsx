@@ -28,6 +28,7 @@ export default function OnboardingWarningBanner({ message }: { message: string }
       </div>
       <BGButton
         variant="ghost"
+        compact
         onClick={() => setVisible(false)}
         aria-label="Chiudi avviso"
       >

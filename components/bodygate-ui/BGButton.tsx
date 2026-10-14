@@ -11,6 +11,7 @@ type BGButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & 
   children: ReactNode
   href?: string
   onClick?: () => void
+  compact?: boolean
   variant?: BGButtonVariant
 }
 
@@ -25,11 +26,12 @@ export default function BGButton({
   children,
   href,
   variant = "primary",
+  compact = false,
   className = "",
   type = "button",
   ...props
 }: BGButtonProps) {
-  const classes = `${styles.button} ${variantClass[variant]} ${className}`.trim()
+  const classes = `${styles.button} ${variantClass[variant]} ${compact ? styles.buttonCompact : ""} ${className}`.trim()
 
   if (href) {
     return (
