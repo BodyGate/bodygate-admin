@@ -183,6 +183,10 @@
     box-shadow 150ms ease;
 }
 
+.buttonCompact {
+  flex: 0 0 auto;
+}
+
 .button:active {
   transform: translateY(1px);
 }
@@ -425,6 +429,10 @@
 
   .button {
     width: 100%;
+  }
+
+  .button.buttonCompact {
+    width: auto;
   }
 }
 
