@@ -26,3 +26,9 @@ test("ambiguous date+amount yields no match", () => {
   const b = { id: "p-2", amount: 50, paid_at: "2026-10-05" };
   assert.equal(find([a, b], existing), undefined);
 });
+
+test("same day and amount: description disambiguates", () => {
+  const a = { id: "p-1", amount: 50, description: "Altro", paid_at: "2026-10-05" };
+  const b = { id: "p-2", amount: 50, description: "Abbonamento Mensile", paid_at: "2026-10-05" };
+  assert.equal(find([a, b], existing), b);
+});

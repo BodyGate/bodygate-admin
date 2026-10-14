@@ -41,9 +41,15 @@ export function findMatchingAccountingPayment<T extends PaymentLike>(
       cents(c.amount) === cents(existing.amount),
   );
   if (byDateAndAmount.length === 1) return byDateAndAmount[0];
-  if (byDateAndAmount.length > 1) return undefined;
-
   const description = text(existing.description);
+  if (byDateAndAmount.length > 1) {
+    // Same day and amount: only the description can still tell them apart.
+    const narrowed = description
+      ? byDateAndAmount.filter((c) => text(c.description) === description)
+      : [];
+    return narrowed.length === 1 ? narrowed[0] : undefined;
+  }
+
   if (!description) return undefined;
   const byDescription = candidates.filter((c) => text(c.description) === description);
   return byDescription.length === 1 ? byDescription[0] : undefined;
