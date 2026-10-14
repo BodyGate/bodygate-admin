@@ -480,3 +480,41 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.alertCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.alertCardBody {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  color: var(--bg-muted, #6b7080);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alertCardTitle {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.alertCardTitleDanger {
+  color: #d6314a;
+}
+
+.alertCardTitleWarning {
+  color: #b3790a;
+}
+
+.alertCardTitleSuccess {
+  color: #1f9d6b;
+}
+
+.alertCardAction {
+  flex-shrink: 0;
+}
