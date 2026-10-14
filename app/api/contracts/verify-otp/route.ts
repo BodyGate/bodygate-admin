@@ -158,7 +158,7 @@ export async function POST(req: Request) {
       .select("id")
       .eq("customer_id", customerId)
       .eq("is_active", true)
-      .or(`ends_at.is.null,ends_at.gte.${today}`)
+      .or(`ends_at.is.null,ends_at.gte.${now}`)
       .limit(1)
       .maybeSingle();
 
