@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { roundMoney } from "../../../lib/server/roundMoney";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ function parseAmount(value: unknown) {
 
   if (!Number.isFinite(amount)) return null;
 
-  return amount;
+  return roundMoney(amount);
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {
