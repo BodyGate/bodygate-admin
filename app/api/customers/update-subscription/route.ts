@@ -40,7 +40,9 @@ function parseAmount(value: unknown) {
 
   if (!Number.isFinite(amount)) return null;
 
-  return amount;
+  // Same 2-decimal rounding as renew-subscription (0.004 -> 0 is then
+  // rejected by the caller's `amount <= 0` check).
+  return Number(amount.toFixed(2));
 }
 
 function appendNote(previousNotes: string | null, newNote: string) {

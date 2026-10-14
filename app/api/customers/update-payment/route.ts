@@ -11,8 +11,11 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
+  // Same 2-decimal rounding as renew-membership-fee/renew-subscription: an
+  // input like "0.004" must be rejected instead of being saved as 0.00.
+  const rounded = Number(amount.toFixed(2));
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizeText(value: unknown) {
