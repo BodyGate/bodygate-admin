@@ -338,6 +338,8 @@ export async function POST(req: Request) {
         ),
       );
 
+      // Non riattivare pagamenti annullati: il filtro neq("status","cancelled")
+      // evita che la rettifica li riporti a "paid" nel registro contabile.
       await supabaseAdmin
         .from("payments")
         .update({
@@ -347,6 +349,7 @@ export async function POST(req: Request) {
           status: "paid",
         })
         .eq("customer_id", customerId)
+        .neq("status", "cancelled")
         .in("id", linkedCustomerPaymentIds);
     }
 
