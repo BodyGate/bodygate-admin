@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { BGAlert, BGButton } from "@/components/bodygate-ui";
+
 export default function OnboardingWarningBanner({ message }: { message: string }) {
   const [visible, setVisible] = useState(true);
 
@@ -18,43 +20,19 @@ export default function OnboardingWarningBanner({ message }: { message: string }
   if (!visible) return null;
 
   return (
-    <div
-      className="no-print"
-      style={{
-        width: "210mm",
-        margin: "0 auto 20px auto",
-        background: "rgba(179, 121, 10, 0.1)",
-        border: "1px solid rgba(179, 121, 10, 0.32)",
-        color: "#8f620c",
-        padding: "16px",
-        borderRadius: "16px",
-        fontWeight: 700,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: "12px",
-      }}
-    >
-      <span>
-        Cliente creato correttamente. Alcuni passaggi accessori richiedono un
-        secondo tentativo: {message}
-      </span>
-      <button
-        type="button"
+    <div className="no-print mx-auto mb-5 flex w-[210mm] items-start justify-between gap-3">
+      <div className="flex-1">
+        <BGAlert title="Cliente creato correttamente" tone="warning">
+          Alcuni passaggi accessori richiedono un secondo tentativo: {message}
+        </BGAlert>
+      </div>
+      <BGButton
+        variant="ghost"
         onClick={() => setVisible(false)}
         aria-label="Chiudi avviso"
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#8f620c",
-          fontWeight: 800,
-          cursor: "pointer",
-          fontSize: "16px",
-          lineHeight: 1,
-        }}
       >
         ×
-      </button>
+      </BGButton>
     </div>
   );
 }
