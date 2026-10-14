@@ -5,6 +5,7 @@ import {
   getDefaultBadgeFee,
   normalizeBadgeChargeMode,
 } from "../../../lib/server/badgeFee";
+import { parseOptionalAmount } from "../../../lib/server/optionalAmount";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
@@ -37,16 +38,6 @@ function normalizeDateOnly(value: unknown) {
   if (Number.isNaN(parsed.getTime())) return null;
 
   return date;
-}
-
-function parseOptionalAmount(value: unknown) {
-  if (value === undefined || value === null || value === "") return null;
-
-  const amount = Number(String(value).replace(",", "."));
-
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-
-  return Number(amount.toFixed(2));
 }
 
 function getIdempotencyKey(req: Request, body: Record<string, unknown>) {
