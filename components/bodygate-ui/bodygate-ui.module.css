@@ -245,6 +245,17 @@
   padding: 0 14px;
 }
 
+.inputCompact {
+  width: auto;
+  min-width: 220px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .inputGroup {
   display: flex;
   align-items: stretch;

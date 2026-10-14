@@ -8,6 +8,7 @@ import {
   BGCard,
   BGInput,
   BGSection,
+  BGStack,
 } from "@/components/bodygate-ui";
 
 export default function ContractOtpPanel({
@@ -124,11 +125,12 @@ export default function ContractOtpPanel({
   }
 
   return (
-    <BGCard className="no-print">
-      <BGSection
-        title="Firma OTP contratto"
-        description="Genera il codice OTP e invialo al cliente tramite WhatsApp."
-      >
+    <BGSection
+      className="no-print"
+      title="Firma OTP contratto"
+      description="Genera il codice OTP e invialo al cliente tramite WhatsApp."
+    >
+      <BGStack>
         <BGActionBar>
           <BGButton onClick={generateOtp} disabled={loading}>
             Genera OTP
@@ -143,6 +145,7 @@ export default function ContractOtpPanel({
           </BGButton>
 
           <BGInput
+            compact
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             placeholder="Inserisci OTP"
@@ -164,7 +167,7 @@ export default function ContractOtpPanel({
             <strong>{message}</strong>
           </BGCard>
         )}
-      </BGSection>
-    </BGCard>
+      </BGStack>
+    </BGSection>
   );
 }
