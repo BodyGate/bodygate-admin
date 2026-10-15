@@ -85,6 +85,11 @@
   gap: 10px;
 }
 
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
 .card,
 .section {
   padding: 20px;
@@ -385,6 +390,10 @@
 .actionBar {
   justify-content: space-between;
   padding: 14px;
+}
+
+.actionBarStart {
+  justify-content: flex-start;
 }
 
 .emptyState {
