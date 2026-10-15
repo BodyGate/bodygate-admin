@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { BGCard } from "@/components/bodygate-ui";
+
 import CustomerContract from "../../../components/CustomerContract";
 import CustomerContractActions from "../../../components/CustomerContractActions";
 import ContractOtpPanel from "../../../components/ContractOtpPanel";
@@ -116,17 +118,11 @@ export default async function ContractPage({ params, searchParams }: Props) {
             customerName={customerName || "Cliente"}
           />
         ) : (
-          <div
-            style={{
-              background: "white",
-              color: "red",
-              padding: "20px",
-              borderRadius: "16px",
-              fontWeight: "bold",
-            }}
-          >
-            Errore creazione documento: {documentError || "documentId mancante"}
-          </div>
+          <BGCard variant="danger" role="alert">
+            <strong>
+              Errore creazione documento: {documentError || "documentId mancante"}
+            </strong>
+          </BGCard>
         )}
       </div>
 
