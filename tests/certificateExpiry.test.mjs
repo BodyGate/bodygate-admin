@@ -29,3 +29,10 @@ test("uses Rome calendar day around midnight", () => {
   assert.equal(isCertificateExpiringWithin("2026-10-16", 30, late), false);
   assert.equal(isCertificateExpiringWithin("2026-10-17", 30, late), true);
 });
+
+test("30-day limit is a calendar boundary across the DST end (Oct 25)", () => {
+  // 00:30 Rome on Oct 16 (CEST) = 22:30Z on Oct 15
+  const night = new Date("2026-10-15T22:30:00Z");
+  assert.equal(isCertificateExpiringWithin("2026-11-15", 30, night), true);
+  assert.equal(isCertificateExpiringWithin("2026-11-16", 30, night), false);
+});

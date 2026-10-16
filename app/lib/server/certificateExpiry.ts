@@ -22,7 +22,10 @@ export function isCertificateExpiringWithin(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return false;
 
   const today = romeDay(now);
-  const limit = romeDay(new Date(now.getTime() + days * 86400000));
+  // Advance the calendar date (not milliseconds) so DST shifts can't move the boundary.
+  const limitDate = new Date(`${today}T00:00:00Z`);
+  limitDate.setUTCDate(limitDate.getUTCDate() + days);
+  const limit = limitDate.toISOString().slice(0, 10);
 
   return end >= today && end <= limit;
 }
