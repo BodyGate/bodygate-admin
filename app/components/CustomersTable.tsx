@@ -73,7 +73,8 @@ function daysUntil(value?: string | null) {
   today.setHours(0, 0, 0, 0);
   expiry.setHours(0, 0, 0, 0);
 
-  return Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+  // round, not ceil: days are 25h long when DST ends, so ceil overcounts by 1.
+  return Math.round((expiry.getTime() - today.getTime()) / 86400000);
 }
 
 function normalize(value?: string | null) {
