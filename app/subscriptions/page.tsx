@@ -77,7 +77,8 @@ function daysUntil(value?: string | null) {
 
   if (Number.isNaN(target.getTime())) return null;
 
-  return Math.ceil((target.getTime() - today.getTime()) / DAY_MS);
+  // round, not ceil: days are 25h long when DST ends, so ceil overcounts by 1.
+  return Math.round((target.getTime() - today.getTime()) / DAY_MS);
 }
 
 function formatDate(value?: string | null) {
