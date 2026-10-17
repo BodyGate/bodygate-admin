@@ -36,6 +36,11 @@ function normalizeDateOnly(value: unknown) {
 
   if (Number.isNaN(parsed.getTime())) return null;
 
+  // TODO(logic-agent): JS rolls impossible days over (2026-02-31 -> 2026-03-03),
+  // so such a date passes here and is only rejected by Postgres as a generic 500.
+  // Not fixed: no wrong data is written; consider a round-trip check as in
+  // update-medical-certificate's isValidDateOnly.
+
   return date;
 }
 
