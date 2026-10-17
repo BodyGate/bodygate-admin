@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
+import { gymToday } from "../../../lib/server/gymDate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -170,7 +171,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = getSupabaseClient();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = gymToday();
     const matches = await findMatches(supabase, code, warnings);
     const ownerType = resolveOwnerType(matches);
     const activeMatches = matches.filter((m) => m.active !== false);

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
 import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
 import { evaluateAccessEligibility } from "../../../lib/server/accessEligibility";
+import { gymToday } from "../../../lib/server/gymDate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -450,7 +451,7 @@ export async function POST(req: Request) {
 
     const customerId = customer.id;
     const branchId = customer.branch_id;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = gymToday();
 
     async function logAccess(wasAllowed: boolean, reason: string) {
       await supabase.from("customer_access_logs").insert({
