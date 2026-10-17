@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isMedicalCertificateExpiringSoon } from "../../../lib/server/medicalCertificate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,6 +168,8 @@ export async function GET(request: NextRequest) {
     const activeCustomers = normalizedCustomers.filter(isActiveCustomer);
     const filteredCustomers = applyListFilter(normalizedCustomers, filter);
 
+    const todayIso = new Date().toISOString().slice(0, 10);
+
     const stats = {
       total_customers: activeCustomers.length,
       total_records: normalizedCustomers.length,
@@ -176,18 +179,12 @@ export async function GET(request: NextRequest) {
           String(customer.access_activation_status || "").toLowerCase() === "active"
       ).length,
       to_check: activeCustomers.filter(needsVerification).length,
-      expiring_soon: activeCustomers.filter((customer) => {
-        if (!customer.medical_certificate_end_date) return false;
-
-        const end = new Date(customer.medical_certificate_end_date);
-        if (Number.isNaN(end.getTime())) return false;
-
-        const today = new Date();
-        const in30Days = new Date();
-        in30Days.setDate(today.getDate() + 30);
-
-        return end >= today && end <= in30Days;
-      }).length,
+      expiring_soon: activeCustomers.filter((customer) =>
+        isMedicalCertificateExpiringSoon(
+          customer.medical_certificate_end_date,
+          todayIso,
+        ),
+      ).length,
       with_badge: activeCustomers.filter(hasBadge).length,
       without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,
     };
