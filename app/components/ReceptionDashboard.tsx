@@ -825,9 +825,9 @@ function BridgeStatusCard({
           Errore: {status.error}
         </div>
       )}
-      <button style={bridgeButtonStyle} onClick={onRefresh} disabled={loading}>
+      <BGButton variant="secondary" onClick={onRefresh} disabled={loading}>
         {loading ? "Aggiornamento..." : "Aggiorna stato"}
-      </button>
+      </BGButton>
     </div>
   );
 }
@@ -1034,16 +1034,6 @@ const alertLinkStyle: React.CSSProperties = {
   textDecoration: "none",
   fontWeight: 800,
   whiteSpace: "nowrap",
-};
-
-const bridgeButtonStyle: React.CSSProperties = {
-  background: "var(--bg-soft)",
-  color: "var(--text)",
-  border: "1px solid var(--border)",
-  borderRadius: "12px",
-  padding: "10px 12px",
-  fontWeight: 700,
-  cursor: "pointer",
 };
 
 const gridStyle: React.CSSProperties = {
