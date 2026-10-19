@@ -78,17 +78,25 @@ badge persi dal push, latenza < 1 s, nessun errore sul DNake.
 Attivare l'apertura da evento, lasciare il polling come rientro (flag), pulizia
 automatica (sotto), verificare 48 ore con controllo manuale in reception.
 
-## Pulizia del DNake (manutenzione)
+## Pulizia notturna del DNake
 
-- Soglie: preavviso al 70 %, urgente al 90 % del limite (290816 byte).
-- Prima di ogni pulizia: verificare che gli accessi siano gia' su BodyGate
-  (ultimo accesso salvato recente), poi svuotare (`scripts/dnake-clear-unlock-logs.ps1`,
-  conferma `CANCELLA`), poi controllare la dimensione del file e che il tornello
-  legga ancora un badge di prova.
-- Frequenza: settimanale o a soglia; mai a tornello in uso.
-- Nota: SQLite non rimpicciolisce il file dopo le cancellazioni; se la
-  dimensione non scende, serve un ripristino/azzeramento dal pannello (da
-  verificare in fase 0).
+BodyGate e' il registro: il DNake si svuota ogni notte (palestra chiusa) e
+resta di circa un giorno di eventi, molto sotto il limite.
+
+1. Solo i registri accessi: utenti, badge e configurazione non si toccano
+   (mai ripristino di fabbrica).
+2. Riconciliazione PRIMA di cancellare: ogni riga del registro DNake deve
+   essere gia' su BodyGate; le mancanti si importano. Se non si riesce, NON si
+   cancella e parte un avviso.
+3. Verifica DOPO: dimensione del file scesa, polling sano. Altrimenti avviso
+   prima dell'apertura mattutina.
+4. Ripetizione e avviso in caso di errore; soglie 70 %/90 % restano come rete
+   di sicurezza durante il giorno.
+5. Prerequisito fase 0: la cancellazione deve ridurre davvero il file (sul
+   vecchio DNake la tabella non si riduceva). Se no: riavvio programmato o
+   azzeramento da pannello. Procedura: `scripts/dnake-clear-unlock-logs.ps1`
+   (conferma `CANCELLA`), poi controllo manuale con un badge.
+6. SQLite non rimpicciolisce il file dopo le cancellazioni: verificare.
 
 ## Messa in servizio (ordine)
 
