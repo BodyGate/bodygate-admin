@@ -46,6 +46,22 @@ Esito decide il piano:
   (mai 1-2 s: aggiungerebbe attesa a ogni apertura);
   pulizia notturna come sotto.
 
+## Dal manuale DNAKE AC02 V2.0 (dnake-global.com)
+
+- Accesso > Controllo accessi > "Tipo di archiviazione log": sovrascrittura
+  circolare / **elimina vecchi log periodicamente (10-86400 min)** / elimina
+  log in un orario specificato. Il DNake sa potare da solo i propri log.
+- Capacita' dichiarata: 100000 log; la sovrascrittura circolare scatta solo li',
+  molto oltre il limite di ~284 KB: NON basta. Usare l'eliminazione periodica.
+- "Autenticazione intervallo": un utente apre una sola volta per periodo (0-65535).
+- "Modalita' lettura carta" (default / numero completo), "ordine" (normale /
+  invertito), "visualizzazione" (esadecimale / decimale): cambiano il numero
+  badge visto da BodyGate -> fissarli e provare prima di importare i clienti.
+- Evento HTTP (Avanzate 6.1): "il dispositivo invia l'URL corrispondente quando
+  si verifica uno degli eventi"; il manuale NON documenta i parametri.
+- Sistema: backup/ripristino, aggiornamento firmware, ripristino di fabbrica,
+  riavvio, cattura pacchetti/log. Password web predefinita 123456.
+
 ## Velocita' di apertura (vincolo, non optional)
 
 - Obiettivo: badge -> tornello aperto, p95 < 1 s e non peggio dell'attuale.
