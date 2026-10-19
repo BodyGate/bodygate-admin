@@ -123,3 +123,40 @@ resta di circa un giorno di eventi, molto sotto il limite.
    nel codice (`192.168.1.22`, `admin/888888`).
 3. Controllo con badge di prova; pulsante di apertura manuale sempre disponibile.
 4. Fasi 1-3 e manutenzione.
+
+## Appunti: tutte le modifiche da fare (stato al 19 ottobre 2026)
+
+Legenda: [x] fatto e inviato, [ ] da fare.
+
+### Fatto
+- [x] Bridge V3.9.4: lettura parziale del file troncato, allarmi, backoff, uscita se il polling si blocca.
+- [x] Auto-riparazione: watchdog, launcher che non si ferma se manca l'exe/chiave.
+- [x] Dashboard reception: avviso "Lettura badge ferma" / "Preavviso registro DNake" (`bridgeHealth.ts`, 9 test).
+- [x] Script `dnake-clear-unlock-logs.ps1` (con `-Diagnose`) e documentazione in `OPERATIONS.md`.
+- [x] Questo runbook e la sintesi del manuale DNAKE.
+
+### Sul DNake nuovo (192.168.1.58), prima della messa in servizio
+- [ ] Cambiare password Sistema e Web (predefinite `888888` / `123456`).
+- [ ] Annotare firmware, bloccare aggiornamenti, esportare la configurazione.
+- [ ] Controllo accessi > Logs Storage Type: **elimina vecchi log periodicamente** (es. 1440 min) e verificare che il file scenda.
+- [ ] Authentication Interval a 0 o pochi secondi.
+- [ ] Fissare modalita'/ordine/formato del numero carta e provare con un badge.
+- [ ] NTP e fuso orario corretti.
+- [ ] Prova Evento HTTP: arriva? contiene il numero badge? timeout?
+
+### Bridge
+- [ ] IP/credenziali DNake e tornello da variabili d'ambiente (oggi fissi: 192.168.1.22, admin/888888).
+- [ ] `BODYGATE_DNAKE_DB_LIMIT_BYTES`, soglie 70 % / 90 %, log giornaliero della dimensione.
+- [ ] Controllo leggero (HEAD ogni 200-300 ms, scarico solo se cambia) al posto del download ogni 100 ms.
+- [ ] Compilare, testare, aggiornare i pattern degli script build/verify e gli hash.
+
+### Server BodyGate
+- [ ] `/api/dnake/event`: chiave dedicata, segreti oscurati nei log, anti-doppione per badge (~3 s), limite per chiave.
+- [ ] Allarme "nessun evento da 90 minuti in orario di apertura".
+- [ ] Misurare la latenza badge -> apertura (riferimento oggi, p95 < 1 s) e rimisurare a ogni fase.
+- [ ] Modalita' ombra e una settimana di confronto prima del passaggio.
+
+### Pulizia sul PC e sicurezza
+- [ ] Rimuovere la regola firewall `test-dnake-8089` e fermare il ricevitore di prova.
+- [ ] Cambiare la password del portale cloud DNAKE (esposta in chat).
+- [ ] Rimuovere cartelle temporanee `sqlite-test` / `dnake-js`.
