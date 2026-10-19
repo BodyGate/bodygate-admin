@@ -1,162 +1,120 @@
-# DNake: rimessa in servizio e alleggerimento del meccanismo
+# Lettura badge DNake: progetto di ripristino e messa in servizio
 
-Causa del blocco di ottobre 2026: il bridge scaricava ogni 100 ms l'intero file
-`/data/unlock_sql.db` del DNake (centinaia di KB, mai potato). Oltre ~284 KB
-(290816 byte) il mini_httpd del DNake lo consegna troncato, SQLite lo vede
-"malformed" e nessun badge viene piu' letto. Il DNake non e' un database server:
-va tenuto **piccolo** e **poco interrogato**. BodyGate e' il registro storico.
+Stato: bozza per approvazione, 19 ottobre 2026. Proprietario: gestione BodyGate.
 
-## Principi
+## 1. Obiettivo e requisiti
 
-1. **BodyGate e' il sistema di registro** (`customer_access_logs`, `access_logs`,
-   `unknown_badge_logs`). Il registro del DNake serve solo a far funzionare il
-   tornello e puo' essere svuotato senza perdere storico.
-2. **Il DNake non si interroga piu' del necessario**: niente download completo
-   ogni 100 ms. Meta' del carico sparisce con l'evento push (fase 3) o, nel
-   frattempo, con polling rado.
-3. **Nessun cambio in produzione senza prova**: ogni fase ha un criterio di
-   accettazione e un rientro (rollback) immediato.
-4. **Soglie e allarmi prima del blocco**: avviso al 70 % del limite, urgente al
-   90 %, critico se il polling si ferma (gia' in `bridgeHealth.ts` e dashboard).
+Rimettere in servizio il DNake in modo che il tornello legga i badge in modo
+stabile nel tempo, senza interventi manuali.
 
-## Fase 0 - Prove sul DNake nuovo (192.168.1.58), ancora vuoto, senza toccare la produzione
+| Requisito | Valore da rispettare | Come si verifica |
+|---|---|---|
+| Velocita' di apertura | badge -> tornello aperto, p95 < 1 s e non peggio dell'attuale | timestamp a ogni passo, misurati prima e dopo |
+| Carico sul DNake | nessun download completo continuo; file sempre sotto il 70 % del limite | dimensione file nei log del bridge |
+| Registro storico | tutti gli accessi su BodyGate; il DNake e' solo un buffer | confronto giornaliero DNake/BodyGate |
+| Continuita' | se qualcosa si ferma: avviso in dashboard e Telegram/ntfy, apertura manuale sempre disponibile | prova di guasto simulata |
+| Sicurezza | niente password predefinite, chiave dedicata per gli eventi, segreti non nei log | revisione a fine fase |
 
-Da eseguire e annotare l'esito (si/no) di ciascuna:
+## 2. Cosa e' accaduto (verificato)
 
-- [ ] Cambiare subito le password predefinite (Sistema e Web) e annotarle in un
-      posto sicuro; non lasciare `888888` / `123456`.
-- [ ] Annotare versione firmware e **bloccare gli aggiornamenti**: ogni update
-      va provato prima su banco (vedi fase 0 punto finale).
-- [ ] Pagina "Evento HTTP": impostare l'URL di *Valid Card* verso un ricevitore
-      di prova (PC reception, porta libera) e passare un badge: **il payload
-      contiene il numero del badge?** (si/no; nome del parametro).
-- [ ] Idem per *Invalid Card* e *Valid/Invalid Code*, *QR*.
-- [ ] Il DNake attende la risposta HTTP? Quanto timeout? (rispondere in < 1 s)
-- [ ] Svuotare i registri dal pannello e verificare **dimensione del file**
-      `unlock_sql.db` prima/dopo (HEAD o download): scende davvero?
-- [ ] Esportare la configurazione (backup) e conservarla.
-- [ ] Orario/NTP corretto (i log hanno data e ora del DNake).
-- [ ] Dopo gli aggiornamenti firmware: ripetere i test sopra prima di produrre.
+- Dall'8 ottobre 2026 i badge non vengono letti.
+- Causa: il server web del DNake consegna `unlock_sql.db` troncato a 290816 byte
+  quando il file e' piu' grande (era 318464); SQLite lo giudica corrotto.
+- Il bridge scaricava il file intero ogni 100 ms e i registri non venivano mai
+  potati. "Elimina tutto" dal pannello rispondeva "riuscito" ma il file non
+  si riduceva.
+- Il bridge risultava "online" perche' rispondeva anche senza leggere badge.
 
-Esito decide il piano:
+## 3. Decisione di progetto
 
-- **Il payload contiene il badge** -> piano A (evento push, fasi 1-3).
-- **Non lo contiene** -> piano B: il bridge controlla solo se il file e'
-  cambiato (HEAD / dimensione / ETag) ogni 200-300 ms e scarica solo in quel caso
-  (mai 1-2 s: aggiungerebbe attesa a ogni apertura);
-  pulizia notturna come sotto.
+1. **BodyGate e' il registro**; il DNake e' un buffer di breve durata.
+2. **Il DNake pota da solo i suoi log** con la funzione nativa (manuale AC02:
+   Accesso > Controllo accessi > Tipo di archiviazione log > elimina vecchi log
+   periodicamente, 10-86400 min). Nessuno script di cancellazione notturno
+   come meccanismo principale.
+3. **Il bridge non scarica piu' il file di continuo**: controllo leggero della
+   dimensione/ETag (HEAD) ogni 200-300 ms, scarico solo se cambia.
+4. **Evento HTTP del DNake: opzione, non base.** Si adotta solo se la prova
+   dimostra che arriva con il numero badge. Fino ad allora non e' nel percorso
+   critico.
+5. **Allarmi sulla salute reale** (non solo "il bridge risponde").
 
-## Dal manuale DNAKE AC02 V2.0 (dnake-global.com)
+Quello che NON si fa: affidare l'apertura a una funzione non provata.
 
-- Accesso > Controllo accessi > "Tipo di archiviazione log": sovrascrittura
-  circolare / **elimina vecchi log periodicamente (10-86400 min)** / elimina
-  log in un orario specificato. Il DNake sa potare da solo i propri log.
-- Capacita' dichiarata: 100000 log; la sovrascrittura circolare scatta solo li',
-  molto oltre il limite di ~284 KB: NON basta. Usare l'eliminazione periodica.
-- "Autenticazione intervallo": un utente apre una sola volta per periodo (0-65535).
-- "Modalita' lettura carta" (default / numero completo), "ordine" (normale /
-  invertito), "visualizzazione" (esadecimale / decimale): cambiano il numero
-  badge visto da BodyGate -> fissarli e provare prima di importare i clienti.
-- Evento HTTP (Avanzate 6.1): "il dispositivo invia l'URL corrispondente quando
-  si verifica uno degli eventi"; il manuale NON documenta i parametri.
-- Sistema: backup/ripristino, aggiornamento firmware, ripristino di fabbrica,
-  riavvio, cattura pacchetti/log. Password web predefinita 123456.
+## 4. Ipotesi da provare (non ancora verificate)
 
-## Velocita' di apertura (vincolo, non optional)
+| # | Ipotesi | Se falsa |
+|---|---|---|
+| H1 | L'eliminazione periodica dei log riduce davvero il file `unlock_sql.db` | riavvio programmato o azzeramento dal pannello; in ultimo, script con login API (formato login ancora ignoto) |
+| H2 | Il file risponde a HEAD con una dimensione/ETag affidabile | controllo ogni 1 s con download breve; rivedere la latenza |
+| H3 | L'Evento HTTP contiene il numero badge | resta il solo controllo del file |
+| H4 | Numero badge stabile con le impostazioni di lettura fissate (modalita', ordine, formato) | riallineare i badge dei clienti |
+| H5 | Autenticazione intervallo a 0 non blocca passaggi ripetuti | regolare |
+| H6 | Il firmware nuovo non ha il limite di 284 KB | il limite resta: i log restano piccoli comunque |
 
-- Obiettivo: badge -> tornello aperto, p95 < 1 s e non peggio dell'attuale.
-  Misurare PRIMA il riferimento sul sistema attuale (timestamp: lettura badge,
-  risposta di /api/access/check, chiamata /open0) e rimisurare a ogni fase.
-- Il DNake riceve risposta subito; l'apertura e' asincrona.
-- L'apertura non aspetta i salvataggi: prima decisione e /open0, poi log.
-- Se la verifica su Supabase pesa, cache locale degli abbonamenti attivi.
-- Se gli eventi non arrivano, il polling veloce riprende da solo (rientro).
-- Fase 0: verificare se il DNake nuovo puo' aprire da solo per i badge in
-  memoria (piu' veloce) e se e' compatibile con il controllo scadenze.
+## 5. Piano a fasi con criteri
 
-## Fase 1 - Rafforzare il server BodyGate (nessun impatto sul DNake)
+Ogni fase ha un'uscita verificabile e un rientro. Non si passa alla successiva
+senza il criterio soddisfatto.
 
-- `/api/dnake/event`: chiave dedicata nell'URL (distinta da
-  `x-bodygate-machine-key`, che il DNake non sa inviare), segreti oscurati nei
-  log, anti-doppione per badge (~3 s), limite di frequenza per chiave e non per IP.
-- Rispondere al DNake subito; elaborare l'apertura senza attese lunghe.
-- Heartbeat dell'ultimo evento + allarme "nessun evento da 90 min in orario di
-  apertura".
-- Modalita' ombra: registrare gli eventi ma non aprire.
+**Fase 0 - Prove sul DNake nuovo (192.168.1.58), fuori produzione**
+- Fare: H1-H5; cambiare password; annotare firmware; esportare configurazione;
+  NTP e fuso orario.
+- Uscita: tabella delle ipotesi compilata con esito e prova (dimensioni file,
+  screenshot, log).
+- Rientro: nulla da ripristinare, il DNake non e' in produzione.
 
-## Fase 2 - Una settimana in ombra
+**Fase 1 - Bridge e server (senza toccare il tornello)**
+- Bridge: IP/credenziali da variabili d'ambiente; limite e soglie 70 %/90 %;
+  controllo leggero; log giornaliero della dimensione.
+- Server: `/api/dnake/event` con chiave dedicata, anti-doppione, segreti
+  oscurati; allarme se non arrivano eventi.
+- Uscita: test automatici verdi; misura della latenza di riferimento sul
+  sistema attuale.
+- Rientro: versione precedente del bridge (V3.9.4) conservata.
 
-Polling attuale (rado) e push insieme: confrontare ogni badge. Criterio: 0
-badge persi dal push, latenza < 1 s, nessun errore sul DNake.
+**Fase 2 - Una settimana in parallelo**
+- Il DNake nuovo e' collegato in sola lettura; si confrontano ogni giorno i
+  suoi registri con BodyGate.
+- Uscita: zero badge persi, latenza nel requisito, file del DNake sotto la
+  soglia dopo la potatura.
 
-## Fase 3 - Passaggio
+**Fase 3 - Passaggio**
+- Spostare il bridge sul DNake nuovo con apertura manuale presidiata per 48 ore.
+- Uscita: 48 ore senza avvisi; confronto registri a zero differenze.
+- Rientro: ripristino configurazione precedente e apertura manuale.
 
-Attivare l'apertura da evento, lasciare il polling come rientro (flag), pulizia
-automatica (sotto), verificare 48 ore con controllo manuale in reception.
+## 6. Monitoraggio e manutenzione
 
-## Pulizia notturna del DNake
+- Cruscotto reception: livelli ok / preavviso / critico (`bridgeHealth.ts`).
+- Soglie: preavviso 70 %, urgente 90 % del limite (290816 byte).
+- Controllo mensile: dimensione file, ora del DNake, avvisi dell'ultimo mese.
+- Aggiornamenti firmware: solo dopo prova su banco e ripetizione della fase 0.
+- Backup della configurazione del DNake dopo ogni modifica.
 
-BodyGate e' il registro: il DNake si svuota ogni notte (palestra chiusa) e
-resta di circa un giorno di eventi, molto sotto il limite.
+## 7. Rischi
 
-1. Solo i registri accessi: utenti, badge e configurazione non si toccano
-   (mai ripristino di fabbrica).
-2. Riconciliazione PRIMA di cancellare: ogni riga del registro DNake deve
-   essere gia' su BodyGate; le mancanti si importano. Se non si riesce, NON si
-   cancella e parte un avviso.
-3. Verifica DOPO: dimensione del file scesa, polling sano. Altrimenti avviso
-   prima dell'apertura mattutina.
-4. Ripetizione e avviso in caso di errore; soglie 70 %/90 % restano come rete
-   di sicurezza durante il giorno.
-5. Prerequisito fase 0: la cancellazione deve ridurre davvero il file (sul
-   vecchio DNake la tabella non si riduceva). Se no: riavvio programmato o
-   azzeramento da pannello. Procedura: `scripts/dnake-clear-unlock-logs.ps1`
-   (conferma `CANCELLA`), poi controllo manuale con un badge.
-6. SQLite non rimpicciolisce il file dopo le cancellazioni: verificare.
+| Rischio | Probabilita' | Impatto | Mitigazione |
+|---|---|---|---|
+| File del DNake supera il limite | media | tornello fermo | potatura nativa + soglie + avviso |
+| Pulizia non riduce il file | media | tornello fermo a distanza | prova H1 prima del passaggio |
+| Aggiornamento firmware cambia il comportamento | media | blocco | firmware fissato, prova su banco |
+| Credenziali predefinite | alta | accesso non autorizzato | cambio in fase 0 |
+| Latenza di apertura peggiora | bassa | disagio clienti | misura e rientro |
+| Bridge "online" ma cieco | gia' accaduto | tornello fermo | allarme su salute reale |
 
-## Messa in servizio (ordine)
+## 8. Stato lavori
 
-1. Fase 0 completata e riportata.
-2. Bridge aggiornato con IP/credenziali configurabili (`BODYGATE_DNAKE_IP`,
-   `BODYGATE_DNAKE_USER`, `BODYGATE_DNAKE_PASSWORD`) e limiti
-   (`BODYGATE_DNAKE_DB_LIMIT_BYTES`); oggi IP e credenziali sono ancora fissi
-   nel codice (`192.168.1.22`, `admin/888888`).
-3. Controllo con badge di prova; pulsante di apertura manuale sempre disponibile.
-4. Fasi 1-3 e manutenzione.
+Fatti: bridge V3.9.4 con lettura parziale e allarmi; auto-riparazione;
+avviso in dashboard; script di pulizia e documentazione operativa.
 
-## Appunti: tutte le modifiche da fare (stato al 19 ottobre 2026)
+Da fare: fase 0 sul DNake nuovo; configurazione del bridge; rafforzamento
+`/api/dnake/event`; misura della latenza; pulizia sul PC (regola firewall
+`test-dnake-8089`, cartelle temporanee, password del portale cloud).
 
-Legenda: [x] fatto e inviato, [ ] da fare.
+## 9. Riferimenti
 
-### Fatto
-- [x] Bridge V3.9.4: lettura parziale del file troncato, allarmi, backoff, uscita se il polling si blocca.
-- [x] Auto-riparazione: watchdog, launcher che non si ferma se manca l'exe/chiave.
-- [x] Dashboard reception: avviso "Lettura badge ferma" / "Preavviso registro DNake" (`bridgeHealth.ts`, 9 test).
-- [x] Script `dnake-clear-unlock-logs.ps1` (con `-Diagnose`) e documentazione in `OPERATIONS.md`.
-- [x] Questo runbook e la sintesi del manuale DNAKE.
-
-### Sul DNake nuovo (192.168.1.58), prima della messa in servizio
-- [ ] Cambiare password Sistema e Web (predefinite `888888` / `123456`).
-- [ ] Annotare firmware, bloccare aggiornamenti, esportare la configurazione.
-- [ ] Controllo accessi > Logs Storage Type: **elimina vecchi log periodicamente** (es. 1440 min) e verificare che il file scenda.
-- [ ] Authentication Interval a 0 o pochi secondi.
-- [ ] Fissare modalita'/ordine/formato del numero carta e provare con un badge.
-- [ ] NTP e fuso orario corretti.
-- [ ] Prova Evento HTTP: arriva? contiene il numero badge? timeout?
-
-### Bridge
-- [ ] IP/credenziali DNake e tornello da variabili d'ambiente (oggi fissi: 192.168.1.22, admin/888888).
-- [ ] `BODYGATE_DNAKE_DB_LIMIT_BYTES`, soglie 70 % / 90 %, log giornaliero della dimensione.
-- [ ] Controllo leggero (HEAD ogni 200-300 ms, scarico solo se cambia) al posto del download ogni 100 ms.
-- [ ] Compilare, testare, aggiornare i pattern degli script build/verify e gli hash.
-
-### Server BodyGate
-- [ ] `/api/dnake/event`: chiave dedicata, segreti oscurati nei log, anti-doppione per badge (~3 s), limite per chiave.
-- [ ] Allarme "nessun evento da 90 minuti in orario di apertura".
-- [ ] Misurare la latenza badge -> apertura (riferimento oggi, p95 < 1 s) e rimisurare a ogni fase.
-- [ ] Modalita' ombra e una settimana di confronto prima del passaggio.
-
-### Pulizia sul PC e sicurezza
-- [ ] Rimuovere la regola firewall `test-dnake-8089` e fermare il ricevitore di prova.
-- [ ] Cambiare la password del portale cloud DNAKE (esposta in chat).
-- [ ] Rimuovere cartelle temporanee `sqlite-test` / `dnake-js`.
+- Manuale DNAKE AC02 V2.0: pagina Web > Accesso > Controllo accessi (tipo di
+  archiviazione dei log, modalita' lettura carta, autenticazione intervallo),
+  Avanzate > Evento HTTP, Sistema (backup, firmware, riavvio).
+- `docs/OPERATIONS.md`: auto-riparazione, database troncato, svuotamento log.
