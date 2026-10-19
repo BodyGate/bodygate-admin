@@ -176,6 +176,17 @@ export async function POST(req: Request) {
       credentialOk &&
       noActiveBlock;
 
+    // TODO(logica-business, da decidere): questo update ricalcola is_active da
+    // zero a ogni firma. Il rinnovo quota genera un NUOVO contratto per un
+    // cliente gia' attivo; se alla firma manca uno dei requisiti qui sopra
+    // (es. nessuna riga in access_credentials perche' il badge e' solo nel
+    // fallback legacy customer_badges, oppure payment_status != "paid"),
+    // canActivate=false e il cliente attivo viene messo is_active=false,
+    // status="onboarding" e bloccato al tornello (/api/access/check lo nega
+    // prima di ogni altro controllo). Valutare se per un cliente gia' attivo
+    // la firma debba solo aggiornare contract_status senza disattivarlo.
+    // Inoltre activeBlock usa ends_at.gte.<data> mentre /api/access/check usa
+    // l'istante corrente: un blocco scaduto stamattina conta ancora come attivo.
     await supabase
       .from("customers")
       .update({
