@@ -16,15 +16,25 @@ namespace BodyGateAccessBridge
         private static readonly bool DebugMode =
             Environment.GetEnvironmentVariable("BODYGATE_BRIDGE_DEBUG") == "1";
 
-        private static readonly string ControllerIp = "192.168.1.251";
-        private static readonly string ControllerUser = "admin";
-        private static readonly string ControllerPassword = "888888";
+        // Indirizzi e credenziali dei dispositivi: da variabili d'ambiente
+        // (caricate dallo script di avvio da .env.local), cosi' sostituire il DNake
+        // o il controller non richiede una ricompilazione e le password non
+        // devono stare nel sorgente. I valori di ripiego sono quelli storici e il
+        // bridge avvisa nel log se li sta usando.
+        private static readonly string ControllerIp = EnvOrDefault("BODYGATE_CONTROLLER_IP", "192.168.1.251");
+        private static readonly string ControllerUser = EnvOrDefault("BODYGATE_CONTROLLER_USER", "admin");
+        private static readonly string ControllerPassword = EnvOrDefault("BODYGATE_CONTROLLER_PASSWORD", "888888");
         private static readonly byte DoorIndex = 0;
 
-        private static readonly string DnakeIp = "192.168.1.22";
-        private static readonly string DnakeUser = "admin";
-        private static readonly string DnakePassword = "888888";
-        private static readonly string DnakeDbUrl = "http://192.168.1.22/data/unlock_sql.db";
+        private static readonly string DnakeIp = EnvOrDefault("BODYGATE_DNAKE_IP", "192.168.1.22");
+        private static readonly string DnakeUser = EnvOrDefault("BODYGATE_DNAKE_USER", "admin");
+        private static readonly string DnakePassword = EnvOrDefault("BODYGATE_DNAKE_PASSWORD", "888888");
+        private static readonly string DnakeDbUrl = "http://" + DnakeIp + "/data/unlock_sql.db";
+
+        private static readonly bool UsingDefaultDnakePassword =
+            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BODYGATE_DNAKE_PASSWORD"));
+        private static readonly bool UsingDefaultControllerPassword =
+            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BODYGATE_CONTROLLER_PASSWORD"));
 
         private static readonly string BodyGateCheckUrl =
             "http://127.0.0.1:3000/api/access/check";
@@ -53,7 +63,12 @@ namespace BodyGateAccessBridge
         // Il mini_httpd del DNake consegna il file unlock_sql.db troncato quando
         // supera circa 284 KB (osservato: 290816 byte consegnati su 311296
         // dichiarati). Avviso in anticipo, prima di arrivarci.
-        private static readonly long DbSizeWarnBytes = 250 * 1024;
+        // Il limite e' configurabile (un altro modello o firmware puo' averne uno
+        // diverso). L'avviso scatta al 70%: con la potatura automatica dei log
+        // sul DNake significa "la pulizia non sta funzionando".
+        private static readonly long DbLimitBytes = EnvLong("BODYGATE_DNAKE_DB_LIMIT_BYTES", 290816);
+        private static readonly int DbWarnPercent = 70;
+        private static readonly long DbSizeWarnBytes = DbLimitBytes * DbWarnPercent / 100;
         private static readonly int DownloadBodyTimeoutSeconds = 5;
         private static readonly int PollErrorLogIntervalSeconds = 30;
         private static readonly int MaxPollBackoffMs = 5000;
@@ -75,6 +90,7 @@ namespace BodyGateAccessBridge
         private static bool dnakeDownAlertSent = false;
         private static bool staleAccessAlertSent = false;
         private static bool dbSizeWarnSent = false;
+        private static DateTime lastDbSizeLogDate = DateTime.MinValue;
         private static string lastLoggedPollError = "";
         private static DateTime lastPollErrorLogTime = DateTime.MinValue;
         private static int suppressedPollErrors = 0;
@@ -128,6 +144,12 @@ namespace BodyGateAccessBridge
                     ? "ATTENZIONE: BODYGATE_NTFY_TOPIC non configurato, alert ntfy DISATTIVATI."
                     : "Alert ntfy attivi."
             );
+            Log("DNake: " + DnakeIp + "  Controller: " + ControllerIp + "  Limite registro DNake: " + (DbLimitBytes / 1024) + " KB");
+
+            if (UsingDefaultDnakePassword || UsingDefaultControllerPassword)
+            {
+                Log("ATTENZIONE: password dei dispositivi di ripiego in uso (BODYGATE_DNAKE_PASSWORD / BODYGATE_CONTROLLER_PASSWORD non configurate in .env.local): cambiarle e configurarle.");
+            }
             Log("====================================");
 
             StartDnakeSqlPolling();
@@ -352,6 +374,13 @@ namespace BodyGateAccessBridge
                 return;
             }
 
+            // Una riga al giorno con la dimensione: la tendenza si legge nel log.
+            if (lastDbSizeLogDate.Date != DateTime.Now.Date)
+            {
+                lastDbSizeLogDate = DateTime.Now;
+                Log("Registro DNake: " + (size / 1024) + " KB su " + (DbLimitBytes / 1024) + " KB (" + (size * 100 / DbLimitBytes) + "%)");
+            }
+
             if (size < DbSizeWarnBytes)
             {
                 dbSizeWarnSent = false;
@@ -367,8 +396,8 @@ namespace BodyGateAccessBridge
             SendNtfyAlert(
                 "BodyGate: database del DNake quasi pieno",
                 "unlock_sql.db sul DNake e' " + (size / 1024) + " KB (soglia di avviso " + (DbSizeWarnBytes / 1024) +
-                " KB). Oltre circa 284 KB il DNake lo consegna troncato e il bridge smette di leggere i badge. " +
-                "Svuota i registri/record di sblocco dal pannello web del DNake (NON fare il reset di fabbrica).",
+                " KB, limite " + (DbLimitBytes / 1024) + " KB). Oltre il limite il DNake lo consegna troncato e il bridge smette di leggere i badge. " +
+                "La pulizia automatica dei log non sta funzionando: controllare l'impostazione sul DNake o svuotare i registri dal pannello (NON fare il reset di fabbrica).",
                 "high"
             );
         }
@@ -1373,6 +1402,18 @@ if (!listener.IsListening)
             context.Response.ContentLength64 = buffer.Length;
             context.Response.OutputStream.Write(buffer, 0, buffer.Length);
             context.Response.OutputStream.Close();
+        }
+
+        private static string EnvOrDefault(string name, string fallback)
+        {
+            string? value = Environment.GetEnvironmentVariable(name)?.Trim();
+            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+
+        private static long EnvLong(string name, long fallback)
+        {
+            string? value = Environment.GetEnvironmentVariable(name)?.Trim();
+            return long.TryParse(value, out long parsed) && parsed > 0 ? parsed : fallback;
         }
 
         private static string EscapeJson(string value)

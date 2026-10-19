@@ -146,6 +146,24 @@ while ($true) {
             Write-BridgeLog "ATTENZIONE: BODYGATE_NTFY_TOPIC non presente in .env.local, alert ntfy disattivati."
         }
 
+        # Optional device settings (IP, credentials, DNake log limit). Absent
+        # values leave the bridge on its built-in defaults.
+        foreach ($name in @(
+                "BODYGATE_DNAKE_IP", "BODYGATE_DNAKE_USER", "BODYGATE_DNAKE_PASSWORD",
+                "BODYGATE_CONTROLLER_IP", "BODYGATE_CONTROLLER_USER", "BODYGATE_CONTROLLER_PASSWORD",
+                "BODYGATE_DNAKE_DB_LIMIT_BYTES")) {
+            try {
+                $value = Read-EnvValue -Path $EnvFile -Name $name
+            }
+            catch {
+                $value = $null
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                Set-Item -Path "Env:$name" -Value $value
+            }
+        }
+
         Write-BridgeLog "Avvio Bridge ufficiale: $BridgePath"
 
         $process = Start-Process `

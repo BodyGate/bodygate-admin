@@ -200,3 +200,21 @@ L'endpoint puo' aprire il tornello, quindi richiede una chiave:
 3. Senza chiave valida (e senza chiave macchina) la risposta e' 401. Se
    `BODYGATE_DNAKE_EVENT_KEY` non e' configurata nessun URL e' valido.
 4. Lo stesso badge entro 3 secondi conta un solo passaggio; segreti oscurati nei log.
+
+## Bridge: indirizzi, credenziali e limite del registro (da `.env.local`)
+
+Il bridge legge questi valori all'avvio; se mancano usa quelli storici e scrive
+un'avvertenza nel log (non piu' ricompilare per cambiare un IP):
+
+| Variabile | Significato | Ripiego |
+|---|---|---|
+| `BODYGATE_DNAKE_IP` | IP del lettore DNake | 192.168.1.22 |
+| `BODYGATE_DNAKE_USER` / `BODYGATE_DNAKE_PASSWORD` | credenziali del DNake | admin / 888888 |
+| `BODYGATE_CONTROLLER_IP` | IP del controller del tornello | 192.168.1.251 |
+| `BODYGATE_CONTROLLER_USER` / `BODYGATE_CONTROLLER_PASSWORD` | credenziali del controller | admin / 888888 |
+| `BODYGATE_DNAKE_DB_LIMIT_BYTES` | limite di consegna del file del DNake | 290816 |
+
+Il bridge scrive nel log una riga al giorno con la dimensione del registro DNake
+e avvisa (ntfy) al 70 % del limite: significa che la potatura automatica dei
+log del DNake non sta funzionando. Dopo aver modificato `.env.local` riavviare
+il task `BodyGate Bridge`. Il DNake nuovo e' `BODYGATE_DNAKE_IP=192.168.1.58`.
