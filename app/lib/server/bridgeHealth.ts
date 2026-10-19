@@ -100,7 +100,7 @@ export function evaluateBridgeHealth(
       "Il bridge e' acceso ma non riesce a leggere i badge dal DNake: i clienti non vengono riconosciuti e il tornello non si apre da solo." +
       (detail ? ` Ultimo errore: ${detail}` : "");
     suggestedAction =
-      "Usare l'apertura manuale e chiamare l'assistenza. Controllare la dimensione del database del DNake (scripts/dnake-health.ps1).";
+      "Usare l'apertura manuale e chiamare l'assistenza. Vedere docs/DNAKE_REPLACEMENT_RUNBOOK.md.";
   } else if (partial) {
     level = "warning";
     reasons.push("db_partial");
