@@ -60,6 +60,10 @@ senza il criterio soddisfatto.
 **Fase 0 - Prove sul DNake nuovo (192.168.1.58), fuori produzione**
 - Fare: H1-H5; cambiare password; annotare firmware; esportare configurazione;
   NTP e fuso orario.
+- Strumento: `scripts/dnake-phase0-probe.ps1` (PC reception, PowerShell).
+  `-Mode File` verifica come il DNake serve il file (HEAD, dimensione, ETag, H2);
+  `-Mode Listen -Port 8089` (come amministratore, con regola firewall) mostra cosa
+  invia l'Evento HTTP e se contiene il numero badge (H3). Rapporti sul Desktop.
 - Uscita: tabella delle ipotesi compilata con esito e prova (dimensioni file,
   screenshot, log).
 - Rientro: nulla da ripristinare, il DNake non e' in produzione.
