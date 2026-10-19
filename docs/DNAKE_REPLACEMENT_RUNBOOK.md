@@ -65,7 +65,7 @@ senza il criterio soddisfatto.
 - Rientro: nulla da ripristinare, il DNake non e' in produzione.
 
 **Fase 1 - Bridge e server (senza toccare il tornello)**
-- Bridge: IP/credenziali da variabili d'ambiente; limite e soglie 70 %/90 %;
+- Bridge: IP/credenziali da variabili d'ambiente; limite e soglia unica al 70 %;
   controllo leggero; log giornaliero della dimensione.
 - Server: `/api/dnake/event` con chiave dedicata, anti-doppione, segreti
   oscurati; allarme se non arrivano eventi.
@@ -87,7 +87,7 @@ senza il criterio soddisfatto.
 ## 6. Monitoraggio e manutenzione
 
 - Cruscotto reception: livelli ok / preavviso / critico (`bridgeHealth.ts`).
-- Soglie: preavviso 70 %, urgente 90 % del limite (290816 byte).
+- Soglia unica al 70 % del limite (290816 byte): segnala che la potatura non funziona; il polling fermo resta l'allarme critico.
 - Controllo mensile: dimensione file, ora del DNake, avvisi dell'ultimo mese.
 - Aggiornamenti firmware: solo dopo prova su banco e ripetizione della fase 0.
 - Backup della configurazione del DNake dopo ogni modifica.
