@@ -1,5 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  createBadgeDeduper,
+  DNAKE_EVENT_KEY_PARAM,
+  isValidDnakeEventKey,
+  redactSensitive,
+} from "../../../lib/server/dnakeEventSecurity";
 import { getClientIp, isRateLimited } from "../../../lib/server/rateLimit";
 
 export const runtime = "nodejs";
@@ -9,6 +15,9 @@ const bridgeBaseUrl =
   process.env.BODYGATE_BRIDGE_URL ||
   process.env.NEXT_PUBLIC_BODYGATE_BRIDGE_URL ||
   "http://127.0.0.1:5050";
+
+// Il lettore puo' ritrasmettere lo stesso evento: stesso badge entro 3 s = un solo passaggio.
+const isDuplicateBadge = createBadgeDeduper(3000);
 
 const CODE_KEYS = [
   "code",
@@ -349,59 +358,97 @@ async function saveTechnicalLog(params: {
   }
 }
 
+function isAuthorized(req: Request, url: URL) {
+  if (isValidDnakeEventKey(
+    url.searchParams.get(DNAKE_EVENT_KEY_PARAM),
+    process.env.BODYGATE_DNAKE_EVENT_KEY,
+  )) {
+    return true;
+  }
+
+  // Chiamate interne (bridge/cloud) con la chiave macchina.
+  return isValidDnakeEventKey(
+    req.headers.get("x-bodygate-machine-key"),
+    process.env.BODYGATE_MACHINE_KEY,
+  );
+}
+
 async function handleDnakeEvent(req: Request) {
-  // This endpoint can open the physical turnstile (via openTurnstile()
-  // below) in response to an unauthenticated request - it exists for DNAKE
-  // hardware that posts events directly rather than through the C# bridge.
-  // Machine-key auth (proxy.ts) is the primary control; this rate limit is
-  // a second layer against badge-code brute forcing.
-  if (
-    isRateLimited(`dnake-event:${getClientIp(req)}`, {
-      limit: 30,
-      windowMs: 60_000,
-    })
-  ) {
+  // Questo endpoint puo' aprire il tornello fisico: va autenticato (chiave
+  // dedicata nell'URL o chiave macchina), non solo limitato in frequenza.
+  // Fail-closed: senza BODYGATE_DNAKE_EVENT_KEY configurata nessun URL e' valido.
+  const url = new URL(req.url);
+
+  if (!isAuthorized(req, url)) {
+    // I tentativi non autenticati hanno un limite basso per IP.
+    if (
+      isRateLimited(`dnake-event-denied:${getClientIp(req)}`, {
+        limit: 20,
+        windowMs: 60_000,
+      })
+    ) {
+      return NextResponse.json(
+        { ok: false, allowed: false, reason: "Troppe richieste" },
+        { status: 429 },
+      );
+    }
+
+    console.warn("DNake event rifiutato: chiave assente o non valida");
     return NextResponse.json(
-      { ok: false, allowed: false, reason: "Troppe richieste" },
-      { status: 429 }
+      { ok: false, allowed: false, reason: "Non autorizzato" },
+      { status: 401 },
     );
   }
 
-  const url = new URL(req.url);
-  const query = getQueryParams(url);
+  // Limite sul traffico autenticato: protegge da cicli anomali del lettore.
+  if (
+    isRateLimited("dnake-event:authenticated", { limit: 240, windowMs: 60_000 })
+  ) {
+    return NextResponse.json(
+      { ok: false, allowed: false, reason: "Troppe richieste" },
+      { status: 429 },
+    );
+  }
+
+  const query = redactSensitive(getQueryParams(url));
   const body = await parseBody(req);
-  const headers = getEssentialHeaders(req);
+  const headers = redactSensitive(getEssentialHeaders(req));
   const code = extractCode(url, body);
 
-  console.log("DNake event received");
-  console.log("method", req.method);
-  console.log("query params", query);
-  console.log("body", body);
-  console.log("headers", headers);
-  console.log("extracted code", code);
+  console.log("DNake event", {
+    method: req.method,
+    query,
+    body: redactSensitive(body),
+    code,
+  });
 
   if (!code) {
-    const debug = {
-      method: req.method,
-      query,
-      body,
-      headers,
-      acceptedKeys: CODE_KEYS,
-    };
-
-    console.log("access result", null);
-    console.log("open result", null);
-
     return NextResponse.json({
       ok: false,
       allowed: false,
       reason: "Codice badge/card non trovato nell'evento DNake",
-      debug,
+      debug: {
+        method: req.method,
+        query,
+        body: redactSensitive(body),
+        headers,
+        acceptedKeys: CODE_KEYS,
+      },
+    });
+  }
+
+  if (isDuplicateBadge(code)) {
+    return NextResponse.json({
+      ok: true,
+      received: true,
+      duplicate: true,
+      extracted_code: code,
+      allowed: false,
+      reason: "Evento duplicato ignorato",
     });
   }
 
   const accessResult = await checkAccess(req, code);
-  console.log("access result", accessResult);
 
   const openResult =
     accessResult.allowed === true
@@ -411,13 +458,18 @@ async function handleDnakeEvent(req: Request) {
           ok: false,
           message: "Apertura non eseguita: accesso non consentito",
         };
-  console.log("open result", openResult);
 
-  const logResult = await saveTechnicalLog({
+  // Il log tecnico non deve ritardare la risposta al lettore ne' l'apertura:
+  // l'apertura e' gia' avvenuta, il salvataggio prosegue in coda.
+  void saveTechnicalLog({
     code,
     accessResult,
     openResult,
     controllerIp: headers["x-forwarded-for"] || headers["x-real-ip"] || null,
+  }).then((result) => {
+    if (!result.ok) {
+      console.warn("DNake event: log tecnico non salvato", result.error);
+    }
   });
 
   return NextResponse.json({
@@ -427,7 +479,7 @@ async function handleDnakeEvent(req: Request) {
     allowed: accessResult.allowed === true,
     access: accessResult,
     open: openResult,
-    log: logResult,
+    log: { attempted: true, pending: true },
   });
 }
 

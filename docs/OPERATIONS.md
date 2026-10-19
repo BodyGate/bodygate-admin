@@ -187,3 +187,16 @@ configurazione ne' allarmi).
 
 Poi controllare che `Content-Length` di `unlock_sql.db` sia sceso e che il
 bridge scriva "Baseline DNake caricata".
+
+## Evento DNake: chiave dedicata (`/api/dnake/event`)
+
+L'endpoint puo' aprire il tornello, quindi richiede una chiave:
+
+1. Generare una chiave lunga e casuale e salvarla in `.env.local` come
+   `BODYGATE_DNAKE_EVENT_KEY=...` (diversa da `BODYGATE_MACHINE_KEY`), poi riavviare BodyGate.
+2. Nel pannello DNake, Avanzate > Evento HTTP, l'URL deve contenere la chiave:
+   `http://<IP-PC>:3000/api/dnake/event?dnake_key=<chiave>&card=...` (i parametri
+   del badge dipendono da cosa invia il lettore: da provare in fase 0).
+3. Senza chiave valida (e senza chiave macchina) la risposta e' 401. Se
+   `BODYGATE_DNAKE_EVENT_KEY` non e' configurata nessun URL e' valido.
+4. Lo stesso badge entro 3 secondi conta un solo passaggio; segreti oscurati nei log.
