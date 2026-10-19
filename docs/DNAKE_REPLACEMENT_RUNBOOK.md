@@ -42,8 +42,21 @@ Esito decide il piano:
 
 - **Il payload contiene il badge** -> piano A (evento push, fasi 1-3).
 - **Non lo contiene** -> piano B: il bridge controlla solo se il file e'
-  cambiato (HEAD / dimensione / ETag) ogni 1-2 s e scarica solo in quel caso;
+  cambiato (HEAD / dimensione / ETag) ogni 200-300 ms e scarica solo in quel caso
+  (mai 1-2 s: aggiungerebbe attesa a ogni apertura);
   pulizia notturna come sotto.
+
+## Velocita' di apertura (vincolo, non optional)
+
+- Obiettivo: badge -> tornello aperto, p95 < 1 s e non peggio dell'attuale.
+  Misurare PRIMA il riferimento sul sistema attuale (timestamp: lettura badge,
+  risposta di /api/access/check, chiamata /open0) e rimisurare a ogni fase.
+- Il DNake riceve risposta subito; l'apertura e' asincrona.
+- L'apertura non aspetta i salvataggi: prima decisione e /open0, poi log.
+- Se la verifica su Supabase pesa, cache locale degli abbonamenti attivi.
+- Se gli eventi non arrivano, il polling veloce riprende da solo (rientro).
+- Fase 0: verificare se il DNake nuovo puo' aprire da solo per i badge in
+  memoria (piu' veloce) e se e' compatibile con il controllo scadenze.
 
 ## Fase 1 - Rafforzare il server BodyGate (nessun impatto sul DNake)
 
