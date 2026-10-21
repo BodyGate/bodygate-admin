@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { normalizeDateOnly } from "../../../lib/server/dateOnly";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
@@ -30,18 +31,6 @@ function parseAmount(value: unknown) {
   if (!Number.isFinite(amount) || amount <= 0) return null;
 
   return Number(amount.toFixed(2));
-}
-
-function normalizeDate(value: unknown) {
-  const date = String(value || "").trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-
-  const parsed = new Date(`${date}T00:00:00`);
-
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  return date;
 }
 
 function getIdempotencyKey(
@@ -191,10 +180,10 @@ export async function POST(req: Request) {
     const paymentMethod = normalizePaymentMethod(
       body.payment_method || body.paymentMethod,
     );
-    const validFrom = normalizeDate(
+    const validFrom = normalizeDateOnly(
       body.valid_from || body.validFrom,
     );
-    const validUntil = normalizeDate(
+    const validUntil = normalizeDateOnly(
       body.valid_until || body.validUntil,
     );
     const allowDuplicate = body.allow_duplicate === true;
