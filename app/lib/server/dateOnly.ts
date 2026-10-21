@@ -2,7 +2,7 @@
 // return Invalid Date (V8 rolls it over to 2026-03-03), so a round-trip
 // check is needed to reject non-existent calendar days.
 export function normalizeDateOnly(value: unknown): string | null {
-  const date = String(value || "").trim().slice(0, 10);
+  const date = String(value || "").trim();
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) return null;

@@ -219,7 +219,9 @@ export async function POST(req: Request) {
     const paymentMethod = normalizePaymentMethod(
       body.payment_method || body.paymentMethod,
     );
-    const startDate = normalizeDateOnly(body.start_date || body.startDate);
+    const startDate = normalizeDateOnly(
+      String(body.start_date || body.startDate || "").trim().slice(0, 10),
+    );
     const requestedAmount = parseOptionalAmount(body.amount);
     const notes = String(body.notes || "").trim();
     const badgeChargeMode = normalizeBadgeChargeMode(body.badge_charge_mode);

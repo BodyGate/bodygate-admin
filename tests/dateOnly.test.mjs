@@ -6,7 +6,6 @@ import { normalizeDateOnly } from "../app/lib/server/dateOnly.ts";
 test("accepts valid dates, including leap day", () => {
   assert.equal(normalizeDateOnly("2026-10-21"), "2026-10-21");
   assert.equal(normalizeDateOnly("2028-02-29"), "2028-02-29");
-  assert.equal(normalizeDateOnly("2026-10-21T10:00:00Z"), "2026-10-21");
 });
 
 test("rejects non-existent calendar days instead of rolling them over", () => {
@@ -21,4 +20,6 @@ test("rejects malformed input", () => {
   assert.equal(normalizeDateOnly(""), null);
   assert.equal(normalizeDateOnly(undefined), null);
   assert.equal(normalizeDateOnly("21/10/2026"), null);
+  assert.equal(normalizeDateOnly("2026-10-21junk"), null);
+  assert.equal(normalizeDateOnly("2026-10-21T99:99:99"), null);
 });
