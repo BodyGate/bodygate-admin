@@ -25,6 +25,26 @@ stabile nel tempo, senza interventi manuali.
   si riduceva.
 - Il bridge risultava "online" perche' rispondeva anche senza leggere badge.
 
+## 2b. Esiti della fase 0 sul DNake nuovo (21 ottobre 2026, 192.168.1.58)
+
+Verificati (sola lettura, nessun login):
+- Server `mini_httpd/1.30`; `/data/unlock_sql.db` **non esiste** (404): il firmware
+  nuovo non usa piu' il database SQLite.
+- `/data/` e' un indice pubblico: `unlock.txt`, `users.xml`, `contacts.xml`, `groups.xml`.
+- `/data/unlock.txt` = registro passaggi in testo, piu' recente in cima, 228 righe,
+  9980 byte, risposta 2-28 ms, `Last-Modified` coerente con l'ultima riga
+  (risoluzione 1 s), niente ETag, niente Range. Formato riga:
+  `,,-1,<tipo>,<numero>,-1,-1,<AAAA-MM-GG hh:mm:ss>,-1` (tipo 0 = badge, 1 = codice).
+- Il pannello nuovo **non ha la pagina "Evento HTTP"** (nessun testo relativo
+  nei file dell'interfaccia): il piano con eventi in uscita dal DNake **non e' possibile**
+  su questo firmware.
+- Registro con sovrascrittura circolare ("Event Storage / Circular Overwrite
+  Records"): il file e' limitato dal numero massimo di righe (valore da leggere dal pannello).
+- Il bridge in produzione e' V3.9.5-push (avviato il 14/10), ancora puntato al
+  vecchio DNake 192.168.1.22; in `.env.local` il push e' in modalita' `discover`.
+
+Da provare con un badge dal vivo: `scripts/dnake-unlocktxt-watch.ps1`.
+
 ## 3. Decisione di progetto
 
 1. **BodyGate e' il registro**; il DNake e' un buffer di breve durata.
@@ -34,9 +54,9 @@ stabile nel tempo, senza interventi manuali.
    come meccanismo principale.
 3. **Il bridge non scarica piu' il file di continuo**: controllo leggero della
    dimensione/ETag (HEAD) ogni 200-300 ms, scarico solo se cambia.
-4. **Evento HTTP del DNake: opzione, non base.** Si adotta solo se la prova
-   dimostra che arriva con il numero badge. Fino ad allora non e' nel percorso
-   critico.
+4. **Evento HTTP: scartato** sul firmware nuovo (la pagina non esiste). Il
+   percorso e' il controllo di `/data/unlock.txt` (HEAD leggero + scarico solo se
+   cambia, piu' un controllo di sicurezza periodico).
 5. **Allarmi sulla salute reale** (non solo "il bridge risponde").
 
 Quello che NON si fa: affidare l'apertura a una funzione non provata.
@@ -47,10 +67,13 @@ Quello che NON si fa: affidare l'apertura a una funzione non provata.
 |---|---|---|
 | H1 | L'eliminazione periodica dei log riduce davvero il file `unlock_sql.db` | riavvio programmato o azzeramento dal pannello; in ultimo, script con login API (formato login ancora ignoto) |
 | H2 | Il file risponde a HEAD con una dimensione/ETag affidabile | controllo ogni 1 s con download breve; rivedere la latenza |
-| H3 | L'Evento HTTP contiene il numero badge | resta il solo controllo del file |
+| H3 | L'Evento HTTP contiene il numero badge | **chiusa**: la pagina non esiste nel firmware nuovo |
 | H4 | Numero badge stabile con le impostazioni di lettura fissate (modalita', ordine, formato) | riallineare i badge dei clienti |
 | H5 | Autenticazione intervallo a 0 non blocca passaggi ripetuti | regolare |
-| H6 | Il firmware nuovo non ha il limite di 284 KB | il limite resta: i log restano piccoli comunque |
+| H6 | Il firmware nuovo non ha il limite di 284 KB | **in gran parte chiusa**: niente database, file di testo da ~10 KB; resta da leggere il numero massimo di righe |
+| H7 | I badge NON registrati nel DNake compaiono in `unlock.txt` | se non compaiono, BodyGate non vede i badge sconosciuti: da valutare |
+| H8 | Il numero in `unlock.txt` coincide con il badge in BodyGate (formato, ordine, esadecimale/decimale) | fissare Card Display/Order e riprovare |
+| H9 | Due passaggi nello stesso secondo producono due righe | controllo con scaricamento a ogni cambio |
 
 ## 5. Piano a fasi con criteri
 
