@@ -43,6 +43,13 @@ Verificati (sola lettura, nessun login):
 - Il bridge in produzione e' V3.9.5-push (avviato il 14/10), ancora puntato al
   vecchio DNake 192.168.1.22; in `.env.local` il push e' in modalita' `discover`.
 
+- Firmware di riferimento: `170AC.Cloud.V1.8.10_GA_20250612` (AC02C, UI 1.1.0 20250610,
+  Framework 1.0.0 20250609, MCU 1.1.7), MAC `BC:F8:11:59:00:45`. Da non aggiornare senza ripetere la fase 0.
+- DHCP abilitato: prima della messa in servizio riservare l'IP sul router per quel MAC
+  (o impostare un IP fisso), altrimenti un cambio di indirizzo ferma il bridge.
+- Password predefinite: lasciate in fase di messa a punto per scelta del proprietario;
+  **da cambiare prima dell'ingresso in produzione** (condizione della fase 3).
+
 Da provare con un badge dal vivo: `scripts/dnake-unlocktxt-watch.ps1`.
 
 ## 3. Decisione di progetto
@@ -108,7 +115,8 @@ senza il criterio soddisfatto.
 
 **Fase 3 - Passaggio**
 - Spostare il bridge sul DNake nuovo con apertura manuale presidiata per 48 ore.
-- Uscita: 48 ore senza avvisi; confronto registri a zero differenze.
+- Uscita: 48 ore senza avvisi; confronto registri a zero differenze; password
+  predefinite cambiate; IP del DNake fisso o riservato.
 - Rientro: ripristino configurazione precedente e apertura manuale.
 
 ## 6. Monitoraggio e manutenzione
