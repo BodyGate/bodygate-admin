@@ -50,6 +50,28 @@ Verificati (sola lettura, nessun login):
 - Password predefinite: lasciate in fase di messa a punto per scelta del proprietario;
   **da cambiare prima dell'ingresso in produzione** (condizione della fase 3).
 
+Prova con badge dal vivo (22/10/2026, `scripts/dnake-unlocktxt-watch.ps1`):
+- La riga compare subito (rilevata ~0,1 s dopo la scrittura); il numero coincide con
+  BodyGate (`4d0060f107` -> `6353159`, parte finale del codice in decimale): H8 ok.
+- Due passaggi dello stesso badge a pochi secondi producono due righe: H9 ok.
+- Un badge vergine/non registrato compare comunque con il suo numero: H7 ok (il
+  bridge puo' registrarlo come "badge sconosciuto" e proporlo per l'assegnazione).
+- Registro: tetto di **300 righe** (Event Storage), circa 14 KB. Con 288 righe il
+  tetto e' vicino: osservare cosa fa al giro (toglie una riga o un blocco).
+
+Conseguenze di progetto:
+- A registro pieno la dimensione resta quasi costante: il cambio non si riconosce
+  dalla lunghezza ma da Last-Modified (risoluzione 1 s) e dalla testa del file.
+  Controllo: HEAD ogni 250 ms, scarico se cambia Last-Modified/lunghezza, e scarico
+  di sicurezza ogni 2 s (file da ~14 KB, 2-28 ms).
+- Righe nuove = quelle sopra la testa precedente (3 righe consecutive); funziona
+  anche se il DNake scarta righe vecchie.
+- All'avvio il bridge parte dalla testa attuale e NON apre per righe vecchie; il
+  recupero dopo un fermo registra solo (mai aperture da eventi vecchi).
+- La soglia "70 % di 284 KB" non si applica al DNake nuovo: l'allarme e' sul
+  polling sano e sull'eta' dell'ultima lettura riuscita.
+- Il registro conserva solo ~300 passaggi: BodyGate deve leggerlo con continuita'.
+
 Da provare con un badge dal vivo: `scripts/dnake-unlocktxt-watch.ps1`.
 
 ## 3. Decisione di progetto
