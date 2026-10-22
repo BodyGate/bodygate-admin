@@ -179,14 +179,17 @@ export async function GET(request: NextRequest) {
       expiring_soon: activeCustomers.filter((customer) => {
         if (!customer.medical_certificate_end_date) return false;
 
-        const end = new Date(customer.medical_certificate_end_date);
-        if (Number.isNaN(end.getTime())) return false;
+        const endDate = String(customer.medical_certificate_end_date).slice(0, 10);
+        if (Number.isNaN(new Date(endDate).getTime())) return false;
 
-        const today = new Date();
-        const in30Days = new Date();
-        in30Days.setDate(today.getDate() + 30);
+        // Confronto tra date (YYYY-MM-DD), come in access/check e reception/dashboard:
+        // il certificato è valido fino al giorno di scadenza incluso.
+        const today = new Date().toISOString().slice(0, 10);
+        const in30Days = new Date(Date.now() + 30 * 86400000)
+          .toISOString()
+          .slice(0, 10);
 
-        return end >= today && end <= in30Days;
+        return endDate >= today && endDate <= in30Days;
       }).length,
       with_badge: activeCustomers.filter(hasBadge).length,
       without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,
