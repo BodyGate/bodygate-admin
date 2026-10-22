@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+import {
+  BGActionBar,
+  BGButton,
+  BGCard,
+  BGInput,
+  BGSectionHeader,
+  BGStack,
+} from "@/components/bodygate-ui";
+
 export default function ContractOtpPanel({
   documentId,
   customerPhone,
@@ -116,119 +125,53 @@ export default function ContractOtpPanel({
   }
 
   return (
-    <div
+    <BGCard
       className="no-print"
-      style={{
-        width: "210mm",
-        margin: "0 auto 20px auto",
-        background: "white",
-        borderRadius: "18px",
-        padding: "22px",
-        boxSizing: "border-box",
-      }}
+      style={{ width: "210mm", margin: "0 auto 20px auto" }}
     >
-      <div
-        style={{
-          fontSize: "22px",
-          fontWeight: "bold",
-          color: "black",
-        }}
-      >
-        Firma OTP contratto
-      </div>
-
-      <div
-        style={{
-          marginTop: "10px",
-          color: "#555",
-        }}
-      >
-        Genera il codice OTP e invialo al cliente tramite WhatsApp.
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          marginTop: "20px",
-          flexWrap: "wrap",
-        }}
-      >
-        <button onClick={generateOtp} disabled={loading} style={buttonStyle}>
-          Genera OTP
-        </button>
-
-        <button
-          onClick={sendWhatsappOtp}
-          disabled={!generatedOtp}
-          style={{
-            ...buttonStyle,
-            background: "#25D366",
-          }}
-        >
-          Invia OTP WhatsApp
-        </button>
-
-        <input
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          placeholder="Inserisci OTP"
-          style={inputStyle}
+      <BGStack>
+        <BGSectionHeader
+          title="Firma OTP contratto"
+          subtitle="Genera il codice OTP e invialo al cliente tramite WhatsApp."
         />
 
-        <button onClick={verifyOtp} disabled={loading} style={buttonStyle}>
-          Conferma firma
-        </button>
-      </div>
+        <BGActionBar>
+          <BGButton onClick={generateOtp} disabled={loading}>
+            Genera OTP
+          </BGButton>
 
-      {generatedOtp && (
-        <div
-          style={{
-            marginTop: "18px",
-            padding: "16px",
-            borderRadius: "14px",
-            background: "#f3f4f6",
-            color: "black",
-            fontWeight: "bold",
-            fontSize: "24px",
-            letterSpacing: "0.2em",
-          }}
-        >
-          OTP: {generatedOtp}
-        </div>
-      )}
+          <BGButton
+            variant="secondary"
+            onClick={sendWhatsappOtp}
+            disabled={!generatedOtp}
+          >
+            Invia OTP WhatsApp
+          </BGButton>
 
-      {message && (
-        <div
-          style={{
-            marginTop: "18px",
-            padding: "14px 16px",
-            borderRadius: "14px",
-            background: "#f3f4f6",
-            color: "black",
-            fontWeight: "bold",
-          }}
-        >
-          {message}
-        </div>
-      )}
-    </div>
+          <BGInput
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="Inserisci OTP"
+            aria-label="Codice OTP"
+          />
+
+          <BGButton onClick={verifyOtp} disabled={loading}>
+            Conferma firma
+          </BGButton>
+        </BGActionBar>
+
+        {generatedOtp && (
+          <BGCard variant="soft">
+            <strong>OTP: {generatedOtp}</strong>
+          </BGCard>
+        )}
+
+        {message && (
+          <BGCard variant="soft" role="status">
+            <strong>{message}</strong>
+          </BGCard>
+        )}
+      </BGStack>
+    </BGCard>
   );
 }
-
-const buttonStyle: React.CSSProperties = {
-  background: "black",
-  color: "white",
-  border: "none",
-  borderRadius: "12px",
-  padding: "14px 18px",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const inputStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
-  borderRadius: "12px",
-  padding: "14px 16px",
-  minWidth: "220px",
-};
