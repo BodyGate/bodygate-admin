@@ -77,7 +77,7 @@ function daysUntil(value?: string | null) {
 
   if (Number.isNaN(target.getTime())) return null;
 
-  return Math.ceil((target.getTime() - today.getTime()) / DAY_MS);
+  return Math.round((target.getTime() - today.getTime()) / DAY_MS);
 }
 
 function formatDate(value?: string | null) {

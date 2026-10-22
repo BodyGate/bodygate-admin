@@ -73,7 +73,7 @@ function daysUntil(value?: string | null) {
   today.setHours(0, 0, 0, 0);
   expiry.setHours(0, 0, 0, 0);
 
-  return Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+  return Math.round((expiry.getTime() - today.getTime()) / 86400000);
 }
 
 function normalize(value?: string | null) {

@@ -74,7 +74,7 @@ function isSubscriptionEvidence(payment: any, receipt: any) {
 
 function daysRemaining(endDate: string | null, today: string) {
   if (!endDate) return null;
-  return Math.ceil(
+  return Math.round(
     (new Date(`${endDate}T00:00:00`).getTime() -
       new Date(`${today}T00:00:00`).getTime()) /
       86400000,

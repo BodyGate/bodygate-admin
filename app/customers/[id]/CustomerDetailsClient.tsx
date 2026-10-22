@@ -1529,7 +1529,7 @@ export default function CustomerDetailsClient({
   const lastAccess = accessLogs[0] || null;
 
   const daysRemaining = activeSubscriptionEnd
-    ? Math.ceil(
+    ? Math.round(
         (new Date(`${activeSubscriptionEnd}T00:00:00`).getTime() -
           new Date(`${today}T00:00:00`).getTime()) /
           86400000,
