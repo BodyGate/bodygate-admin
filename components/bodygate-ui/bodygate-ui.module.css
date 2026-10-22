@@ -387,6 +387,12 @@
   padding: 14px;
 }
 
+.actionBar > .input {
+  width: auto;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
 .emptyState {
   padding: 24px;
   text-align: center;
