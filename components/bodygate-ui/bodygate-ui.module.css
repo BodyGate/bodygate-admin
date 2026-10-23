@@ -8,6 +8,13 @@
   color: var(--ink, #15161c);
 }
 
+.pageShellCentered {
+  width: min(100%, 680px);
+  min-height: 100vh;
+  align-content: center;
+  padding: 24px 0;
+}
+
 .pageShell > * {
   box-sizing: border-box;
   min-width: 0;
