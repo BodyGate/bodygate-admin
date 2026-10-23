@@ -7,6 +7,8 @@ export function parseAmount(value: unknown): number | null {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount) || amount <= 0) return null;
 
-  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  // Exponent notation shifts the decimal point on the decimal string, so
+  // ties like 10.075 round half-up to 10.08 despite the binary float error.
+  const rounded = Number(`${Math.round(Number(`${amount}e2`))}e-2`);
   return rounded > 0 ? rounded : null;
 }

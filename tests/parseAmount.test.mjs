@@ -12,6 +12,9 @@ test("accepts comma and dot decimals", () => {
 test("rounds to cents instead of storing fractions of a cent", () => {
   assert.equal(parseAmount("10.005"), 10.01);
   assert.equal(parseAmount("19.999"), 20);
+  assert.equal(parseAmount("10.075"), 10.08);
+  assert.equal(parseAmount("9.995"), 10);
+  assert.equal(parseAmount("1.005"), 1.01);
 });
 
 test("rejects sub-cent, zero, negative and invalid values", () => {
