@@ -4,7 +4,11 @@ import { normalizeNumericControllerCode } from "../accessCodeNormalizer";
 import {
   DnakeUserDirectoryError,
   dnakeDirectoryContainsUserId,
+  dnakeLocalUserCount,
+  dnakePanelUserName,
+  isDnakeDirectoryEmpty,
 } from "./dnakeUserDirectory";
+import { isDnakeApiUnsupported } from "./dnakePanelCapabilities";
 
 const DNAKE_IP = process.env.DNAKE_IP || "192.168.1.22";
 const DNAKE_USERNAME = process.env.DNAKE_USERNAME || "admin";
@@ -70,7 +74,9 @@ async function allocateDnakeUserId(supabase: SupabaseClient): Promise<string> {
     );
   }
 
-  return String(data).padStart(6, "0");
+  // No zero padding: the panel stores ids as numbers ("000033" -> "33") and the QR
+  // it validates is built from the same id string.
+  return String(data);
 }
 
 function activeCredential(row: any) {
@@ -113,6 +119,88 @@ async function loginDnake() {
   return sessionId;
 }
 
+// The panel accepts only a few concurrent sessions (503 "Reach Max Session"),
+// so every login has to be closed.
+async function logoutDnake(sessionId: string) {
+  try {
+    await fetch(`http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=logout`, {
+      headers: dnakeHeaders(sessionId),
+      cache: "no-store",
+    });
+  } catch {
+    // best effort: the session expires on its own
+  }
+}
+
+async function dnakeApiText(sessionId: string, query: string) {
+  const response = await fetch(`http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=${query}`, {
+    headers: dnakeHeaders(sessionId),
+    cache: "no-store",
+  });
+  return { ok: response.ok, status: response.status, text: await response.text() };
+}
+
+async function assertPanelReportsNoLocalUsers(sessionId: string) {
+  const { ok, status, text } = await dnakeApiText(sessionId, "user");
+  if (!ok) {
+    throw new DigitalPassError(
+      `Impossibile leggere il conteggio utenti del DNake. HTTP ${status}.`,
+      502,
+    );
+  }
+
+  const localUsers = dnakeLocalUserCount(text);
+  if (localUsers !== 0) {
+    throw new DnakeUserDirectoryError(
+      `Il file utenti DNake è vuoto ma il pannello dichiara ${localUsers} utenti locali.`,
+    );
+  }
+}
+
+async function assertDnakeUserCreated(sessionId: string, dnakeUserId: string, createText: string) {
+  let result = "";
+  try {
+    result = String(JSON.parse(createText)?.result ?? "");
+  } catch {
+    result = "";
+  }
+
+  if (result === "-1") {
+    throw new DigitalPassError(
+      `Il DNake ha rifiutato la creazione dell'utente ${dnakeUserId} (result -1).`,
+      502,
+    );
+  }
+
+  const response = await fetch(`http://${DNAKE_IP}/data/users.xml`, {
+    headers: dnakeHeaders(sessionId),
+    cache: "no-store",
+  });
+  const text = await response.text();
+  if (!response.ok || isDnakeDirectoryEmpty(text) || !dnakeDirectoryContainsUserId(text, dnakeUserId)) {
+    throw new DigitalPassError(
+      `Il DNake non ha creato l'utente ${dnakeUserId}: nome o dati rifiutati dal pannello.`,
+      502,
+    );
+  }
+}
+
+// Fails before anything is written to the panel: creating the user first and
+// discovering afterwards that no QR can be produced leaves an orphan user.
+async function assertDnakeGeneratesLocalQr(sessionId: string) {
+  const [qr, unknown] = await Promise.all([
+    dnakeApiText(sessionId, "user_qrcode&qrcode=bodygate-probe"),
+    dnakeApiText(sessionId, "bodygate_probe_unknown_api"),
+  ]);
+
+  if (isDnakeApiUnsupported(qr.text, unknown.text)) {
+    throw new DigitalPassError(
+      "Il DNake non supporta la generazione QR locale (api user_qrcode assente): nessun utente creato.",
+      501,
+    );
+  }
+}
+
 async function assertLiveDnakeIdAvailable(sessionId: string, dnakeUserId: string) {
   const response = await fetch(`http://${DNAKE_IP}/data/users.xml`, {
     headers: dnakeHeaders(sessionId),
@@ -129,7 +217,11 @@ async function assertLiveDnakeIdAvailable(sessionId: string, dnakeUserId: string
 
   let idAlreadyExists = false;
   try {
-    idAlreadyExists = dnakeDirectoryContainsUserId(text, dnakeUserId);
+    if (isDnakeDirectoryEmpty(text)) {
+      await assertPanelReportsNoLocalUsers(sessionId);
+    } else {
+      idAlreadyExists = dnakeDirectoryContainsUserId(text, dnakeUserId);
+    }
   } catch (error) {
     const detail =
       error instanceof DnakeUserDirectoryError ? error.message : "formato non valido";
@@ -338,98 +430,108 @@ async function allocateAvailableDnakeUserId(
 }
 
 async function createDnakeQr(supabase: any, customer: Customer): Promise<QrResult> {
-  const dnakeName = customerName(customer);
   const sessionId = await loginDnake();
-  const dnakeUserId = await allocateAvailableDnakeUserId(supabase, customer, sessionId);
-  const controllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
 
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const form = new FormData();
-  for (const [key, value] of Object.entries({
-    pass_enable: "0",
-    active_enable: "0",
-    group: "-1",
-    action: "1",
-    id: dnakeUserId,
-    name: dnakeName,
-    room: "",
-    relays: "0",
-    status: "1",
-    type: "0",
-    cards: "",
-    pin_code: "",
-    gender: "2",
-    qrcode_timestamp: timestamp,
-    picture: "",
-  })) {
-    form.append(key, value);
-  }
-
-  const createResponse = await fetch(`http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=user`, {
-    method: "POST",
-    headers: dnakeHeaders(sessionId),
-    body: form,
-    cache: "no-store",
-  });
-  const createText = await createResponse.text();
-  if (!createResponse.ok) {
-    throw new DigitalPassError(
-      `Creazione utente DNake fallita. HTTP ${createResponse.status}: ${createText}`,
-      502,
-    );
-  }
-
-  const qrResponse = await fetch(
-    `http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=user_qrcode&qrcode=${encodeURIComponent(
-      `${dnakeUserId}_${timestamp}`,
-    )}`,
-    { headers: dnakeHeaders(sessionId), cache: "no-store" },
-  );
-  const qrText = await qrResponse.text();
-  let qrJson: any = null;
   try {
-    qrJson = JSON.parse(qrText);
-  } catch {
-    qrJson = null;
-  }
+    await assertDnakeGeneratesLocalQr(sessionId);
+    const dnakeUserId = await allocateAvailableDnakeUserId(supabase, customer, sessionId);
+    const dnakeName = dnakePanelUserName(customerName(customer), dnakeUserId);
+    const controllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
 
-  if (!qrResponse.ok || !qrJson?.qrcode) {
-    throw new DigitalPassError(
-      `Utente DNake ${dnakeUserId} creato, ma generazione QR fallita: ${qrText}`,
-      502,
-    );
-  }
-
-  const qrPayload = String(qrJson.qrcode);
-  const { error: dnakeSaveError } = await supabase.from("customer_dnake_users").upsert(
-    {
-      customer_id: customer.id,
-      dnake_user_id: dnakeUserId,
-      dnake_name: dnakeName,
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    // urlencoded: the 170AC.2.0.16 panel answers result -1 to multipart/form-data.
+    // relays=1 lets the panel itself accept the user (green LED); the turnstile is
+    // opened by the bridge either way.
+    const body = new URLSearchParams({
+      pass_enable: "0",
+      active_enable: "0",
+      group: "-1",
+      action: "1",
+      id: dnakeUserId,
+      name: dnakeName,
+      room: "",
+      relays: "1",
+      status: "1",
+      type: "0",
+      cards: "",
+      pin_code: "",
+      gender: "2",
       qrcode_timestamp: timestamp,
-      qr_payload: qrPayload,
-      qr_status: "active",
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "dnake_user_id" },
-  );
+      picture: "",
+    });
 
-  if (dnakeSaveError) {
-    throw new DigitalPassError(
-      `QR creato sul DNake ma non salvato in BodyGate: ${dnakeSaveError.message}`,
+    const createResponse = await fetch(`http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=user`, {
+      method: "POST",
+      headers: { ...dnakeHeaders(sessionId), "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      cache: "no-store",
+    });
+    const createText = await createResponse.text();
+    if (!createResponse.ok) {
+      throw new DigitalPassError(
+        `Creazione utente DNake fallita. HTTP ${createResponse.status}: ${createText}`,
+        502,
+      );
+    }
+
+    // The panel answers HTTP 200 (result 100) even when it silently drops the user,
+    // e.g. for a name already present in its cloud list: only the user file tells.
+    await assertDnakeUserCreated(sessionId, dnakeUserId, createText);
+
+    const qrResponse = await fetch(
+      `http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=user_qrcode&qrcode=${encodeURIComponent(
+        `${dnakeUserId}_${timestamp}`,
+      )}`,
+      { headers: dnakeHeaders(sessionId), cache: "no-store" },
     );
-  }
+    const qrText = await qrResponse.text();
+    let qrJson: any = null;
+    try {
+      qrJson = JSON.parse(qrText);
+    } catch {
+      qrJson = null;
+    }
 
-  await ensureQrCredential(supabase, customer.id, qrPayload, controllerCode);
-  return {
-    created: true,
-    source: "dnake",
-    dnakeUserId,
-    dnakeName,
-    qrPayload,
-    controllerCode,
-    qrcodeTimestamp: timestamp,
-  };
+    if (!qrResponse.ok || !qrJson?.qrcode) {
+      throw new DigitalPassError(
+        `Utente DNake ${dnakeUserId} creato, ma generazione QR fallita: ${qrText}`,
+        502,
+      );
+    }
+
+    const qrPayload = String(qrJson.qrcode);
+    const { error: dnakeSaveError } = await supabase.from("customer_dnake_users").upsert(
+      {
+        customer_id: customer.id,
+        dnake_user_id: dnakeUserId,
+        dnake_name: dnakeName,
+        qrcode_timestamp: timestamp,
+        qr_payload: qrPayload,
+        qr_status: "active",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "dnake_user_id" },
+    );
+
+    if (dnakeSaveError) {
+      throw new DigitalPassError(
+        `QR creato sul DNake ma non salvato in BodyGate: ${dnakeSaveError.message}`,
+      );
+    }
+
+    await ensureQrCredential(supabase, customer.id, qrPayload, controllerCode);
+    return {
+      created: true,
+      source: "dnake",
+      dnakeUserId,
+      dnakeName,
+      qrPayload,
+      controllerCode,
+      qrcodeTimestamp: timestamp,
+    };
+  } finally {
+    await logoutDnake(sessionId);
+  }
 }
 
 async function ensureMobilePass(supabase: any, customerId: string, appUrl: string) {

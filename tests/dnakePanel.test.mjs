@@ -1,0 +1,76 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  DnakeUserDirectoryError,
+  dnakeDirectoryContainsUserId,
+  dnakeLocalUserCount,
+  dnakePanelUserName,
+  isDnakeDirectoryEmpty,
+  normalizeDnakeUserId,
+} from "../app/lib/server/dnakeUserDirectory.ts";
+import { isDnakeApiUnsupported } from "../app/lib/server/dnakePanelCapabilities.ts";
+
+test("an empty or whitespace-only users file is detected as empty", () => {
+  assert.equal(isDnakeDirectoryEmpty(""), true);
+  assert.equal(isDnakeDirectoryEmpty("﻿ \r\n"), true);
+  assert.equal(isDnakeDirectoryEmpty("<users/>"), false);
+});
+
+test("the directory lookup itself still refuses an empty file", () => {
+  assert.throws(() => dnakeDirectoryContainsUserId("", "000001"), DnakeUserDirectoryError);
+});
+
+test("local user count reads the api=user answer of the 170AC.Cloud firmware", () => {
+  const answer = '{\n\t"local_file":\t"/data/users.xml",\n\t"local_cnt":\t"0",\n\t"cloud_cnt":\t"1"\n}';
+  assert.equal(dnakeLocalUserCount(answer), 0);
+  assert.equal(dnakeLocalUserCount('{"local_cnt":"3"}'), 3);
+  assert.equal(dnakeLocalUserCount('{"local_cnt":2}'), 2);
+});
+
+test("local user count fails closed on anything it cannot trust", () => {
+  assert.throws(() => dnakeLocalUserCount("not json"), DnakeUserDirectoryError);
+  assert.throws(() => dnakeLocalUserCount("{}"), DnakeUserDirectoryError);
+  assert.throws(() => dnakeLocalUserCount('{"local_cnt":""}'), DnakeUserDirectoryError);
+  assert.throws(() => dnakeLocalUserCount('{"local_cnt":"abc"}'), DnakeUserDirectoryError);
+  assert.throws(() => dnakeLocalUserCount('{"local_cnt":"-1"}'), DnakeUserDirectoryError);
+  assert.throws(() => dnakeLocalUserCount("null"), DnakeUserDirectoryError);
+});
+
+test("user_qrcode is unsupported when it answers like a made-up api", () => {
+  const unknown = '{"result":"-400", "text":"Bad Request"}';
+  assert.equal(isDnakeApiUnsupported('{"result":"-400",\n"text":"Bad Request"}', unknown), true);
+});
+
+test("user_qrcode is supported when it answers differently from a made-up api", () => {
+  const unknown = '{"result":"-400", "text":"Bad Request"}';
+  assert.equal(isDnakeApiUnsupported('{"qrcode":"local_user=YXJS"}', unknown), false);
+  assert.equal(isDnakeApiUnsupported('{"result":"0"}', '{"result":"0"}'), false);
+  assert.equal(isDnakeApiUnsupported("", ""), false);
+});
+
+test("user ids are compared without leading zeros (the panel stores 000033 as 33)", () => {
+  assert.equal(normalizeDnakeUserId("000033"), "33");
+  assert.equal(normalizeDnakeUserId("33"), "33");
+  assert.equal(normalizeDnakeUserId("000000"), "0");
+  assert.equal(normalizeDnakeUserId(" 0012 "), "12");
+  assert.equal(normalizeDnakeUserId("abc"), "abc");
+
+  const usersFile = "33,Prova QR Pisacane 33,-1,,0,1,1,,,0,0,0,,,,,,2,,1792766479";
+  assert.equal(dnakeDirectoryContainsUserId(usersFile, "000033"), true);
+  assert.equal(dnakeDirectoryContainsUserId(usersFile, "33"), true);
+  assert.equal(dnakeDirectoryContainsUserId(usersFile, "3"), false);
+  assert.equal(dnakeDirectoryContainsUserId(usersFile, "330"), false);
+});
+
+test("the panel user name is unique per id and fits the 26 characters of the panel", () => {
+  assert.equal(dnakePanelUserName("Giuseppe Pisacane", "000033"), "Giuseppe Pisacane 33");
+  assert.equal(dnakePanelUserName("Giuseppe Pisacane", "34"), "Giuseppe Pisacane 34");
+  assert.notEqual(dnakePanelUserName("Mario Rossi", "5"), dnakePanelUserName("Mario Rossi", "6"));
+
+  const long = dnakePanelUserName("Maria Antonietta Sciarrabba Lo Presti", "123456");
+  assert.ok(long.length <= 26, long);
+  assert.ok(long.endsWith(" 123456"), long);
+
+  assert.equal(dnakePanelUserName("   ", "7"), "BodyGate User 7");
+});
