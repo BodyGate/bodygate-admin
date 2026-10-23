@@ -5,6 +5,24 @@ export class DnakeUserDirectoryError extends Error {
   }
 }
 
+// The 170AC.2.0.16 panel stores a user id as a number ("000033" becomes "33"),
+// while the QR it validates may still carry the padded form, so ids are only
+// ever compared without leading zeros.
+export function normalizeDnakeUserId(id: string) {
+  const digits = id.trim();
+  return /^\d+$/.test(digits) ? digits.replace(/^0+(?=\d)/, "") : digits;
+}
+
+// The panel refuses (silently) a user whose name already exists in its local or
+// cloud list, e.g. a customer with the same name as the cloud resident. The id
+// is appended so every customer gets a distinct panel name; the 26 characters
+// limit of the panel is kept.
+export function dnakePanelUserName(baseName: string, dnakeUserId: string) {
+  const suffix = ` ${normalizeDnakeUserId(dnakeUserId)}`;
+  const base = baseName.trim() || "BodyGate User";
+  return `${base.slice(0, Math.max(1, 26 - suffix.length)).trimEnd()}${suffix}`;
+}
+
 function parseCsvFirstField(line: string) {
   const trimmed = line.trim();
   if (!trimmed) return null;
@@ -25,7 +43,8 @@ export function dnakeDirectoryContainsUserId(content: string, dnakeUserId: strin
   const csvLines = lines.filter((line) => /^\s*"?\d+"?\s*,/.test(line));
 
   if (csvLines.length > 0) {
-    return csvLines.some((line) => parseCsvFirstField(line) === dnakeUserId);
+    const wanted = normalizeDnakeUserId(dnakeUserId);
+    return csvLines.some((line) => normalizeDnakeUserId(parseCsvFirstField(line) ?? "") === wanted);
   }
 
   if (normalized.startsWith("<")) {
@@ -39,7 +58,7 @@ export function dnakeDirectoryContainsUserId(content: string, dnakeUserId: strin
 }
 
 export function isDnakeDirectoryEmpty(content: string) {
-  return !content.replace(/^﻿/, "").trim();
+  return !content.replace(/^\uFEFF/, "").trim();
 }
 
 // Firmware 170AC.Cloud keeps local users in /data/users.xml, which is a
