@@ -4,7 +4,10 @@ import { normalizeNumericControllerCode } from "../accessCodeNormalizer";
 import {
   DnakeUserDirectoryError,
   dnakeDirectoryContainsUserId,
+  dnakeLocalUserCount,
+  isDnakeDirectoryEmpty,
 } from "./dnakeUserDirectory";
+import { isDnakeApiUnsupported } from "./dnakePanelCapabilities";
 
 const DNAKE_IP = process.env.DNAKE_IP || "192.168.1.22";
 const DNAKE_USERNAME = process.env.DNAKE_USERNAME || "admin";
@@ -113,6 +116,47 @@ async function loginDnake() {
   return sessionId;
 }
 
+async function dnakeApiText(sessionId: string, query: string) {
+  const response = await fetch(`http://${DNAKE_IP}/cgi-bin/webapi.cgi?api=${query}`, {
+    headers: dnakeHeaders(sessionId),
+    cache: "no-store",
+  });
+  return { ok: response.ok, status: response.status, text: await response.text() };
+}
+
+async function assertPanelReportsNoLocalUsers(sessionId: string) {
+  const { ok, status, text } = await dnakeApiText(sessionId, "user");
+  if (!ok) {
+    throw new DigitalPassError(
+      `Impossibile leggere il conteggio utenti del DNake. HTTP ${status}.`,
+      502,
+    );
+  }
+
+  const localUsers = dnakeLocalUserCount(text);
+  if (localUsers !== 0) {
+    throw new DnakeUserDirectoryError(
+      `Il file utenti DNake è vuoto ma il pannello dichiara ${localUsers} utenti locali.`,
+    );
+  }
+}
+
+// Fails before anything is written to the panel: creating the user first and
+// discovering afterwards that no QR can be produced leaves an orphan user.
+async function assertDnakeGeneratesLocalQr(sessionId: string) {
+  const [qr, unknown] = await Promise.all([
+    dnakeApiText(sessionId, "user_qrcode&qrcode=bodygate-probe"),
+    dnakeApiText(sessionId, "bodygate_probe_unknown_api"),
+  ]);
+
+  if (isDnakeApiUnsupported(qr.text, unknown.text)) {
+    throw new DigitalPassError(
+      "Il DNake non supporta la generazione QR locale (api user_qrcode assente): nessun utente creato.",
+      501,
+    );
+  }
+}
+
 async function assertLiveDnakeIdAvailable(sessionId: string, dnakeUserId: string) {
   const response = await fetch(`http://${DNAKE_IP}/data/users.xml`, {
     headers: dnakeHeaders(sessionId),
@@ -129,7 +173,11 @@ async function assertLiveDnakeIdAvailable(sessionId: string, dnakeUserId: string
 
   let idAlreadyExists = false;
   try {
-    idAlreadyExists = dnakeDirectoryContainsUserId(text, dnakeUserId);
+    if (isDnakeDirectoryEmpty(text)) {
+      await assertPanelReportsNoLocalUsers(sessionId);
+    } else {
+      idAlreadyExists = dnakeDirectoryContainsUserId(text, dnakeUserId);
+    }
   } catch (error) {
     const detail =
       error instanceof DnakeUserDirectoryError ? error.message : "formato non valido";
@@ -340,6 +388,7 @@ async function allocateAvailableDnakeUserId(
 async function createDnakeQr(supabase: any, customer: Customer): Promise<QrResult> {
   const dnakeName = customerName(customer);
   const sessionId = await loginDnake();
+  await assertDnakeGeneratesLocalQr(sessionId);
   const dnakeUserId = await allocateAvailableDnakeUserId(supabase, customer, sessionId);
   const controllerCode = normalizeNumericControllerCode(dnakeUserId) || dnakeUserId;
 
