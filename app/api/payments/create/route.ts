@@ -11,8 +11,10 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
+  // Importi sempre al centesimo, come negli altri flussi (rinnovo quota/abbonamento).
+  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizePaymentType(value: unknown) {
