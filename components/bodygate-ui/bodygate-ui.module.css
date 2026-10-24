@@ -480,3 +480,37 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.centeredScreen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg, #f8f9fc);
+  color: var(--ink, #15161c);
+}
+
+.centeredScreenInner {
+  width: 100%;
+  display: grid;
+  gap: 18px;
+}
+
+.centeredScreenSm .centeredScreenInner {
+  max-width: 520px;
+}
+
+.centeredScreenMd .centeredScreenInner {
+  max-width: 680px;
+}
+
+.detailList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  color: var(--ink, #15161c);
+  font-weight: 600;
+}
