@@ -480,3 +480,99 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.pillNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e7e8ee);
+  background: var(--bg-soft, #f6f6fa);
+  color: var(--muted, #6b6e80);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pillActive {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5b3df5, #3d2b99);
+  color: #ffffff;
+}
+
+.pickerSelected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #e7e8ee);
+  background: var(--bg-soft, #f6f6fa);
+  font-weight: 700;
+}
+
+.pickerLink {
+  border: 0;
+  background: none;
+  color: var(--muted, #6b6e80);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.pickerAnchor {
+  position: relative;
+}
+
+.pickerMenu {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border, #e7e8ee);
+  border-radius: 12px;
+  background: var(--bg-elevated, #ffffff);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.pickerNote {
+  padding: 12px;
+  color: var(--muted, #6b6e80);
+  font-size: 0.8125rem;
+}
+
+.pickerOption {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickerOption:hover {
+  background: var(--bg-soft, #f6f6fa);
+}
+
+.pickerOptionTitle {
+  font-weight: 600;
+}
+
+.pickerOptionMeta {
+  color: var(--muted, #6b6e80);
+  font-size: 0.75rem;
+}
