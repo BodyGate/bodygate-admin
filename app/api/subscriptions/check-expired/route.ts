@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { selectCustomersToExpire } from "../../../lib/server/expiredCustomers";
 
 async function runCheckExpired() {
   try {
@@ -10,29 +11,84 @@ async function runCheckExpired() {
 
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
+    const { data: candidates, error: candidatesError } = await supabase
       .from("customers")
-      .update({
-        subscription_status: "expired",
-        active: false,
-      })
+      .select("id, subscription_expiry")
       .lt("subscription_expiry", now)
-      .neq("subscription_status", "expired")
-      .select("id, subscription_expiry");
+      .neq("subscription_status", "expired");
 
-    if (error) {
+    if (candidatesError) {
       return {
         ok: false,
         message: "Errore durante il controllo scadenze.",
-        error: error.message,
+        error: candidatesError.message,
       };
+    }
+
+    // subscription_expiry is not refreshed on renewal: skip customers that
+    // still hold a current subscription (same rule as the access check).
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Rome",
+    }).format(new Date());
+    const candidateIds = (candidates || []).map((c) => c.id);
+    let currentSubscriptions: { customer_id: string }[] = [];
+
+    if (candidateIds.length > 0) {
+      const { data: subs, error: subsError } = await supabase
+        .from("customer_subscriptions")
+        .select("customer_id")
+        .in("customer_id", candidateIds)
+        .eq("is_active", true)
+        .lte("starts_at", today)
+        .gte("ends_at", today);
+
+      if (subsError) {
+        return {
+          ok: false,
+          message: "Errore durante il controllo scadenze.",
+          error: subsError.message,
+        };
+      }
+
+      currentSubscriptions = subs || [];
+    }
+
+    const toExpire = selectCustomersToExpire(
+      candidates || [],
+      currentSubscriptions
+    );
+
+    let data: { id: string; subscription_expiry: string | null }[] = [];
+
+    if (toExpire.length > 0) {
+      const { data: updated, error } = await supabase
+        .from("customers")
+        .update({
+          subscription_status: "expired",
+          active: false,
+        })
+        .in(
+          "id",
+          toExpire.map((c) => c.id)
+        )
+        .select("id, subscription_expiry");
+
+      if (error) {
+        return {
+          ok: false,
+          message: "Errore durante il controllo scadenze.",
+          error: error.message,
+        };
+      }
+
+      data = updated || [];
     }
 
     return {
       ok: true,
       message: "Controllo scadenze completato.",
-      expired_count: data?.length || 0,
-      expired_customers: data || [],
+      expired_count: data.length,
+      expired_customers: data,
       checked_at: new Date().toISOString(),
     };
   } catch (err: any) {
