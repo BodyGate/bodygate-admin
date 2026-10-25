@@ -11,18 +11,32 @@ async function runCheckExpired() {
 
     const now = new Date().toISOString();
 
-    const { data: candidates, error: candidatesError } = await supabase
-      .from("customers")
-      .select("id, subscription_expiry")
-      .lt("subscription_expiry", now)
-      .neq("subscription_status", "expired");
+    const fail = (message: string) => ({
+      ok: false,
+      message: "Errore durante il controllo scadenze.",
+      error: message,
+    });
 
-    if (candidatesError) {
-      return {
-        ok: false,
-        message: "Errore durante il controllo scadenze.",
-        error: candidatesError.message,
-      };
+    // PostgREST caps a single read (1000 rows): page through every candidate
+    // with a stable order, and chunk `.in()` lists to keep URLs short.
+    const PAGE_SIZE = 1000;
+    const CHUNK_SIZE = 100;
+    const candidates: { id: string; subscription_expiry: string | null }[] = [];
+
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page, error: pageError } = await supabase
+        .from("customers")
+        .select("id, subscription_expiry")
+        .lt("subscription_expiry", now)
+        .neq("subscription_status", "expired")
+        .order("id", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (pageError) return fail(pageError.message);
+
+      candidates.push(...(page || []));
+
+      if (!page || page.length < PAGE_SIZE) break;
     }
 
     // subscription_expiry is not refreshed on renewal: skip customers that
@@ -30,37 +44,31 @@ async function runCheckExpired() {
     const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Europe/Rome",
     }).format(new Date());
-    const candidateIds = (candidates || []).map((c) => c.id);
-    let currentSubscriptions: { customer_id: string }[] = [];
+    const currentSubscriptions: { customer_id: string }[] = [];
 
-    if (candidateIds.length > 0) {
+    for (let i = 0; i < candidates.length; i += CHUNK_SIZE) {
       const { data: subs, error: subsError } = await supabase
         .from("customer_subscriptions")
         .select("customer_id")
-        .in("customer_id", candidateIds)
+        .in(
+          "customer_id",
+          candidates.slice(i, i + CHUNK_SIZE).map((c) => c.id)
+        )
         .eq("is_active", true)
         .lte("starts_at", today)
-        .gte("ends_at", today);
+        .gte("ends_at", today)
+        .limit(CHUNK_SIZE * 10);
 
-      if (subsError) {
-        return {
-          ok: false,
-          message: "Errore durante il controllo scadenze.",
-          error: subsError.message,
-        };
-      }
+      if (subsError) return fail(subsError.message);
 
-      currentSubscriptions = subs || [];
+      currentSubscriptions.push(...(subs || []));
     }
 
-    const toExpire = selectCustomersToExpire(
-      candidates || [],
-      currentSubscriptions
-    );
+    const toExpire = selectCustomersToExpire(candidates, currentSubscriptions);
 
-    let data: { id: string; subscription_expiry: string | null }[] = [];
+    const data: { id: string; subscription_expiry: string | null }[] = [];
 
-    if (toExpire.length > 0) {
+    for (let i = 0; i < toExpire.length; i += CHUNK_SIZE) {
       const { data: updated, error } = await supabase
         .from("customers")
         .update({
@@ -69,19 +77,13 @@ async function runCheckExpired() {
         })
         .in(
           "id",
-          toExpire.map((c) => c.id)
+          toExpire.slice(i, i + CHUNK_SIZE).map((c) => c.id)
         )
         .select("id, subscription_expiry");
 
-      if (error) {
-        return {
-          ok: false,
-          message: "Errore durante il controllo scadenze.",
-          error: error.message,
-        };
-      }
+      if (error) return fail(error.message);
 
-      data = updated || [];
+      data.push(...(updated || []));
     }
 
     return {
