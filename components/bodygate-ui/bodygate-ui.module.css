@@ -432,6 +432,10 @@
   .button {
     width: 100%;
   }
+
+  .inputGroup {
+    flex-direction: column;
+  }
 }
 
 /* BGContractStatus */
