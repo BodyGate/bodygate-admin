@@ -90,6 +90,12 @@
   padding: 20px;
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .cardSoft {
   background: var(--bg-canvas-raised, #f4f5f9);
 }
