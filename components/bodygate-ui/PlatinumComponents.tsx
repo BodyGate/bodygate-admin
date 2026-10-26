@@ -6,7 +6,7 @@ import { BGDialog } from "./BGDialog"
 import styles from "./platinum-screen.module.css"
 
 export function BGDemoNotice() { return <div className={styles.notice} role="note"><AlertCircle />Ambiente dimostrativo isolato: i dati mostrati non provengono dai sistemi operativi.</div> }
-export function BGAlert({ title, children, tone = "info" }: { title: string; children: ReactNode; tone?: "info" | "warning" | "danger" }) { return <div className={`${styles.alert} ${styles[tone]}`} role="status"><AlertCircle /><div><strong>{title}</strong><p>{children}</p></div></div> }
+export function BGAlert({ title, children, tone = "info", action }: { title: string; children: ReactNode; tone?: "info" | "warning" | "danger"; action?: ReactNode }) { return <div className={`${styles.alert} ${styles[tone]}`} role="status"><AlertCircle /><div><strong>{title}</strong><p>{children}</p></div>{action ? <div className={styles.alertAction}>{action}</div> : null}</div> }
 export function BGSearch({ label = "Cerca" }: { label?: string }) { return <label className={styles.search}><span className="sr-only">{label}</span><Search /><input type="search" placeholder={label} /></label> }
 export function BGFilters({ children }: { children: ReactNode }) { return <div className={styles.filters} aria-label="Filtri">{children}</div> }
 export function BGTabs({ items }: { items: readonly string[] }) { const [active, setActive] = useState(items[0]); return <div className={styles.tabs} role="tablist">{items.map(item => <button role="tab" aria-selected={active === item} onClick={() => setActive(item)} key={item}>{item}</button>)}</div> }
