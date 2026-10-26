@@ -147,9 +147,9 @@ while ($true) {
         }
 
         # Optional: push degli eventi dal DNake (V3.9.5+) e impostazioni del registro
-        # (BODYGATE_DNAKE_LOG_FORMAT=sqlite|txt, BODYGATE_DNAKE_IP). Senza BODYGATE_PUSH_BIND il
+        # (BODYGATE_DNAKE_LOG_FORMAT=sqlite|txt, BODYGATE_DNAKE_IP, BODYGATE_BRIDGE_NO_PROXY). Senza BODYGATE_PUSH_BIND il
         # canale push resta spento e il bridge lavora solo in polling.
-        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM", "BODYGATE_DNAKE_LOG_FORMAT", "BODYGATE_DNAKE_IP")) {
+        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM", "BODYGATE_DNAKE_LOG_FORMAT", "BODYGATE_DNAKE_IP", "BODYGATE_BRIDGE_NO_PROXY")) {
             try {
                 $pushValue = Read-EnvValue -Path $EnvFile -Name $pushName
             }

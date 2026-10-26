@@ -13,7 +13,7 @@ namespace BodyGateAccessBridge
 {
     internal class Program
     {
-        private static readonly string Version = "V3.9.6-TXT";
+        private static readonly string Version = "V3.9.7-TIMING";
         private static readonly bool DebugMode =
             Environment.GetEnvironmentVariable("BODYGATE_BRIDGE_DEBUG") == "1";
 
@@ -136,11 +136,49 @@ namespace BodyGateAccessBridge
         private static readonly string LogFile =
             Path.Combine(LogDir, "bridge.log");
 
-        private static readonly HttpClient httpClient =
-            new HttpClient
+        // Con BODYGATE_BRIDGE_NO_PROXY=1 il client HTTP non consulta il proxy di
+        // sistema (rilevamento automatico di Windows): serve a verificare se e'
+        // quello a rallentare la chiamata a BodyGate. Di default il comportamento
+        // resta quello delle versioni precedenti.
+        private static readonly bool HttpNoProxy =
+            string.Equals(Environment.GetEnvironmentVariable("BODYGATE_BRIDGE_NO_PROXY")?.Trim(), "1", StringComparison.Ordinal);
+
+        private static readonly HttpClient httpClient = CreateHttpClient();
+
+        private static HttpClient CreateHttpClient()
+        {
+            if (HttpNoProxy)
+            {
+                return new HttpClient(new SocketsHttpHandler { UseProxy = false })
+                {
+                    Timeout = TimeSpan.FromSeconds(5)
+                };
+            }
+
+            return new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(5)
             };
+        }
+
+        // Tempi dell'ultimo accesso, in millisecondi (-1 = nessun accesso ancora).
+        private static long lastQueueMs = -1;
+        private static long lastCheckMs = -1;
+        private static long lastOpenMs = -1;
+        private static long lastTotalMs = -1;
+
+        private static void RecordTimings(long queueMs, long checkMs, long openMs, long totalMs)
+        {
+            System.Threading.Interlocked.Exchange(ref lastQueueMs, queueMs);
+            System.Threading.Interlocked.Exchange(ref lastCheckMs, checkMs);
+            System.Threading.Interlocked.Exchange(ref lastOpenMs, openMs);
+            System.Threading.Interlocked.Exchange(ref lastTotalMs, totalMs);
+
+            Log(
+                "Tempi: coda=" + queueMs + " ms, BodyGate=" + checkMs + " ms, tornello=" +
+                (openMs < 0 ? "-" : openMs + " ms") + ", totale dal rilevamento=" + totalMs + " ms"
+            );
+        }
 
         static void Main(string[] args)
         {
@@ -150,6 +188,7 @@ namespace BodyGateAccessBridge
             Log("====================================");
             Log("BodyGate Bridge " + Version + " avviato");
             Log("Modalita lettura badge: DNake " + (DnakeLogIsSqlite ? "SQLite" : "unlock.txt") + " polling");
+            Log("Client HTTP: " + (HttpNoProxy ? "senza proxy di sistema (BODYGATE_BRIDGE_NO_PROXY=1)" : "proxy di sistema (predefinito)"));
             Log("DNake DB: " + DnakeDbUrl);
             Log("Controller KT02.3 HTTP: http://" + ControllerIp + "/cdor.cgi?open=0");
             Log("Bridge HTTP: http://localhost:5050/open, /open0, /open1, /openlong0, /openlong1");
@@ -978,10 +1017,14 @@ namespace BodyGateAccessBridge
                 isProcessingBadge = true;
             }
 
+            System.Diagnostics.Stopwatch detectedWatch = System.Diagnostics.Stopwatch.StartNew();
+
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 try
                 {
+                    long queueMs = detectedWatch.ElapsedMilliseconds;
+
                     Log("");
                     Log("ACCESSO " + accessType + " rilevato");
                     Log("Codice: " + badge);
@@ -1002,8 +1045,12 @@ namespace BodyGateAccessBridge
                         return;
                     }
 
+                    long checkStartedMs = detectedWatch.ElapsedMilliseconds;
+
                     BodyGateResult bodyGateResult =
                         CheckBodyGateAccess(badge);
+
+                    long checkMs = detectedWatch.ElapsedMilliseconds - checkStartedMs;
 
                     OpenResult openResult = new OpenResult();
 
@@ -1024,6 +1071,7 @@ namespace BodyGateAccessBridge
                     {
                         Log("ESITO: NEGATO");
                         Log("Motivo: " + bodyGateResult.Reason);
+                        RecordTimings(queueMs, checkMs, -1, detectedWatch.ElapsedMilliseconds);
 
                         SendAccessLog(
                             badge,
@@ -1042,7 +1090,11 @@ namespace BodyGateAccessBridge
                         Thread.Sleep(OpenDelayAfterBadgeMs);
                     }
 
+                    long openStartedMs = detectedWatch.ElapsedMilliseconds;
+
                     openResult = OpenTurnstileHttp(DoorIndex);
+
+                    long openMs = detectedWatch.ElapsedMilliseconds - openStartedMs;
 
                     if (openResult.Opened)
                     {
@@ -1053,6 +1105,8 @@ namespace BodyGateAccessBridge
                         Log("ERRORE APERTURA TORNELLO");
                         Log("Dettaglio: " + openResult.Message);
                     }
+
+                    RecordTimings(queueMs, checkMs, openMs, detectedWatch.ElapsedMilliseconds);
 
                     SendAccessLog(
                         badge,
@@ -1679,6 +1733,11 @@ if (!listener.IsListening)
                             lastProcessedEventKey,
                             pollIntervalMs = PollIntervalMs,
                             openDelayAfterBadgeMs = OpenDelayAfterBadgeMs,
+                            httpNoProxy = HttpNoProxy,
+                            lastQueueMs = System.Threading.Interlocked.Read(ref lastQueueMs),
+                            lastCheckMs = System.Threading.Interlocked.Read(ref lastCheckMs),
+                            lastOpenMs = System.Threading.Interlocked.Read(ref lastOpenMs),
+                            lastTotalMs = System.Threading.Interlocked.Read(ref lastTotalMs),
                             pollHealthy = IsPollHealthy(),
                             consecutivePollFailures,
                             lastPollError,

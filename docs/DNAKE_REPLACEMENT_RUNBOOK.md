@@ -85,6 +85,33 @@ Il log del bridge e' in `C:\BodyGateBridge_Releases\V3.9.6-txt\logs\bridge.log` 
 | `Download registro DNake fallito: HTTP 404` | formato sbagliato (`txt` col firmware 2.0.16) o DNake irraggiungibile |
 | `database disk image is malformed` | file troncato: vedi sezione 3 |
 
+## 5b. Tempi di apertura (V3.9.7-TIMING)
+
+Dal 26/10/2026 la lettura "rilevato -> Cliente" nel log era di circa 2 s, mentre BodyGate risponde in
+~0,7 s (`Server-Timing: total;dur=660-716`) e le letture su Supabase costano ~80 ms l'una (misure sul PC).
+La V3.9.7 non cambia le regole di accesso: scrive dopo ogni passaggio
+
+```
+Tempi: coda=0 ms, BodyGate=702 ms, tornello=1 ms, totale dal rilevamento=703 ms
+```
+
+e li espone in `/status` (`lastQueueMs`, `lastCheckMs`, `lastOpenMs`, `lastTotalMs`, `httpNoProxy`).
+Se `BodyGate` e' molto sopra ~700 ms, il tempo si perde nella chiamata del bridge (ipotesi principale: rilevamento
+automatico del proxy di Windows); in quel caso si prova `BODYGATE_BRIDGE_NO_PROXY=1` in `.env.local` e si riavvia
+il task, confrontando i `Tempi` prima e dopo.
+
+Installazione (a palestra chiusa, il tornello resta fermo ~15 s; Amministratore):
+
+```
+cd C:\bodygate-admin
+git pull --ff-only origin main
+.\scripts\build-bodygate-bridge-v3.9.7-timing.ps1
+.\scripts\switch-bodygate-bridge-v3.9.7-timing.ps1
+```
+
+Lo switch controlla gli hash, installa, verifica `/status` (versione, modo di lettura, `pollHealthy`) e in caso di
+errore torna da solo alla V3.9.6.
+
 ## 6. Punti aperti
 
 - Primo controllo della potatura dei log (30/10/2026, promemoria impostato).
