@@ -61,6 +61,15 @@ type BridgeWatchdog = {
   checked_at?: string;
 };
 
+// Salute reale del bridge (lettura badge dal DNake, dimensione del suo
+// registro), calcolata da /api/bridge/status. "critical" = i badge non
+// vengono letti; "warning" = preavviso prima che succeda.
+type BridgeHealthInfo = {
+  level: "ok" | "warning" | "critical";
+  message: string | null;
+  suggestedAction: string | null;
+};
+
 type SubscriptionAlert = {
   id: string;
   customer_id: string | null;
@@ -101,6 +110,12 @@ export default function ReceptionDashboard() {
     state: "offline",
     process_active: null,
     last_error: null,
+  });
+
+  const [bridgeHealth, setBridgeHealth] = useState<BridgeHealthInfo>({
+    level: "ok",
+    message: null,
+    suggestedAction: null,
   });
 
   const [bridgeLoading, setBridgeLoading] = useState(false);
@@ -187,6 +202,17 @@ export default function ReceptionDashboard() {
         process_active: data?.watchdog?.process_active ?? null,
         last_error: data?.watchdog?.last_error ?? data?.error ?? null,
         checked_at: data?.checked_at,
+      });
+
+      const health = data?.bridge_health;
+
+      setBridgeHealth({
+        level:
+          health?.level === "critical" || health?.level === "warning"
+            ? health.level
+            : "ok",
+        message: health?.message ?? null,
+        suggestedAction: health?.suggested_action ?? null,
       });
     } catch (error: unknown) {
       const msg =
@@ -310,9 +336,30 @@ export default function ReceptionDashboard() {
       });
     }
 
+    // Il bridge risponde ma non legge i badge (o sta per smettere): e' il caso
+    // in cui prima risultava "online" mentre i clienti restavano fuori.
+    if (bridgeHealth.level !== "ok" && bridgeHealth.message) {
+      items.push({
+        id: "bridge-health",
+        type:
+          bridgeHealth.level === "critical"
+            ? "Lettura badge ferma"
+            : "Preavviso registro DNake",
+        severity: bridgeHealth.level === "critical" ? "critical" : "warning",
+        message: bridgeHealth.message,
+        suggestedAction:
+          bridgeHealth.suggestedAction ||
+          "Contattare l'assistenza e usare l'apertura manuale.",
+        time: bridgeWatchdog.checked_at || bridgeStatus.checkedAt || now,
+        badgeOrCustomer: bridgeStatus.lastBadge || "N/A",
+      });
+    }
+
     if (
-      bridgeWatchdog.state === "degraded" ||
-      (bridgeStatus.online && !bridgeStatus.connected)
+      (bridgeWatchdog.state === "degraded" && bridgeHealth.level !== "critical") ||
+      (bridgeStatus.online &&
+        !bridgeStatus.connected &&
+        bridgeHealth.level !== "critical")
     ) {
       items.push({
         id: "bridge-degraded",
@@ -465,7 +512,7 @@ export default function ReceptionDashboard() {
     return items
       .sort((a, b) => +new Date(b.time) - +new Date(a.time))
       .slice(0, 8);
-  }, [bridgeStatus, bridgeWatchdog, logs, gymPresence]);
+  }, [bridgeStatus, bridgeWatchdog, bridgeHealth, logs, gymPresence]);
 
   const customerMatches = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("it-IT");

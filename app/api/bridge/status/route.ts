@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { NextResponse } from "next/server";
+import { evaluateBridgeHealth } from "../../../lib/server/bridgeHealth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,8 +120,20 @@ export async function GET() {
   const bridgeStatus = (statusResult.json || {}) as BridgeStatusPayload;
   const bridgeHealth = healthResult.ok ? healthResult.json : null;
 
-  const connected =
-    typeof bridgeStatus?.connected === "boolean"
+  // /status risponde anche quando il bridge non legge piu' i badge dal DNake:
+  // la salute reale (polling, dimensione del registro del DNake) si valuta dai
+  // campi che il bridge espone, non dal solo fatto che risponda.
+  const health = evaluateBridgeHealth(
+    statusResult.ok ? (statusResult.json as Record<string, unknown>) : null,
+    {
+      limitBytes: Number(process.env.BODYGATE_DNAKE_DB_LIMIT_BYTES) || undefined,
+    },
+  );
+  const pollingDown = health.level === "critical";
+
+  const connected = pollingDown
+    ? false
+    : typeof bridgeStatus?.connected === "boolean"
       ? bridgeStatus.connected
       : typeof bridgeStatus?.isConnected === "boolean"
         ? bridgeStatus.isConnected
@@ -147,6 +160,7 @@ export async function GET() {
     statusResult.error ||
     (!statusResult.ok ? `Bridge /status HTTP ${statusResult.status}` : null) ||
     healthResult.error ||
+    (pollingDown ? health.message : null) ||
     null;
 
   return NextResponse.json({
@@ -159,6 +173,7 @@ export async function GET() {
     processing,
     bridge: bridgeStatus,
     health: bridgeHealth,
+    bridge_health: health,
     checked_at: checkedAt,
     bridge_base_url: normalizedBaseUrl,
     status_url: statusUrl,
