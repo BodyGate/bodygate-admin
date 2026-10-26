@@ -107,13 +107,13 @@ export function evaluateBridgeHealth(
     message =
       "Il DNake consegna il suo registro troncato: i badge si leggono ancora ma il sistema si fermera' presto.";
     suggestedAction =
-      "Svuotare i registri del DNake (docs/DNAKE_REPLACEMENT_RUNBOOK.md, manutenzione).";
+      "Svuotare i registri del DNake (docs/DNAKE_REPLACEMENT_RUNBOOK.md, sezione 3).";
   } else if (db && db.percent_of_limit >= warnPercent) {
     level = "warning";
     reasons.push("db_near_limit");
     message = `Il registro del DNake e' al ${db.percent_of_limit}% del limite (${Math.round(db.expected_bytes / 1024)} KB su ${Math.round(limitBytes / 1024)} KB): oltre il limite il bridge smette di leggere i badge.`;
     suggestedAction =
-      "Svuotare i registri del DNake prima che si riempia (docs/DNAKE_REPLACEMENT_RUNBOOK.md, manutenzione).";
+      "Svuotare i registri del DNake prima che si riempia (docs/DNAKE_REPLACEMENT_RUNBOOK.md, sezione 3).";
   }
 
   return {

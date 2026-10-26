@@ -193,15 +193,7 @@ async function isActiveAppUser(userId: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // /api/dnake/event si autentica da solo (chiave dedicata nell'URL, il DNake
-  // non sa inviare header): il percorso e' escluso dalla chiave macchina solo
-  // se la chiave dedicata e' presente; la verifica vera e' nella route e
-  // senza chiave valida risponde 401.
-  const selfAuthenticated =
-    pathname === "/api/dnake/event" &&
-    request.nextUrl.searchParams.has("dnake_key");
-
-  if (machineProtectedPaths.has(pathname) && !selfAuthenticated) {
+  if (machineProtectedPaths.has(pathname)) {
     const machineAuthResponse = checkMachineAuthentication(request);
 
     if (machineAuthResponse) {
