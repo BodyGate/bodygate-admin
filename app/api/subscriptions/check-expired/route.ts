@@ -1,59 +1,73 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  runExpiredCustomersCheck,
+  type DbLike,
+} from "../../../lib/server/expiredCustomers";
 
-async function runCheckExpired() {
+async function runCheckExpired(dryRun: boolean) {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const now = new Date().toISOString();
+    // Same rule as the access check: current day, in the gym's time zone.
+    const todayIso = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Rome",
+    }).format(new Date());
 
-    const { data, error } = await supabase
-      .from("customers")
-      .update({
-        subscription_status: "expired",
-        active: false,
-      })
-      .lt("subscription_expiry", now)
-      .neq("subscription_status", "expired")
-      .select("id, subscription_expiry");
+    let outcome;
 
-    if (error) {
+    try {
+      outcome = await runExpiredCustomersCheck(
+        supabase as unknown as DbLike,
+        { nowIso: new Date().toISOString(), todayIso, dryRun }
+      );
+    } catch (error) {
       return {
         ok: false,
         message: "Errore durante il controllo scadenze.",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Errore database",
       };
     }
+
+    const { candidates, toExpire, expired } = outcome;
 
     return {
       ok: true,
       message: "Controllo scadenze completato.",
-      expired_count: data?.length || 0,
-      expired_customers: data || [],
+      dry_run: dryRun,
+      candidates_count: candidates.length,
+      skipped_with_current_subscription: candidates.length - toExpire.length,
+      expired_count: dryRun ? toExpire.length : expired.length,
+      expired_customers: dryRun ? toExpire : expired,
       checked_at: new Date().toISOString(),
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return {
       ok: false,
       message: "Errore server durante il controllo abbonamenti.",
-      error: err?.message || "Unknown error",
+      error: err instanceof Error ? err.message : "Unknown error",
     };
   }
 }
 
-export async function POST() {
-  const result = await runCheckExpired();
+// dry_run=1 only reports which customers would be expired, without updating.
+function isDryRun(req: Request) {
+  return new URL(req.url).searchParams.get("dry_run") === "1";
+}
+
+export async function POST(req: Request) {
+  const result = await runCheckExpired(isDryRun(req));
 
   return NextResponse.json(result, {
     status: result.ok ? 200 : 500,
   });
 }
 
-export async function GET() {
-  const result = await runCheckExpired();
+export async function GET(req: Request) {
+  const result = await runCheckExpired(isDryRun(req));
 
   return NextResponse.json(result, {
     status: result.ok ? 200 : 500,
