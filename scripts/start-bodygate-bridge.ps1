@@ -1,5 +1,5 @@
 param(
-    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.4-alerts\BodyGateBridge.exe",
+    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.6-txt\BodyGateBridge.exe",
     [string]$EnvFile = "C:\bodygate-admin\.env.local",
     [string]$LogDirectory = "C:\bodygate-admin\logs"
 )
@@ -146,21 +146,19 @@ while ($true) {
             Write-BridgeLog "ATTENZIONE: BODYGATE_NTFY_TOPIC non presente in .env.local, alert ntfy disattivati."
         }
 
-        # Optional device settings (IP, credentials, DNake log limit). Absent
-        # values leave the bridge on its built-in defaults.
-        foreach ($name in @(
-                "BODYGATE_DNAKE_IP", "BODYGATE_DNAKE_USER", "BODYGATE_DNAKE_PASSWORD",
-                "BODYGATE_CONTROLLER_IP", "BODYGATE_CONTROLLER_USER", "BODYGATE_CONTROLLER_PASSWORD",
-                "BODYGATE_DNAKE_DB_LIMIT_BYTES")) {
+        # Optional: push degli eventi dal DNake (V3.9.5+) e impostazioni del registro
+        # (BODYGATE_DNAKE_LOG_FORMAT=sqlite|txt, BODYGATE_DNAKE_IP). Senza BODYGATE_PUSH_BIND il
+        # canale push resta spento e il bridge lavora solo in polling.
+        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM", "BODYGATE_DNAKE_LOG_FORMAT", "BODYGATE_DNAKE_IP")) {
             try {
-                $value = Read-EnvValue -Path $EnvFile -Name $name
+                $pushValue = Read-EnvValue -Path $EnvFile -Name $pushName
             }
             catch {
-                $value = $null
+                $pushValue = $null
             }
 
-            if (-not [string]::IsNullOrWhiteSpace($value)) {
-                Set-Item -Path "Env:$name" -Value $value
+            if (-not [string]::IsNullOrWhiteSpace($pushValue)) {
+                Set-Item -Path "Env:$pushName" -Value $pushValue
             }
         }
 

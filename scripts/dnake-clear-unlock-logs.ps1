@@ -1,5 +1,5 @@
 param(
-    [string]$DnakeIp = "192.168.1.22",
+    [string]$DnakeIp = "192.168.1.58",
     [string]$User = "admin",
     [string]$Password = "888888",
     # File con le variabili di BodyGate: se contiene DNAKE_USERNAME e

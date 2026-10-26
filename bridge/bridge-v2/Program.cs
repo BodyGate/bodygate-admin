@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -12,29 +13,29 @@ namespace BodyGateAccessBridge
 {
     internal class Program
     {
-        private static readonly string Version = "V3.9.4-ALERTS";
+        private static readonly string Version = "V3.9.6-TXT";
         private static readonly bool DebugMode =
             Environment.GetEnvironmentVariable("BODYGATE_BRIDGE_DEBUG") == "1";
 
-        // Indirizzi e credenziali dei dispositivi: da variabili d'ambiente
-        // (caricate dallo script di avvio da .env.local), cosi' sostituire il DNake
-        // o il controller non richiede una ricompilazione e le password non
-        // devono stare nel sorgente. I valori di ripiego sono quelli storici e il
-        // bridge avvisa nel log se li sta usando.
-        private static readonly string ControllerIp = EnvOrDefault("BODYGATE_CONTROLLER_IP", "192.168.1.251");
-        private static readonly string ControllerUser = EnvOrDefault("BODYGATE_CONTROLLER_USER", "admin");
-        private static readonly string ControllerPassword = EnvOrDefault("BODYGATE_CONTROLLER_PASSWORD", "888888");
+        private static readonly string ControllerIp = "192.168.1.251";
+        private static readonly string ControllerUser = "admin";
+        private static readonly string ControllerPassword = "888888";
         private static readonly byte DoorIndex = 0;
 
-        private static readonly string DnakeIp = EnvOrDefault("BODYGATE_DNAKE_IP", "192.168.1.22");
-        private static readonly string DnakeUser = EnvOrDefault("BODYGATE_DNAKE_USER", "admin");
-        private static readonly string DnakePassword = EnvOrDefault("BODYGATE_DNAKE_PASSWORD", "888888");
-        private static readonly string DnakeDbUrl = "http://" + DnakeIp + "/data/unlock_sql.db";
-
-        private static readonly bool UsingDefaultDnakePassword =
-            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BODYGATE_DNAKE_PASSWORD"));
-        private static readonly bool UsingDefaultControllerPassword =
-            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("BODYGATE_CONTROLLER_PASSWORD"));
+        // Il DNake nuovo (ottobre 2026, 192.168.1.58) non espone piu' unlock_sql.db:
+        // scrive il registro sblocchi in /data/unlock.txt (CSV, piu' recente in cima,
+        // leggibile senza login). BODYGATE_DNAKE_LOG_FORMAT=sqlite torna al vecchio
+        // DNake; BODYGATE_DNAKE_IP cambia l'indirizzo senza ricompilare.
+        private static readonly string DnakeIp =
+            Environment.GetEnvironmentVariable("BODYGATE_DNAKE_IP")?.Trim() is { Length: > 0 } configuredDnakeIp
+                ? configuredDnakeIp
+                : "192.168.1.58";
+        private static readonly string DnakeUser = "admin";
+        private static readonly string DnakePassword = "888888";
+        private static readonly bool DnakeLogIsSqlite =
+            string.Equals(Environment.GetEnvironmentVariable("BODYGATE_DNAKE_LOG_FORMAT")?.Trim(), "sqlite", StringComparison.OrdinalIgnoreCase);
+        private static readonly string DnakeDbUrl =
+            "http://" + DnakeIp + (DnakeLogIsSqlite ? "/data/unlock_sql.db" : "/data/unlock.txt");
 
         private static readonly string BodyGateCheckUrl =
             "http://127.0.0.1:3000/api/access/check";
@@ -63,17 +64,38 @@ namespace BodyGateAccessBridge
         // Il mini_httpd del DNake consegna il file unlock_sql.db troncato quando
         // supera circa 284 KB (osservato: 290816 byte consegnati su 311296
         // dichiarati). Avviso in anticipo, prima di arrivarci.
-        // Il limite e' configurabile (un altro modello o firmware puo' averne uno
-        // diverso). L'avviso scatta al 70%: con la potatura automatica dei log
-        // sul DNake significa "la pulizia non sta funzionando".
-        private static readonly long DbLimitBytes = EnvLong("BODYGATE_DNAKE_DB_LIMIT_BYTES", 290816);
-        private static readonly int DbWarnPercent = 70;
-        private static readonly long DbSizeWarnBytes = DbLimitBytes * DbWarnPercent / 100;
+        private static readonly long DbSizeWarnBytes = 250 * 1024;
         private static readonly int DownloadBodyTimeoutSeconds = 5;
         private static readonly int PollErrorLogIntervalSeconds = 30;
         private static readonly int MaxPollBackoffMs = 5000;
         private static readonly int PollHealthySeconds = 30;
         private static readonly TimeSpan PollStallTimeout = TimeSpan.FromSeconds(90);
+
+        // Push degli eventi dal DNake (pagina Avanzate > Evento HTTP). Il DNake chiama
+        // un URL a ogni lettura di tessera/QR: non serve piu' scaricare unlock_sql.db
+        // (che il suo mini_httpd consegna troncato). Il polling resta come riserva.
+        // BODYGATE_PUSH_BIND  = IP LAN su cui ascoltare (vuoto = push disattivato).
+        // BODYGATE_PUSH_PORT  = porta (default 5051: la 5050 e' di HTTP.sys per l'API locale).
+        // BODYGATE_PUSH_TOKEN = segreto richiesto come parametro ?k=...
+        // BODYGATE_PUSH_MODE  = "discover" (default, registra e basta) oppure "live".
+        // BODYGATE_PUSH_CARD_PARAM = nome del parametro che porta il codice tessera.
+        private static readonly string PushBindAddress =
+            Environment.GetEnvironmentVariable("BODYGATE_PUSH_BIND")?.Trim() ?? "";
+        private static readonly int PushPort =
+            int.TryParse(Environment.GetEnvironmentVariable("BODYGATE_PUSH_PORT"), out int configuredPushPort)
+                ? configuredPushPort
+                : 5051;
+        private static readonly string PushToken =
+            Environment.GetEnvironmentVariable("BODYGATE_PUSH_TOKEN")?.Trim() ?? "";
+        private static readonly bool PushLive =
+            string.Equals(Environment.GetEnvironmentVariable("BODYGATE_PUSH_MODE")?.Trim(), "live", StringComparison.OrdinalIgnoreCase);
+        private static readonly string PushCardParam =
+            Environment.GetEnvironmentVariable("BODYGATE_PUSH_CARD_PARAM")?.Trim() ?? "";
+        private static bool pushListening = false;
+        private static long pushEventCount = 0;
+        private static long lastPushTicks = 0;
+        private static readonly string PushLogFile =
+            Path.Combine(AppContext.BaseDirectory, "logs", "push-events.log");
 
         private static readonly object badgeLock = new object();
         private static readonly object pollLock = new object();
@@ -90,7 +112,6 @@ namespace BodyGateAccessBridge
         private static bool dnakeDownAlertSent = false;
         private static bool staleAccessAlertSent = false;
         private static bool dbSizeWarnSent = false;
-        private static DateTime lastDbSizeLogDate = DateTime.MinValue;
         private static string lastLoggedPollError = "";
         private static DateTime lastPollErrorLogTime = DateTime.MinValue;
         private static int suppressedPollErrors = 0;
@@ -128,7 +149,7 @@ namespace BodyGateAccessBridge
 
             Log("====================================");
             Log("BodyGate Bridge " + Version + " avviato");
-            Log("Modalita lettura badge: DNake SQLite polling");
+            Log("Modalita lettura badge: DNake " + (DnakeLogIsSqlite ? "SQLite" : "unlock.txt") + " polling");
             Log("DNake DB: " + DnakeDbUrl);
             Log("Controller KT02.3 HTTP: http://" + ControllerIp + "/cdor.cgi?open=0");
             Log("Bridge HTTP: http://localhost:5050/open, /open0, /open1, /openlong0, /openlong1");
@@ -144,16 +165,11 @@ namespace BodyGateAccessBridge
                     ? "ATTENZIONE: BODYGATE_NTFY_TOPIC non configurato, alert ntfy DISATTIVATI."
                     : "Alert ntfy attivi."
             );
-            Log("DNake: " + DnakeIp + "  Controller: " + ControllerIp + "  Limite registro DNake: " + (DbLimitBytes / 1024) + " KB");
-
-            if (UsingDefaultDnakePassword || UsingDefaultControllerPassword)
-            {
-                Log("ATTENZIONE: password dei dispositivi di ripiego in uso (BODYGATE_DNAKE_PASSWORD / BODYGATE_CONTROLLER_PASSWORD non configurate in .env.local): cambiarle e configurarle.");
-            }
             Log("====================================");
 
             StartDnakeSqlPolling();
             StartHttpServer();
+            StartPushListener();
 
             while (true)
             {
@@ -374,13 +390,6 @@ namespace BodyGateAccessBridge
                 return;
             }
 
-            // Una riga al giorno con la dimensione: la tendenza si legge nel log.
-            if (lastDbSizeLogDate.Date != DateTime.Now.Date)
-            {
-                lastDbSizeLogDate = DateTime.Now;
-                Log("Registro DNake: " + (size / 1024) + " KB su " + (DbLimitBytes / 1024) + " KB (" + (size * 100 / DbLimitBytes) + "%)");
-            }
-
             if (size < DbSizeWarnBytes)
             {
                 dbSizeWarnSent = false;
@@ -396,8 +405,8 @@ namespace BodyGateAccessBridge
             SendNtfyAlert(
                 "BodyGate: database del DNake quasi pieno",
                 "unlock_sql.db sul DNake e' " + (size / 1024) + " KB (soglia di avviso " + (DbSizeWarnBytes / 1024) +
-                " KB, limite " + (DbLimitBytes / 1024) + " KB). Oltre il limite il DNake lo consegna troncato e il bridge smette di leggere i badge. " +
-                "La pulizia automatica dei log non sta funzionando: controllare l'impostazione sul DNake o svuotare i registri dal pannello (NON fare il reset di fabbrica).",
+                " KB). Oltre circa 284 KB il DNake lo consegna troncato e il bridge smette di leggere i badge. " +
+                "Svuota i registri/record di sblocco dal pannello web del DNake (NON fare il reset di fabbrica).",
                 "high"
             );
         }
@@ -546,6 +555,11 @@ namespace BodyGateAccessBridge
 
         private static DnakeUnlockEvent? ReadLatestDnakeEvent()
         {
+            if (!DnakeLogIsSqlite)
+            {
+                return ReadLatestDnakeTxtEvent();
+            }
+
             lock (pollLock)
             {
                 // Fixed name per process, not one unique timestamp per poll: ReadLatestDnakeEvent
@@ -684,6 +698,137 @@ namespace BodyGateAccessBridge
                         Log("Impossibile eliminare " + tempPath + ": " + cleanupError.Message);
                     }
                 }
+            }
+        }
+
+        // Registro sblocchi del DNake nuovo: /data/unlock.txt, una riga per evento, piu'
+        // recente in cima. Campi (come li legge il pannello web del DNake):
+        // gruppo, nome, tipo utente, unlock_type, numero, stato, rele', data, id.
+        // unlock_type ha gli stessi codici del vecchio unlock_sql.db (0 tessera,
+        // 1 password, 5 app, 6 QR), quindi si applicano le stesse regole della query SQL.
+        private static DnakeUnlockEvent? ReadLatestDnakeTxtEvent()
+        {
+            lock (pollLock)
+            {
+                using HttpRequestMessage request = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    DnakeDbUrl
+                );
+
+                request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
+
+                using HttpResponseMessage response = httpClient.Send(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead
+                );
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception("Download registro DNake fallito: HTTP " + (int)response.StatusCode + " " + response.ReasonPhrase);
+                }
+
+                long? expectedBytes = response.Content.Headers.ContentLength;
+                lastDbExpectedBytes = expectedBytes ?? -1;
+                lastDbReceivedBytes = -1;
+                lastDbPartial = false;
+
+                using MemoryStream buffer = new MemoryStream();
+                Exception? readError = null;
+
+                try
+                {
+                    using CancellationTokenSource cts = new CancellationTokenSource(
+                        TimeSpan.FromSeconds(DownloadBodyTimeoutSeconds)
+                    );
+
+                    using Stream body = response.Content.ReadAsStream(cts.Token);
+                    body.CopyToAsync(buffer, 81920, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    readError = ex;
+                }
+
+                lastDbReceivedBytes = buffer.Length;
+
+                bool incomplete =
+                    readError != null ||
+                    (expectedBytes.HasValue && buffer.Length != expectedBytes.Value);
+
+                // Gli eventi piu' recenti sono in cima: un file troncato resta utilizzabile
+                // (si scarta solo l'ultima riga, forse a meta'), purche' sia arrivato qualcosa.
+                if (incomplete && buffer.Length == 0)
+                {
+                    throw new DnakeDbIncompleteException(buffer.Length, expectedBytes, readError);
+                }
+
+                string text = Encoding.UTF8.GetString(buffer.ToArray());
+                string[] lines = text.Split('\n');
+
+                if (incomplete)
+                {
+                    lastDbPartial = true;
+                    Array.Resize(ref lines, Math.Max(0, lines.Length - 1));
+                }
+
+                foreach (string rawLine in lines)
+                {
+                    string[] fields = rawLine.TrimEnd('\r').Split(',');
+
+                    if (fields.Length < 8)
+                    {
+                        continue;
+                    }
+
+                    string name = fields[1].Trim();
+                    string unlockType = fields[3].Trim();
+                    string number = fields[4].Trim();
+                    string status = fields[5].Trim();
+                    string timeText = fields[7].Trim();
+                    long.TryParse(fields.Length > 8 ? fields[8].Trim() : "", out long id);
+
+                    string credentialCode = number;
+
+                    if (string.IsNullOrWhiteSpace(credentialCode) && unlockType == "6" && id > 0)
+                    {
+                        credentialCode = id.ToString();
+                    }
+
+                    if (string.IsNullOrWhiteSpace(credentialCode) && unlockType == "5" && !string.IsNullOrWhiteSpace(name))
+                    {
+                        credentialCode = "mobile:" + name;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(credentialCode))
+                    {
+                        continue;
+                    }
+
+                    long timeSec = DateTime.TryParseExact(
+                        timeText,
+                        "yyyy-MM-dd HH:mm:ss",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.AssumeLocal,
+                        out DateTime parsedTime
+                    )
+                        ? new DateTimeOffset(parsedTime).ToUnixTimeSeconds()
+                        : 0;
+
+                    return new DnakeUnlockEvent
+                    {
+                        Number = credentialCode,
+                        RawNumber = number,
+                        TimeText = timeText,
+                        TimeSec = timeSec,
+                        Id = id,
+                        Name = name,
+                        UnlockType = unlockType,
+                        Status = status,
+                        EventKey = timeText + ":" + id + ":" + unlockType + ":" + credentialCode
+                    };
+                }
+
+                return null;
             }
         }
 
@@ -1196,6 +1341,240 @@ namespace BodyGateAccessBridge
             }
         }
 
+        private static void StartPushListener()
+        {
+            if (string.IsNullOrWhiteSpace(PushBindAddress))
+            {
+                Log("Push eventi DNake: DISATTIVATO (BODYGATE_PUSH_BIND non configurato). Resta il solo polling.");
+                return;
+            }
+
+            if (!IPAddress.TryParse(PushBindAddress, out IPAddress? bindIp))
+            {
+                Log("Push eventi DNake: BODYGATE_PUSH_BIND non valido, push disattivato.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(PushToken))
+            {
+                Log("Push eventi DNake: BODYGATE_PUSH_TOKEN mancante, push disattivato per sicurezza.");
+                return;
+            }
+
+            Thread thread = new Thread(() =>
+            {
+                try
+                {
+                    // TcpListener (non HttpListener): non richiede urlacl ne' privilegi
+                    // di amministratore. Si lega all'IP LAN, mai a tutte le interfacce.
+                    TcpListener listener = new TcpListener(bindIp, PushPort);
+                    listener.Start();
+                    pushListening = true;
+
+                    Log(
+                        "Push eventi DNake attivo su " + PushBindAddress + ":" + PushPort +
+                        " (modo " + (PushLive ? "LIVE" : "DISCOVER: solo registrazione, nessuna apertura") + ")"
+                    );
+
+                    while (true)
+                    {
+                        TcpClient client = listener.AcceptTcpClient();
+
+                        ThreadPool.QueueUserWorkItem(_ =>
+                        {
+                            HandlePushConnection(client);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Il push e' un canale in piu': se non parte il bridge continua con il polling.
+                    pushListening = false;
+                    Log("Push eventi DNake non avviato: " + ex.Message);
+                }
+            });
+
+            thread.IsBackground = true;
+            thread.Start();
+        }
+
+        private static void HandlePushConnection(TcpClient client)
+        {
+            using (client)
+            {
+                try
+                {
+                    client.ReceiveTimeout = 3000;
+                    client.SendTimeout = 3000;
+
+                    string remote = (client.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "";
+                    NetworkStream stream = client.GetStream();
+
+                    byte[] buffer = new byte[8192];
+                    int total = 0;
+                    int headerEnd = -1;
+
+                    while (total < buffer.Length && headerEnd < 0)
+                    {
+                        int read = stream.Read(buffer, total, buffer.Length - total);
+
+                        if (read <= 0)
+                        {
+                            break;
+                        }
+
+                        total += read;
+                        headerEnd = Encoding.ASCII.GetString(buffer, 0, total).IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                    }
+
+                    string head = Encoding.UTF8.GetString(buffer, 0, total);
+                    string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
+                    string[] requestLine = (lines.Length > 0 ? lines[0] : "").Split(' ');
+                    string method = requestLine.Length > 0 ? requestLine[0] : "";
+                    string target = requestLine.Length > 1 ? requestLine[1] : "";
+                    string body = headerEnd >= 0 && headerEnd + 4 <= head.Length ? head.Substring(headerEnd + 4) : "";
+
+                    int queryStart = target.IndexOf('?');
+                    string path = (queryStart >= 0 ? target.Substring(0, queryStart) : target).ToLowerInvariant();
+                    string query = queryStart >= 0 ? target.Substring(queryStart + 1) : "";
+
+                    System.Collections.Generic.Dictionary<string, string> parameters =
+                        ParseFormPairs(query + "&" + body);
+
+                    bool fromDnake = remote == DnakeIp;
+                    bool tokenOk =
+                        parameters.TryGetValue("k", out string? suppliedToken) &&
+                        FixedTimeEquals(suppliedToken ?? "", PushToken);
+
+                    // Il token non finisce mai nei log.
+                    string safeTarget = System.Text.RegularExpressions.Regex.Replace(
+                        target, @"([?&]k=)[^&\s]*", "$1***"
+                    );
+
+                    AppendPushLog(
+                        remote + " " + method + " " + safeTarget +
+                        (string.IsNullOrWhiteSpace(body) ? "" : " BODY=" + System.Text.RegularExpressions.Regex.Replace(body.Trim(), @"(^|&)k=[^&]*", "$1k=***")) +
+                        " dnakeIp=" + fromDnake + " token=" + tokenOk
+                    );
+
+                    if (!fromDnake || !tokenOk)
+                    {
+                        WritePushResponse(stream, 403, "forbidden");
+                        return;
+                    }
+
+                    System.Threading.Interlocked.Increment(ref pushEventCount);
+                    System.Threading.Interlocked.Exchange(ref lastPushTicks, DateTime.Now.Ticks);
+
+                    // Risposta subito: il DNake non deve restare in attesa del BodyGate.
+                    WritePushResponse(stream, 200, "ok");
+
+                    if (!PushLive || !path.StartsWith("/dnake-event", StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+
+                    string credential = ExtractPushCredential(parameters);
+
+                    if (string.IsNullOrWhiteSpace(credential))
+                    {
+                        Log("Push DNake senza codice credenziale riconoscibile (" + safeTarget + "): ignorato.");
+                        return;
+                    }
+
+                    string unlockType = path.Contains("qr") ? "6" : "0";
+
+                    ProcessBadgeFromDnakeSql(new DnakeUnlockEvent
+                    {
+                        Number = credential,
+                        RawNumber = credential,
+                        TimeText = DateTime.Now.ToString("s"),
+                        TimeSec = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                        UnlockType = unlockType,
+                        Status = path.Contains("invalid") ? "-1" : "1",
+                        EventKey = "push:" + DateTime.Now.Ticks + ":" + credential
+                    });
+                }
+                catch (Exception ex)
+                {
+                    DebugLog("Errore connessione push: " + ex.Message);
+                }
+            }
+        }
+
+        private static string ExtractPushCredential(System.Collections.Generic.Dictionary<string, string> parameters)
+        {
+            if (!string.IsNullOrWhiteSpace(PushCardParam))
+            {
+                return parameters.TryGetValue(PushCardParam, out string? configured) ? configured.Trim() : "";
+            }
+
+            foreach (string name in new[] { "card", "card_no", "cardno", "card_number", "number", "code", "qrcode", "qrcode_data", "data" })
+            {
+                if (parameters.TryGetValue(name, out string? value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return value.Trim();
+                }
+            }
+
+            return "";
+        }
+
+        private static System.Collections.Generic.Dictionary<string, string> ParseFormPairs(string text)
+        {
+            System.Collections.Generic.Dictionary<string, string> result =
+                new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string pair in text.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                int eq = pair.IndexOf('=');
+                string key = Uri.UnescapeDataString((eq >= 0 ? pair.Substring(0, eq) : pair).Replace('+', ' '));
+                string value = eq >= 0 ? Uri.UnescapeDataString(pair.Substring(eq + 1).Replace('+', ' ')) : "";
+
+                if (key.Length > 0 && !result.ContainsKey(key))
+                {
+                    result[key] = value;
+                }
+            }
+
+            return result;
+        }
+
+        private static bool FixedTimeEquals(string a, string b)
+        {
+            return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(a),
+                Encoding.UTF8.GetBytes(b)
+            );
+        }
+
+        private static void WritePushResponse(NetworkStream stream, int status, string text)
+        {
+            byte[] payload = Encoding.UTF8.GetBytes(text);
+            string header =
+                "HTTP/1.1 " + status + (status == 200 ? " OK" : " Forbidden") + "\r\n" +
+                "Content-Type: text/plain\r\nContent-Length: " + payload.Length + "\r\nConnection: close\r\n\r\n";
+            byte[] headerBytes = Encoding.ASCII.GetBytes(header);
+            stream.Write(headerBytes, 0, headerBytes.Length);
+            stream.Write(payload, 0, payload.Length);
+        }
+
+        private static readonly object pushLogLock = new object();
+
+        private static void AppendPushLog(string line)
+        {
+            lock (pushLogLock)
+            {
+                try
+                {
+                    File.AppendAllText(PushLogFile, "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "] " + line + Environment.NewLine);
+                }
+                catch
+                {
+                }
+            }
+        }
+
         private static void StartHttpServer()
         {
             Thread thread = new Thread(() =>
@@ -1291,7 +1670,7 @@ if (!listener.IsListening)
                             ok = true,
                             service = "BodyGateBridge",
                             version = Version,
-                            mode = "dnake-sql-polling",
+                            mode = DnakeLogIsSqlite ? "dnake-sql-polling" : "dnake-txt-polling",
                             dnakeDbUrl = DnakeDbUrl,
                             controllerIp = ControllerIp,
                             pollingStarted,
@@ -1309,6 +1688,12 @@ if (!listener.IsListening)
                             dnakeDbExpectedBytes = lastDbExpectedBytes,
                             dnakeDbReceivedBytes = lastDbReceivedBytes,
                             dnakeDbPartial = lastDbPartial,
+                            pushListening,
+                            pushMode = PushLive ? "live" : "discover",
+                            pushEventCount = System.Threading.Interlocked.Read(ref pushEventCount),
+                            lastPushEvent = lastPushTicks == 0
+                                ? ""
+                                : new DateTime(System.Threading.Interlocked.Read(ref lastPushTicks)).ToString("s"),
                             uptimeSeconds = (int)(DateTime.Now - ProcessStartTime).TotalSeconds
                         }
                     );
@@ -1402,18 +1787,6 @@ if (!listener.IsListening)
             context.Response.ContentLength64 = buffer.Length;
             context.Response.OutputStream.Write(buffer, 0, buffer.Length);
             context.Response.OutputStream.Close();
-        }
-
-        private static string EnvOrDefault(string name, string fallback)
-        {
-            string? value = Environment.GetEnvironmentVariable(name)?.Trim();
-            return string.IsNullOrWhiteSpace(value) ? fallback : value;
-        }
-
-        private static long EnvLong(string name, long fallback)
-        {
-            string? value = Environment.GetEnvironmentVariable(name)?.Trim();
-            return long.TryParse(value, out long parsed) && parsed > 0 ? parsed : fallback;
         }
 
         private static string EscapeJson(string value)
