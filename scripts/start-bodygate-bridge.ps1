@@ -1,5 +1,5 @@
 param(
-    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.3-performance\BodyGateBridge.exe",
+    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.6-txt\BodyGateBridge.exe",
     [string]$EnvFile = "C:\bodygate-admin\.env.local",
     [string]$LogDirectory = "C:\bodygate-admin\logs"
 )
@@ -62,49 +62,105 @@ function Read-EnvValue {
     return $null
 }
 
-if (-not (Test-Path $BridgePath)) {
-    Write-BridgeLog "ERRORE: eseguibile non trovato: $BridgePath"
-    throw "BodyGate Bridge non trovato."
+# Never exit on a missing exe/key: the scheduled task would end and nothing
+# restarts it. Keep retrying so the bridge comes up as soon as it is fixed.
+$machineKey = $null
+while ($true) {
+    if (-not (Test-Path $BridgePath)) {
+        Write-BridgeLog "ERRORE: eseguibile non trovato: $BridgePath. Riprovo tra 30 secondi."
+    }
+    else {
+        try {
+            $machineKey = Read-EnvValue `
+                -Path $EnvFile `
+                -Name "BODYGATE_MACHINE_KEY"
+        }
+        catch {
+            Write-BridgeLog "ERRORE: $($_.Exception.Message). Riprovo tra 30 secondi."
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($machineKey)) {
+            break
+        }
+
+        Write-BridgeLog "ERRORE: BODYGATE_MACHINE_KEY non configurata. Riprovo tra 30 secondi."
+    }
+
+    Start-Sleep -Seconds 30
 }
-
-$machineKey = Read-EnvValue `
-    -Path $EnvFile `
-    -Name "BODYGATE_MACHINE_KEY"
-
-if ([string]::IsNullOrWhiteSpace($machineKey)) {
-    Write-BridgeLog "ERRORE: BODYGATE_MACHINE_KEY non configurata."
-    throw "BODYGATE_MACHINE_KEY non configurata."
-}
-
-$expectedPath = [System.IO.Path]::GetFullPath($BridgePath)
 
 while ($true) {
-    $existingBridge = Get-CimInstance Win32_Process `
-        -Filter "Name = 'BodyGateBridge.exe'" `
-        -ErrorAction SilentlyContinue |
-    Where-Object {
-        $_.ExecutablePath -and
-        [System.IO.Path]::GetFullPath($_.ExecutablePath) -eq $expectedPath
-    } |
-    Select-Object -First 1
-
-    if ($existingBridge) {
-        Write-BridgeLog (
-            "Bridge già attivo. PID: {0}. Attendo la sua chiusura." -f
-            $existingBridge.ProcessId
-        )
-
-        Wait-Process `
-            -Id $existingBridge.ProcessId `
+    # A bridge still running when this script starts is an orphan: the task
+    # was ended/restarted (schtasks /End only stops this script, not the child
+    # exe) and nobody supervises it. Waiting for it would make every restart a
+    # no-op while a stuck bridge keeps holding port 5050, so terminate it and
+    # start a fresh instance. Any BodyGateBridge.exe is stopped, whatever its
+    # path, because an older release would also hold the port.
+    $existingBridges = @(
+        Get-CimInstance Win32_Process `
+            -Filter "Name = 'BodyGateBridge.exe'" `
             -ErrorAction SilentlyContinue
+    )
 
-        Write-BridgeLog "Bridge arrestato. Riavvio tra 3 secondi."
+    if ($existingBridges.Count -gt 0) {
+        foreach ($existingBridge in $existingBridges) {
+            Write-BridgeLog (
+                "Bridge orfano trovato. PID: {0}. Lo termino per avviare un'istanza pulita." -f
+                $existingBridge.ProcessId
+            )
+
+            Stop-Process `
+                -Id $existingBridge.ProcessId `
+                -Force `
+                -ErrorAction SilentlyContinue
+
+            Wait-Process `
+                -Id $existingBridge.ProcessId `
+                -Timeout 10 `
+                -ErrorAction SilentlyContinue
+        }
+
+        # If a process refused to die this retries (and logs) every 3s, not in a hot loop.
         Start-Sleep -Seconds 3
         continue
     }
 
     try {
         $env:BODYGATE_MACHINE_KEY = $machineKey
+
+        # Optional: ntfy alerts topic. Kept out of the source tree (the repo may
+        # be public); without it the bridge simply runs with alerts disabled.
+        try {
+            $ntfyTopic = Read-EnvValue `
+                -Path $EnvFile `
+                -Name "BODYGATE_NTFY_TOPIC"
+        }
+        catch {
+            $ntfyTopic = $null
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($ntfyTopic)) {
+            $env:BODYGATE_NTFY_TOPIC = $ntfyTopic
+        }
+        else {
+            Write-BridgeLog "ATTENZIONE: BODYGATE_NTFY_TOPIC non presente in .env.local, alert ntfy disattivati."
+        }
+
+        # Optional: push degli eventi dal DNake (V3.9.5+) e impostazioni del registro
+        # (BODYGATE_DNAKE_LOG_FORMAT=sqlite|txt, BODYGATE_DNAKE_IP). Senza BODYGATE_PUSH_BIND il
+        # canale push resta spento e il bridge lavora solo in polling.
+        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM", "BODYGATE_DNAKE_LOG_FORMAT", "BODYGATE_DNAKE_IP")) {
+            try {
+                $pushValue = Read-EnvValue -Path $EnvFile -Name $pushName
+            }
+            catch {
+                $pushValue = $null
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace($pushValue)) {
+                Set-Item -Path "Env:$pushName" -Value $pushValue
+            }
+        }
 
         Write-BridgeLog "Avvio Bridge ufficiale: $BridgePath"
 
