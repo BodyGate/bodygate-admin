@@ -1,177 +1,104 @@
-# Lettura badge DNake: progetto di ripristino e messa in servizio
+# DNake: lettura badge, messa in servizio e manutenzione
 
-Stato: bozza per approvazione, 19 ottobre 2026. Proprietario: gestione BodyGate.
+Stato al 26 ottobre 2026. Sostituisce le note di progetto precedenti (che descrivevano un firmware
+e un formato di registro non piu' in uso).
 
-## 1. Obiettivo e requisiti
+## 1. Come funziona oggi
 
-Rimettere in servizio il DNake in modo che il tornello legga i badge in modo
-stabile nel tempo, senza interventi manuali.
+```
+badge/QR -> DNake AC02C (192.168.1.58) -> /data/unlock_sql.db
+                                              |  letto ogni 100 ms dal bridge
+                                              v
+                 Bridge V3.9.6-TXT (C:\BodyGateBridge_Releases\V3.9.6-txt)
+                                              |  POST /api/access/check
+                                              v
+                      BodyGate (regole: abbonamento, quota, certificato)
+                                              |  se consentito
+                                              v
+                  Bridge -> controller KT02.3 (192.168.1.251) -> tornello
+```
 
-| Requisito | Valore da rispettare | Come si verifica |
+- Firmware del DNake: **`170AC.2.0.16_GA_20260306`** (aggiornato dal cloud il 23/10/2026, ~15:20).
+  Con questo firmware il registro e' di nuovo il database SQLite `unlock_sql.db` e i QR si generano in locale.
+  Il firmware di fabbrica `170AC.Cloud.V1.8.10` scriveva invece `unlock.txt` e non generava QR.
+- Il bridge legge il formato indicato da `BODYGATE_DNAKE_LOG_FORMAT` in `.env.local`
+  (`sqlite` oggi; `txt` per `unlock.txt`).
+- Il bridge parte dal task pianificato **`BodyGate Bridge`** tramite `scripts/start-bodygate-bridge.ps1`,
+  che carica le variabili da `.env.local`. Il riavvio si fa SOLO cosi':
+
+  ```
+  schtasks /End /TN "BodyGate Bridge"
+  Get-CimInstance Win32_Process -Filter "Name='BodyGateBridge.exe'" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+  schtasks /Run /TN "BodyGate Bridge"
+  Invoke-RestMethod http://127.0.0.1:5050/status
+  ```
+
+  Mai riavviare a mano con variabili temporanee in una finestra PowerShell: al primo riavvio del PC si
+  perdono (cosi' si e' rotto il tornello il 26/10/2026).
+
+## 2. Variabili in `.env.local` (non versionato)
+
+| Variabile | Valore | Note |
 |---|---|---|
-| Velocita' di apertura | badge -> tornello aperto, p95 < 1 s e non peggio dell'attuale | timestamp a ogni passo, misurati prima e dopo |
-| Carico sul DNake | nessun download completo continuo; file sempre sotto il 70 % del limite | dimensione file nei log del bridge |
-| Registro storico | tutti gli accessi su BodyGate; il DNake e' solo un buffer | confronto giornaliero DNake/BodyGate |
-| Continuita' | se qualcosa si ferma: avviso in dashboard e Telegram/ntfy, apertura manuale sempre disponibile | prova di guasto simulata |
-| Sicurezza | niente password predefinite, chiave dedicata per gli eventi, segreti non nei log | revisione a fine fase |
+| `BODYGATE_MACHINE_KEY` | segreto | obbligatoria |
+| `BODYGATE_DNAKE_LOG_FORMAT` | `sqlite` | `txt` solo per il firmware Cloud V1.8.10 |
+| `BODYGATE_DNAKE_IP` | `192.168.1.58` | default del bridge |
+| `DNAKE_IP`, `DNAKE_USERNAME`, `DNAKE_PASSWORD_MD5` | pannello | usate dal gestionale per i QR |
+| `BODYGATE_NTFY_TOPIC` | opzionale | avvisi sul telefono |
+| `BODYGATE_PUSH_*` | opzionali | eventi push del bridge (modo `discover`: solo registrazione) |
 
-## 2. Cosa e' accaduto (verificato)
+## 3. Il pericolo: il file del DNake supera ~284 KB
 
-- Dall'8 ottobre 2026 i badge non vengono letti.
-- Causa: il server web del DNake consegna `unlock_sql.db` troncato a 290816 byte
-  quando il file e' piu' grande (era 318464); SQLite lo giudica corrotto.
-- Il bridge scaricava il file intero ogni 100 ms e i registri non venivano mai
-  potati. "Elimina tutto" dal pannello rispondeva "riuscito" ma il file non
-  si riduceva.
-- Il bridge risultava "online" perche' rispondeva anche senza leggere badge.
+Il server web del DNake (`mini_httpd`) consegna `unlock_sql.db` **troncato a 290816 byte**; SQLite lo giudica
+corrotto e il bridge smette di leggere i badge (e' successo l'8 ottobre 2026: file da 318 KB).
 
-## 2b. Esiti della fase 0 sul DNake nuovo (21 ottobre 2026, 192.168.1.58)
+- Il registro ha circa 88 byte a riga: il limite arriva a circa **3300 righe**.
+- Il pannello ha capienza 100000 righe: la sovrascrittura circolare ("Delete Log When Storage Full: 300")
+  scatterebbe molto dopo il blocco. **Non basta.**
+- **Impostazione adottata (26/10/2026):** Access > Access Control > Log Storage >
+  `Delete Old Logs Periodically`, durata **10080 minuti (7 giorni)**. A 40-60 passaggi al giorno restano
+  ~300-420 righe (30-40 KB).
+- **Da verificare alla prima potatura (circa 30/10/2026):** il bridge deve continuare a leggere. Se il
+  DNake eliminasse l'intera tabella e ripartisse da capo, il bridge potrebbe ignorare i nuovi eventi.
+  Controllo: passaggio di prova e `Invoke-RestMethod http://127.0.0.1:5050/status` (lastBadge, pollHealthy).
+- Controllo periodico: `(Invoke-WebRequest http://192.168.1.58/data/unlock_sql.db -Method Head -UseBasicParsing).Headers["Content-Length"]`
+  (oggi ~8192; allarme se sopra 200000).
 
-Verificati (sola lettura, nessun login):
-- Server `mini_httpd/1.30`; `/data/unlock_sql.db` **non esiste** (404): il firmware
-  nuovo non usa piu' il database SQLite.
-- `/data/` e' un indice pubblico: `unlock.txt`, `users.xml`, `contacts.xml`, `groups.xml`.
-- `/data/unlock.txt` = registro passaggi in testo, piu' recente in cima, 228 righe,
-  9980 byte, risposta 2-28 ms, `Last-Modified` coerente con l'ultima riga
-  (risoluzione 1 s), niente ETag, niente Range. Formato riga:
-  `,,-1,<tipo>,<numero>,-1,-1,<AAAA-MM-GG hh:mm:ss>,-1` (tipo 0 = badge, 1 = codice).
-- Il pannello nuovo **non ha la pagina "Evento HTTP"** (nessun testo relativo
-  nei file dell'interfaccia): il piano con eventi in uscita dal DNake **non e' possibile**
-  su questo firmware.
-- Registro con sovrascrittura circolare ("Event Storage / Circular Overwrite
-  Records"): il file e' limitato dal numero massimo di righe (valore da leggere dal pannello).
-- Il bridge in produzione e' V3.9.5-push (avviato il 14/10), ancora puntato al
-  vecchio DNake 192.168.1.22; in `.env.local` il push e' in modalita' `discover`.
+## 4. Salute reale del bridge
 
-- Firmware di riferimento: `170AC.Cloud.V1.8.10_GA_20250612` (AC02C, UI 1.1.0 20250610,
-  Framework 1.0.0 20250609, MCU 1.1.7), MAC `BC:F8:11:59:00:45`. Da non aggiornare senza ripetere la fase 0.
-- DHCP abilitato: prima della messa in servizio riservare l'IP sul router per quel MAC
-  (o impostare un IP fisso), altrimenti un cambio di indirizzo ferma il bridge.
-- Password predefinite: lasciate in fase di messa a punto per scelta del proprietario;
-  **da cambiare prima dell'ingresso in produzione** (condizione della fase 3).
+"ONLINE" nel launcher o in dashboard significa solo che il bridge risponde. La salute vera e':
 
-Prova con badge dal vivo (22/10/2026, `scripts/dnake-unlocktxt-watch.ps1`):
-- La riga compare subito (rilevata ~0,1 s dopo la scrittura); il numero coincide con
-  BodyGate (`4d0060f107` -> `6353159`, parte finale del codice in decimale): H8 ok.
-- Due passaggi dello stesso badge a pochi secondi producono due righe: H9 ok.
-- Un badge vergine/non registrato compare comunque con il suo numero: H7 ok (il
-  bridge puo' registrarlo come "badge sconosciuto" e proporlo per l'assegnazione).
-- Registro: tetto di **300 righe** (Event Storage), circa 14 KB. Con 288 righe il
-  tetto e' vicino: osservare cosa fa al giro (toglie una riga o un blocco).
+```
+Invoke-RestMethod http://127.0.0.1:5050/status | Select-Object version,mode,dnakeDbUrl,pollHealthy,consecutivePollFailures,lastPollError,lastBadge
+```
 
-Conseguenze di progetto:
-- A registro pieno la dimensione resta quasi costante: il cambio non si riconosce
-  dalla lunghezza ma da Last-Modified (risoluzione 1 s) e dalla testa del file.
-  Controllo: HEAD ogni 250 ms, scarico se cambia Last-Modified/lunghezza, e scarico
-  di sicurezza ogni 2 s (file da ~14 KB, 2-28 ms).
-- Righe nuove = quelle sopra la testa precedente (3 righe consecutive); funziona
-  anche se il DNake scarta righe vecchie.
-- All'avvio il bridge parte dalla testa attuale e NON apre per righe vecchie; il
-  recupero dopo un fermo registra solo (mai aperture da eventi vecchi).
-- La soglia "70 % di 284 KB" non si applica al DNake nuovo: l'allarme e' sul
-  polling sano e sull'eta' dell'ultima lettura riuscita.
-- Il registro conserva solo ~300 passaggi: BodyGate deve leggerlo con continuita'.
+Atteso: `V3.9.6-TXT`, `dnake-sql-polling`, `unlock_sql.db`, `pollHealthy: True`, 0 errori.
+Il log del bridge e' in `C:\BodyGateBridge_Releases\V3.9.6-txt\logs\bridge.log` (non in `logs\` del repo).
 
-Da provare con un badge dal vivo: `scripts/dnake-unlocktxt-watch.ps1`.
+## 5. Esiti nel log e cosa significano
 
-## 3. Decisione di progetto
+| Log | Significato |
+|---|---|
+| `ESITO: CONSENTITO` + `TORNELLO APERTO` | tutto regolare |
+| `NEGATO` + motivo | decisione di BodyGate (abbonamento, quota, certificato, blocco): non e' un guasto |
+| `Cliente non identificato` | etichetta del bridge: guarda il `Motivo`; per i QR il codice e' l'ID utente del DNake |
+| `Download registro DNake fallito: HTTP 404` | formato sbagliato (`txt` col firmware 2.0.16) o DNake irraggiungibile |
+| `database disk image is malformed` | file troncato: vedi sezione 3 |
 
-1. **BodyGate e' il registro**; il DNake e' un buffer di breve durata.
-2. **Il DNake pota da solo i suoi log** con la funzione nativa (manuale AC02:
-   Accesso > Controllo accessi > Tipo di archiviazione log > elimina vecchi log
-   periodicamente, 10-86400 min). Nessuno script di cancellazione notturno
-   come meccanismo principale.
-3. **Il bridge non scarica piu' il file di continuo**: controllo leggero della
-   dimensione/ETag (HEAD) ogni 200-300 ms, scarico solo se cambia.
-4. **Evento HTTP: scartato** sul firmware nuovo (la pagina non esiste). Il
-   percorso e' il controllo di `/data/unlock.txt` (HEAD leggero + scarico solo se
-   cambia, piu' un controllo di sicurezza periodico).
-5. **Allarmi sulla salute reale** (non solo "il bridge risponde").
+## 6. Punti aperti
 
-Quello che NON si fa: affidare l'apertura a una funzione non provata.
+- Primo controllo della potatura dei log (30/10/2026, promemoria impostato).
+- Misura dei ~2 s tra rilevazione e risposta di BodyGate (obiettivo: sotto 1 s dal badge al tornello).
+- Password predefinite del DNake (`admin`/`123456`) da cambiare; IP `192.168.1.58` da riservare sul router
+  (DHCP attivo) per il MAC `BC:F8:11:59:00:45`.
+- `/data/` del DNake espone senza password `users.xml` e simili sulla rete interna.
+- Storico accessi mancante in BodyGate dal 9 al 21 ottobre 2026 (giorni del blocco).
+- Abbonamento di prova di Giuseppe Pisacane (id `c8a927e9-27fc-4cea-9a66-bf6cc32d5180`, fino al 30/11/2026): eliminabile.
 
-## 4. Ipotesi da provare (non ancora verificate)
+## 7. Cronologia
 
-| # | Ipotesi | Se falsa |
-|---|---|---|
-| H1 | L'eliminazione periodica dei log riduce davvero il file `unlock_sql.db` | riavvio programmato o azzeramento dal pannello; in ultimo, script con login API (formato login ancora ignoto) |
-| H2 | Il file risponde a HEAD con una dimensione/ETag affidabile | controllo ogni 1 s con download breve; rivedere la latenza |
-| H3 | L'Evento HTTP contiene il numero badge | **chiusa**: la pagina non esiste nel firmware nuovo |
-| H4 | Numero badge stabile con le impostazioni di lettura fissate (modalita', ordine, formato) | riallineare i badge dei clienti |
-| H5 | Autenticazione intervallo a 0 non blocca passaggi ripetuti | regolare |
-| H6 | Il firmware nuovo non ha il limite di 284 KB | **in gran parte chiusa**: niente database, file di testo da ~10 KB; resta da leggere il numero massimo di righe |
-| H7 | I badge NON registrati nel DNake compaiono in `unlock.txt` | se non compaiono, BodyGate non vede i badge sconosciuti: da valutare |
-| H8 | Il numero in `unlock.txt` coincide con il badge in BodyGate (formato, ordine, esadecimale/decimale) | fissare Card Display/Order e riprovare |
-| H9 | Due passaggi nello stesso secondo producono due righe | controllo con scaricamento a ogni cambio |
-
-## 5. Piano a fasi con criteri
-
-Ogni fase ha un'uscita verificabile e un rientro. Non si passa alla successiva
-senza il criterio soddisfatto.
-
-**Fase 0 - Prove sul DNake nuovo (192.168.1.58), fuori produzione**
-- Fare: H1-H5; cambiare password; annotare firmware; esportare configurazione;
-  NTP e fuso orario.
-- Strumento: `scripts/dnake-phase0-probe.ps1` (PC reception, PowerShell).
-  `-Mode File` verifica come il DNake serve il file (HEAD, dimensione, ETag, H2);
-  `-Mode Listen -Port 8089` (come amministratore, con regola firewall) mostra cosa
-  invia l'Evento HTTP e se contiene il numero badge (H3). Rapporti sul Desktop.
-- Uscita: tabella delle ipotesi compilata con esito e prova (dimensioni file,
-  screenshot, log).
-- Rientro: nulla da ripristinare, il DNake non e' in produzione.
-
-**Fase 1 - Bridge e server (senza toccare il tornello)**
-- Bridge: IP/credenziali da variabili d'ambiente; limite e soglia unica al 70 %;
-  controllo leggero; log giornaliero della dimensione.
-- Server: `/api/dnake/event` con chiave dedicata, anti-doppione, segreti
-  oscurati; allarme se non arrivano eventi.
-- Uscita: test automatici verdi; misura della latenza di riferimento sul
-  sistema attuale.
-- Rientro: versione precedente del bridge (V3.9.4) conservata.
-
-**Fase 2 - Una settimana in parallelo**
-- Il DNake nuovo e' collegato in sola lettura; si confrontano ogni giorno i
-  suoi registri con BodyGate.
-- Uscita: zero badge persi, latenza nel requisito, file del DNake sotto la
-  soglia dopo la potatura.
-
-**Fase 3 - Passaggio**
-- Spostare il bridge sul DNake nuovo con apertura manuale presidiata per 48 ore.
-- Uscita: 48 ore senza avvisi; confronto registri a zero differenze; password
-  predefinite cambiate; IP del DNake fisso o riservato.
-- Rientro: ripristino configurazione precedente e apertura manuale.
-
-## 6. Monitoraggio e manutenzione
-
-- Cruscotto reception: livelli ok / preavviso / critico (`bridgeHealth.ts`).
-- Soglia unica al 70 % del limite (290816 byte): segnala che la potatura non funziona; il polling fermo resta l'allarme critico.
-- Controllo mensile: dimensione file, ora del DNake, avvisi dell'ultimo mese.
-- Aggiornamenti firmware: solo dopo prova su banco e ripetizione della fase 0.
-- Backup della configurazione del DNake dopo ogni modifica.
-
-## 7. Rischi
-
-| Rischio | Probabilita' | Impatto | Mitigazione |
-|---|---|---|---|
-| File del DNake supera il limite | media | tornello fermo | potatura nativa + soglie + avviso |
-| Pulizia non riduce il file | media | tornello fermo a distanza | prova H1 prima del passaggio |
-| Aggiornamento firmware cambia il comportamento | media | blocco | firmware fissato, prova su banco |
-| Credenziali predefinite | alta | accesso non autorizzato | cambio in fase 0 |
-| Latenza di apertura peggiora | bassa | disagio clienti | misura e rientro |
-| Bridge "online" ma cieco | gia' accaduto | tornello fermo | allarme su salute reale |
-
-## 8. Stato lavori
-
-Fatti: bridge V3.9.4 con lettura parziale e allarmi; auto-riparazione;
-avviso in dashboard; script di pulizia e documentazione operativa.
-
-Da fare: fase 0 sul DNake nuovo; configurazione del bridge; rafforzamento
-`/api/dnake/event`; misura della latenza; pulizia sul PC (regola firewall
-`test-dnake-8089`, cartelle temporanee, password del portale cloud).
-
-## 9. Riferimenti
-
-- Manuale DNAKE AC02 V2.0: pagina Web > Accesso > Controllo accessi (tipo di
-  archiviazione dei log, modalita' lettura carta, autenticazione intervallo),
-  Avanzate > Evento HTTP, Sistema (backup, firmware, riavvio).
-- `docs/OPERATIONS.md`: auto-riparazione, database troncato, svuotamento log.
+- 8 ott 2026: blocco del bridge (file `unlock_sql.db` troncato a 284 KB sul vecchio DNake).
+- 22 ott: sostituzione del DNake (192.168.1.58, firmware Cloud V1.8.10, registro `unlock.txt`); bridge V3.9.6-TXT.
+- 23 ott ~15:20: aggiornamento firmware a 2.0.16 dal cloud (QR di nuovo disponibile, registro `unlock_sql.db`).
+- 26 ott: tornello fermo per riavvio con lo script di avvio non versionato (V3.9.3, vecchio DNake); ripristino,
+  PR 328 e 330 unite a `main`, PC riallineato, potatura log impostata a 7 giorni.
