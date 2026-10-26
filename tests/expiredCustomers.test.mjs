@@ -63,6 +63,11 @@ class FakeQuery {
   then(resolve, reject) {
     try {
       this.db.reads += 1;
+      if (this.updateValues && this.db.beforeUpdate) {
+        const hook = this.db.beforeUpdate;
+        this.db.beforeUpdate = null;
+        hook(this.db);
+      }
       let rows = this.db.tables[this.table].filter((r) => this.filters.every((f) => f(r)));
       if (this.updateValues) {
         rows.forEach((r) => Object.assign(r, this.updateValues));
@@ -76,8 +81,8 @@ class FakeQuery {
   }
 }
 
-function fakeDb({ customers, subscriptions, failOn = null }) {
-  const db = { tables: { customers, customer_subscriptions: subscriptions }, reads: 0, updates: 0, failOn };
+function fakeDb({ customers, subscriptions, failOn = null, beforeUpdate = null }) {
+  const db = { tables: { customers, customer_subscriptions: subscriptions }, reads: 0, updates: 0, failOn, beforeUpdate };
   db.from = (table) => new FakeQuery(db, table);
   return db;
 }
@@ -148,4 +153,33 @@ test("a database error aborts before any update", async () => {
   );
   assert.equal(db.updates, 0);
   assert.equal(db.tables.customers[0].active, true);
+});
+
+test("expiry extended between the read and the write: the customer is not expired", async () => {
+  const db = fakeDb({
+    customers: [customer("a"), customer("b")],
+    subscriptions: [],
+    // e.g. contract signing extends "a" right after the candidate read
+    beforeUpdate: (d) => {
+      d.tables.customers.find((c) => c.id === "a").subscription_expiry = "2027-06-01T00:00:00+00:00";
+    },
+  });
+  const out = await runExpiredCustomersCheck(db, { nowIso: NOW, todayIso: TODAY, dryRun: false });
+
+  assert.deepEqual(out.toExpire.map((c) => c.id), ["a", "b"]);
+  assert.deepEqual(out.expired.map((c) => c.id), ["b"]);
+  assert.equal(db.tables.customers.find((c) => c.id === "a").active, true);
+  assert.equal(db.tables.customers.find((c) => c.id === "b").active, false);
+});
+
+test("a customer already expired between the read and the write is not touched twice", async () => {
+  const db = fakeDb({
+    customers: [customer("a")],
+    subscriptions: [],
+    beforeUpdate: (d) => {
+      d.tables.customers[0].subscription_status = "expired";
+    },
+  });
+  const out = await runExpiredCustomersCheck(db, { nowIso: NOW, todayIso: TODAY, dryRun: false });
+  assert.deepEqual(out.expired, []);
 });

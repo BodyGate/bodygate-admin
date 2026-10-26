@@ -118,9 +118,16 @@ export async function runExpiredCustomersCheck(
   // dry run only reports what would change: lets the owner see the effect
   // before the irreversible update.
   for (let i = 0; !options.dryRun && i < toExpire.length; i += chunkSize) {
+    // The expiry predicates are repeated on the write: a customer whose expiry
+    // was extended (e.g. contract signing) after the candidate read is left
+    // alone. A renewal that inserts a subscription row in that same instant is
+    // not covered (PostgREST has no cross-table atomic update); the window is
+    // the few milliseconds between the read and this write.
     const { data, error } = await db
       .from("customers")
       .update({ subscription_status: "expired", active: false })
+      .lt("subscription_expiry", options.nowIso)
+      .neq("subscription_status", "expired")
       .in(
         "id",
         toExpire.slice(i, i + chunkSize).map((c) => c.id)
