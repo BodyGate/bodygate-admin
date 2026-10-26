@@ -146,9 +146,10 @@ while ($true) {
             Write-BridgeLog "ATTENZIONE: BODYGATE_NTFY_TOPIC non presente in .env.local, alert ntfy disattivati."
         }
 
-        # Optional: push degli eventi dal DNake (V3.9.5+). Senza BODYGATE_PUSH_BIND il
+        # Optional: push degli eventi dal DNake (V3.9.5+) e impostazioni del registro
+        # (BODYGATE_DNAKE_LOG_FORMAT=sqlite|txt, BODYGATE_DNAKE_IP). Senza BODYGATE_PUSH_BIND il
         # canale push resta spento e il bridge lavora solo in polling.
-        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM")) {
+        foreach ($pushName in @("BODYGATE_PUSH_BIND", "BODYGATE_PUSH_PORT", "BODYGATE_PUSH_TOKEN", "BODYGATE_PUSH_MODE", "BODYGATE_PUSH_CARD_PARAM", "BODYGATE_DNAKE_LOG_FORMAT", "BODYGATE_DNAKE_IP")) {
             try {
                 $pushValue = Read-EnvValue -Path $EnvFile -Name $pushName
             }
