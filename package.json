@@ -23,7 +23,8 @@
     "qa:access-eligibility": "node --experimental-strip-types --test tests/accessEligibility.test.mjs",
     "qa:payment-method": "node --experimental-strip-types --test tests/paymentMethod.test.mjs",
     "qa:dnake-panel": "node --experimental-strip-types --test tests/dnakePanel.test.mjs",
-    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel"
+    "qa:expired-customers": "node --experimental-strip-types --test tests/expiredCustomers.test.mjs",
+    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
