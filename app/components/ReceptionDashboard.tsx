@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
-import { BGButton, BGCard, BGEmptyState, BGInput, BGPageHeader, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
+import { BGAlertCard, BGButton, BGCard, BGEmptyState, BGInput, BGPageHeader, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { adaptReceptionCustomer } from "@/architecture/platinum-runtime-adapters";
 
 type Customer = {
@@ -709,18 +709,9 @@ export default function ReceptionDashboard() {
                       )}
                     </div>
 
-                    <div
-                      style={{
-                        ...statusBadgeStyle,
-                        color: isAllowed(log) ? "#22c55e" : "var(--danger)",
-                        borderColor: isAllowed(log) ? "#22c55e" : "var(--danger)",
-                        background: isAllowed(log)
-                          ? "rgba(34,197,94,0.12)"
-                          : "rgba(214,49,74,0.12)",
-                      }}
-                    >
+                    <BGStatusBadge tone={isAllowed(log) ? "success" : "danger"}>
                       {isAllowed(log) ? "OK" : "NEGATO"}
-                    </div>
+                    </BGStatusBadge>
                   </div>
                 );
               })}
@@ -770,16 +761,7 @@ export default function ReceptionDashboard() {
                           {log.reason || "Motivo non disponibile"}
                         </div>
                       </div>
-                      <span
-                        style={{
-                          ...statusBadgeStyle,
-                          color: "var(--danger)",
-                          borderColor: "var(--danger)",
-                          background: "rgba(214,49,74,0.12)",
-                        }}
-                      >
-                        NEGATO
-                      </span>
+                      <BGStatusBadge tone="danger">NEGATO</BGStatusBadge>
                     </div>
                   );
                 })}
@@ -830,52 +812,36 @@ function BridgeStatusCard({
   onRefresh: () => Promise<void>;
 }) {
   const isWarning = status.processing || (status.online && !status.connected);
-  const tone = status.online ? (isWarning ? "warning" : "online") : "offline";
-  const color =
-    tone === "online" ? "#22c55e" : tone === "offline" ? "#d6314a" : "#f59e0b";
+  const tone = status.online ? (isWarning ? "warning" : "success") : "danger";
 
   return (
-    <div
-      style={{
-        ...alertCardStyle,
-        borderColor: `${color}66`,
-        background: `${color}18`,
-        display: "grid",
-        gap: "10px",
-      }}
+    <BGAlertCard
+      tone={tone}
+      title={`Bridge ${status.online ? "Online" : "Offline"}`}
+      action={
+        <BGButton variant="secondary" onClick={onRefresh} disabled={loading}>
+          {loading ? "Aggiornamento..." : "Aggiorna stato"}
+        </BGButton>
+      }
     >
-      <div style={{ ...alertTitleStyle, color }}>
-        Bridge {status.online ? "Online" : "Offline"}
-      </div>
-      <div style={alertTextStyle}>
-        Connected controller: {String(status.connected)}
-      </div>
-      <div style={alertTextStyle}>
-        Bridge processing: {String(status.processing)}
-      </div>
-      <div style={alertTextStyle}>Watchdog: {watchdog.state.toUpperCase()}</div>
-      <div style={alertTextStyle}>Ultimo badge: {status.lastBadge || "-"}</div>
-      <div style={alertTextStyle}>
+      <div>Connected controller: {String(status.connected)}</div>
+      <div>Bridge processing: {String(status.processing)}</div>
+      <div>Watchdog: {watchdog.state.toUpperCase()}</div>
+      <div>Ultimo badge: {status.lastBadge || "-"}</div>
+      <div>
         lastBadgeTime:{" "}
         {status.lastBadgeTime
           ? new Date(status.lastBadgeTime).toLocaleString("it-IT")
           : "-"}
       </div>
-      <div style={alertTextStyle}>
+      <div>
         ultimo controllo:{" "}
         {status.checkedAt
           ? new Date(status.checkedAt).toLocaleTimeString("it-IT")
           : "-"}
       </div>
-      {status.error && (
-        <div style={{ ...alertTextStyle, color: "var(--danger)" }}>
-          Errore: {status.error}
-        </div>
-      )}
-      <button style={bridgeButtonStyle} onClick={onRefresh} disabled={loading}>
-        {loading ? "Aggiornamento..." : "Aggiorna stato"}
-      </button>
-    </div>
+      {status.error && <div>Errore: {status.error}</div>}
+    </BGAlertCard>
   );
 }
 
@@ -890,28 +856,14 @@ function AlertCard({
   tone: "danger" | "warning" | "success";
   href?: string;
 }) {
-  const color =
-    tone === "danger" ? "#d6314a" : tone === "warning" ? "#f59e0b" : "#22c55e";
-
   return (
-    <div
-      style={{
-        ...alertCardStyle,
-        borderColor: `${color}66`,
-        background: `${color}18`,
-      }}
+    <BGAlertCard
+      tone={tone}
+      title={title}
+      action={href ? <BGButton href={href}>Verifica</BGButton> : undefined}
     >
-      <div>
-        <div style={{ ...alertTitleStyle, color }}>{title}</div>
-        <div style={alertTextStyle}>{text}</div>
-      </div>
-
-      {href && (
-        <Link href={href} style={alertLinkStyle}>
-          Verifica
-        </Link>
-      )}
-    </div>
+      <div>{text}</div>
+    </BGAlertCard>
   );
 }
 
@@ -928,40 +880,21 @@ function ReceptionAlertsCard({ alerts }: { alerts: ReceptionAlert[] }) {
   }
 
   return (
-    <div
-      style={{
-        ...alertCardStyle,
-        alignItems: "stretch",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ ...alertTitleStyle, color: "var(--danger)" }}>
-        Alert Reception
-      </div>
-      <div style={{ display: "grid", gap: "8px", width: "100%" }}>
-        {alerts.map((alert) => (
-          <div
-            key={alert.id}
-            style={{
-              background: "rgba(179,121,10,0.06)",
-              border: "1px solid rgba(179,121,10,0.25)",
-              borderRadius: "12px",
-              padding: "10px",
-            }}
-          >
-            <div style={{ fontWeight: 800 }}>
-              {alert.type} · {alert.severity.toUpperCase()}
-            </div>
-            <div style={alertTextStyle}>{alert.message}</div>
-            <div style={alertTextStyle}>
-              Orario: {formatAlertTime(alert.time)} · Riferimento:{" "}
-              {alert.badgeOrCustomer}
-            </div>
-            <div style={alertTextStyle}>Azione: {alert.suggestedAction}</div>
+    <BGAlertCard tone="danger" title="Alert Reception">
+      {alerts.map((alert) => (
+        <BGCard key={alert.id} variant="warning">
+          <strong>
+            {alert.type} · {alert.severity.toUpperCase()}
+          </strong>
+          <div>{alert.message}</div>
+          <div>
+            Orario: {formatAlertTime(alert.time)} · Riferimento:{" "}
+            {alert.badgeOrCustomer}
           </div>
-        ))}
-      </div>
-    </div>
+          <div>Azione: {alert.suggestedAction}</div>
+        </BGCard>
+      ))}
+    </BGAlertCard>
   );
 }
 
@@ -1049,48 +982,6 @@ const firstRowStyle: React.CSSProperties = {
   gridTemplateColumns: "1.1fr 1.4fr 0.8fr",
   gap: "14px",
   marginBottom: "24px",
-};
-
-const alertCardStyle: React.CSSProperties = {
-  border: "1px solid",
-  borderRadius: "22px",
-  padding: "18px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "14px",
-};
-
-const alertTitleStyle: React.CSSProperties = {
-  fontWeight: 900,
-  fontSize: "15px",
-  marginBottom: "6px",
-};
-
-const alertTextStyle: React.CSSProperties = {
-  color: "var(--muted)",
-  fontSize: "13px",
-  lineHeight: 1.5,
-};
-
-const alertLinkStyle: React.CSSProperties = {
-  color: "white",
-  background: "var(--accent)",
-  padding: "10px 14px",
-  borderRadius: "14px",
-  textDecoration: "none",
-  fontWeight: 800,
-  whiteSpace: "nowrap",
-};
-
-const bridgeButtonStyle: React.CSSProperties = {
-  background: "var(--bg-soft)",
-  color: "var(--text)",
-  border: "1px solid var(--border)",
-  borderRadius: "12px",
-  padding: "10px 12px",
-  fontWeight: 700,
-  cursor: "pointer",
 };
 
 const gridStyle: React.CSSProperties = {
@@ -1200,15 +1091,6 @@ const rowMetaStyle: React.CSSProperties = {
   color: "var(--muted)",
   fontSize: "13px",
   marginTop: "5px",
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  border: "1px solid",
-  borderRadius: "999px",
-  padding: "8px 12px",
-  fontWeight: 900,
-  fontSize: "12px",
-  whiteSpace: "nowrap",
 };
 
 const heroActionsStyle: React.CSSProperties = {

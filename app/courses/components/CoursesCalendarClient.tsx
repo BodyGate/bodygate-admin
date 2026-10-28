@@ -8,6 +8,7 @@ import {
   BGPageHeader,
   BGPageShell,
   BGSelect,
+  BGStack,
   BGStatusBadge,
 } from "@/components/bodygate-ui";
 import { safeRandomId } from "../../lib/safeRandomId";
@@ -199,7 +200,8 @@ export default function CoursesCalendarClient() {
 
       <CoursesNav />
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, alignItems: "center" }}>
+      <BGStack gap="lg">
+      <BGStack direction="row" gap="sm" wrap align="center">
         <BGButton
           variant="secondary"
           onClick={() => setWeekStart((prev) => { const next = new Date(prev); next.setDate(next.getDate() - 7); return next; })}
@@ -215,10 +217,10 @@ export default function CoursesCalendarClient() {
         >
           Settimana successiva
         </BGButton>
-      </div>
+      </BGStack>
 
       {message && (
-        <BGCard variant="soft" style={{ marginBottom: 18 }}>
+        <BGCard variant="soft">
           {message}
         </BGCard>
       )}
@@ -232,7 +234,7 @@ export default function CoursesCalendarClient() {
           <BGEmptyState title="Nessuna sede attiva" description="Configura almeno una sede prima di gestire i corsi." />
         </BGCard>
       ) : (
-        <div style={{ display: "grid", gap: 16 }}>
+        <BGStack gap="lg">
           {days.map((day) => {
             const key = toLocalDateKey(day.toISOString());
             const daySessions = sessionsByDay.get(key) || [];
@@ -243,46 +245,34 @@ export default function CoursesCalendarClient() {
                 {daySessions.length === 0 ? (
                   <p style={{ color: "var(--muted)", margin: 0 }}>Nessuna sessione.</p>
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <BGStack>
                     {daySessions.map((session) => (
-                      <div
-                        key={session.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span
-                            style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: "50%",
-                              background: session.course_types?.color || "#71717a",
-                              flexShrink: 0,
-                            }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 700 }}>
-                              {session.course_types?.name || "Corso"} · {formatTimeRange(session.starts_at, session.ends_at)}
+                      <BGCard key={session.id} variant="soft">
+                        <BGStack direction="row" justify="between" wrap align="center">
+                          <BGStack direction="row" align="center">
+                            <span
+                              style={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: "50%",
+                                background: session.course_types?.color || "#71717a",
+                                flexShrink: 0,
+                              }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: 700 }}>
+                                {session.course_types?.name || "Corso"} · {formatTimeRange(session.starts_at, session.ends_at)}
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                                {session.course_rooms?.name || "Sala"}
+                                {session.staff_users?.full_name ? ` · ${session.staff_users.full_name}` : ""}
+                                {" · "}
+                                {session.confirmed_count}/{session.capacity} confermati
+                                {session.waitlisted_count > 0 ? ` · ${session.waitlisted_count} in lista d'attesa` : ""}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                              {session.course_rooms?.name || "Sala"}
-                              {session.staff_users?.full_name ? ` · ${session.staff_users.full_name}` : ""}
-                              {" · "}
-                              {session.confirmed_count}/{session.capacity} confermati
-                              {session.waitlisted_count > 0 ? ` · ${session.waitlisted_count} in lista d'attesa` : ""}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          </BGStack>
+                        <BGStack direction="row" gap="sm" align="center">
                           <BGStatusBadge tone={STATUS_TONE[session.status] || "neutral"}>{session.status}</BGStatusBadge>
                           {ACTIONABLE_SESSION_STATUSES.has(session.status) && (
                             <>
@@ -302,16 +292,18 @@ export default function CoursesCalendarClient() {
                               </BGButton>
                             </>
                           )}
-                        </div>
-                      </div>
+                        </BGStack>
+                        </BGStack>
+                      </BGCard>
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </BGCard>
             );
           })}
-        </div>
+        </BGStack>
       )}
+      </BGStack>
     </BGPageShell>
   );
 }
