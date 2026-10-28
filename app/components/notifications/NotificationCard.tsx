@@ -15,14 +15,14 @@ export default function NotificationCard({ notification }: { notification: BodyG
   return (
     <BGCard variant={style.variant}>
       <BGStack>
-        <BGStack direction="row" spread>
+        <BGStack direction="row" wrap align="center" justify="between">
           <h3>{notification.title}</h3>
           <BGStatusBadge tone={style.tone}>{notification.severity.toUpperCase()}</BGStatusBadge>
         </BGStack>
 
         <p>{notification.message}</p>
 
-        <BGStack direction="row">
+        <BGStack direction="row" wrap align="center">
           <BGStatusBadge>{notification.type}</BGStatusBadge>
           {notification.customerName && <span>{notification.customerName}</span>}
           {notification.createdAt && <span>{new Date(notification.createdAt).toLocaleString("it-IT")}</span>}
