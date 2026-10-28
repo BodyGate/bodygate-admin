@@ -709,18 +709,9 @@ export default function ReceptionDashboard() {
                       )}
                     </div>
 
-                    <div
-                      style={{
-                        ...statusBadgeStyle,
-                        color: isAllowed(log) ? "#22c55e" : "var(--danger)",
-                        borderColor: isAllowed(log) ? "#22c55e" : "var(--danger)",
-                        background: isAllowed(log)
-                          ? "rgba(34,197,94,0.12)"
-                          : "rgba(214,49,74,0.12)",
-                      }}
-                    >
+                    <BGStatusBadge tone={isAllowed(log) ? "success" : "danger"}>
                       {isAllowed(log) ? "OK" : "NEGATO"}
-                    </div>
+                    </BGStatusBadge>
                   </div>
                 );
               })}
@@ -770,16 +761,7 @@ export default function ReceptionDashboard() {
                           {log.reason || "Motivo non disponibile"}
                         </div>
                       </div>
-                      <span
-                        style={{
-                          ...statusBadgeStyle,
-                          color: "var(--danger)",
-                          borderColor: "var(--danger)",
-                          background: "rgba(214,49,74,0.12)",
-                        }}
-                      >
-                        NEGATO
-                      </span>
+                      <BGStatusBadge tone="danger">NEGATO</BGStatusBadge>
                     </div>
                   );
                 })}
@@ -1200,15 +1182,6 @@ const rowMetaStyle: React.CSSProperties = {
   color: "var(--muted)",
   fontSize: "13px",
   marginTop: "5px",
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  border: "1px solid",
-  borderRadius: "999px",
-  padding: "8px 12px",
-  fontWeight: 900,
-  fontSize: "12px",
-  whiteSpace: "nowrap",
 };
 
 const heroActionsStyle: React.CSSProperties = {
