@@ -201,7 +201,7 @@ export default function CoursesCalendarClient() {
       <CoursesNav />
 
       <BGStack gap="lg">
-      <BGStack direction="row" gap="sm" wrap>
+      <BGStack direction="row" gap="sm" wrap align="center">
         <BGButton
           variant="secondary"
           onClick={() => setWeekStart((prev) => { const next = new Date(prev); next.setDate(next.getDate() - 7); return next; })}
@@ -248,8 +248,8 @@ export default function CoursesCalendarClient() {
                   <BGStack>
                     {daySessions.map((session) => (
                       <BGCard key={session.id} variant="soft">
-                        <BGStack direction="row" justify="between" wrap>
-                          <BGStack direction="row">
+                        <BGStack direction="row" justify="between" wrap align="center">
+                          <BGStack direction="row" align="center">
                             <span
                               style={{
                                 width: 12,
@@ -272,7 +272,7 @@ export default function CoursesCalendarClient() {
                               </div>
                             </div>
                           </BGStack>
-                        <BGStack direction="row" gap="sm">
+                        <BGStack direction="row" gap="sm" align="center">
                           <BGStatusBadge tone={STATUS_TONE[session.status] || "neutral"}>{session.status}</BGStatusBadge>
                           {ACTIONABLE_SESSION_STATUSES.has(session.status) && (
                             <>

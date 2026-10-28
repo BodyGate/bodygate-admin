@@ -90,12 +90,6 @@
   padding: 20px;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .cardSoft {
   background: var(--bg-canvas-raised, #f4f5f9);
 }
@@ -249,14 +243,6 @@
 .input {
   min-height: 44px;
   padding: 0 14px;
-}
-
-.inputSm {
-  width: 100px;
-}
-
-.inputMd {
-  width: 130px;
 }
 
 .inputGroup {
@@ -499,10 +485,18 @@
   gap: 18px;
 }
 
+/* da PR #258 */
+.inputSm {
+  width: 100px;
+}
+
+.inputMd {
+  width: 130px;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .stackRow {
@@ -523,7 +517,6 @@
 
 .stackGapLg {
   gap: 20px;
-  align-items: center;
 }
 
 .stackWrap {
@@ -574,16 +567,16 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* da PR #288 */
 .splitGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
-@media (max-width: 900px) {
-  .splitGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* da PR #337 */
 .pillNav {
   display: flex;
   flex-wrap: wrap;
@@ -678,17 +671,17 @@
 .pickerOptionMeta {
   color: var(--muted, #6b6e80);
   font-size: 0.75rem;
-
-.stackGapSm {
-  gap: 8px;
 }
 
-.stackGapMd {
-  gap: 12px;
+/* da PR #341 */
+
+
+/* da PR #271 */
+.stackBetween {
+  justify-content: space-between;
 }
 
-.stackGapLg {
-  gap: 16px;
+/* da PR #282 */
 .alertCard {
   display: flex;
   align-items: center;
@@ -725,4 +718,12 @@
 
 .alertCardAction {
   flex-shrink: 0;
+}
+
+/* da PR #228 */
+
+@media (max-width: 900px) {
+  .splitGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
