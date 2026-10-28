@@ -6,6 +6,7 @@ import {
   normalizeBadgeChargeMode,
 } from "../../../lib/server/badgeFee";
 import { normalizeDateOnly } from "../../../lib/server/dateOnly";
+import { parseOptionalAmount } from "../../../lib/server/optionalAmount";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
@@ -26,16 +27,6 @@ function admin() {
       persistSession: false,
     },
   });
-}
-
-function parseOptionalAmount(value: unknown) {
-  if (value === undefined || value === null || value === "") return null;
-
-  const amount = Number(String(value).replace(",", "."));
-
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-
-  return Number(amount.toFixed(2));
 }
 
 function getIdempotencyKey(req: Request, body: Record<string, unknown>) {
