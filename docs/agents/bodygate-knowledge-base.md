@@ -127,4 +127,29 @@ Ruoli amministrativi (`admin, administrator, owner, proprietario, super_admin, a
 
 ## Playbook per gli agenti BodyGate
 
-_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Vuota al primo popolamento — verrà riempita dopo la prima settimana di attività degli agenti "Cura Grafica UI" e "Cura Logiche di Business", con pattern di errore ricorrenti da evitare._
+_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-10-18. Leggila prima di ogni esecuzione._
+
+### Regole valide per tutti gli agenti (Cura Grafica UI e Cura Logiche di Business)
+
+1. **Controlla le PR aperte prima di iniziare — è l'errore n.1.** Al 18/10 le PR `agents/*` aperte sono ~60, solo #213 e #214 sono state mergiate, nessuna review umana (solo bot Vercel/Codex). Ogni run parte da `origin/main`, che non contiene il lavoro delle PR precedenti, quindi rifà lo stesso lavoro. Duplicati osservati: `PermissionGuard` → bodygate-ui ~20 volte (da #207 a #302); `ContractOtpPanel` (#278, #283); contatore certificati in scadenza (#293, #301); gate/validità Europe/Rome (#281, #284); arrotondamento importi (#263, #265 e altre); TODO su `check-expired` (#269, #272). Prima di scegliere il task: elenca le PR aperte con prefisso `agents/ui/` o `agents/logic/` (titolo + file toccati) e leggi `docs/agents/`.
+2. **Se esiste già una PR aperta sullo stesso tema/file, non aprirne un'altra.** Scegli un'area o un bug diverso e non sovrapposto. Se non ne trovi, termina senza commit: una sessione senza PR è un esito valido e preferibile a un duplicato.
+3. **Non aprire PR "solo TODO/annotazione"** su un rischio già annotato nel codice, nella knowledge base o in una PR aperta.
+4. **Una PR = un solo problema, diff piccolo.** Niente primitive nuove "di passaggio" insieme a una migrazione; prima di aggiungere una primitiva a `bodygate-ui` verifica che non sia già in una PR aperta (altrimenti nascono varianti duplicate: BGCenteredNotice/BGCenteredScreen, BGLinkTabs/BGLinkNav…).
+5. **Coerenza tra agenti:** non contraddire una direzione già presa in una PR aperta. Esempio: #267 (data UTC nella dashboard) va in senso opposto a #281/#284 (giorno Europe/Rome). Se trovi un conflitto, fermati e segnalalo nella descrizione della PR invece di scegliere un lato.
+6. Prima di aprire la PR esegui `npm run typecheck`, `npm run lint:baseline` e `npm test` e riporta l'esito nella descrizione.
+7. Indica cosa è stato verificato e cosa no (es. "non testato a runtime"). Non presentare come certo un fix non verificato.
+
+### Cura Grafica UI
+
+- Rispetta AGENTS.md: solo componenti `components/bodygate-ui`; se manca un primitivo, aggiungilo lì (una sola volta) invece di inline style o shadcn.
+- Una pagina/componente per PR. Non toccare logica di business, query o permessi.
+- Non cambiare il comportamento visivo oltre lo stretto necessario (per le tabelle larghe controlla l'overflow orizzontale su mobile con ciò che `BGTable` offre oggi su `main`; non presumere props, es. `wide`, che esistono solo in PR aperte).
+- Scegli il componente da migrare tra quelli **non** citati in nessuna PR aperta; `PermissionGuard` è già coperto, non toccarlo finché le PR esistenti non sono mergiate o chiuse.
+
+### Cura Logiche di Business
+
+- **Soldi, contratti, OTP: un fix per PR e sempre atomico**: UPDATE condizionale (non read-then-write) per la race su una singola riga; se l'operazione scrive su più tabelle (es. `customer_payments` + `payments` + timeline) serve una RPC/transazione di database, perché un UPDATE condizionale non annulla le scritture parziali, con replay idempotente dove la ripetizione deve restituire il primo risultato (es. `verify-otp`, `update-payment`). **Eccezione: `send-otp` non è idempotente per scelta** — ogni chiamata genera un nuovo codice/scadenza e azzera il blocco dei tentativi; servono solo atomicità e protezione dalle race. File con intersezione frequente: `verify-otp`/`send-otp`, `update-payment`, `update-subscription`, `payments/create`, `check-expired`, gate accessi: verifica le PR aperte prima di toccarli.
+- Per l'arrotondamento importi usa un'unica utility condivisa (decimal-safe, punti medi tipo 1.005/2.675), non `toFixed(2)` replicato; una sola PR deve introdurla.
+- Fuso orario: oggi `main` calcola la data di business in UTC (accessi, verify-otp, reception/dashboard) e le PR aperte propongono Europe/Rome (#281, #284) o UTC (#267). **La scelta è una decisione di prodotto non ancora presa: non sceglierla tu.** Non toccare i confronti di data finché non c'è una decisione umana; se serve, segnala la domanda nella PR.
+- Rispetta l'ordine di controllo del tornello (vedi sezione Permessi): non riordinarlo senza aggiornare i test.
+- Dubbio non certo = nota nella PR, mai fix indovinato.
