@@ -90,6 +90,21 @@
   padding: 20px;
 }
 
+.card :where(h1, h2, h3, h4, p),
+.section :where(h1, h2, h3, h4, p) {
+  margin: 0 0 8px;
+}
+
+.card > :first-child,
+.section > :first-child {
+  margin-top: 0;
+}
+
+.card > :last-child,
+.section > :last-child {
+  margin-bottom: 0;
+}
+
 .cardSoft {
   background: var(--bg-canvas-raised, #f4f5f9);
 }
@@ -503,6 +518,16 @@
   flex-direction: row;
 }
 
+.stack > :where(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .stackRow > .button {
+    width: auto;
+  }
+}
+
 .stackGapXs {
   gap: 8px;
 }
@@ -584,7 +609,11 @@
 }
 
 .pill {
-  padding: 8px 16px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--border, #e7e8ee);
   background: var(--bg-soft, #f6f6fa);
@@ -637,7 +666,7 @@
   overflow-y: auto;
   border: 1px solid var(--border, #e7e8ee);
   border-radius: 12px;
-  background: var(--bg-elevated, #ffffff);
+  background: var(--bg-surface, #ffffff);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 }
 
