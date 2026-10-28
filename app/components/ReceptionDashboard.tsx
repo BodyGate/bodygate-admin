@@ -636,7 +636,7 @@ export default function ReceptionDashboard() {
         </div> : null}
       </BGCard>
 
-      {dataError ? <div role="alert" style={{...rowStyle, borderColor: "var(--danger)", marginBottom: 16}}>API non disponibile: {dataError}<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton></div> : null}
+      {dataError ? <BGAlertCard tone="danger" title="API non disponibile" action={<BGButton variant="secondary" onClick={loadData}>Riprova</BGButton>}><div role="alert">{dataError}</div></BGAlertCard> : null}
 
       <div className="reception-system-grid" style={firstRowStyle}>
         <BridgeStatusCard
