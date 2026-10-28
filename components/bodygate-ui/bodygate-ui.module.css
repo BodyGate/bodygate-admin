@@ -562,4 +562,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .splitGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
