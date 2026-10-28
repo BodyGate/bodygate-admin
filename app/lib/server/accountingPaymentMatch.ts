@@ -36,13 +36,16 @@ export function findMatchingAccountingPayment<T extends PaymentLike>(
   if (byId) return byId;
 
   const existingDay = day(existing.paid_at || existing.created_at);
-  const byDayAndAmount = candidates.find(
+  const byDayAndAmount = candidates.filter(
     (payment) =>
       existingDay !== "" &&
       day(payment.paid_at || payment.created_at) === existingDay &&
       sameAmount(payment.amount, existing.amount),
   );
-  if (byDayAndAmount) return byDayAndAmount;
+  // Two payments of the same amount on the same day are indistinguishable:
+  // better to leave the accounting row alone than to rewrite the wrong one.
+  if (byDayAndAmount.length === 1) return byDayAndAmount[0];
+  if (byDayAndAmount.length > 1) return null;
 
   const description = text(existing.description);
   if (!description) return null;

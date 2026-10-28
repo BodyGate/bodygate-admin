@@ -48,3 +48,11 @@ test("empty description never matches by description", () => {
     null,
   );
 });
+
+test("two payments with same day and amount are ambiguous: no match", () => {
+  const rows = [
+    { id: "p-1", amount: 50, description: "Quota corso", paid_at: "2026-10-02T08:00:00Z" },
+    { id: "p-2", amount: 50, description: "Quota corso", paid_at: "2026-10-02T18:00:00Z" },
+  ];
+  assert.equal(findMatchingAccountingPayment(rows, existing), null);
+});

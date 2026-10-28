@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -184,8 +185,9 @@ export async function GET(request: NextRequest) {
 
         // Confronto tra date (YYYY-MM-DD), come in access/check e reception/dashboard:
         // il certificato è valido fino al giorno di scadenza incluso.
-        const today = new Date().toISOString().slice(0, 10);
-        const in30Days = new Date(Date.now() + 30 * 86400000)
+        const today = businessTodayISO();
+        const [y, m, d] = today.split("-").map(Number);
+        const in30Days = new Date(Date.UTC(y, m - 1, d + 30))
           .toISOString()
           .slice(0, 10);
 
