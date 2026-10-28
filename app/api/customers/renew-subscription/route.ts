@@ -5,6 +5,8 @@ import {
   getDefaultBadgeFee,
   normalizeBadgeChargeMode,
 } from "../../../lib/server/badgeFee";
+import { normalizeDateOnly } from "../../../lib/server/dateOnly";
+import { parseOptionalAmount } from "../../../lib/server/optionalAmount";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
 
 export const dynamic = "force-dynamic";
@@ -25,28 +27,6 @@ function admin() {
       persistSession: false,
     },
   });
-}
-
-function normalizeDateOnly(value: unknown) {
-  const date = String(value || "").trim().slice(0, 10);
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-
-  const parsed = new Date(`${date}T00:00:00`);
-
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  return date;
-}
-
-function parseOptionalAmount(value: unknown) {
-  if (value === undefined || value === null || value === "") return null;
-
-  const amount = Number(String(value).replace(",", "."));
-
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-
-  return Number(amount.toFixed(2));
 }
 
 function getIdempotencyKey(req: Request, body: Record<string, unknown>) {
@@ -230,7 +210,9 @@ export async function POST(req: Request) {
     const paymentMethod = normalizePaymentMethod(
       body.payment_method || body.paymentMethod,
     );
-    const startDate = normalizeDateOnly(body.start_date || body.startDate);
+    const startDate = normalizeDateOnly(
+      String(body.start_date || body.startDate || "").trim().slice(0, 10),
+    );
     const requestedAmount = parseOptionalAmount(body.amount);
     const notes = String(body.notes || "").trim();
     const badgeChargeMode = normalizeBadgeChargeMode(body.badge_charge_mode);
