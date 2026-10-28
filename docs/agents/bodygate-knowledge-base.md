@@ -112,7 +112,7 @@ Disattiva gli abbonamenti precedenti (logica differente se `start_date` è oggi/
 Prezzo fisso 5€ (`BODY_ENERGY_BADGE_FEE`). Modalità: `not_included`, `charged` (richiede prova di consegna), `complimentary` (richiede motivazione obbligatoria per audit).
 
 ### Job di scadenza abbonamenti
-UPDATE massivo giornaliero: `subscription_expiry < now()` → `subscription_status='expired', active=false`. **Non tocca `is_active`** — incoerenza potenziale nota con il gate fisico.
+Job `POST /api/subscriptions/check-expired` (pulsante nella pagina Sistema; logica in `app/lib/server/expiredCustomers.ts`, PR #348): candidati = `subscription_expiry < now()` e stato non già `expired`; **salta i clienti con un abbonamento corrente in `customer_subscriptions`** (giorno Europe/Rome), perché `subscription_expiry` non viene aggiornato dai rinnovi. Gli altri passano a `subscription_status='expired', active=false`. `?dry_run=1` mostra l'effetto senza scrivere. **Non tocca `is_active`** (letto dal gate fisico). Aperto: 23 clienti con stato `expired` ma abbonamento valido (dati vecchi, correzione da decidere).
 
 ### Contratti e firma OTP
 Ciclo: `generated → pending_otp → signed`. **Un documento già `signed` è immutabile** (PR #214): `/api/contracts/verify-otp` fa l'update con filtro condizionale `status is null OR status != signed` e, se nessuna riga viene aggiornata, risponde **409 "Documento già firmato."** — impedisce di riusare l'OTP (valido 10 min) per sovrascrivere l'audit trail (`signed_at`, `signed_ip`, `signed_user_agent`) o rieseguire l'attivazione (che riattiverebbe un cliente disattivato dallo staff dopo la firma); chiude anche la race tra due verifiche concorrenti. OTP a 6 cifre, validità 10 minuti; ogni rigenerazione resetta il rate-limit di verifica. Non invia SMS reali: apre un link `wa.me` precompilato per invio manuale via WhatsApp Business. Verifica: rate limit 10 tentativi/15 min per documento. **Attivazione automatica del cliente** dopo firma richiede TUTTI veri: pagamento ok, quota valida, abbonamento attivo e valido, credenziale badge attiva, nessun blocco attivo — altrimenti resta `access_pending` con evento timeline che elenca i requisiti mancanti.
@@ -127,7 +127,7 @@ Ruoli amministrativi (`admin, administrator, owner, proprietario, super_admin, a
 
 ## Playbook per gli agenti BodyGate
 
-_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-10-18. Leggila prima di ogni esecuzione._
+_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-10-28 (pulizia del 26/10: da ~150 a 47 PR aperte). Leggila prima di ogni esecuzione._
 
 ### Regole valide per tutti gli agenti (Cura Grafica UI e Cura Logiche di Business)
 
@@ -139,12 +139,15 @@ _Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ult
 6. Prima di aprire la PR esegui `npm run typecheck`, `npm run lint:baseline` e `npm test` e riporta l'esito nella descrizione.
 7. Indica cosa è stato verificato e cosa no (es. "non testato a runtime"). Non presentare come certo un fix non verificato.
 
+8. **Limite di PR aperte: massimo 3 per agente.** Se ne hai già 3 aperte (`agents/<tuo-agente>/…`), termina senza commit. Il 26/10 sono state chiuse 111 PR duplicate: non ripetere il caso.
+9. **Mai toccare l'avvio e l'hardware:** `bridge/`, `scripts/*.ps1`, `.env*`, configurazione del DNake e del tornello sono fuori perimetro per tutti gli agenti.
+
 ### Cura Grafica UI
 
 - Rispetta AGENTS.md: solo componenti `components/bodygate-ui`; se manca un primitivo, aggiungilo lì (una sola volta) invece di inline style o shadcn.
 - Una pagina/componente per PR. Non toccare logica di business, query o permessi.
 - Non cambiare il comportamento visivo oltre lo stretto necessario (per le tabelle larghe controlla l'overflow orizzontale su mobile con ciò che `BGTable` offre oggi su `main`; non presumere props, es. `wide`, che esistono solo in PR aperte).
-- Scegli il componente da migrare tra quelli **non** citati in nessuna PR aperta; `PermissionGuard` è già coperto, non toccarlo finché le PR esistenti non sono mergiate o chiuse.
+- Scegli il componente da migrare tra quelli **non** citati in nessuna PR aperta; `PermissionGuard` è già coperto dalla sola PR #347: non toccarlo. Ogni PR duplicata viene chiusa dall'umano senza leggerla.
 
 ### Cura Logiche di Business
 
