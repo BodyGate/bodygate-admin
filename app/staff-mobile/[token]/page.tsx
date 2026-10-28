@@ -156,6 +156,7 @@ export default async function StaffMobilePassPage({
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
+    color: "#f8fafc",
     minHeight: "100vh",
     background:
       "radial-gradient(circle at top left, rgba(91,61,245,.25), #020617 45%)",
