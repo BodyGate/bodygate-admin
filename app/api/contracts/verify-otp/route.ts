@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isRateLimited } from "../../../lib/server/rateLimit";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export async function POST(req: Request) {
   try {
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     const now = new Date().toISOString();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = businessTodayISO();
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
