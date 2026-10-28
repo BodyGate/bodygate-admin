@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -179,14 +180,18 @@ export async function GET(request: NextRequest) {
       expiring_soon: activeCustomers.filter((customer) => {
         if (!customer.medical_certificate_end_date) return false;
 
-        const end = new Date(customer.medical_certificate_end_date);
-        if (Number.isNaN(end.getTime())) return false;
+        const endDate = String(customer.medical_certificate_end_date).slice(0, 10);
+        if (Number.isNaN(new Date(endDate).getTime())) return false;
 
-        const today = new Date();
-        const in30Days = new Date();
-        in30Days.setDate(today.getDate() + 30);
+        // Confronto tra date (YYYY-MM-DD), come in access/check e reception/dashboard:
+        // il certificato è valido fino al giorno di scadenza incluso.
+        const today = businessTodayISO();
+        const [y, m, d] = today.split("-").map(Number);
+        const in30Days = new Date(Date.UTC(y, m - 1, d + 30))
+          .toISOString()
+          .slice(0, 10);
 
-        return end >= today && end <= in30Days;
+        return endDate >= today && endDate <= in30Days;
       }).length,
       with_badge: activeCustomers.filter(hasBadge).length,
       without_badge: activeCustomers.filter((customer) => !hasBadge(customer)).length,

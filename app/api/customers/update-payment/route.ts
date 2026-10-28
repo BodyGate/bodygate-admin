@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { findMatchingAccountingPayment } from "../../../lib/server/accountingPaymentMatch";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,10 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 function parseAmount(value: unknown) {
   const amount = Number(String(value ?? "").replace(",", "."));
   if (!Number.isFinite(amount)) return null;
-  if (amount <= 0) return null;
-  return amount;
+  // Importi sempre al centesimo, come negli altri flussi (rinnovo quota/abbonamento).
+  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  if (rounded <= 0) return null;
+  return rounded;
 }
 
 function normalizeText(value: unknown) {
@@ -119,6 +122,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Un pagamento annullato non si rettifica: una scheda cliente non
+    // aggiornata permetterebbe di riportarlo a "paid" senza traccia chiara.
+    if (String(existingPayment.status || "").toLowerCase() === "cancelled") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error:
+            "Il pagamento è già stato annullato e non può essere rettificato. Aggiorna la scheda cliente.",
+        },
+        { status: 409 },
+      );
+    }
+
     const { data: linkedReceipts, error: receiptsError } = await supabase
       .from("customer_receipts")
       .select("id, receipt_number, amount, receipt_type, subscription_id")
@@ -160,7 +177,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const previousDescription = normalizeText(existingPayment.description);
     const { data: plausibleAccountingPayments } = await supabase
       .from("payments")
       .select("*")
@@ -168,19 +184,9 @@ export async function POST(req: Request) {
       .eq("payment_type", existingPayment.type)
       .limit(20);
 
-    const accountingPayment = (plausibleAccountingPayments || []).find(
-      (payment) => {
-        return (
-          payment.id === paymentId ||
-          (sameDate(
-            payment.paid_at || payment.created_at,
-            existingPayment.paid_at || existingPayment.created_at,
-          ) &&
-            amountChanged(payment.amount, existingPayment.amount) === false) ||
-          (previousDescription &&
-            normalizeText(payment.description) === previousDescription)
-        );
-      },
+    const accountingPayment = findMatchingAccountingPayment(
+      plausibleAccountingPayments || [],
+      existingPayment,
     );
 
     const correctionNote = `[Rettifica ${new Date().toLocaleString(
@@ -199,13 +205,25 @@ export async function POST(req: Request) {
       })
       .eq("id", paymentId)
       .eq("customer_id", customerId)
+      .or("status.is.null,status.neq.cancelled")
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       return NextResponse.json(
         { ok: false, error: updateError.message },
         { status: 500 },
+      );
+    }
+
+    if (!updatedPayment) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PAYMENT_ALREADY_CANCELLED",
+          error: "Il pagamento è stato annullato nel frattempo e non può essere rettificato. Aggiorna la scheda cliente.",
+        },
+        { status: 409 },
       );
     }
 

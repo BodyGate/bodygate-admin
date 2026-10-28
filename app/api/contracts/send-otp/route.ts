@@ -31,14 +31,20 @@ export async function POST(req: Request) {
       Date.now() + 10 * 60 * 1000
     ).toISOString();
 
-    const { error } = await supabase
+    // Never reopen an already signed contract: flipping it back to
+    // "pending_otp" would defeat the "already signed" guard in verify-otp and
+    // let the original signature audit trail (signed_at/ip/user agent) be
+    // overwritten by a second OTP verification.
+    const { data: updatedRows, error } = await supabase
       .from("customer_documents")
       .update({
         otp_code: otp,
         otp_expires_at: expiresAt,
         status: "pending_otp",
       })
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .or("status.is.null,status.neq.signed")
+      .select("id");
 
     if (error) {
       return NextResponse.json(
@@ -48,6 +54,24 @@ export async function POST(req: Request) {
           error: error.message,
         },
         { status: 500 }
+      );
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { data: existing } = await supabase
+        .from("customer_documents")
+        .select("id")
+        .eq("id", documentId)
+        .maybeSingle();
+
+      return NextResponse.json(
+        {
+          ok: false,
+          message: existing
+            ? "Documento già firmato: impossibile generare un nuovo OTP."
+            : "Documento non trovato.",
+        },
+        { status: existing ? 409 : 404 }
       );
     }
 
