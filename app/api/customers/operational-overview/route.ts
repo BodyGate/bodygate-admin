@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ function admin() {
 }
 
 function todayOnly() {
-  return new Date().toISOString().slice(0, 10);
+  return businessTodayISO();
 }
 
 function isCredentialActive(row: any) {

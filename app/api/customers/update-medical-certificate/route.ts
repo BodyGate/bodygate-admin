@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ function isValidDateOnly(value: string) {
 }
 
 function dateOnlyToday() {
-  return new Date().toISOString().slice(0, 10);
+  return businessTodayISO();
 }
 
 export async function POST(req: Request) {

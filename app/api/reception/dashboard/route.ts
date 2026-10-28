@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { businessTodayISO } from "../../../lib/server/businessDate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +15,13 @@ function getSupabaseClient() {
 }
 
 function todayString() {
-  return new Date().toISOString().slice(0, 10);
+  return businessTodayISO();
 }
 
 function addDays(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  // Calendar arithmetic on the business date, independent of the server timezone.
+  const [year, month, day] = businessTodayISO().split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
 export async function GET() {
