@@ -90,6 +90,12 @@
   padding: 20px;
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .cardSoft {
   background: var(--bg-canvas-raised, #f4f5f9);
 }
@@ -433,6 +439,10 @@
 
   .button {
     width: 100%;
+  }
+
+  .inputGroup {
+    flex-direction: column;
   }
 }
 
