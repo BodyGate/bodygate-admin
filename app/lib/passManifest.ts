@@ -54,3 +54,33 @@ export function passManifestResponse(kind: PassKind, token: string): Response {
     },
   });
 }
+
+// --- Recupero delle icone già salvate in Home -------------------------------
+// Le icone installate prima di questa correzione riaprono per sempre il vecchio
+// start_url fisso: non sappiamo chi le ha. Ogni pass aperto ricorda nel browser
+// (cookie + localStorage) il proprio indirizzo; /mobile/open lo ritrova e ci
+// rimanda, senza che il cliente debba rifare nulla.
+
+export const LEGACY_PASS_TOKEN = "BGM_0VNB-UKBYB6-PB4F";
+export const REMEMBERED_PASS_KEY = "bg_pass";
+export const OPEN_PASS_PATH = "/mobile/open";
+
+const REMEMBERED_PATH_PATTERN = /^\/(mobile|staff-mobile)\/[A-Za-z0-9_-]{8,128}$/;
+
+// Restituisce il path del pass ricordato solo se ha esattamente la forma attesa
+// (mai un indirizzo arbitrario: niente open redirect). "open" non è un token.
+export function rememberedPassPath(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+
+  if (!REMEMBERED_PATH_PATTERN.test(decoded)) return null;
+  if (decoded === OPEN_PASS_PATH) return null;
+
+  return decoded;
+}

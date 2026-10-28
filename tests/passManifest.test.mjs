@@ -42,3 +42,21 @@ test("la risposta ha content-type manifest e non è in cache", async () => {
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal((await response.json()).start_url, `/mobile/${TOKEN}`);
 });
+
+import { LEGACY_PASS_TOKEN, rememberedPassPath } from "../app/lib/passManifest.ts";
+
+test("il pass ricordato viene ritrovato (anche url-encoded)", () => {
+  assert.equal(rememberedPassPath("/mobile/XYZ_demo-TOKEN123"), "/mobile/XYZ_demo-TOKEN123");
+  assert.equal(rememberedPassPath(encodeURIComponent("/mobile/XYZ_demo-TOKEN123")), "/mobile/XYZ_demo-TOKEN123");
+  assert.equal(rememberedPassPath("/staff-mobile/STAFF_abc-12345"), "/staff-mobile/STAFF_abc-12345");
+});
+
+test("valori non attesi non diventano mai un redirect", () => {
+  for (const bad of [null, undefined, "", "https://evil.example/mobile/AAAAAAAA", "//evil.example", "/admin", "/mobile/../x", "/mobile/open", "/mobile/a b c d e f g h"]) {
+    assert.equal(rememberedPassPath(bad), null, String(bad));
+  }
+});
+
+test("il token fisso del vecchio manifest è riconosciuto come legacy", () => {
+  assert.equal(LEGACY_PASS_TOKEN, "BGM_0VNB-UKBYB6-PB4F");
+});

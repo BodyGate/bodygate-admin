@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { isValidPassToken, passManifestPath } from "../../lib/passManifest";
+import { isValidPassToken, passManifestPath, passPath } from "../../lib/passManifest";
+import RememberPass from "../../mobile/[token]/RememberPass";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 
@@ -110,6 +111,7 @@ export default async function StaffMobilePassPage({
 
   return (
     <main style={styles.page}>
+      <RememberPass path={passPath("staff-mobile", token)} />
       <div style={styles.card}>
         <div style={styles.logo}>
           <span>BG</span>
