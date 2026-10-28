@@ -319,7 +319,7 @@ export default function PaymentsClient() {
             description="Quando i flussi ufficiali registrano pagamenti, lo storico consultivo comparirà qui."
           />
         ) : (
-          <BGDataTable minWidth={1180} className="payments-table-wrap">
+          <BGDataTable minWidth={960} className="payments-table-wrap">
             <thead>
               <tr>
                 <th>Data</th>
