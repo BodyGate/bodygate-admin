@@ -1,7 +1,8 @@
 param(
   [string]$GitBranch = "main",
   [string]$LogDirectory = "",
-  [string]$EnvFile = ""
+  [string]$EnvFile = "",
+  [int]$Port = 3000
 )
 
 # Controlled deploy: run this manually (or from a schedule YOU choose) when
@@ -72,6 +73,15 @@ function Read-EnvValue {
 
 Write-DeployLog "=== DEPLOY CONTROLLATO: inizio (branch $GitBranch) ==="
 
+# Senza i privilegi di Amministratore Stop-ScheduledTask/Stop-Process falliscono
+# in silenzio: il deploy "riesce" ma il vecchio processo Node resta in ascolto e
+# l'app continua a servire il codice vecchio (28/10/2026). Meglio non partire.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+  Write-DeployLog "ERRORE DEPLOY: serve PowerShell avviato come Amministratore. Nulla e' stato modificato."
+  exit 1
+}
+
 $extraHeaderSet = $false
 $serviceStopped = $false
 
@@ -117,6 +127,15 @@ try {
     Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Stop-ScheduledTask -ErrorAction SilentlyContinue
     $serviceStopped = $true
     Start-Sleep -Seconds 3
+
+    # Fermare il task non basta: il processo Node figlio puo' restare in ascolto
+    # e tenere aperto next-swc.win32-x64-msvc.node. Chiude chi occupa ancora la porta.
+    $stale = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    foreach ($connection in $stale) {
+      Write-DeployLog "Processo $($connection.OwningProcess) ancora in ascolto sulla porta ${Port}: lo chiudo."
+      Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+    if ($stale) { Start-Sleep -Seconds 3 }
 
     $nodeModulesPath = Join-Path $Root "node_modules"
     $nodeModulesBackup = Join-Path $Root "node_modules.backup"
@@ -174,6 +193,20 @@ try {
       Write-DeployLog "Riavvio il servizio BodyGate Admin..."
       Get-ScheduledTask -TaskName "BodyGate Admin" -ErrorAction SilentlyContinue | Start-ScheduledTask -ErrorAction SilentlyContinue
     }
+
+    # Il deploy e' riuscito solo se l'app risponde davvero sulla porta.
+    $healthy = $false
+    for ($attempt = 1; $attempt -le 12 -and -not $healthy; $attempt++) {
+      Start-Sleep -Seconds 5
+      try {
+        $healthy = (Invoke-WebRequest "http://127.0.0.1:$Port" -UseBasicParsing -TimeoutSec 5).StatusCode -lt 500
+      }
+      catch { $healthy = $false }
+    }
+    if (-not $healthy) {
+      throw "L'app non risponde sulla porta $Port entro 60 secondi dal riavvio. Controlla il log in $LogDirectory."
+    }
+    Write-DeployLog "L'app risponde sulla porta $Port."
   }
 
   Write-DeployLog "=== DEPLOY CONTROLLATO: completato con successo ==="
