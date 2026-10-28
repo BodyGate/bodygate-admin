@@ -678,9 +678,6 @@
 .pickerOptionMeta {
   color: var(--muted, #6b6e80);
   font-size: 0.75rem;
-.stackBetween {
-  justify-content: space-between;
-}
 
 .stackGapSm {
   gap: 8px;

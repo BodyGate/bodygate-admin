@@ -248,7 +248,7 @@ export default function CoursesCalendarClient() {
                   <BGStack>
                     {daySessions.map((session) => (
                       <BGCard key={session.id} variant="soft">
-                        <BGStack direction="row" spaceBetween wrap>
+                        <BGStack direction="row" justify="between" wrap>
                           <BGStack direction="row">
                             <span
                               style={{
