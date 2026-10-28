@@ -1393,3 +1393,15 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* Badge di stato nelle tabelle: restano su una riga (la tabella scorre, il badge non si spezza). */
+.bg-table td .bg-status {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.payments-table-wrap .bg-table th,
+.payments-table-wrap .bg-table td {
+  padding-left: 12px;
+  padding-right: 12px;
+}
