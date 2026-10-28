@@ -20,7 +20,7 @@ export default function NotificationFilters({
   ];
 
   return (
-    <BGStack direction="row">
+    <BGStack direction="row" wrap align="center" gap="sm">
       {filters.map((filter) => (
         <BGButton
           key={filter.value}
