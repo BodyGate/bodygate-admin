@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BGButton, BGEmptyState, BGPageHeader, BGStack } from "@/components/bodygate-ui";
 import { supabase } from "../../lib/supabaseClient";
 import NotificationCard from "./NotificationCard";
 import NotificationFilters from "./NotificationFilters";
@@ -179,96 +180,33 @@ export default function NotificationCenterClient() {
   }, [notifications, filter]);
 
   return (
-    <main className="notification-center-runtime" style={styles.page}>
-      <section className="notification-center-runtime__hero" style={styles.hero}>
-        <div>
-          <p style={styles.eyebrow}>BodyGate Intelligence</p>
-          <h1 style={styles.title}>Notification Center</h1>
-          <p style={styles.subtitle}>
-            Monitoraggio intelligente di scadenze, blocchi, badge sconosciuti e criticità operative.
-          </p>
-        </div>
-
-        <button onClick={loadNotifications} style={styles.refreshButton}>
-          Aggiorna
-        </button>
-      </section>
+    <>
+      <BGPageHeader
+        eyebrow="BodyGate Intelligence"
+        title="Notification Center"
+        subtitle="Monitoraggio intelligente di scadenze, blocchi, badge sconosciuti e criticità operative."
+        actions={
+          <BGButton variant="secondary" onClick={loadNotifications}>
+            Aggiorna
+          </BGButton>
+        }
+      />
 
       <NotificationStats notifications={notifications} />
 
       <NotificationFilters activeFilter={filter} onChange={setFilter} />
 
-      <section style={styles.feed}>
-        {loading ? (
-          <div style={styles.empty}>Caricamento notifiche...</div>
-        ) : filteredNotifications.length === 0 ? (
-          <div style={styles.empty}>Nessuna notifica trovata.</div>
-        ) : (
-          filteredNotifications.map((notification) => (
+      {loading ? (
+        <BGEmptyState title="Caricamento notifiche..." />
+      ) : filteredNotifications.length === 0 ? (
+        <BGEmptyState title="Nessuna notifica trovata." />
+      ) : (
+        <BGStack>
+          {filteredNotifications.map((notification) => (
             <NotificationCard key={notification.id} notification={notification} />
-          ))
-        )}
-      </section>
-    </main>
+          ))}
+        </BGStack>
+      )}
+    </>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    padding: 28,
-    color: "var(--text)",
-  },
-  hero: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 20,
-    alignItems: "center",
-    padding: 28,
-    borderRadius: 28,
-    background:
-      "linear-gradient(178deg, rgba(91,61,245,0.08), var(--panel) 60%)",
-    border: "1px solid var(--border)",
-    boxShadow: "0 1px 2px rgba(21,22,28,0.04), 0 12px 32px -12px rgba(21,22,28,0.1)",
-    marginBottom: 22,
-  },
-  eyebrow: {
-    margin: 0,
-    color: "var(--accent)",
-    fontSize: 13,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    fontWeight: 800,
-  },
-  title: {
-    margin: "8px 0",
-    fontSize: 36,
-    fontWeight: 900,
-    color: "var(--text)",
-  },
-  subtitle: {
-    margin: 0,
-    color: "var(--muted)",
-    maxWidth: 680,
-  },
-  refreshButton: {
-    border: "1px solid var(--bg-border-strong, #d7d9e3)",
-    background: "var(--panel)",
-    color: "var(--text)",
-    padding: "12px 18px",
-    borderRadius: 16,
-    cursor: "pointer",
-    fontWeight: 800,
-  },
-  feed: {
-    display: "grid",
-    gap: 14,
-    marginTop: 20,
-  },
-  empty: {
-    padding: 24,
-    borderRadius: 20,
-    background: "var(--panel)",
-    border: "1px solid var(--border)",
-    color: "var(--muted)",
-  },
-};

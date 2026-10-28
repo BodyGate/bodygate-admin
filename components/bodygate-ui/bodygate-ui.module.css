@@ -480,3 +480,20 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.stack {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stackRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.stackBetween {
+  justify-content: space-between;
+}
