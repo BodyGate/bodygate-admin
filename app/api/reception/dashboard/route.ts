@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { businessTodayISO } from "../../../lib/server/businessDate";
+import { businessDayStartISO, businessTodayISO } from "../../../lib/server/businessDate";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ export async function GET() {
             )
           `
           )
-          .gte("created_at", `${today}T00:00:00`)
+          .gte("created_at", businessDayStartISO())
           .order("created_at", { ascending: false })
           .limit(120),
 
