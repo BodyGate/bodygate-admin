@@ -1,7 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import type { Metadata, Viewport } from "next";
-import { isValidPassToken, passManifestPath } from "../../lib/passManifest";
+import { redirect } from "next/navigation";
+import {
+  isValidPassToken,
+  LEGACY_PASS_TOKEN,
+  OPEN_PASS_PATH,
+  passManifestPath,
+  passPath,
+} from "../../lib/passManifest";
+import RememberPass from "./RememberPass";
 
 export const dynamic = "force-dynamic";
 
@@ -221,6 +229,9 @@ export default async function MobilePassPage({
   } = await loadMobilePass(token);
 
   if (error || !customer) {
+    // Icone salvate con il vecchio indirizzo fisso: ritrova il pass di questo telefono.
+    if (token === LEGACY_PASS_TOKEN) redirect(OPEN_PASS_PATH);
+
     return (
       <main className="app-shell">
         <section className="error-card">
@@ -249,6 +260,7 @@ export default async function MobilePassPage({
 
   return (
     <main className="app-shell">
+      <RememberPass path={passPath("mobile", token)} />
       <section className="top-card">
         <div className="brand-row">
           <div>

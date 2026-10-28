@@ -2,7 +2,7 @@
   "name": "BodyGate Mobile Pass",
   "short_name": "BodyGate",
   "description": "Mobile pass BodyGate per accesso palestra con QR Code.",
-  "start_url": "/",
+  "start_url": "/mobile/open",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
