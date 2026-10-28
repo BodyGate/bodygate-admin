@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { findMatchingAccountingPayment } from "../../../lib/server/accountingPaymentMatch";
 
 export const dynamic = "force-dynamic";
 
@@ -176,7 +177,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const previousDescription = normalizeText(existingPayment.description);
     const { data: plausibleAccountingPayments } = await supabase
       .from("payments")
       .select("*")
@@ -184,19 +184,9 @@ export async function POST(req: Request) {
       .eq("payment_type", existingPayment.type)
       .limit(20);
 
-    const accountingPayment = (plausibleAccountingPayments || []).find(
-      (payment) => {
-        return (
-          payment.id === paymentId ||
-          (sameDate(
-            payment.paid_at || payment.created_at,
-            existingPayment.paid_at || existingPayment.created_at,
-          ) &&
-            amountChanged(payment.amount, existingPayment.amount) === false) ||
-          (previousDescription &&
-            normalizeText(payment.description) === previousDescription)
-        );
-      },
+    const accountingPayment = findMatchingAccountingPayment(
+      plausibleAccountingPayments || [],
+      existingPayment,
     );
 
     const correctionNote = `[Rettifica ${new Date().toLocaleString(

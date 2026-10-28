@@ -25,7 +25,8 @@
     "qa:dnake-panel": "node --experimental-strip-types --test tests/dnakePanel.test.mjs",
     "qa:expired-customers": "node --experimental-strip-types --test tests/expiredCustomers.test.mjs",
     "qa:business-date": "node --experimental-strip-types --test tests/businessDate.test.mjs",
-    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date"
+    "qa:accounting-payment-match": "node --experimental-strip-types --test tests/accountingPaymentMatch.test.mjs",
+    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date && npm run qa:accounting-payment-match"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
