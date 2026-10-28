@@ -1,8 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
+import { isValidPassToken, passManifestPath } from "../../lib/passManifest";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+
+  // Manifest del singolo pass: "Aggiungi a Home" deve riaprire QUESTO pass.
+  return isValidPassToken(token)
+    ? { manifest: passManifestPath("mobile", token) }
+    : {};
+}
 
 export const viewport: Viewport = {
   width: "device-width",
