@@ -376,6 +376,7 @@ const styles = `
   }
 
   .app-shell {
+    color: #f8fafc;
     width: 100%;
     min-height: 100svh;
     padding: max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
@@ -445,6 +446,11 @@ const styles = `
     color: #fca5a5;
     background: rgba(91, 61, 245, 0.12);
     border-color: rgba(91, 61, 245, 0.32);
+  }
+
+  h1,
+  h2 {
+    color: #ffffff;
   }
 
   h1 {
