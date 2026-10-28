@@ -27,8 +27,9 @@
     "qa:business-date": "node --experimental-strip-types --test tests/businessDate.test.mjs",
     "qa:accounting-payment-match": "node --experimental-strip-types --test tests/accountingPaymentMatch.test.mjs",
     "qa:date-only": "node --experimental-strip-types --test tests/dateOnly.test.mjs",
+    "qa:access-ready-count": "node --experimental-strip-types --test tests/accessReadyCount.test.mjs",
     "qa:optional-amount": "node --experimental-strip-types --test tests/optionalAmount.test.mjs",
-    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date && npm run qa:accounting-payment-match && npm run qa:date-only && npm run qa:optional-amount"
+    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date && npm run qa:accounting-payment-match && npm run qa:date-only && npm run qa:optional-amount && npm run qa:access-ready-count"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

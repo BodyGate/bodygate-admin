@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { businessTodayISO } from "../../../lib/server/businessDate";
+import { evaluateAccessEligibility } from "../../../lib/server/accessEligibility";
+import { feeKey, isAccessReady } from "../../../lib/server/accessReadyCount";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,6 +78,25 @@ function applyListFilter(customers: CustomerRow[], filter: string) {
   }
 }
 
+// Legge tutte le righe di una query a pagine da PAGE_SIZE (Supabase tronca a 1000).
+async function fetchAllRows(
+  build: () => {
+    range: (
+      from: number,
+      to: number
+    ) => PromiseLike<{ data: CustomerRow[] | null; error: { message: string } | null }>;
+  }
+): Promise<{ ok: true; rows: CustomerRow[] } | { ok: false; error: string }> {
+  const rows: CustomerRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) return { ok: false, error: error.message };
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return { ok: true, rows };
+  }
+}
+
 const DEFAULT_LIST_LIMIT = 60;
 const MAX_LIST_LIMIT = 200;
 
@@ -114,6 +135,7 @@ export async function GET(request: NextRequest) {
       "birth_date",
       "badge_code",
       "controller_code",
+      "branch_id",
       "is_active",
       "active",
       "status",
@@ -122,6 +144,7 @@ export async function GET(request: NextRequest) {
       "access_activation_status",
       "payment_status",
       "medical_certificate_status",
+      "medical_certificate_start_date",
       "medical_certificate_end_date",
       "created_at",
     ].join(", ");
@@ -166,15 +189,74 @@ export async function GET(request: NextRequest) {
 }));
 
     const activeCustomers = normalizedCustomers.filter(isActiveCustomer);
+
+    // "Accesso attivo": quota associativa + abbonamento + certificato medico
+    // validi oggi (e nessun blocco), con la stessa regola di /api/access/check.
+    const today = businessTodayISO();
+    const nowIso = new Date().toISOString();
+
+    const [feeRows, subscriptionRows, blockRows] = await Promise.all([
+      fetchAllRows(() =>
+        supabase
+          .from("customer_membership_fees")
+          .select("customer_id, branch_id")
+          .lte("valid_from", today)
+          .gte("valid_until", today)
+      ),
+      fetchAllRows(() =>
+        supabase
+          .from("customer_subscriptions")
+          .select("customer_id")
+          .eq("is_active", true)
+          .lte("starts_at", today)
+          .gte("ends_at", today)
+      ),
+      fetchAllRows(() =>
+        supabase
+          .from("customer_blocks")
+          .select("customer_id")
+          .eq("is_active", true)
+          .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
+      ),
+    ]);
+
+    for (const result of [feeRows, subscriptionRows, blockRows]) {
+      if (!result.ok) {
+        return NextResponse.json(
+          { ok: false, error: result.error },
+          { status: 500 }
+        );
+      }
+    }
+
+    const accessContext = {
+      today,
+      feeKeys: new Set(
+        (feeRows.ok ? feeRows.rows : []).map((r) =>
+          feeKey(String(r.customer_id), String(r.branch_id))
+        )
+      ),
+      subscriptionCustomerIds: new Set(
+        (subscriptionRows.ok ? subscriptionRows.rows : []).map((r) =>
+          String(r.customer_id)
+        )
+      ),
+      blockedCustomerIds: new Set(
+        (blockRows.ok ? blockRows.rows : []).map((r) => String(r.customer_id))
+      ),
+    };
     const filteredCustomers = applyListFilter(normalizedCustomers, filter);
 
     const stats = {
       total_customers: activeCustomers.length,
       total_records: normalizedCustomers.length,
       inactive_customers: normalizedCustomers.length - activeCustomers.length,
-      access_active: activeCustomers.filter(
-        (customer) =>
-          String(customer.access_activation_status || "").toLowerCase() === "active"
+      access_active: activeCustomers.filter((customer) =>
+        isAccessReady(
+          evaluateAccessEligibility,
+          customer as Parameters<typeof isAccessReady>[1],
+          accessContext
+        )
       ).length,
       to_check: activeCustomers.filter(needsVerification).length,
       expiring_soon: activeCustomers.filter((customer) => {
