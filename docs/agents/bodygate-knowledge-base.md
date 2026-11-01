@@ -138,7 +138,7 @@ Ruoli amministrativi (`admin, administrator, owner, proprietario, super_admin, a
 
 ## Playbook per gli agenti BodyGate
 
-_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-10-28 (pulizia del 26/10: da ~150 a 47 PR aperte). Leggila prima di ogni esecuzione._
+_Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ultimo aggiornamento: 2026-11-01. Dopo la pulizia del 26-28/10 le PR `agents/*` aperte sono 2 (#366 knowledge, #367 ui) e nessuna ha commenti di review umani (solo bot Vercel/Codex). Leggila prima di ogni esecuzione._
 
 ### Regole valide per tutti gli agenti (Cura Grafica UI e Cura Logiche di Business)
 
@@ -146,24 +146,31 @@ _Sezione a cura dell'agente "Automiglioramento" (aggiornamento settimanale). Ult
 2. **Se esiste già una PR aperta sullo stesso tema/file, non aprirne un'altra.** Scegli un'area o un bug diverso e non sovrapposto. Se non ne trovi, termina senza commit: una sessione senza PR è un esito valido e preferibile a un duplicato.
 3. **Non aprire PR "solo TODO/annotazione"** su un rischio già annotato nel codice, nella knowledge base o in una PR aperta.
 4. **Una PR = un solo problema, diff piccolo.** Niente primitive nuove "di passaggio" insieme a una migrazione; prima di aggiungere una primitiva a `bodygate-ui` verifica che non sia già in una PR aperta (altrimenti nascono varianti duplicate: BGCenteredNotice/BGCenteredScreen, BGLinkTabs/BGLinkNav…).
-5. **Coerenza tra agenti:** non contraddire una direzione già presa in una PR aperta. Esempio: #267 (data UTC nella dashboard) va in senso opposto a #281/#284 (giorno Europe/Rome). Se trovi un conflitto, fermati e segnalalo nella descrizione della PR invece di scegliere un lato.
+5. **Coerenza tra agenti:** non contraddire una direzione già presa in una PR aperta. Esempio storico: le PR sul fuso orario UTC vs Europe/Rome (poi risolto da #352). Se trovi un conflitto, fermati e segnalalo nella descrizione della PR invece di scegliere un lato.
 6. Prima di aprire la PR esegui `npm run typecheck`, `npm run lint:baseline` e `npm test` e riporta l'esito nella descrizione.
 7. Indica cosa è stato verificato e cosa no (es. "non testato a runtime"). Non presentare come certo un fix non verificato.
 
 8. **Limite di PR aperte: massimo 3 per agente.** Se ne hai già 3 aperte (`agents/<tuo-agente>/…`), termina senza commit. Il 26/10 sono state chiuse 111 PR duplicate: non ripetere il caso.
 9. **Mai toccare l'avvio e l'hardware:** `bridge/`, `scripts/*.ps1`, `.env*`, configurazione del DNake e del tornello sono fuori perimetro per tutti gli agenti.
 
+### Pattern osservati (settimana 25/10–01/11) — aggiunti da Automiglioramento
+
+- **L'umano non rivede le PR una a una: integra in blocco** (#354 logica: 9 correzioni; #355 UI: 11 schermate) e chiude le originali. Un lavoro valido ma isolato rischia di essere assorbito in una PR di integrazione: scrivi nel titolo/descrizione file toccati e test, così il consolidamento è semplice.
+- **I cambiamenti davvero mergiati vengono dall'umano** (accessi, pass mobile, bridge, incassi) e toccano spesso gli stessi file di UI/logica: prima di una migrazione UI su una schermata, guarda `git log origin/main -- <file>` degli ultimi 7 giorni per non entrare in conflitto.
+- **Esito atteso di un run senza lavoro nuovo = nessuna PR.** Il 28/10 sono stati chiusi decine di duplicati; con il limite di 3 PR/agente (regola 8) e una PR aperta per schermata, la maggior parte dei run dovrebbe terminare senza commit.
+- **Dopo ogni migrazione a `BGStack`/`BGListRow` verifica il layout su telefono** (#357/#358 hanno dovuto sistemare spaziature e overflow di bodygate-ui): niente `style={{}}` per compensare, correggi la primitiva se serve.
+
 ### Cura Grafica UI
 
 - Rispetta AGENTS.md: solo componenti `components/bodygate-ui`; se manca un primitivo, aggiungilo lì (una sola volta) invece di inline style o shadcn.
 - Una pagina/componente per PR. Non toccare logica di business, query o permessi.
 - Non cambiare il comportamento visivo oltre lo stretto necessario (per le tabelle larghe controlla l'overflow orizzontale su mobile con ciò che `BGTable` offre oggi su `main`; non presumere props, es. `wide`, che esistono solo in PR aperte).
-- Scegli il componente da migrare tra quelli **non** citati in nessuna PR aperta; `PermissionGuard` è già coperto dalla sola PR #347: non toccarlo. Ogni PR duplicata viene chiusa dall'umano senza leggerla.
+- Scegli il componente da migrare tra quelli **non** citati in nessuna PR aperta; `PermissionGuard` è già migrato su `main`: non toccarlo. Ogni PR duplicata viene chiusa dall'umano senza leggerla.
 
 ### Cura Logiche di Business
 
 - **Soldi, contratti, OTP: un fix per PR e sempre atomico**: UPDATE condizionale (non read-then-write) per la race su una singola riga; se l'operazione scrive su più tabelle (es. `customer_payments` + `payments` + timeline) serve una RPC/transazione di database, perché un UPDATE condizionale non annulla le scritture parziali, con replay idempotente dove la ripetizione deve restituire il primo risultato (es. `verify-otp`, `update-payment`). **Eccezione: `send-otp` non è idempotente per scelta** — ogni chiamata genera un nuovo codice/scadenza e azzera il blocco dei tentativi; servono solo atomicità e protezione dalle race. File con intersezione frequente: `verify-otp`/`send-otp`, `update-payment`, `update-subscription`, `payments/create`, `check-expired`, gate accessi: verifica le PR aperte prima di toccarli.
 - Per l'arrotondamento importi usa un'unica utility condivisa (decimal-safe, punti medi tipo 1.005/2.675), non `toFixed(2)` replicato; una sola PR deve introdurla.
-- Fuso orario: oggi `main` calcola la data di business in UTC (accessi, verify-otp, reception/dashboard) e le PR aperte propongono Europe/Rome (#281, #284) o UTC (#267). **La scelta è una decisione di prodotto non ancora presa: non sceglierla tu.** Non toccare i confronti di data finché non c'è una decisione umana; se serve, segnala la domanda nella PR.
+- Fuso orario: **decisione presa** (28/10/2026, PR #352): la data di business è il giorno `Europe/Rome`, via `app/lib/server/businessDate.ts` (`businessTodayISO()`, `businessDayStartISO()`). Non usare `new Date().toISOString().slice(0,10)` né UTC per validità/scadenze; se trovi confronti di data ancora in UTC, usa quelle utility (una PR per area, con test in `tests/businessDate.test.mjs`).
 - Rispetta l'ordine di controllo del tornello (vedi sezione Permessi): non riordinarlo senza aggiornare i test.
 - Dubbio non certo = nota nella PR, mai fix indovinato.
