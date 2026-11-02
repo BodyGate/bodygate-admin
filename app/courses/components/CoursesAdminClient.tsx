@@ -6,9 +6,11 @@ import {
   BGCard,
   BGEmptyState,
   BGInput,
+  BGListRow,
   BGPageHeader,
   BGPageShell,
   BGSelect,
+  BGStack,
   BGStatusBadge,
 } from "@/components/bodygate-ui";
 import { safeRandomId } from "../../lib/safeRandomId";
@@ -360,7 +362,7 @@ export default function CoursesAdminClient() {
 
       <CoursesNav />
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+      <BGStack direction="row" gap="sm" wrap style={{ marginBottom: 18 }}>
         <BGButton variant={activeTab === "types" ? "primary" : "secondary"} onClick={() => setActiveTab("types")}>
           Tipi corso
         </BGButton>
@@ -370,7 +372,7 @@ export default function CoursesAdminClient() {
         <BGButton variant={activeTab === "schedules" ? "primary" : "secondary"} onClick={() => setActiveTab("schedules")}>
           Orari
         </BGButton>
-      </div>
+      </BGStack>
 
       {message && (
         <BGCard variant="soft" style={{ marginBottom: 18 }}>
@@ -395,53 +397,47 @@ export default function CoursesAdminClient() {
                 {activeCourseTypes.length === 0 ? (
                   <BGEmptyState title="Nessun tipo corso" description="Crea il primo tipo corso dal pannello a destra." />
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <BGStack gap="md">
                     {courseTypes.map((type) => (
-                      <div
+                      <BGListRow
                         key={type.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span
-                            style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: "50%",
-                              background: type.color,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{type.name}</div>
-                            <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                              {type.default_duration_minutes} min · capienza {type.default_capacity}
-                              {type.default_price ? ` · € ${Number(type.default_price).toFixed(2)}` : ""}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
-                          {type.requires_medical_certificate && <BGStatusBadge tone="warning">Certificato</BGStatusBadge>}
-                          {type.requires_active_subscription && <BGStatusBadge tone="info">Abbonamento</BGStatusBadge>}
-                          {!type.is_active && <BGStatusBadge tone="danger">Non attivo</BGStatusBadge>}
-                          <BGButton
-                            variant="secondary"
-                            onClick={() => updateCourseTypeActive(type.id, !type.is_active)}
-                          >
-                            {type.is_active ? "Disattiva" : "Attiva"}
-                          </BGButton>
-                        </div>
-                      </div>
+                        variant="soft"
+                        title={
+                          <BGStack direction="row" gap="xs" align="center">
+                            <span
+                              style={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: "50%",
+                                background: type.color,
+                                flexShrink: 0,
+                              }}
+                            />
+                            {type.name}
+                          </BGStack>
+                        }
+                        meta={
+                          <>
+                            {type.default_duration_minutes} min · capienza {type.default_capacity}
+                            {type.default_price ? ` · € ${Number(type.default_price).toFixed(2)}` : ""}
+                          </>
+                        }
+                        actions={
+                          <>
+                            {type.requires_medical_certificate && <BGStatusBadge tone="warning">Certificato</BGStatusBadge>}
+                            {type.requires_active_subscription && <BGStatusBadge tone="info">Abbonamento</BGStatusBadge>}
+                            {!type.is_active && <BGStatusBadge tone="danger">Non attivo</BGStatusBadge>}
+                            <BGButton
+                              variant="secondary"
+                              onClick={() => updateCourseTypeActive(type.id, !type.is_active)}
+                            >
+                              {type.is_active ? "Disattiva" : "Attiva"}
+                            </BGButton>
+                          </>
+                        }
+                      />
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </>
             )}
@@ -452,33 +448,21 @@ export default function CoursesAdminClient() {
                 {rooms.length === 0 ? (
                   <BGEmptyState title="Nessuna sala" description="Crea la prima sala dal pannello a destra." />
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <BGStack gap="md">
                     {rooms.map((room) => (
-                      <div
+                      <BGListRow
                         key={room.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{room.name}</div>
-                          {room.description && (
-                            <div style={{ fontSize: 12, color: "var(--muted)" }}>{room.description}</div>
-                          )}
-                        </div>
-                        <BGStatusBadge tone={room.is_active ? "success" : "danger"}>
-                          Capienza {room.capacity}
-                        </BGStatusBadge>
-                      </div>
+                        variant="soft"
+                        title={room.name}
+                        meta={room.description || undefined}
+                        actions={
+                          <BGStatusBadge tone={room.is_active ? "success" : "danger"}>
+                            Capienza {room.capacity}
+                          </BGStatusBadge>
+                        }
+                      />
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </>
             )}
@@ -492,53 +476,46 @@ export default function CoursesAdminClient() {
                     description="Crea prima almeno un tipo corso e una sala, poi imposta l'orario ricorrente."
                   />
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <BGStack gap="md">
                     {schedules.map((schedule) => (
-                      <div
+                      <BGListRow
                         key={schedule.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700 }}>
+                        variant="soft"
+                        title={
+                          <>
                             {schedule.course_types?.name || "Corso"} · {schedule.course_rooms?.name || "Sala"}
-                          </div>
-                          <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                          </>
+                        }
+                        meta={
+                          <>
                             {WEEKDAYS.find((w) => w.value === schedule.weekday)?.label} {schedule.start_time.slice(0, 5)}
                             {" · "}
                             {schedule.duration_minutes} min · capienza {schedule.capacity}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <BGSelect
-                            value={schedule.status}
-                            onChange={(e) => updateScheduleStatus(schedule.id, e.target.value)}
-                          >
-                            <option value="draft">Bozza</option>
-                            <option value="active">Attivo</option>
-                            <option value="paused">In pausa</option>
-                            <option value="archived">Archiviato</option>
-                          </BGSelect>
-                          <BGButton
-                            variant="secondary"
-                            onClick={() => generateSessions(schedule.id)}
-                            disabled={generatingScheduleId === schedule.id || schedule.status !== "active"}
-                          >
-                            {generatingScheduleId === schedule.id ? "Generazione..." : "Genera sessioni (60gg)"}
-                          </BGButton>
-                        </div>
-                      </div>
+                          </>
+                        }
+                        actions={
+                          <>
+                            <BGSelect
+                              value={schedule.status}
+                              onChange={(e) => updateScheduleStatus(schedule.id, e.target.value)}
+                            >
+                              <option value="draft">Bozza</option>
+                              <option value="active">Attivo</option>
+                              <option value="paused">In pausa</option>
+                              <option value="archived">Archiviato</option>
+                            </BGSelect>
+                            <BGButton
+                              variant="secondary"
+                              onClick={() => generateSessions(schedule.id)}
+                              disabled={generatingScheduleId === schedule.id || schedule.status !== "active"}
+                            >
+                              {generatingScheduleId === schedule.id ? "Generazione..." : "Genera sessioni (60gg)"}
+                            </BGButton>
+                          </>
+                        }
+                      />
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </>
             )}
