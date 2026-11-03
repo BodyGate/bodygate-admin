@@ -1,5 +1,5 @@
 param(
-    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.6-txt\BodyGateBridge.exe",
+    [string]$BridgePath = "C:\BodyGateBridge_Releases\V3.9.7-timing\BodyGateBridge.exe",
     [string]$EnvFile = "C:\bodygate-admin\.env.local",
     [string]$LogDirectory = "C:\bodygate-admin\logs"
 )
