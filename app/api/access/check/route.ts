@@ -345,6 +345,15 @@ async function findStaffAccess(
 export async function POST(req: Request) {
   const accessStartedAt = Date.now();
 
+  // Tempi per passaggio, solo per diagnosi: non cambiano nessuna regola.
+  const stepMs: Record<string, number> = {};
+  let lastMarkAt = accessStartedAt;
+  const markStep = (name: string) => {
+    const now = Date.now();
+    stepMs[name] = now - lastMarkAt;
+    lastMarkAt = now;
+  };
+
   // This endpoint is reachable without a session (the physical bridge has
   // none) and returns customer name + medical/subscription status on a
   // match, so a guessable badge code is an enumeration vector. Machine-key
@@ -364,6 +373,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
+    markStep("parse_ms");
 
     const badge = normalizeBadge(body.badge || body.badge_code || body.code);
     const source = normalizeBadge(body.source) || "turnstile";
@@ -378,6 +388,7 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseClient();
     const badgeLookup = await findBadgeMatch(supabase, badge);
+    markStep("badge_lookup_ms");
 
     if (!badgeLookup.match) {
       const staffResult = await findStaffAccess(supabase, badge, source);
@@ -448,6 +459,8 @@ export async function POST(req: Request) {
         credential_source: badgeMatch.source,
       });
     }
+
+    markStep("customer_ms");
 
     const customerId = customer.id;
     const branchId = customer.branch_id;
@@ -551,6 +564,8 @@ export async function POST(req: Request) {
       validSubscriptionPromise,
     ]);
 
+    markStep("reads_ms");
+
     const eligibility = evaluateAccessEligibility({
       customer,
       today,
@@ -590,6 +605,7 @@ export async function POST(req: Request) {
       customer_id: customerId,
       persistence_ms: persistenceMs,
       total_ms: totalMs,
+      ...stepMs,
     });
 
     return NextResponse.json({
