@@ -71,6 +71,22 @@ async function findBadgeMatch(
     "access_credentials.status=active AND normalized(code/controller_code)=badge",
   ];
 
+  // Il fallback su customer_badges parte subito, in parallelo: se il badge
+  // non e' in access_credentials non si aspetta un secondo giro verso il DB.
+  // La priorita' non cambia: customer_badges conta solo se access_credentials
+  // non trova nulla.
+  // Le query di supabase-js partono solo quando vengono "attese": Promise.resolve
+  // le avvia subito.
+  const customerBadgePromise = Promise.resolve(
+    supabase
+      .from("customer_badges")
+      .select("id, customer_id, badge_code, is_active")
+      .or(badgeFilter)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle()
+  );
+
   const { data: accessCredential, error: accessCredentialError } =
     await supabase
       .from("access_credentials")
@@ -111,13 +127,8 @@ async function findBadgeMatch(
 
   exactQueryPathUsed.push("customer_badges.normalized(badge_code)=badge AND is_active=true");
 
-  const { data: customerBadge, error: customerBadgeError } = await supabase
-    .from("customer_badges")
-    .select("id, customer_id, badge_code, is_active")
-    .or(badgeFilter)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  const { data: customerBadge, error: customerBadgeError } =
+    await customerBadgePromise;
 
   if (customerBadgeError) {
     console.error("customer_badges fallback lookup failed", {
@@ -478,16 +489,28 @@ export async function POST(req: Request) {
     }
 
     async function markPresenceInside() {
-      await supabase
-        .from("gym_presence")
-        .update({
-          is_inside: false,
-          exited_at: new Date().toISOString(),
-        })
-        .eq("customer_id", customerId)
-        .eq("is_inside", true);
+      // Chiusura delle presenze precedenti e nuova presenza partono insieme.
+      // L'id della nuova riga e' deciso qui, cosi' la chiusura la esclude
+      // e non puo' mai chiudere la presenza appena creata.
+      const newPresenceId = crypto.randomUUID();
 
+      await Promise.all([
+        supabase
+          .from("gym_presence")
+          .update({
+            is_inside: false,
+            exited_at: new Date().toISOString(),
+          })
+          .eq("customer_id", customerId)
+          .eq("is_inside", true)
+          .neq("id", newPresenceId),
+        insertPresence(newPresenceId),
+      ]);
+    }
+
+    async function insertPresence(presenceId: string) {
       await supabase.from("gym_presence").insert({
+        id: presenceId,
         customer_id: customerId,
         branch_id: branchId,
         badge_code: badgeMatch.badge_code,
