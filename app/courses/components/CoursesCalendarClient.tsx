@@ -5,6 +5,7 @@ import {
   BGButton,
   BGCard,
   BGEmptyState,
+  BGListRow,
   BGPageHeader,
   BGPageShell,
   BGSelect,
@@ -247,9 +248,11 @@ export default function CoursesCalendarClient() {
                 ) : (
                   <BGStack>
                     {daySessions.map((session) => (
-                      <BGCard key={session.id} variant="soft">
-                        <BGStack direction="row" justify="between" wrap align="center">
-                          <BGStack direction="row" align="center">
+                      <BGListRow
+                        key={session.id}
+                        variant="soft"
+                        title={
+                          <BGStack direction="row" gap="xs" align="center">
                             <span
                               style={{
                                 width: 12,
@@ -259,42 +262,42 @@ export default function CoursesCalendarClient() {
                                 flexShrink: 0,
                               }}
                             />
-                            <div>
-                              <div style={{ fontWeight: 700 }}>
-                                {session.course_types?.name || "Corso"} · {formatTimeRange(session.starts_at, session.ends_at)}
-                              </div>
-                              <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                                {session.course_rooms?.name || "Sala"}
-                                {session.staff_users?.full_name ? ` · ${session.staff_users.full_name}` : ""}
-                                {" · "}
-                                {session.confirmed_count}/{session.capacity} confermati
-                                {session.waitlisted_count > 0 ? ` · ${session.waitlisted_count} in lista d'attesa` : ""}
-                              </div>
-                            </div>
+                            {session.course_types?.name || "Corso"} · {formatTimeRange(session.starts_at, session.ends_at)}
                           </BGStack>
-                        <BGStack direction="row" gap="sm" align="center">
-                          <BGStatusBadge tone={STATUS_TONE[session.status] || "neutral"}>{session.status}</BGStatusBadge>
-                          {ACTIONABLE_SESSION_STATUSES.has(session.status) && (
-                            <>
-                              <BGButton
-                                variant="secondary"
-                                onClick={() => completeSession(session.id)}
-                                disabled={busySessionId === session.id}
-                              >
-                                Completa
-                              </BGButton>
-                              <BGButton
-                                variant="secondary"
-                                onClick={() => cancelSession(session.id)}
-                                disabled={busySessionId === session.id}
-                              >
-                                Annulla
-                              </BGButton>
-                            </>
-                          )}
-                        </BGStack>
-                        </BGStack>
-                      </BGCard>
+                        }
+                        meta={
+                          <>
+                            {session.course_rooms?.name || "Sala"}
+                            {session.staff_users?.full_name ? ` · ${session.staff_users.full_name}` : ""}
+                            {" · "}
+                            {session.confirmed_count}/{session.capacity} confermati
+                            {session.waitlisted_count > 0 ? ` · ${session.waitlisted_count} in lista d'attesa` : ""}
+                          </>
+                        }
+                        actions={
+                          <>
+                            <BGStatusBadge tone={STATUS_TONE[session.status] || "neutral"}>{session.status}</BGStatusBadge>
+                            {ACTIONABLE_SESSION_STATUSES.has(session.status) && (
+                              <>
+                                <BGButton
+                                  variant="secondary"
+                                  onClick={() => completeSession(session.id)}
+                                  disabled={busySessionId === session.id}
+                                >
+                                  Completa
+                                </BGButton>
+                                <BGButton
+                                  variant="secondary"
+                                  onClick={() => cancelSession(session.id)}
+                                  disabled={busySessionId === session.id}
+                                >
+                                  Annulla
+                                </BGButton>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
                     ))}
                   </BGStack>
                 )}
