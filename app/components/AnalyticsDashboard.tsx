@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { useLiveChanges } from "../lib/liveChanges";
 import {
   BGEmptyState,
   BGSection,
@@ -63,29 +63,10 @@ export default function AnalyticsDashboard() {
 
   useEffect(() => {
     loadAnalytics();
-
-    const channel = supabase
-      .channel("analytics_live")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "access_logs",
-        },
-        (payload) => {
-          setLogs((current) => [
-            payload.new as AccessLog,
-            ...current.slice(0, 999),
-          ]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  // Il segnale live non porta righe: si rileggono i dati dall'API autenticata.
+  useLiveChanges(["access_logs"], loadAnalytics);
 
   const stats = useMemo(() => {
     const now = new Date();

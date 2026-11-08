@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { supabase } from "../lib/supabaseClient";
+import { useLiveChanges } from "../lib/liveChanges";
 import { BGAlertCard, BGButton, BGCard, BGEmptyState, BGInput, BGPageHeader, BGStatCard, BGStatusBadge } from "@/components/bodygate-ui";
 import { adaptReceptionCustomer } from "@/architecture/platinum-runtime-adapters";
 
@@ -249,40 +249,15 @@ export default function ReceptionDashboard() {
       loadBridgeStatus();
     }, 5000);
 
-    const channel = supabase
-      .channel("reception_dashboard_live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "access_logs" },
-        () => loadData(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "customers" },
-        () => loadData(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "customer_subscriptions" },
-        () => loadData(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "customer_access_logs" },
-        () => loadData(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "gym_presence" },
-        () => loadData(),
-      )
-      .subscribe();
-
     return () => {
       window.clearInterval(bridgeInterval);
-      supabase.removeChannel(channel);
     };
   }, [loadData]);
+
+  useLiveChanges(
+    ["access_logs", "customers", "customer_subscriptions", "customer_access_logs", "gym_presence"],
+    loadData,
+  );
 
   const stats = useMemo(() => {
     const today = todayString();

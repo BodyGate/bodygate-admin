@@ -71,7 +71,13 @@ dallo snapshot. Riapre l'esposizione: usarlo solo in emergenza.
   i log API di Supabase per accessi anonimi anomali.
 - Valutare se ruotare la chiave anon (non indispensabile ora che non da' piu'
   accesso a dati).
-- Reintrodurre aggiornamenti live con un canale Realtime *broadcast* privo di
-  dati personali (solo "tabella X cambiata"), invece di `postgres_changes`.
+- ~~Reintrodurre aggiornamenti live con un canale Realtime *broadcast* privo di
+  dati personali~~ **Fatto** (migrazione `20261108130000_live_change_signals_v1`
+  e `app/lib/liveChanges.ts`): un trigger per statement su 10 tabelle invia
+  `{ "table": "<nome>" }` sul canale `bodygate-live`; i 6 componenti live
+  ricaricano i dati dalle API autenticate (debounce 400 ms). Il canale e'
+  pubblico: chi ha la chiave anon vede solo che una tabella e' cambiata, e
+  potrebbe inviare segnali falsi (effetto: ricarichi extra, limitati dal
+  debounce). Per un canale privato serve Supabase Auth o un JWT firmato.
 - Impostare `BODYGATE_MACHINE_AUTH_MODE=enforce` in produzione.
 - Decidere la conservazione dello schema `archive` (backup con PII).

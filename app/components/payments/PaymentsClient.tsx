@@ -9,8 +9,7 @@ import BGEmptyState from "../ui/BGEmptyState";
 import BGPageHeader from "../ui/BGPageHeader";
 import BGStatCard from "../ui/BGStatCard";
 import BGStatusBadge from "../ui/BGStatusBadge";
-import { safeRandomId } from "../../lib/safeRandomId";
-import { supabase } from "../../lib/supabaseClient";
+import { useLiveChanges } from "../../lib/liveChanges";
 
 type CustomerRelation = {
   first_name: string | null;
@@ -153,24 +152,9 @@ export default function PaymentsClient() {
 
   useEffect(() => {
     loadPayments();
-
-    const channel = supabase
-      .channel(safeRandomId("payments-readonly"))
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "payments",
-        },
-        loadPayments,
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  useLiveChanges(["payments"], loadPayments);
 
   const todayTotal = useMemo(() => {
     return payments
