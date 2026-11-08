@@ -66,7 +66,7 @@ create or replace view public.bodygate_v2_customers as
         END AS access_status
    FROM customers c;
 
--- Row Level Security: attiva su tutte le 66 tabelle.
+-- Row Level Security: attiva su tutte le 67 tabelle.
 alter table public.access_credentials enable row level security;
 alter table public.access_logs enable row level security;
 alter table public.accounting_entries enable row level security;
@@ -107,6 +107,7 @@ alter table public.exercise_variants enable row level security;
 alter table public.exercises enable row level security;
 alter table public.exercises_library enable row level security;
 alter table public.gym_presence enable row level security;
+alter table public.login_attempts enable row level security;
 alter table public.medical_certificates enable row level security;
 alter table public.membership_fee_settings enable row level security;
 alter table public.memberships enable row level security;

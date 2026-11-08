@@ -217,7 +217,7 @@ export function describePlan(opts) {
     `2. Applica la baseline in una sola transazione: ${BASELINE_FILES.join(", ")}`,
     "3. Crea le sedi, le impostazioni quota associativa di ciascuna, l'utente amministratore e il profilo staff (stessa transazione: o tutto o niente)",
     ...(opts.plansFile ? [`3b. Carica listini e quote associative per sede da ${opts.plansFile}`] : []),
-    "4. Verifica finale (66 tabelle, RLS attiva, nessun privilegio pubblico)",
+    "4. Verifica finale (67 tabelle, RLS attiva, nessun privilegio pubblico)",
     "5. Stampa i segreti da inserire nelle variabili d'ambiente",
   ];
 }

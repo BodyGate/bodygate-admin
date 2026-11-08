@@ -13,9 +13,9 @@ accessi) non e' in nessuna delle migrazioni di `supabase/migrations/`.
 
 | File | Contenuto |
 |---|---|
-| `01_extensions_types_tables.sql` | estensioni, 6 enum, 1 sequenza, 66 tabelle (711 colonne) |
-| `02_constraints_indexes.sql` | 229 vincoli (PK, unique, esclusioni, check, FK) e 133 indici |
-| `03_functions.sql` | 27 funzioni (RPC atomiche, ricevute, trigger helper) con i loro permessi |
+| `01_extensions_types_tables.sql` | estensioni, 6 enum, 1 sequenza, 67 tabelle (715 colonne) |
+| `02_constraints_indexes.sql` | 230 vincoli (PK, unique, esclusioni, check, FK) e 136 indici |
+| `03_functions.sql` | 28 funzioni (RPC atomiche, ricevute, trigger helper) con i loro permessi |
 | `04_triggers_views_security.sql` | 17 trigger, 2 viste, RLS su tutte le tabelle, 25 policy, privilegi, 3 bucket storage |
 | `05_reference_seed.sql` | dati di configurazione: 5 ruoli, 15 permessi, 45 assegnazioni, 5 metodi di pagamento, 8 moduli |
 
@@ -38,15 +38,15 @@ simulati) e confrontata con produzione. Tutti gli indicatori coincidono:
 
 | Oggetto | Produzione | Baseline |
 |---|---|---|
-| Tabelle / colonne | 66 / 711 | 66 / 711 |
+| Tabelle / colonne | 67 / 715 | 67 / 715 |
 | Viste | 2 | 2 |
-| Vincoli | 229 | 229 |
-| Indici (esclusi quelli dei vincoli) | 133 | 133 |
-| Funzioni | 27 | 27 |
+| Vincoli | 230 | 230 |
+| Indici (esclusi quelli dei vincoli) | 136 | 136 |
+| Funzioni | 28 | 28 |
 | Trigger | 17 | 17 |
 | Enum | 6 | 6 |
 | Policy | 25 | 25 |
-| Tabelle con RLS | 66 | 66 |
+| Tabelle con RLS | 67 | 67 |
 | Permessi diretti anon/authenticated | 0 | 0 |
 
 Il seed e' idempotente (secondo lancio senza errori).

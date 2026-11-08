@@ -158,3 +158,47 @@ Limiti noti, da chiudere prima di vendere a piu' centri:
 - **Nessun recupero password** (nessun invio di email).
 - Il cambio password non e' stato provato con una sessione reale: la logica e' coperta da test e
   da build, ma va provata una volta in produzione.
+
+## Limite ai tentativi di login (aggiunto 2026-11-08)
+
+Il login non aveva alcun limite. Ora (`app/lib/auth/loginThrottle.ts`,
+`app/lib/server/loginAttemptStore.ts`, tabella `public.login_attempts`, funzione
+`public.reserve_login_attempt`, migrazioni `20261108160000` e `20261108170000`) vale una
+finestra scorrevole di 15 minuti su tre livelli:
+
+| Livello | Tentativi ammessi | A cosa serve |
+|---|---|---|
+| stessa email + stesso IP | 5 | ferma chi indovina la password; un estraneo da un altro IP **non** blocca il titolare |
+| stessa email, qualunque IP | 25 | ferma chi cambia IP di continuo; vale anche sul PC locale, dove l'IP non e' affidabile |
+| stesso IP, qualunque email | 30 | ferma chi prova molte email |
+
+Superato un limite il login risponde **429** con `Retry-After` e il messaggio "Riprova tra N
+minuti". Un accesso riuscito cancella i tentativi di quella coppia email+IP.
+
+**Decisione e prenotazione sono atomiche.** Una prima versione leggeva il conteggio e
+registrava l'errore in due momenti: una raffica di richieste simultanee leggeva tutta
+"sotto il limite" e passava (segnalato da Codex sulla PR). Ora la funzione del database
+serializza le richieste per email e per IP con un advisory lock (sempre nello stesso ordine,
+senza deadlock), calcola il blocco e, se non c'e', **registra subito** il tentativo. Provato
+con richieste davvero concorrenti: su 40 simultanee per la stessa email+IP ne passano
+esattamente 5; su 60 con IP diversi per una sola email, esattamente 25.
+
+Scelte di progetto da conoscere:
+- **Il blocco non si allunga:** i tentativi bloccati non vengono registrati; il tempo residuo
+  scende (verificato sull'anteprima: 877 s -> 876 s).
+- **Fail-open:** se il database non risponde alla funzione, il login passa. Un guasto del
+  limitatore non deve chiudere fuori la palestra; l'errore finisce nel log.
+- **Nessun testo dell'utente in filtri costruiti a mano:** la decisione sta in una funzione
+  con parametri, quindi un'email costruita ad arte non puo' aggirare il controllo.
+- **IP:** `x-vercel-forwarded-for` (impostato da Vercel, non falsificabile), poi
+  `x-forwarded-for`. Sul PC della reception, senza proxy, quest'ultimo e' falsificabile:
+  li' protegge il livello "solo email". Chi arriva da un insieme di IP che cambiano a ogni
+  richiesta (come un proxy a rotazione) e' fermato da quel livello, non dalla coppia.
+- **Pulizia:** la funzione cancella le righe con piu' di 24 ore a campione (2% dei tentativi).
+- **Rischio residuo:** un attaccante puo' bloccare per 15 minuti il login del titolare dal
+  proprio IP e basta; per bloccarlo da ogni IP servono 25 tentativi in 15 minuti (un ritardo,
+  non un blocco permanente). Sblocco immediato:
+  `delete from public.login_attempts where email = '<email>';`
+- **Test:** 8 unitari (sempre attivi) e 14 sul database, con le raffiche concorrenti, che la
+  CI esegue su un PostgreSQL di servizio (`tests/loginThrottleDb.test.mjs`,
+  `tests/support/supabase-stubs.sql`).

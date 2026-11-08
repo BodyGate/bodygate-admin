@@ -10,6 +10,20 @@ jobs:
   quality-gate:
     name: Typecheck, lint, governance tests, build
     runs-on: ubuntu-latest
+    # PostgreSQL di servizio per i test che usano il database (limite login atomico,
+    # creazione palestra): senza, quei test verrebbero saltati.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +56,18 @@ jobs:
           npm run qa:platinum-customers
           npm run qa:platinum-completion
 
-      - name: Business logic tests (access eligibility)
+      - name: Prepare PostgreSQL for database tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "create database login_test" -c "create database tenant_test"
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -d login_test -f tests/support/supabase-stubs.sql
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -d tenant_test -f tests/support/supabase-stubs.sql
+
+      - name: Business logic and database tests
+        env:
+          LOGIN_THROTTLE_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/login_test
+          TENANT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tenant_test
         run: npm test
 
       - name: Secret scan (tracked files)
