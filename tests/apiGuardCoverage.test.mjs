@@ -16,6 +16,7 @@ const EXEMPT = new Map([
   ["auth/login", "login"],
   ["auth/logout", "logout"],
   ["auth/me", "usa requireSession/getCurrentAuthContext"],
+  ["auth/change-password", "solo sessione: ognuno cambia la propria password, con la password attuale"],
   ["admin/test", "route di test senza dati"],
   ["settings/branches", "solo sessione: elenco sedi usato da molte pagine"],
   ["customers/ensure-digital-pass", "usa getCurrentAuthContext in proprio"],

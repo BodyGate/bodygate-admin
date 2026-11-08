@@ -75,8 +75,9 @@ segreti, SQL senza concatenazioni) e 1 di integrazione (include un guasto simula
 password cifrata, rollback completo dopo un guasto a meta' e rifiuto del lancio su un database non vuoto.
 
 ## Limiti noti
-- Manca una funzione di cambio/recupero password nell'app: la password
-  dell'amministratore non si puo' modificare dall'interfaccia.
+- Il cambio password esiste (`/settings/password`, icona della chiave accanto al logout): serve la
+  password attuale e la nuova ha almeno 12 caratteri. **Manca il recupero** se si dimentica la
+  password (nessun invio di email): oggi lo si fa a mano sul database con un nuovo hash.
 - Non c'e' ancora un registro dei tenant ne' un comando che applichi le nuove
   migrazioni a tutti i database: sono i passi successivi dell'ADR.
 - Un centro con piu' sedi si crea, ma l'applicazione non sa ancora gestirle davvero
