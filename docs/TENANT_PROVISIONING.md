@@ -24,9 +24,13 @@ Non crea il progetto Supabase ne' il deploy: quelli restano passaggi manuali.
 # 1. prova senza modificare nulla
 npm run tenant:provision -- --dry-run --name "Palestra Rossi" --admin-email titolare@example.com
 
-# 2. creazione (l'URL non resta nella cronologia della shell)
+# 2. creazione di un centro con due sedi (l'URL non resta nella cronologia della shell)
 TENANT_DATABASE_URL='postgresql://...' \
-  npm run tenant:provision -- --name "Palestra Rossi" --admin-email titolare@example.com --admin-name "Mario Rossi"
+  npm run tenant:provision -- --name "Centro Rossi" \
+    --branch-name "Sede Centro" --branch-name "Sede Nord" \
+    --admin-email titolare@example.com --admin-name "Mario Rossi"
+
+# Senza --branch-name si crea una sola sede con il nome del centro.
 ```
 Se non si passa `--admin-password` (o `TENANT_ADMIN_PASSWORD`) ne viene generata
 una da 20 caratteri, mostrata una sola volta. Richiede `psql` installato.
@@ -55,5 +59,8 @@ password cifrata, rollback completo dopo un guasto a meta' e rifiuto del lancio 
   dell'amministratore non si puo' modificare dall'interfaccia.
 - Non c'e' ancora un registro dei tenant ne' un comando che applichi le nuove
   migrazioni a tutti i database: sono i passi successivi dell'ADR.
+- Un centro con piu' sedi si crea, ma l'applicazione non sa ancora gestirle davvero
+  (sede attiva, accessi per sede, personale per sede): vedi la sezione "Un centro
+  con piu' sedi" in `docs/adr/0001-multi-tenancy.md`.
 - La matrice ruoli del seed e' quella di produzione (vedi
   `docs/SECURITY_HOTFIX_0_4.md`): rivederla prima di creare account per operatori.

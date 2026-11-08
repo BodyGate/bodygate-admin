@@ -5,11 +5,13 @@ import test from "node:test";
 import bcrypt from "bcryptjs";
 import {
   BASELINE_FILES,
-  SEED_SQL,
+  MAX_BRANCHES,
+  buildSeedSql,
   describePlan,
   generatePassword,
   generateSecret,
   parseArgs,
+  resolveBranches,
   validateOptions,
 } from "../scripts/tenant/lib.mjs";
 
@@ -48,10 +50,34 @@ test("generated secrets are 64 hex chars and unique", () => {
 });
 
 test("seed SQL never concatenates user input (uses psql variables only)", () => {
-  for (const v of ["branch_name", "admin_email", "admin_hash", "admin_name"]) {
-    assert.ok(SEED_SQL.includes(`:'${v}'`), `manca :'${v}'`);
+  const sql = buildSeedSql(2);
+  for (const v of ["branch_name_1", "branch_name_2", "branch_1_id", "branch_2_id", "admin_email", "admin_hash", "admin_name"]) {
+    assert.ok(sql.includes(`:'${v}'`), `manca :'${v}'`);
   }
-  assert.ok(!/\$\{/.test(SEED_SQL));
+  assert.ok(!/\$\{/.test(sql));
+  assert.ok(!/\bbegin\b|\bcommit\b/i.test(sql), "la transazione la apre psql -1");
+});
+
+test("seed SQL creates one branch and one fee setting per branch", () => {
+  const sql = buildSeedSql(3);
+  assert.equal((sql.match(/insert into public\.branches/g) || []).length, 3);
+  assert.equal((sql.match(/insert into public\.membership_fee_settings/g) || []).length, 3);
+  assert.equal((sql.match(/insert into public\.app_users/g) || []).length, 1);
+});
+
+test("a centre can have several branches; default is one branch named like the centre", () => {
+  assert.deepEqual(resolveBranches({ name: "Centro Rossi" }), ["Centro Rossi"]);
+  const o = parseArgs(["--name", "Centro Rossi", "--branch-name", "Sede Centro", "--branch-name", "Sede Nord"]);
+  assert.deepEqual(resolveBranches(o), ["Sede Centro", "Sede Nord"]);
+});
+
+test("branch validation: unique names, minimum length, upper bound", () => {
+  const ok = { ...base, dryRun: true };
+  assert.deepEqual(validateOptions({ ...ok, branchNames: ["Sede A", "Sede B"] }), []);
+  assert.equal(validateOptions({ ...ok, branchNames: ["Sede A", "sede a"] }).length, 1);
+  assert.equal(validateOptions({ ...ok, branchNames: ["A"] }).length, 1);
+  const many = Array.from({ length: MAX_BRANCHES + 1 }, (_, i) => `Sede ${i + 1}`);
+  assert.equal(validateOptions({ ...ok, branchNames: many }).length, 1);
 });
 
 test("plan lists every baseline file in order", () => {
@@ -72,7 +98,7 @@ test("provisioning end to end on an empty database", { skip: !(dbUrl && hasPsql)
   const run = (extra = []) =>
     spawnSync(
       process.execPath,
-      ["scripts/tenant/provision-tenant.mjs", "--name", "Palestra Test; drop table x", "--admin-email", "Owner@Example.com", "--admin-password", "una-password-lunga-123", ...extra],
+      ["scripts/tenant/provision-tenant.mjs", "--name", "Centro Test", "--branch-name", "Sede Uno; drop table x", "--branch-name", "Sede Due", "--admin-email", "Owner@Example.com", "--admin-password", "una-password-lunga-123", ...extra],
       { env: { ...process.env, TENANT_DATABASE_URL: dbUrl }, encoding: "utf8" },
     );
   const q = (sql) => spawnSync("psql", [dbUrl, "-At", "-c", sql], { encoding: "utf8" }).stdout.trim();
@@ -88,13 +114,14 @@ test("provisioning end to end on an empty database", { skip: !(dbUrl && hasPsql)
 
   const first = run(); // il database e' ancora vuoto: si puo' riprovare
   assert.equal(first.status, 0, first.stderr || first.stdout);
-  assert.match(first.stdout, /PALESTRA CREATA/);
+  assert.match(first.stdout, /CENTRO CREATO/);
 
-  assert.equal(q("select count(*) from public.branches"), "1");
-  assert.equal(q("select name from public.branches"), "Palestra Test; drop table x");
+  assert.equal(q("select count(*) from public.branches"), "2");
+  assert.equal(q("select string_agg(name, '|' order by name) from public.branches"), "Sede Due|Sede Uno; drop table x");
   assert.equal(q("select email from public.app_users"), "owner@example.com");
   assert.equal(q("select count(*) from public.staff_users"), "1");
-  assert.equal(q("select count(*) from public.membership_fee_settings"), "1");
+  assert.equal(q("select count(*) from public.membership_fee_settings"), "2");
+  assert.equal(q("select count(distinct branch_id) from public.membership_fee_settings"), "2");
   assert.notEqual(q("select password from public.app_users"), "una-password-lunga-123");
   assert.ok(bcrypt.compareSync("una-password-lunga-123", q("select password from public.app_users")));
 

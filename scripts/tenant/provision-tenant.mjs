@@ -2,7 +2,7 @@
 // Crea una nuova palestra (tenant) su un database PostgreSQL/Supabase VUOTO.
 //
 //   TENANT_DATABASE_URL=postgresql://... node scripts/tenant/provision-tenant.mjs \
-//     --name "Palestra Rossi" --admin-email titolare@example.com [--admin-name "Mario Rossi"]
+//     --name "Centro Rossi" --admin-email titolare@example.com [--branch-name "Sede Centro" --branch-name "Sede Nord"] [--admin-name "Mario Rossi"]
 //
 // Non crea il progetto Supabase (serve un database vuoto gia' esistente) e non
 // tocca mai un database che contiene gia' la tabella public.customers.
@@ -12,11 +12,12 @@ import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import {
   BASELINE_FILES,
-  SEED_SQL,
+  buildSeedSql,
   describePlan,
   generatePassword,
   generateSecret,
   parseArgs,
+  resolveBranches,
   validateOptions,
 } from "./lib.mjs";
 
@@ -55,6 +56,7 @@ if (opts.dryRun) {
   process.exit(0);
 }
 
+const branches = resolveBranches(opts);
 const generated = !opts.adminPassword;
 const adminPassword = opts.adminPassword || generatePassword();
 const adminName = opts.adminName || opts.name;
@@ -75,14 +77,14 @@ try {
     opts.databaseUrl,
     [
       "-1",
-      "-v", `branch_name=${opts.name.trim()}`,
+      ...branches.flatMap((name, i) => ["-v", `branch_name_${i + 1}=${name}`]),
       "-v", `admin_email=${opts.adminEmail.trim()}`,
       "-v", `admin_name=${adminName.trim()}`,
       "-v", `admin_hash=${hash}`,
       ...fileArgs,
       "-f", "-",
     ],
-    SEED_SQL,
+    buildSeedSql(branches.length),
   );
 
   console.log("4/4 Verifica finale...");
@@ -93,16 +95,18 @@ try {
       (select count(*) from information_schema.role_table_grants where table_schema = 'public' and grantee in ('anon','authenticated')),
       (select count(*) from public.branches),
       (select count(*) from public.app_users)`]);
-  const [tables, rls, publicGrants, branches, admins] = check.split(",").map(Number);
-  if (tables !== 66 || rls !== 66 || publicGrants !== 0 || branches !== 1 || admins !== 1) {
-    fail(`verifica finale non superata (tabelle=${tables}, rls=${rls}, privilegi pubblici=${publicGrants}, sedi=${branches}, admin=${admins}).`);
+  const branchCount = branches.length;
+  const [tables, rls, publicGrants, createdBranches, admins] = check.split(",").map(Number);
+  if (tables !== 66 || rls !== 66 || publicGrants !== 0 || createdBranches !== branchCount || admins !== 1) {
+    fail(`verifica finale non superata (tabelle=${tables}, rls=${rls}, privilegi pubblici=${publicGrants}, sedi=${createdBranches}/${branchCount}, admin=${admins}).`);
   }
 } catch (error) {
   fail(error.message);
 }
 
 console.log(`
-PALESTRA CREATA: ${opts.name}
+CENTRO CREATO: ${opts.name}
+Sedi (${branches.length}): ${branches.join(", ")}
 
 Accesso amministratore
   email:    ${opts.adminEmail}

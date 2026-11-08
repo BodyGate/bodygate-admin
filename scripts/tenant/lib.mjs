@@ -19,6 +19,7 @@ export function parseArgs(argv) {
     if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--database-url") opts.databaseUrl = argv[++i];
     else if (arg === "--name") opts.name = argv[++i];
+    else if (arg === "--branch-name") (opts.branchNames ||= []).push(argv[++i]);
     else if (arg === "--admin-email") opts.adminEmail = argv[++i];
     else if (arg === "--admin-name") opts.adminName = argv[++i];
     else if (arg === "--admin-password") opts.adminPassword = argv[++i];
@@ -31,13 +32,37 @@ export function parseArgs(argv) {
   return opts;
 }
 
+export const MAX_BRANCHES = 20;
+
+// Un centro (--name) puo' avere piu' sedi (--branch-name, ripetibile). Senza
+// --branch-name si crea una sola sede con lo stesso nome del centro.
+export function resolveBranches(opts) {
+  const names = (opts.branchNames?.length ? opts.branchNames : [opts.name])
+    .filter((n) => typeof n === "string")
+    .map((n) => n.trim());
+  return names;
+}
+
 export function validateOptions(opts) {
   const errors = [];
   if (!opts.name || opts.name.trim().length < 2) {
-    errors.push("--name: nome della palestra obbligatorio (almeno 2 caratteri).");
+    errors.push("--name: nome del centro obbligatorio (almeno 2 caratteri).");
   }
   if (!opts.adminEmail || !EMAIL_RE.test(opts.adminEmail)) {
     errors.push("--admin-email: email dell'amministratore non valida.");
+  }
+  // Senza --branch-name la sede ha il nome del centro, gia' controllato sopra.
+  if (opts.branchNames?.length) {
+    const branches = resolveBranches(opts);
+    if (branches.some((n) => n.length < 2)) {
+      errors.push("--branch-name: ogni sede deve avere un nome di almeno 2 caratteri.");
+    }
+    if (branches.length > MAX_BRANCHES) {
+      errors.push(`--branch-name: al massimo ${MAX_BRANCHES} sedi per centro.`);
+    }
+    if (new Set(branches.map((n) => n.toLowerCase())).size !== branches.length) {
+      errors.push("--branch-name: i nomi delle sedi devono essere diversi tra loro.");
+    }
   }
   if (opts.adminPassword !== undefined && opts.adminPassword.length < 12) {
     errors.push("--admin-password: almeno 12 caratteri.");
@@ -65,13 +90,18 @@ export function generateSecret(bytes = 32) {
 
 // Script psql: i valori arrivano come variabili (-v) e sono quotati da psql
 // con :'nome', quindi nessuna concatenazione di stringhe nell'SQL.
-export const SEED_SQL = `
--- Eseguito nella stessa transazione della baseline (psql -1): se qualcosa
--- fallisce, non resta nulla e il database vuoto e' di nuovo riutilizzabile.
-insert into public.branches (name) values (:'branch_name') returning id \\gset branch_
+// Eseguito nella stessa transazione della baseline (psql -1): se qualcosa
+// fallisce, non resta nulla e il database vuoto e' di nuovo riutilizzabile.
+export function buildSeedSql(branchCount = 1) {
+  const branches = Array.from({ length: branchCount }, (_, i) => {
+    const n = i + 1;
+    return `insert into public.branches (name) values (:'branch_name_${n}') returning id \\gset branch_${n}_
+insert into public.membership_fee_settings (branch_id) values (:'branch_${n}_id');
+`;
+  }).join("\n");
 
-insert into public.membership_fee_settings (branch_id) values (:'branch_id');
-
+  return `
+${branches}
 insert into public.app_users (email, password, role, active)
 values (lower(:'admin_email'), :'admin_hash', 'admin', true);
 
@@ -79,14 +109,17 @@ insert into public.staff_users (full_name, email, role_id, is_active)
 select :'admin_name', lower(:'admin_email'), id, true
 from public.staff_roles where role_key = 'admin';
 `;
+}
 
 export function describePlan(opts) {
+  const branches = resolveBranches(opts);
   return [
-    `Palestra: ${opts.name}`,
+    `Centro: ${opts.name}`,
+    `Sedi (${branches.length}): ${branches.join(", ")}`,
     `Amministratore: ${opts.adminEmail}`,
     "1. Verifica che il database sia vuoto (nessuna tabella public.customers)",
     `2. Applica la baseline in una sola transazione: ${BASELINE_FILES.join(", ")}`,
-    "3. Crea sede, impostazioni quota associativa, utente amministratore e profilo staff (stessa transazione: o tutto o niente)",
+    "3. Crea le sedi, le impostazioni quota associativa di ciascuna, l'utente amministratore e il profilo staff (stessa transazione: o tutto o niente)",
     "4. Verifica finale (66 tabelle, RLS attiva, nessun privilegio pubblico)",
     "5. Stampa i segreti da inserire nelle variabili d'ambiente",
   ];
