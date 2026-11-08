@@ -66,21 +66,20 @@ try {
     fail("il database contiene gia' public.customers: rifiuto di procedere. Usare un database vuoto.");
   }
 
-  console.log("2/4 Applico la baseline dello schema...");
-  for (const file of BASELINE_FILES) {
-    psql(opts.databaseUrl, ["-f", join(baselineDir, file)]);
-    console.log(`    ok ${file}`);
-  }
-
-  console.log("3/4 Creo sede, impostazioni e amministratore...");
+  console.log("2/4 Preparo l'amministratore...");
   const hash = await bcrypt.hash(adminPassword, 12);
+
+  console.log("3/4 Applico baseline e dati iniziali in UNA transazione (o tutto o niente)...");
+  const fileArgs = BASELINE_FILES.flatMap((file) => ["-f", join(baselineDir, file)]);
   psql(
     opts.databaseUrl,
     [
+      "-1",
       "-v", `branch_name=${opts.name.trim()}`,
       "-v", `admin_email=${opts.adminEmail.trim()}`,
       "-v", `admin_name=${adminName.trim()}`,
       "-v", `admin_hash=${hash}`,
+      ...fileArgs,
       "-f", "-",
     ],
     SEED_SQL,

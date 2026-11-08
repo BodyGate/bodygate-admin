@@ -66,9 +66,8 @@ export function generateSecret(bytes = 32) {
 // Script psql: i valori arrivano come variabili (-v) e sono quotati da psql
 // con :'nome', quindi nessuna concatenazione di stringhe nell'SQL.
 export const SEED_SQL = `
-\\set ON_ERROR_STOP on
-begin;
-
+-- Eseguito nella stessa transazione della baseline (psql -1): se qualcosa
+-- fallisce, non resta nulla e il database vuoto e' di nuovo riutilizzabile.
 insert into public.branches (name) values (:'branch_name') returning id \\gset branch_
 
 insert into public.membership_fee_settings (branch_id) values (:'branch_id');
@@ -79,8 +78,6 @@ values (lower(:'admin_email'), :'admin_hash', 'admin', true);
 insert into public.staff_users (full_name, email, role_id, is_active)
 select :'admin_name', lower(:'admin_email'), id, true
 from public.staff_roles where role_key = 'admin';
-
-commit;
 `;
 
 export function describePlan(opts) {
@@ -88,8 +85,8 @@ export function describePlan(opts) {
     `Palestra: ${opts.name}`,
     `Amministratore: ${opts.adminEmail}`,
     "1. Verifica che il database sia vuoto (nessuna tabella public.customers)",
-    `2. Applica la baseline: ${BASELINE_FILES.join(", ")}`,
-    "3. Crea sede, impostazioni quota associativa, utente amministratore e profilo staff",
+    `2. Applica la baseline in una sola transazione: ${BASELINE_FILES.join(", ")}`,
+    "3. Crea sede, impostazioni quota associativa, utente amministratore e profilo staff (stessa transazione: o tutto o niente)",
     "4. Verifica finale (66 tabelle, RLS attiva, nessun privilegio pubblico)",
     "5. Stampa i segreti da inserire nelle variabili d'ambiente",
   ];

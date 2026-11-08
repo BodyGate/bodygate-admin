@@ -77,7 +77,16 @@ test("provisioning end to end on an empty database", { skip: !(dbUrl && hasPsql)
     );
   const q = (sql) => spawnSync("psql", [dbUrl, "-At", "-c", sql], { encoding: "utf8" }).stdout.trim();
 
-  const first = run();
+  // Guasto a meta': una tabella con lo stesso nome di una vista della baseline
+  // fa fallire il file 04, DOPO che 01-03 hanno gia' creato lo schema.
+  q("create table public.bodygate_v2_customers (id int)");
+  const broken = run();
+  assert.notEqual(broken.status, 0, "il provisioning deve fallire con l'ostacolo");
+  assert.equal(q("select to_regclass('public.customers') is null"), "t", "rollback: nessuna tabella deve restare");
+  assert.equal(q("select to_regclass('public.app_users') is null"), "t");
+  q("drop table public.bodygate_v2_customers");
+
+  const first = run(); // il database e' ancora vuoto: si puo' riprovare
   assert.equal(first.status, 0, first.stderr || first.stdout);
   assert.match(first.stdout, /PALESTRA CREATA/);
 

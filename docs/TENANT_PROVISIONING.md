@@ -7,9 +7,11 @@ palestra) ma serve anche per creare ambienti di prova e di staging.
 ## Cosa fa
 Su un database PostgreSQL/Supabase **vuoto**:
 1. rifiuta di procedere se esiste gia' `public.customers`;
-2. applica la baseline (`supabase/baseline/01..05`);
-3. crea la sede, le impostazioni della quota associativa, l'utente
-   amministratore (password con hash bcrypt) e il suo profilo staff;
+2. applica la baseline (`supabase/baseline/01..05`), crea la sede, le impostazioni
+   della quota associativa, l'utente amministratore (password con hash bcrypt) e
+   il suo profilo staff **in un'unica transazione**: se qualcosa fallisce non resta
+   nulla e il database vuoto si puo' riutilizzare subito;
+3. (compreso nel punto 2)
 4. verifica 66 tabelle, RLS attiva ovunque, nessun privilegio a `anon` o
    `authenticated`, 1 sede e 1 amministratore;
 5. stampa i segreti nuovi per la palestra (`BODYGATE_SESSION_SECRET`,
@@ -42,11 +44,11 @@ una da 20 caratteri, mostrata una sola volta. Richiede `psql` installato.
 
 ## Verifica
 `tests/tenantProvision.test.mjs`: 8 test sempre attivi (validazione, password e
-segreti, SQL senza concatenazioni) e 1 di integrazione che gira se
+segreti, SQL senza concatenazioni) e 1 di integrazione (include un guasto simulato a meta' baseline con rollback e nuovo tentativo) che gira se
 `TENANT_TEST_DATABASE_URL` punta a un PostgreSQL vuoto con i ruoli
 `anon`/`authenticated`/`service_role` e gli schemi `extensions`/`realtime`/`storage`
 (su Supabase esistono gia'). Provato su PostgreSQL 16: creazione, dati corretti,
-password cifrata e rifiuto del secondo lancio su un database non vuoto.
+password cifrata, rollback completo dopo un guasto a meta' e rifiuto del lancio su un database non vuoto.
 
 ## Limiti noti
 - Manca una funzione di cambio/recupero password nell'app: la password
