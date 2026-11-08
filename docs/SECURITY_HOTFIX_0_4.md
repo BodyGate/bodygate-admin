@@ -81,3 +81,26 @@ dallo snapshot. Riapre l'esposizione: usarlo solo in emergenza.
   debounce). Per un canale privato serve Supabase Auth o un JWT firmato.
 - Impostare `BODYGATE_MACHINE_AUTH_MODE=enforce` in produzione.
 - Decidere la conservazione dello schema `archive` (backup con PII).
+
+## RBAC: i permessi sono (quasi) solo cosmetici — finding aperto
+
+Verificato nel codice il 2026-11-08:
+
+- Il middleware (`proxy.ts`) controlla solo che esista una sessione valida.
+- Delle 90 route in `app/api`, solo 2 importano gli helper di
+  `app/lib/server/auth.ts`; nessuna usa un controllo di permesso lato server.
+- I permessi (`PermissionGuard`, `useCurrentPermissions`, `Sidebar`) sono
+  applicati nel browser. Chiunque abbia una sessione puo' chiamare direttamente
+  le API, ad esempio `POST /api/staff/permissions-matrix` (assegna permessi ai
+  ruoli) o le route di creazione staff e pagamenti.
+- La matrice in produzione e' sbilanciata: `trainer` e `reception` hanno
+  `manage_staff` e `manage_modules`; `manager` ha solo i permessi dei corsi;
+  `commerciale` non ne ha nessuno.
+
+Conseguenza: oggi un istruttore o un receptionist puo' concedersi qualsiasi
+permesso. Per un prodotto venduto a piu' palestre e' un blocco.
+
+Correzione prevista (vedi anche `app/lib/server/auth.ts`): guardia
+`requirePermission(...)` lato server sulle route sensibili, poi revisione della
+matrice ruoli. La modifica dei dati in produzione va concordata con chi usa
+il sistema in reception, per non togliere operativita' per sbaglio.

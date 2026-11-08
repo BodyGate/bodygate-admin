@@ -1,6 +1,4 @@
--- STATO: NON ANCORA APPLICATA in produzione (richiede conferma esplicita
--- del titolare perche' contiene DROP). Applicare con `apply_migration` o
--- `supabase db push` e poi rimuovere questa riga.
+-- STATO: applicata in produzione il 2026-11-08.
 --
 -- BodyGate INDEX HYGIENE 1.0
 -- 1) Rimuove due duplicati esatti segnalati dall'advisor Supabase.
