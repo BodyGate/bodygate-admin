@@ -2,16 +2,18 @@
 // Crea una nuova palestra (tenant) su un database PostgreSQL/Supabase VUOTO.
 //
 //   TENANT_DATABASE_URL=postgresql://... node scripts/tenant/provision-tenant.mjs \
-//     --name "Centro Rossi" --admin-email titolare@example.com [--branch-name "Sede Centro" --branch-name "Sede Nord"] [--admin-name "Mario Rossi"]
+//     --name "Centro Rossi" --admin-email titolare@example.com [--branch-name "Sede Centro" --branch-name "Sede Nord"] [--plans-file listini.json] [--admin-name "Mario Rossi"]
 //
 // Non crea il progetto Supabase (serve un database vuoto gia' esistente) e non
 // tocca mai un database che contiene gia' la tabella public.customers.
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import {
   BASELINE_FILES,
+  buildPlansSql,
   buildSeedSql,
   describePlan,
   generatePassword,
@@ -19,6 +21,7 @@ import {
   parseArgs,
   resolveBranches,
   validateOptions,
+  validatePlans,
 } from "./lib.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -49,6 +52,17 @@ try {
 
 const errors = validateOptions(opts);
 if (errors.length) fail(errors.join("\n"));
+
+let plansData = null;
+if (opts.plansFile) {
+  try {
+    plansData = JSON.parse(readFileSync(opts.plansFile, "utf8"));
+  } catch (error) {
+    fail(`--plans-file: impossibile leggere o interpretare il file (${error.message}).`);
+  }
+  const planErrors = validatePlans(plansData, resolveBranches(opts));
+  if (planErrors.length) fail(planErrors.join("\n"));
+}
 
 if (opts.dryRun) {
   console.log("DRY RUN: nessuna modifica. Piano:\n");
@@ -81,10 +95,11 @@ try {
       "-v", `admin_email=${opts.adminEmail.trim()}`,
       "-v", `admin_name=${adminName.trim()}`,
       "-v", `admin_hash=${hash}`,
+      ...(plansData ? ["-v", `plans_json=${JSON.stringify(plansData)}`] : []),
       ...fileArgs,
       "-f", "-",
     ],
-    buildSeedSql(branches.length),
+    buildSeedSql(branches.length) + (plansData ? buildPlansSql() : ""),
   );
 
   console.log("4/4 Verifica finale...");
@@ -94,11 +109,13 @@ try {
       (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity),
       (select count(*) from information_schema.role_table_grants where table_schema = 'public' and grantee in ('anon','authenticated')),
       (select count(*) from public.branches),
-      (select count(*) from public.app_users)`]);
+      (select count(*) from public.app_users),
+      (select count(*) from public.subscription_plans)`]);
   const branchCount = branches.length;
-  const [tables, rls, publicGrants, createdBranches, admins] = check.split(",").map(Number);
-  if (tables !== 66 || rls !== 66 || publicGrants !== 0 || createdBranches !== branchCount || admins !== 1) {
-    fail(`verifica finale non superata (tabelle=${tables}, rls=${rls}, privilegi pubblici=${publicGrants}, sedi=${createdBranches}/${branchCount}, admin=${admins}).`);
+  const [tables, rls, publicGrants, createdBranches, admins, createdPlans] = check.split(",").map(Number);
+  const expectedPlans = plansData?.plans?.length ?? 0;
+  if (tables !== 66 || rls !== 66 || publicGrants !== 0 || createdBranches !== branchCount || admins !== 1 || createdPlans !== expectedPlans) {
+    fail(`verifica finale non superata (tabelle=${tables}, rls=${rls}, privilegi pubblici=${publicGrants}, sedi=${createdBranches}/${branchCount}, admin=${admins}, piani=${createdPlans}/${expectedPlans}).`);
   }
 } catch (error) {
   fail(error.message);
@@ -106,7 +123,7 @@ try {
 
 console.log(`
 CENTRO CREATO: ${opts.name}
-Sedi (${branches.length}): ${branches.join(", ")}
+Sedi (${branches.length}): ${branches.join(", ")}${plansData ? `\nListini caricati: ${plansData.plans?.length ?? 0} piani` : ""}
 
 Accesso amministratore
   email:    ${opts.adminEmail}

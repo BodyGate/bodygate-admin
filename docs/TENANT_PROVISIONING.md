@@ -31,9 +31,29 @@ TENANT_DATABASE_URL='postgresql://...' \
     --admin-email titolare@example.com --admin-name "Mario Rossi"
 
 # Senza --branch-name si crea una sola sede con il nome del centro.
+
+# 3. con i listini di ogni sede (vedi scripts/tenant/listini.example.json)
+TENANT_DATABASE_URL='postgresql://...' \
+  npm run tenant:provision -- --name "Centro Rossi" \
+    --branch-name "Sede Centro" --branch-name "Sede Nord" \
+    --admin-email titolare@example.com --plans-file listini.json
 ```
 Se non si passa `--admin-password` (o `TENANT_ADMIN_PASSWORD`) ne viene generata
 una da 20 caratteri, mostrata una sola volta. Richiede `psql` installato.
+
+## Listini in fase di installazione (`--plans-file`)
+File JSON con due elenchi, entrambi opzionali:
+- `plans`: `branch`, `category`, `name`, `price`, `duration_days` obbligatori;
+  `description`, `promo_price`, `sort_order` facoltativi. Le categorie si creano da sole,
+  **per sede**. La stessa voce puo' esistere in sedi diverse con prezzi diversi.
+- `membership_fees`: prezzo e validita' (giorni) della quota associativa di ogni sede;
+  senza questa voce restano i valori predefiniti (10 euro, 365 giorni).
+
+Il file e' validato prima di toccare il database (sede esistente, prezzi e durate
+sensati, nessun duplicato) e caricato nella **stessa transazione** della baseline: se
+qualcosa non va non resta nulla. L'intero file passa come una sola variabile psql, senza
+concatenare valori nell'SQL. La verifica finale controlla che i piani creati siano tanti
+quanti quelli del file.
 
 ## Passi manuali dopo lo script
 1. Creare il progetto Supabase **prima** (regione scelta per la palestra) e
@@ -43,7 +63,7 @@ una da 20 caratteri, mostrata una sola volta. Richiede `psql` installato.
    della palestra.
 3. Installare il bridge hardware in sede con la `BODYGATE_MACHINE_KEY` della
    palestra (oggi manuale, vedi `docs/OPERATIONS.md`).
-4. Configurare piani e categorie abbonamento, metodi e sedi dall'app.
+4. Se non si e' usato `--plans-file`, configurare piani e categorie abbonamento dall'app.
 5. Accedere come amministratore e verificare Clienti, Pagamenti e Reception.
 
 ## Verifica

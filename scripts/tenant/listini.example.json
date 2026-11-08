@@ -1,0 +1,11 @@
+{
+  "membership_fees": [
+    { "branch": "Sede Centro", "price": 15, "validity_days": 365 },
+    { "branch": "Sede Nord", "price": 10, "validity_days": 365 }
+  ],
+  "plans": [
+    { "branch": "Sede Centro", "category": "Abbonamenti", "name": "Mensile", "price": 49.9, "duration_days": 30, "sort_order": 1 },
+    { "branch": "Sede Centro", "category": "Abbonamenti", "name": "Trimestrale", "price": 129, "duration_days": 90, "sort_order": 2 },
+    { "branch": "Sede Nord", "category": "Abbonamenti", "name": "Mensile", "price": 39, "duration_days": 30, "promo_price": 29, "description": "Promo apertura", "sort_order": 1 }
+  ]
+}

@@ -22,6 +22,7 @@ export function parseArgs(argv) {
     else if (arg === "--branch-name") (opts.branchNames ||= []).push(argv[++i]);
     else if (arg === "--admin-email") opts.adminEmail = argv[++i];
     else if (arg === "--admin-name") opts.adminName = argv[++i];
+    else if (arg === "--plans-file") opts.plansFile = argv[++i];
     else if (arg === "--admin-password") opts.adminPassword = argv[++i];
     else throw new Error(`Argomento sconosciuto: ${arg}`);
   }
@@ -111,6 +112,101 @@ from public.staff_roles where role_key = 'admin';
 `;
 }
 
+// --- Listini per sede (file JSON opzionale: --plans-file) ---------------------
+//
+// {
+//   "membership_fees": [ { "branch": "Sede Centro", "price": 15, "validity_days": 365 } ],
+//   "plans": [
+//     { "branch": "Sede Centro", "category": "Abbonamenti", "name": "Mensile",
+//       "price": 49.9, "duration_days": 30, "description": "...", "promo_price": null, "sort_order": 1 }
+//   ]
+// }
+export const MAX_PLANS = 500;
+
+export function validatePlans(data, branchNames) {
+  const errors = [];
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return ["--plans-file: il file deve contenere un oggetto con 'plans' e/o 'membership_fees'."];
+  }
+  const known = new Set(branchNames.map((n) => n.toLowerCase()));
+  const branchOk = (b) => typeof b === "string" && known.has(b.trim().toLowerCase());
+  const isMoney = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 100000;
+
+  const plans = data.plans ?? [];
+  const fees = data.membership_fees ?? [];
+  if (!Array.isArray(plans) || !Array.isArray(fees)) {
+    return ["--plans-file: 'plans' e 'membership_fees' devono essere elenchi."];
+  }
+  if (plans.length > MAX_PLANS) errors.push(`--plans-file: al massimo ${MAX_PLANS} piani.`);
+
+  const seen = new Set();
+  plans.forEach((p, i) => {
+    const at = `piano #${i + 1}`;
+    if (!p || typeof p !== "object") { errors.push(`${at}: non e' un oggetto.`); return; }
+    if (!branchOk(p.branch)) errors.push(`${at}: sede '${p.branch}' non fra quelle create (${branchNames.join(", ")}).`);
+    if (typeof p.category !== "string" || p.category.trim().length < 2) errors.push(`${at}: categoria obbligatoria.`);
+    if (typeof p.name !== "string" || p.name.trim().length < 2) errors.push(`${at}: nome obbligatorio.`);
+    if (!isMoney(p.price)) errors.push(`${at}: prezzo non valido.`);
+    if (p.promo_price != null && !isMoney(p.promo_price)) errors.push(`${at}: prezzo promo non valido.`);
+    if (!Number.isInteger(p.duration_days) || p.duration_days < 1 || p.duration_days > 3650) {
+      errors.push(`${at}: duration_days deve essere un intero tra 1 e 3650.`);
+    }
+    if (p.sort_order != null && !Number.isInteger(p.sort_order)) errors.push(`${at}: sort_order deve essere intero.`);
+    const key = [p.branch, p.category, p.name].map((x) => String(x).trim().toLowerCase()).join("|");
+    if (seen.has(key)) errors.push(`${at}: duplicato (${p.branch} / ${p.category} / ${p.name}).`);
+    seen.add(key);
+  });
+
+  const feeBranches = new Set();
+  fees.forEach((f, i) => {
+    const at = `quota #${i + 1}`;
+    if (!f || typeof f !== "object") { errors.push(`${at}: non e' un oggetto.`); return; }
+    if (!branchOk(f.branch)) errors.push(`${at}: sede '${f.branch}' non fra quelle create.`);
+    if (!isMoney(f.price)) errors.push(`${at}: prezzo non valido.`);
+    if (f.validity_days != null && (!Number.isInteger(f.validity_days) || f.validity_days < 1 || f.validity_days > 3650)) {
+      errors.push(`${at}: validity_days deve essere un intero tra 1 e 3650.`);
+    }
+    const k = String(f.branch).trim().toLowerCase();
+    if (feeBranches.has(k)) errors.push(`${at}: sede ripetuta.`);
+    feeBranches.add(k);
+  });
+  return errors;
+}
+
+// L'intero file arriva come UNA variabile psql (:'plans_json'): nessuna
+// concatenazione di valori nell'SQL. Si appende dopo buildSeedSql().
+export function buildPlansSql() {
+  return `
+create temp table _plans_src on commit drop as
+select b.id as branch_id,
+       trim(p->>'category') as category,
+       trim(p->>'name') as name,
+       (p->>'price')::numeric as price,
+       (p->>'duration_days')::int as duration_days,
+       nullif(trim(p->>'description'), '') as description,
+       nullif(p->>'promo_price', '')::numeric as promo_price,
+       coalesce((p->>'sort_order')::int, 0) as sort_order
+from jsonb_array_elements(coalesce(:'plans_json'::jsonb -> 'plans', '[]'::jsonb)) p
+join public.branches b on lower(b.name) = lower(trim(p->>'branch'));
+
+insert into public.subscription_categories (branch_id, name, sort_order)
+select branch_id, category, min(sort_order) from _plans_src group by branch_id, category;
+
+insert into public.subscription_plans
+  (branch_id, category_id, category, name, price, promo_price, duration_days, description, sort_order, access_allowed, is_active)
+select s.branch_id, c.id, s.category, s.name, s.price, s.promo_price, s.duration_days, s.description, s.sort_order, true, true
+from _plans_src s
+join public.subscription_categories c on c.branch_id = s.branch_id and c.name = s.category;
+
+update public.membership_fee_settings f
+set price = (m->>'price')::numeric,
+    validity_days = coalesce((m->>'validity_days')::int, f.validity_days)
+from jsonb_array_elements(coalesce(:'plans_json'::jsonb -> 'membership_fees', '[]'::jsonb)) m,
+     public.branches b
+where lower(b.name) = lower(trim(m->>'branch')) and f.branch_id = b.id;
+`;
+}
+
 export function describePlan(opts) {
   const branches = resolveBranches(opts);
   return [
@@ -120,6 +216,7 @@ export function describePlan(opts) {
     "1. Verifica che il database sia vuoto (nessuna tabella public.customers)",
     `2. Applica la baseline in una sola transazione: ${BASELINE_FILES.join(", ")}`,
     "3. Crea le sedi, le impostazioni quota associativa di ciascuna, l'utente amministratore e il profilo staff (stessa transazione: o tutto o niente)",
+    ...(opts.plansFile ? [`3b. Carica listini e quote associative per sede da ${opts.plansFile}`] : []),
     "4. Verifica finale (66 tabelle, RLS attiva, nessun privilegio pubblico)",
     "5. Stampa i segreti da inserire nelle variabili d'ambiente",
   ];

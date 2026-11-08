@@ -93,15 +93,40 @@ dati; la sede e' l'unita' operativa (clienti iscritti, varchi, cassa, corsi).
   tutta l'installazione, non una per bridge/sede.
 - Esiste gia' il modulo `multi_branch` (disattivato) in `system_modules`.
 
-### Decisioni di prodotto da prendere (non tecniche)
-1. Un cliente puo' entrare in **tutte** le sedi o solo nella sua sede? Esistono
-   abbonamenti validi in piu' sedi o in tutte (es. un flag sul piano)?
-2. Le **ricevute** si numerano per centro o per sede? (Con il commercialista:
-   dipende dalla struttura fiscale del centro.)
-3. Il personale lavora in una sola sede o in piu'? Un responsabile vede tutte le
-   sedi? Serve un ruolo "responsabile di centro" distinto da quello di sede?
-4. I **report** sono per sede, consolidati, o entrambi?
-5. Listini, corsi e impostazioni: uguali per tutto il centro o per sede?
+### Decisioni di prodotto (titolare, 2026-11-08)
+1. **Accesso:** ogni cliente entra **solo nella sede dove e' stata creata la sua anagrafica**
+   (sede di appartenenza = sede di creazione).
+2. **Abbonamenti:** per ora **nessun abbonamento valido in piu' sedi**. L'abbonamento
+   appartiene alla sede del cliente.
+3. **Ricevute:** si numerano **per sede**.
+4. **Listini:** si impostano **in fase di installazione**, sede per sede.
+5. **Ancora da decidere:** il personale lavora in una sola sede o in piu'? Serve un ruolo
+   "responsabile di centro" che vede tutte le sedi? I report sono per sede, consolidati o
+   entrambi? (Proposta predefinita: personale assegnabile a piu' sedi tramite
+   `staff_branches`; il responsabile di centro vede tutto; report per sede e consolidato.)
+
+### Cosa comportano queste decisioni
+- **Cliente solo nella sua sede:** `customers.branch_id` diventa obbligatorio. Il controllo
+  accessi deve conoscere la sede del varco e negare con un motivo chiaro ("cliente di
+  un'altra sede") quando non coincide. Resta da decidere se serve un "trasferimento di
+  sede" quando un cliente si sposta.
+- **Nessun abbonamento multi-sede:** nessun campo nuovo sui piani. Il disegno non lo
+  esclude per il futuro (basterebbe un flag sul piano).
+- **Ricevute per sede:** oggi `customer_receipts.receipt_number` e' **univoco in tutto il
+  database** e il contatore (`receipt_counters`) e' per anno. Numerando per sede due sedi
+  genererebbero lo stesso numero: serve un prefisso/sezionale per sede (es. `A-2026-0001`)
+  oppure rendere l'unicita' per (sede, numero), piu' `branch_id` su `customer_receipts` e
+  contatore per (sede, anno). Il formato va concordato con il commercialista. Va toccata
+  `next_bodygate_receipt_number_v2` e il vincolo `customer_receipts_year_sequence_uidx`,
+  cioe' il percorso dei pagamenti: fase a rischio, da fare con test dedicati.
+- **Listini all'installazione:** `subscription_plans`, `subscription_categories` e
+  `membership_fee_settings` hanno gia' `branch_id`. Lo script di creazione carica ora
+  i listini per sede da un file (`--plans-file`, vedi `docs/TENANT_PROVISIONING.md`).
+- **Dati mancanti oggi** (verificati il 2026-11-08, non toccati): 4 clienti senza sede
+  (tutti inattivi), 1 abbonamento (di uno di quei clienti), 2 quote e 24 ingressi
+  (21 sono badge sconosciuti, senza cliente). Con una sola sede esistente la sede giusta
+  e' una sola; lo script storico `scripts/sql/backfill-default-branch.sql` lascia di
+  proposito fuori i clienti inattivi. Si sistema nella fase 1, insieme al `NOT NULL`.
 
 ### Proposta (da confermare con le risposte sopra)
 - **Tenant = centro**, un database per centro (invariato). Le sedi vivono dentro.
@@ -111,7 +136,7 @@ dati; la sede e' l'unita' operativa (clienti iscritti, varchi, cassa, corsi).
 - Assegnazione personale-sede (`staff_branches`) e **sede attiva** nella sessione;
   ogni route operativa filtra per sede, con il centro intero solo per chi ha il
   permesso di responsabile di centro.
-- Contatori di ricevuta per (sede, anno) o per (centro, anno), secondo il punto 2.
+- Contatori di ricevuta per (sede, anno), con prefisso/sezionale per sede (decisione 3).
 
 ### Piano di lavoro a fasi (ogni fase e' rilasciabile da sola)
 1. **Integrita' dei dati:** assegnare la sede ai 4 clienti, 1 abbonamento e 24
