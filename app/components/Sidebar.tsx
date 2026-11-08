@@ -12,7 +12,6 @@ import {
   DoorOpen,
   Dumbbell,
   LayoutDashboard,
-  KeyRound,
   LogOut,
   Monitor,
   Receipt,
@@ -183,25 +182,6 @@ export default function Sidebar() {
         >
           ●
         </div>
-
-        <Link
-          href="/settings/password"
-          title="Cambia password"
-          aria-label="Cambia password"
-          style={{
-            textDecoration: "none",
-            width: 50,
-            height: 42,
-            borderRadius: 16,
-            color: "#c7d2fe",
-            background: "rgba(91,61,245,0.11)",
-            border: "1px solid rgba(91,61,245,0.22)",
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <KeyRound size={18} />
-        </Link>
 
         <button
           title="Logout"

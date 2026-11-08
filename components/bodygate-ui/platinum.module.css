@@ -26,7 +26,8 @@
 .subnav .navItem { min-height: 34px; font-size: 12px; }
 .subnav .navItem svg { width: 15px; }
 
-.sidebarFooter { margin-top: auto; padding: 16px; }
+.sidebarFooter { margin-top: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.sidebarFooter .button { width: 100%; text-decoration: none; }
 .operator { display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 14px 4px 4px; background: transparent; }
 .avatar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--platinum-accent-dark); color: #ffffff; font-size: 11px; font-weight: 700; box-shadow: 0 0 0 2px var(--platinum-sidebar-2), 0 0 0 3.5px rgba(91, 61, 245, 0.55); }
 .operator strong, .operator span { display: block; }
