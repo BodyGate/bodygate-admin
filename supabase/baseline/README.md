@@ -58,7 +58,7 @@ Il seed e' idempotente (secondo lancio senza errori).
 - Su Supabase servono `pgcrypto`, `uuid-ossp`, `btree_gist` nello schema
   `extensions` (le esclusioni anti-sovrapposizione dei corsi usano `btree_gist`).
 - **Non inclusi:** schema `archive` (backup della migrazione da ClubManager, con
-  dati personali: da eliminare o archiviare fuori dal database), schemi gestiti
+  dati personali, conservati 5 anni per decisione del titolare: vedi `docs/DATA_RETENTION.md`), schemi gestiti
   da Supabase (`auth`, `storage`, `realtime`), dati dei clienti.
 - Lo storico `supabase_migrations` di produzione non coincide con i file in
   `supabase/migrations/` (stesse modifiche, versioni diverse). Per un ambiente

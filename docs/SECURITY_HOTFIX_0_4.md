@@ -80,7 +80,7 @@ dallo snapshot. Riapre l'esposizione: usarlo solo in emergenza.
   potrebbe inviare segnali falsi (effetto: ricarichi extra, limitati dal
   debounce). Per un canale privato serve Supabase Auth o un JWT firmato.
 - Impostare `BODYGATE_MACHINE_AUTH_MODE=enforce` in produzione.
-- Decidere la conservazione dello schema `archive` (backup con PII).
+- ~~Decidere la conservazione dello schema `archive`~~ **Deciso il 2026-11-08: 5 anni.** Registro e scadenze in `archive.retention_register` e `docs/DATA_RETENTION.md` (migrazione `20261108150000_archive_retention_5y_v1`). Chiusi anche i privilegi residui di anon/authenticated sulle tabelle archive. Resta da valutare con il consulente privacy la base giuridica per i dati sanitari.
 
 ## RBAC: i permessi sono (quasi) solo cosmetici — finding aperto
 
