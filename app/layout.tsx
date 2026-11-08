@@ -1,19 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Public_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import AppShell from "./components/AppShell";
 import "./globals.css";
 import "./components/ui/bodygate-ui.css";
 import "./components/ui/dashboard-quick-actions.css";
 
-const fontDisplay = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
+// Font inclusi nel repository (app/fonts): nessun download da Google in build.
+const fontDisplay = localFont({
+  src: "./fonts/PlusJakartaSans-latin-wght.woff2",
+  weight: "200 800",
+  display: "swap",
   variable: "--font-display",
 });
 
-const fontBody = Public_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const fontBody = localFont({
+  src: "./fonts/PublicSans-latin-wght.woff2",
+  weight: "100 900",
+  display: "swap",
   variable: "--font-body",
 });
 
