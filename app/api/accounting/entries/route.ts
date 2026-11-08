@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,7 +14,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   try {
     const supabase = getSupabaseClient();
     const { searchParams } = new URL(req.url);
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const supabase = getSupabaseClient();
     const body = await req.json().catch(() => ({}));
@@ -108,3 +109,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("manage_payments", handleGET);
+
+export const POST = withPermission("manage_payments", handlePOST);

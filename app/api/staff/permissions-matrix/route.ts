@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,7 +14,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const supabase = getSupabaseClient();
 
@@ -47,7 +48,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const supabase = getSupabaseClient();
     const body = await req.json().catch(() => ({}));
@@ -101,3 +102,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("manage_staff", handleGET);
+
+export const POST = withPermission("manage_staff", handlePOST);

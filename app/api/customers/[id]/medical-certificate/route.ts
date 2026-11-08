@@ -1,3 +1,4 @@
+import { withPermission } from "../../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { tableHasColumn } from "../../../../lib/server/defaultBranch";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handlePATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
     const body = await req.json().catch(() => ({}));
@@ -40,3 +41,5 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Aggiornamento certificato non riuscito." }, { status: 500 });
   }
 }
+
+export const PATCH = withPermission("edit_customers", handlePATCH);

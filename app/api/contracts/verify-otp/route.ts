@@ -1,9 +1,10 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isRateLimited } from "../../../lib/server/rateLimit";
 import { businessTodayISO } from "../../../lib/server/businessDate";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const body = await req.json();
 
@@ -237,3 +238,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("edit_customers", handlePOST);

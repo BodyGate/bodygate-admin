@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
@@ -59,7 +60,7 @@ function isOfficialPlanName(name: string) {
   return OFFICIAL_SUBSCRIPTION_PLAN_NAMES.has(String(name || "").trim());
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const supabaseAdmin = getSupabaseAdmin();
 
@@ -405,3 +406,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("manage_payments", handlePOST);

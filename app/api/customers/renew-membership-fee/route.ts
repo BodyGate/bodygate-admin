@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -157,7 +158,7 @@ function rpcErrorResponse(error: {
   );
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = admin();
 
   if (!db) {
@@ -362,3 +363,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("manage_payments", handlePOST);

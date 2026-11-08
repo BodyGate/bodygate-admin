@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { businessDayStartISO, businessTodayISO } from "../../../lib/server/businessDate";
@@ -24,7 +25,7 @@ function addDays(days: number) {
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const supabase = getSupabaseClient();
     const today = todayString();
@@ -128,3 +129,5 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withPermission("view_customers", handleGET);

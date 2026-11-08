@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ const bridgeBaseUrl =
   process.env.NEXT_PUBLIC_BODYGATE_BRIDGE_URL ||
   "http://127.0.0.1:5050";
 
-export async function POST() {
+async function handlePOST() {
   const normalizedBaseUrl = bridgeBaseUrl.replace(/\/+$/g, "");
   const bridgeUrl = `${normalizedBaseUrl}/open`;
 
@@ -38,3 +39,5 @@ export async function POST() {
     );
   }
 }
+
+export const POST = withPermission("manage_access", handlePOST);

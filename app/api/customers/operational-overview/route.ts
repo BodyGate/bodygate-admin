@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { businessTodayISO } from "../../../lib/server/businessDate";
@@ -104,7 +105,7 @@ async function safe<T>(
   }
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const db = admin();
   if (!db)
     return NextResponse.json(
@@ -535,3 +536,5 @@ export async function GET(req: Request) {
     data_quality_warnings: warnings,
   });
 }
+
+export const GET = withPermission("view_customers", handleGET);

@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { businessTodayISO } from "../../../lib/server/businessDate";
@@ -115,7 +116,7 @@ function matchesSearch(customer: CustomerRow, query: string) {
   );
 }
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
     const filter = request.nextUrl.searchParams.get("status") || "active";
@@ -311,3 +312,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+
+export const GET = withPermission("view_customers", handleGET);

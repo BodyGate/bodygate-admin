@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { getCourseSupabaseClient } from "../../../lib/server/courseRpc";
 
@@ -8,7 +9,7 @@ type CourseSessionRow = Record<string, unknown> & {
   course_bookings?: CourseBookingSummary[] | null;
 };
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   try {
     const supabase = getCourseSupabaseClient();
     const { searchParams } = new URL(req.url);
@@ -56,3 +57,5 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("view_courses", handleGET);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { useLiveChanges } from "../../lib/liveChanges";
 
 type AuditLog = {
   id: string;
@@ -32,24 +32,9 @@ export default function AuditLogsClient() {
 
   useEffect(() => {
     loadLogs();
-
-    const channel = supabase
-      .channel("audit-live")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "audit_logs",
-        },
-        loadLogs
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  useLiveChanges(["audit_logs"], loadLogs);
 
   return (
     <main style={styles.page}>

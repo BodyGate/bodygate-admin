@@ -1,6 +1,7 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from 'next/server'
 
-export async function POST() {
+async function handlePOST() {
   try {
     const gateUrl = process.env.GATEBOX_OPEN_URL
 
@@ -52,3 +53,5 @@ export async function POST() {
     )
   }
 }
+
+export const POST = withPermission("manage_access", handlePOST);

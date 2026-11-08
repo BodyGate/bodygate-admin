@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BGButton, BGEmptyState, BGPageHeader, BGStack } from "@/components/bodygate-ui";
-import { supabase } from "../../lib/supabaseClient";
+import { useLiveChanges } from "../../lib/liveChanges";
 import NotificationCard from "./NotificationCard";
 import NotificationFilters from "./NotificationFilters";
 import NotificationStats from "./NotificationStats";
@@ -159,20 +159,12 @@ export default function NotificationCenterClient() {
 
   useEffect(() => {
     loadNotifications();
-
-    const channel = supabase
-      .channel("notification-center")
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_access_logs" }, loadNotifications)
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_subscriptions" }, loadNotifications)
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_membership_fees" }, loadNotifications)
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_blocks" }, loadNotifications)
-      .on("postgres_changes", { event: "*", schema: "public", table: "unknown_badge_logs" }, loadNotifications)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  useLiveChanges(
+    ["customer_access_logs", "customer_subscriptions", "customer_membership_fees", "customer_blocks", "unknown_badge_logs"],
+    loadNotifications,
+  );
 
   const filteredNotifications = useMemo(() => {
     if (filter === "all") return notifications;

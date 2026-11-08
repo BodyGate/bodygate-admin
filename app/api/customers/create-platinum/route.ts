@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -308,7 +309,7 @@ function rpcErrorResponse(error: {
   );
 }
 
-export async function GET() {
+async function handleGET() {
   const db = admin();
 
   if (!db) {
@@ -357,7 +358,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = admin();
 
   if (!db) {
@@ -677,3 +678,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("view_customers", handleGET);
+
+export const POST = withPermission(["edit_customers", "manage_payments"], handlePOST);

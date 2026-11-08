@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { useLiveChanges } from "../lib/liveChanges";
 import BGActionButton from "./ui/BGActionButton";
 import BGCard from "./ui/BGCard";
 import BGDataTable from "./ui/BGDataTable";
@@ -71,26 +71,9 @@ export default function AccessLogsTable() {
 
   useEffect(() => {
     void Promise.resolve().then(loadLogs);
-
-    const channel = supabase
-      .channel("customer_access_logs_live")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "customer_access_logs",
-        },
-        () => {
-          loadLogs();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  useLiveChanges(["customer_access_logs"], loadLogs);
 
   if (loading) {
     return (

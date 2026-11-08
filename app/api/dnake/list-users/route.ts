@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ async function dnakeLogin() {
   return sessionId;
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const sessionId = await dnakeLogin();
 
@@ -60,3 +61,5 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withPermission("manage_access", handleGET);

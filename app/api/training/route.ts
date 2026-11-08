@@ -1,3 +1,4 @@
+import { withPermission } from "../../lib/server/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -89,7 +90,7 @@ async function listTrainingData() {
   };
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     return NextResponse.json({ ok: true, data: await listTrainingData() });
   } catch (error) {
@@ -97,7 +98,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const supabase = serverSupabase();
     const body = (await request.json()) as JsonRecord;
@@ -126,3 +127,7 @@ export async function POST(request: NextRequest) {
     return fail(error instanceof Error ? error.message : "Errore mutazione Training");
   }
 }
+
+export const GET = withPermission("manage_training", handleGET);
+
+export const POST = withPermission("manage_training", handlePOST);

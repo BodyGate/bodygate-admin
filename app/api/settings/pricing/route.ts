@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,7 +14,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const supabase = getSupabaseClient();
 
@@ -44,3 +45,5 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withPermission("manage_payments", handleGET);

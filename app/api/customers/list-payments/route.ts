@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -8,7 +9,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   try {
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
@@ -95,3 +96,5 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("view_payments", handleGET);
