@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -58,7 +59,7 @@ function isDryRun(req: Request) {
   return new URL(req.url).searchParams.get("dry_run") === "1";
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const result = await runCheckExpired(isDryRun(req));
 
   return NextResponse.json(result, {
@@ -66,10 +67,14 @@ export async function POST(req: Request) {
   });
 }
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const result = await runCheckExpired(isDryRun(req));
 
   return NextResponse.json(result, {
     status: result.ok ? 200 : 500,
   });
 }
+
+export const POST = withPermission("manage_staff", handlePOST);
+
+export const GET = withPermission("manage_staff", handleGET);

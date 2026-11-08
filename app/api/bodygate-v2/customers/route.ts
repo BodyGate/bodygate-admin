@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 function getSupabaseClient() {
@@ -11,7 +12,7 @@ function getSupabaseClient() {
 }
 
 const supabase = getSupabaseClient();
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = String(searchParams.get("q") || "").trim();
   let query = supabase.from("bg_v2_customers_crm").select("*").order("created_at", { ascending: false }).limit(2000);
@@ -21,3 +22,5 @@ export async function GET(req: Request) {
   const rows = data || [];
   return NextResponse.json({ ok: true, customers: rows, metrics: { total: rows.length, active: rows.filter((r:any)=>r.access_state === "active").length, expiring: rows.filter((r:any)=>r.access_state === "expiring").length, critical: rows.filter((r:any)=>["expired","blocked","suspended"].includes(r.access_state)).length }});
 }
+
+export const GET = withPermission("view_customers", handleGET);

@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import {
   courseRequestHash,
@@ -9,7 +10,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   try {
     const supabase = getCourseSupabaseClient();
     const { searchParams } = new URL(req.url);
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const db = getCourseSupabaseClient();
 
   try {
@@ -75,3 +76,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = withPermission("view_courses", handleGET);
+
+export const POST = withPermission("manage_courses", handlePOST);

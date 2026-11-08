@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { credentialLookupCodes, normalizeRfidCode } from "../../../utils/rfid";
@@ -70,7 +71,7 @@ async function findBadgeConflict(customerId: string, rawCode: string, controller
   return null;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
@@ -213,3 +214,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("edit_customers", handlePOST);

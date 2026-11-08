@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -36,7 +37,7 @@ function getPublicAppUrl() {
   ).replace(/\/$/, "");
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const body = await req.json();
     const customerId = String(body.customer_id || body.customerId || "").trim();
@@ -155,3 +156,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("edit_customers", handlePOST);

@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -18,7 +19,7 @@ function appendNote(previousNotes: string | null, newNote: string) {
   return `${previous}\n\n${newNote}`;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
@@ -170,3 +171,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("manage_payments", handlePOST);

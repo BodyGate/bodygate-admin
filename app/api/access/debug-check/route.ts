@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { rfidLookupCodes } from "../../../utils/rfid";
@@ -160,7 +161,7 @@ function resolveOwnerType(matches: DebugMatch[]): OwnerType {
   return staffIds.size ? "staff" : "customer";
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const body = await req.json();
     const code = normalizeCode(body.code || body.badge || body.badge_code);
@@ -258,3 +259,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ final_allowed: false, final_reason: error instanceof Error ? error.message : "Errore debug accesso" }, { status: 500 });
   }
 }
+
+export const POST = withPermission("manage_access", handlePOST);

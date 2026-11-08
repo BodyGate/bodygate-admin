@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -91,7 +92,7 @@ async function fetchAllSubscriptions(
   );
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const supabase = getSupabaseClient();
     const subscriptions = await fetchAllSubscriptions(supabase);
@@ -110,3 +111,5 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withPermission("view_customers", handleGET);

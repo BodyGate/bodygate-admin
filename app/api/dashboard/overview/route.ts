@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -135,7 +136,7 @@ async function fetchBridgeLiveStatus() {
   }
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const todayIso = startOfToday();
     const monthIso = startOfMonth();
@@ -383,3 +384,5 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withPermission("view_dashboard", handleGET);

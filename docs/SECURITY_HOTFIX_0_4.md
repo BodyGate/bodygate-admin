@@ -117,10 +117,11 @@ Senza sessione risponde 401, senza permesso 403; l'amministratore passa sempre.
 Il comportamento per gli utenti attuali non cambia: il login usa `app_users`
 (1 account) e il ruolo admin bypassa il controllo.
 
-**Ancora aperto:** le altre ~80 route (pagamenti, clienti, accessi, corsi,
-analytics, audit) richiedono solo una sessione valida. Vanno protette con lo
-stesso schema, una famiglia alla volta, con il permesso gia' usato dalla UI.
-Inoltre il login usa un solo account in `app_users`: senza account personali
+**Esteso a tutte le route operative (79 file di route su 90):** pagamenti, clienti, accessi, corsi, analytics, notifiche, training, contabilita', abbonamenti, dnake, apertura varchi, audit. Ogni handler usa `withPermission(...)` con il permesso gia' previsto dalla matrice (`view_customers`, `edit_customers`, `manage_payments`, `manage_access`, `view_access_logs`, `view_analytics`, `view_dashboard`, `view_notifications`, `view_courses`, `manage_courses`, `manage_course_bookings`, `manage_training`, `view_payments`, `manage_staff`). Restano senza guardia di permesso, per scelta e con test (`tests/apiGuardCoverage.test.mjs`): le route hardware con autenticazione macchina (`access/check`, `access/log`, `dnake/event`), `bridge/status`, `health`, `auth/*`, `admin/test`, `settings/branches`, `customers/ensure-digital-pass` e due letture di listini (`membership-fee` GET, `subscription-plans` GET). Il test fallisce se si aggiunge una route senza guardia o senza eccezione dichiarata.
+
+**Attenzione prima di creare account personali:** la guardia applica la matrice cosi' com'e'. Oggi l'unico login e' `admin` (bypass), quindi nulla cambia; ma un account `manager` (solo permessi corsi) o `commerciale` (nessuno) non vedrebbe clienti o pagamenti. Rivedere la matrice prima di attivarli. Ogni richiesta guardata aggiunge 2 query (sessione e profilo staff): accettabile oggi, da mettere in cache con piu' traffico.
+
+**Ancora aperto:** il login usa un solo account in `app_users`: senza account personali
 non c'e' tracciabilita' per operatore (`audit_logs.user_email` e' sempre lo
 stesso) e la matrice ruoli non ha effetto pratico. Da risolvere prima di
 vendere a piu' palestre.

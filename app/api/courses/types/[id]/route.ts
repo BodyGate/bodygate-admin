@@ -1,9 +1,10 @@
+import { withPermission } from "../../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { getCourseSupabaseClient } from "../../../../lib/server/courseRpc";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+async function handlePOST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
@@ -37,3 +38,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = withPermission("manage_courses", handlePOST);

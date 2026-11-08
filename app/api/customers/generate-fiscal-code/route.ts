@@ -1,7 +1,8 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { generateFiscalCode } from "../../../lib/fiscalCode";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const body = await req.json();
 
@@ -23,3 +24,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+
+export const POST = withPermission("edit_customers", handlePOST);

@@ -1,3 +1,4 @@
+import { withPermission } from "../../../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { tableHasColumn } from "../../../../../lib/server/defaultBranch";
@@ -18,14 +19,14 @@ function titleFor(type: ScannerDocumentType) {
 function bucketFor(type: ScannerDocumentType) { return type === "customer_photo" ? "customer-photos" : type === "medical_certificate" ? "medical-certificates" : "documents"; }
 function statusForCertificate(start: string | null, end: string | null) { return persistedMedicalCertificateStatus({ hasFile: true, validFrom: start, validUntil: end }); }
 
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { data, error } = await supabase.from("customer_documents").select("*").eq("customer_id", id).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ ok: false, error: "Archivio documenti non disponibile." }, { status: 500 });
   return NextResponse.json({ ok: true, documents: data || [] });
 }
 
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
     const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("id", id).maybeSingle();
@@ -91,3 +92,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ ok: false, error: error?.message || "Errore upload documento." }, { status: 500 });
   }
 }
+
+export const GET = withPermission("view_customers", handleGET);
+
+export const POST = withPermission("edit_customers", handlePOST);

@@ -1,3 +1,4 @@
+import { withPermission } from "../../../../../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import puppeteer from "puppeteer";
@@ -12,7 +13,7 @@ type Props = {
   }>;
 };
 
-export async function POST(_request: Request, { params }: Props) {
+async function handlePOST(_request: Request, { params }: Props) {
   const { id, paymentId } = await params;
 
   const supabase = createClient(
@@ -300,3 +301,5 @@ export async function POST(_request: Request, { params }: Props) {
     }
   }
 }
+
+export const POST = withPermission("manage_payments", handlePOST);

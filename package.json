@@ -30,8 +30,9 @@
     "qa:access-ready-count": "node --experimental-strip-types --test tests/accessReadyCount.test.mjs",
     "qa:pass-manifest": "node --experimental-strip-types --test tests/passManifest.test.mjs",
     "qa:optional-amount": "node --experimental-strip-types --test tests/optionalAmount.test.mjs",
-    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date && npm run qa:accounting-payment-match && npm run qa:date-only && npm run qa:optional-amount && npm run qa:pass-manifest && npm run qa:access-ready-count && npm run qa:permission-guard",
-    "qa:permission-guard": "node --experimental-strip-types --test tests/permissionGuard.test.mjs"
+    "test": "npm run qa:access-eligibility && npm run qa:payment-method && npm run qa:dnake-panel && npm run qa:expired-customers && npm run qa:business-date && npm run qa:accounting-payment-match && npm run qa:date-only && npm run qa:optional-amount && npm run qa:pass-manifest && npm run qa:access-ready-count && npm run qa:permission-guard && npm run qa:api-guards",
+    "qa:permission-guard": "node --experimental-strip-types --test tests/permissionGuard.test.mjs",
+    "qa:api-guards": "node --test tests/apiGuardCoverage.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

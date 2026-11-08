@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -60,7 +61,7 @@ function makeStaffToken() {
   return `BGS_${crypto.randomBytes(12).toString("base64url").toUpperCase()}`;
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const body = await req.json();
     const staffUserId = String(
@@ -262,3 +263,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = withPermission("manage_staff", handlePOST);

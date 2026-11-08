@@ -1,3 +1,4 @@
+import { withPermission } from "../../../lib/server/auth";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -28,7 +29,7 @@ function statusLabel(value: boolean | null, status: string | null) { return stat
 function ownerLabel(owner: Owner) { return owner.id ? `${owner.type === "staff" ? "Staff" : "Cliente"}: ${owner.name || owner.id}` : "Proprietario mancante"; }
 function add(items: AuditItem[], params: Omit<AuditItem, "id" | "debug_url">) { items.push({ ...params, id: `${params.category}-${params.source}-${params.code}-${items.length}`, debug_url: `/access-control/debug?code=${encodeURIComponent(params.code)}` }); }
 
-export async function GET() {
+async function handleGET() {
   try {
     const warnings: string[] = [];
     const supabase = getSupabaseClient();
@@ -58,3 +59,5 @@ export async function GET() {
     return NextResponse.json({ summary, items, warnings, generated_at: new Date().toISOString(), diagnostic_only: true });
   } catch (error: unknown) { return NextResponse.json({ error: error instanceof Error ? error.message : "Errore audit credenziali", diagnostic_only: true }, { status: 500 }); }
 }
+
+export const GET = withPermission("manage_access", handleGET);
