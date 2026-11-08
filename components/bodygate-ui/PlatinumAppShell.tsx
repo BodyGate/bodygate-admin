@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Bell, LayoutGrid, LogOut, Menu, X } from "lucide-react"
+import { Bell, KeyRound, LayoutGrid, LogOut, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { PLATINUM_SCREENS } from "@/architecture/platinum-screen-registry"
 import { PLATINUM_NAVIGATION } from "@/architecture/platinum-navigation"
@@ -42,7 +42,7 @@ export default function PlatinumAppShell({ children, activeScreen, runtime = fal
   const Navigation = runtime ? <RuntimeNavigation pathname={pathname} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} />
   const logout = async () => { await fetch("/api/auth/logout", { method: "POST" }).catch(() => null); window.location.href = "/login" }
   return <div className={styles.shell}>
-    <aside className={styles.sidebar}>{runtime ? <Link href="/" className={styles.brand}><span className={styles.brandMark}>BG</span><span><span className={styles.brandName}>BodyGate</span><span className={styles.brandEdition}>Platinum</span></span></Link> : <Brand />}{Navigation}<div className={styles.sidebarFooter}>{runtime ? <button className={styles.button} onClick={logout}><LogOut /> Logout</button> : "40 anteprime · dati locali"}</div></aside>
+    <aside className={styles.sidebar}>{runtime ? <Link href="/" className={styles.brand}><span className={styles.brandMark}>BG</span><span><span className={styles.brandName}>BodyGate</span><span className={styles.brandEdition}>Platinum</span></span></Link> : <Brand />}{Navigation}<div className={styles.sidebarFooter}>{runtime ? <><Link href="/settings/password" className={styles.button}><KeyRound /> Password</Link><button className={styles.button} onClick={logout}><LogOut /> Logout</button></> : "40 anteprime · dati locali"}</div></aside>
     <div className={styles.content}>
       <header className={styles.topbar}><div><div className={styles.topbarTitle}>{runtime ? "BodyGate operativo" : "Platinum Page System"}</div><div className={styles.topbarMeta}>{runtime ? `Stato sistema: ${systemStatus}` : "Ambiente isolato · nessuna azione operativa"}</div></div><div className={styles.topbarActions}>
         <button ref={menuTrigger} className={`${styles.button} ${styles.mobileMenu}`} onClick={() => setDrawer(true)} aria-label="Apri elenco schermate"><Menu /></button>
@@ -50,7 +50,7 @@ export default function PlatinumAppShell({ children, activeScreen, runtime = fal
       </div></header>
       <main id="contenuto" className={styles.main}>{children}</main>
     </div>
-    {drawer ? <div className={styles.mobileDrawerBackdrop} onClick={closeDrawer}><aside className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Navigazione" onClick={event => event.stopPropagation()}><div className={styles.drawerHeader}>{runtime ? <span className={styles.brand}>BodyGate Platinum</span> : <Brand />}<button ref={drawerClose} className={`${styles.button} ${styles.iconButton}`} onClick={closeDrawer} aria-label="Chiudi navigazione"><X /></button></div>{runtime ? <RuntimeNavigation pathname={pathname} onNavigate={closeDrawer} paymentsAccess={paymentsAccess} /> : <ScreenNavigation activeScreen={activeScreen} onNavigate={closeDrawer} />}</aside></div> : null}
+    {drawer ? <div className={styles.mobileDrawerBackdrop} onClick={closeDrawer}><aside className={styles.mobileDrawer} role="dialog" aria-modal="true" aria-label="Navigazione" onClick={event => event.stopPropagation()}><div className={styles.drawerHeader}>{runtime ? <span className={styles.brand}>BodyGate Platinum</span> : <Brand />}<button ref={drawerClose} className={`${styles.button} ${styles.iconButton}`} onClick={closeDrawer} aria-label="Chiudi navigazione"><X /></button></div>{runtime ? <><RuntimeNavigation pathname={pathname} onNavigate={closeDrawer} paymentsAccess={paymentsAccess} /><div className={styles.sidebarFooter}><Link href="/settings/password" onClick={closeDrawer} className={styles.button}><KeyRound /> Password</Link></div></> : <ScreenNavigation activeScreen={activeScreen} onNavigate={closeDrawer} />}</aside></div> : null}
     <nav className={styles.bottomNav} aria-label="Navigazione mobile Platinum">{runtime ? PLATINUM_NAVIGATION.filter(item => item.mobilePlacement === "bottom").map(item => <Link className={`${styles.bottomItem} ${(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) ? styles.bottomItemActive : ""}`} href={item.href} key={item.id}><LayoutGrid /><span>{item.shortLabel}</span></Link>) : PLATINUM_SCREENS.filter(screen => ["dashboard", "reception", "customers", "payments"].includes(screen.id)).map(screen => <Link className={`${styles.bottomItem} ${activeScreen === screen.id ? styles.bottomItemActive : ""}`} href={screen.prototypePath} key={screen.id}><LayoutGrid /><span>{screen.label}</span></Link>)}<button className={styles.bottomItem} onClick={() => setDrawer(true)}><Menu /><span>Altro</span></button></nav>
   </div>
 }

@@ -137,3 +137,24 @@ recente per escludere accessi passati: la valutazione sull'esposizione storica
 i dati erano leggibili senza login da quando esistono le policy `Allow anon read`
 (la migrazione `narrow_anon_authenticated_select_to_realtime_tables` e'
 del 2026-08-31).
+
+## Cambio password (aggiunto 2026-11-08)
+
+`/settings/password` e `POST /api/auth/change-password`: ogni utente autenticato cambia la
+propria password inserendo quella attuale. Criteri in `app/lib/auth/passwordPolicy.ts`
+(almeno 12 caratteri, massimo 72 byte perche' bcrypt tronca oltre, diversa dall'attuale, non
+banale, senza la parte locale dell'email). L'hash e' bcrypt costo 12 e l'evento
+`password_changed` finisce in `audit_logs` (mai la password). Logica in
+`app/lib/server/changePassword.ts`, testata con un archivio finto (13 test).
+
+Limiti noti, da chiudere prima di vendere a piu' centri:
+- **Il login non ha limite di tentativi** (verificato: nessun conteggio ne' blocco). Con un
+  solo account amministratore e' il punto piu' esposto. Serve un limite per account e per IP
+  con stato su database (in memoria non basta su Vercel).
+- **Le sessioni gia' emesse non si revocano** al cambio password: il token e' firmato e senza
+  stato, vale fino alla scadenza. Per revocarle serve un campo sul database (es.
+  `password_changed_at`) controllato a ogni richiesta, oppure cambiare `BODYGATE_SESSION_SECRET`
+  (disconnette tutti).
+- **Nessun recupero password** (nessun invio di email).
+- Il cambio password non e' stato provato con una sessione reale: la logica e' coperta da test e
+  da build, ma va provata una volta in produzione.
