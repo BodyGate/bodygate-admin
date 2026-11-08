@@ -45,6 +45,7 @@ alter table public.exercise_variants add constraint exercise_variants_pkey PRIMA
 alter table public.exercises add constraint exercises_pkey PRIMARY KEY (id);
 alter table public.exercises_library add constraint exercises_library_pkey PRIMARY KEY (id);
 alter table public.gym_presence add constraint gym_presence_pkey PRIMARY KEY (id);
+alter table public.login_attempts add constraint login_attempts_pkey PRIMARY KEY (id);
 alter table public.medical_certificates add constraint medical_certificates_pkey PRIMARY KEY (id);
 alter table public.membership_fee_settings add constraint membership_fee_settings_pkey PRIMARY KEY (id);
 alter table public.memberships add constraint memberships_pkey PRIMARY KEY (id);
@@ -341,6 +342,9 @@ create index idx_exercises_slug ON public.exercises USING btree (slug);
 create index idx_exercises_unilateral ON public.exercises USING btree (is_unilateral);
 create index idx_gym_presence_customer ON public.gym_presence USING btree (customer_id);
 create index idx_gym_presence_inside ON public.gym_presence USING btree (is_inside, entered_at DESC);
+create index login_attempts_created_idx ON public.login_attempts USING btree (created_at);
+create index login_attempts_email_created_idx ON public.login_attempts USING btree (email, created_at DESC);
+create index login_attempts_ip_created_idx ON public.login_attempts USING btree (ip, created_at DESC);
 create index idx_medical_certificates_customer ON public.medical_certificates USING btree (customer_id);
 create index idx_membership_fee_settings_branch_id_fk ON public.membership_fee_settings USING btree (branch_id);
 create index idx_memberships_customer_id_fk ON public.memberships USING btree (customer_id);

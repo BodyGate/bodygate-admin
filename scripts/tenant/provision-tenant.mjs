@@ -114,7 +114,7 @@ try {
   const branchCount = branches.length;
   const [tables, rls, publicGrants, createdBranches, admins, createdPlans] = check.split(",").map(Number);
   const expectedPlans = plansData?.plans?.length ?? 0;
-  if (tables !== 66 || rls !== 66 || publicGrants !== 0 || createdBranches !== branchCount || admins !== 1 || createdPlans !== expectedPlans) {
+  if (tables !== 67 || rls !== 67 || publicGrants !== 0 || createdBranches !== branchCount || admins !== 1 || createdPlans !== expectedPlans) {
     fail(`verifica finale non superata (tabelle=${tables}, rls=${rls}, privilegi pubblici=${publicGrants}, sedi=${createdBranches}/${branchCount}, admin=${admins}, piani=${createdPlans}/${expectedPlans}).`);
   }
 } catch (error) {

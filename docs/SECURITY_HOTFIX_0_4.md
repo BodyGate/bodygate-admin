@@ -158,3 +158,33 @@ Limiti noti, da chiudere prima di vendere a piu' centri:
 - **Nessun recupero password** (nessun invio di email).
 - Il cambio password non e' stato provato con una sessione reale: la logica e' coperta da test e
   da build, ma va provata una volta in produzione.
+
+## Limite ai tentativi di login (aggiunto 2026-11-08)
+
+Il login non aveva alcun limite. Ora (`app/lib/auth/loginThrottle.ts`,
+`app/lib/server/loginAttemptStore.ts`, tabella `public.login_attempts`, migrazione
+`20261108160000_login_attempts_v1`) vale una finestra scorrevole di 15 minuti su tre livelli:
+
+| Livello | Errori ammessi | A cosa serve |
+|---|---|---|
+| stessa email + stesso IP | 5 | ferma chi indovina la password; un estraneo da un altro IP **non** blocca il titolare |
+| stessa email, qualunque IP | 25 | ferma chi cambia IP di continuo; vale anche sul PC locale, dove l'IP non e' affidabile |
+| stesso IP, qualunque email | 30 | ferma chi prova molte email |
+
+Superato un limite il login risponde **429** con `Retry-After` e un messaggio ("Riprova tra N
+minuti"); il blocco si scioglie da solo e **non si allunga** con i tentativi bloccati (non
+vengono registrati). Un accesso riuscito azzera gli errori di quella coppia email+IP.
+
+Scelte di progetto da conoscere:
+- **Fail-open:** se la tabella dei tentativi non risponde, il login passa. Un guasto del
+  limitatore non deve chiudere fuori la palestra; l'errore finisce nel log.
+- **Nessun testo dell'utente in filtri costruiti a mano:** la lettura usa due query a
+  parametri, cosi' un'email costruita ad arte non puo' far fallire il controllo.
+- **IP:** si usa `x-vercel-forwarded-for` (impostato da Vercel, non falsificabile), poi
+  `x-forwarded-for`. Sul PC della reception, senza proxy, quest'ultimo e' falsificabile:
+  li' protegge il livello "solo email".
+- **Pulizia:** le righe con piu' di 24 ore si cancellano a campione (5% dei fallimenti).
+- **Rischio residuo:** un attaccante puo' bloccare per 15 minuti il login del titolare dal
+  proprio IP e basta; per bloccarlo da ogni IP servono 25 errori in 15 minuti (il blocco
+  e' un ritardo, non permanente). Se serve uno sblocco immediato:
+  `delete from public.login_attempts where email = '<email>';`

@@ -619,6 +619,13 @@ create table public.gym_presence (
   created_at timestamp with time zone default now()
 );
 
+create table public.login_attempts (
+  id uuid not null default gen_random_uuid(),
+  email text not null,
+  ip text not null,
+  created_at timestamp with time zone not null default now()
+);
+
 create table public.medical_certificates (
   id uuid not null default gen_random_uuid(),
   customer_id uuid,

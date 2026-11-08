@@ -12,7 +12,7 @@ Su un database PostgreSQL/Supabase **vuoto**:
    il suo profilo staff **in un'unica transazione**: se qualcosa fallisce non resta
    nulla e il database vuoto si puo' riutilizzare subito;
 3. (compreso nel punto 2)
-4. verifica 66 tabelle, RLS attiva ovunque, nessun privilegio a `anon` o
+4. verifica 67 tabelle, RLS attiva ovunque, nessun privilegio a `anon` o
    `authenticated`, 1 sede e 1 amministratore;
 5. stampa i segreti nuovi per la palestra (`BODYGATE_SESSION_SECRET`,
    `BODYGATE_MACHINE_KEY`) e l'elenco delle variabili da impostare.
