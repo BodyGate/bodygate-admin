@@ -104,3 +104,23 @@ Correzione prevista (vedi anche `app/lib/server/auth.ts`): guardia
 `requirePermission(...)` lato server sulle route sensibili, poi revisione della
 matrice ruoli. La modifica dei dati in produzione va concordata con chi usa
 il sistema in reception, per non togliere operativita' per sbaglio.
+
+### Stato RBAC (aggiornamento)
+
+**Fatto:** guardia lato server `withPermission(...)` (`app/lib/server/auth.ts`,
+logica in `app/lib/auth/permissions.ts`, 6 test) applicata alle route di
+gestione staff e impostazioni, con il permesso `manage_staff` (lo stesso gia'
+richiesto dalle rispettive pagine): `staff/create`, `staff/update`,
+`staff/assign-dnake-qr`, `staff/list`, `staff/permissions-matrix` (GET e POST),
+`settings/membership-fee` (POST), `settings/subscription-plans` (POST, PATCH).
+Senza sessione risponde 401, senza permesso 403; l'amministratore passa sempre.
+Il comportamento per gli utenti attuali non cambia: il login usa `app_users`
+(1 account) e il ruolo admin bypassa il controllo.
+
+**Ancora aperto:** le altre ~80 route (pagamenti, clienti, accessi, corsi,
+analytics, audit) richiedono solo una sessione valida. Vanno protette con lo
+stesso schema, una famiglia alla volta, con il permesso gia' usato dalla UI.
+Inoltre il login usa un solo account in `app_users`: senza account personali
+non c'e' tracciabilita' per operatore (`audit_logs.user_email` e' sempre lo
+stesso) e la matrice ruoli non ha effetto pratico. Da risolvere prima di
+vendere a piu' palestre.

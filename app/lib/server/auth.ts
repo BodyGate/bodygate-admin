@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { canAccess } from "../auth/permissions";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
@@ -34,6 +36,13 @@ export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
     super(message);
     this.name = "UnauthorizedError";
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "ForbiddenError";
   }
 }
 
@@ -157,5 +166,66 @@ export async function getCurrentAuthContext(): Promise<CurrentAuthContext> {
     staffName,
     permissions,
     isAdmin,
+  };
+}
+
+/**
+ * Verifica lato server che l'utente della sessione abbia i permessi richiesti.
+ * Lancia UnauthorizedError (nessuna sessione valida) o ForbiddenError.
+ * I permessi nella UI (PermissionGuard) sono solo cosmetici: l'enforcement
+ * reale deve stare qui.
+ */
+export async function requirePermission(
+  ...required: string[]
+): Promise<CurrentAuthContext> {
+  const context = await getCurrentAuthContext();
+
+  if (!canAccess(context, required)) {
+    throw new ForbiddenError(
+      `Permesso richiesto: ${required.join(", ")}`,
+    );
+  }
+
+  return context;
+}
+
+export function authFailureResponse(error: unknown): NextResponse | null {
+  if (error instanceof UnauthorizedError) {
+    return NextResponse.json(
+      { ok: false, error: "Sessione non valida." },
+      { status: 401 },
+    );
+  }
+
+  if (error instanceof ForbiddenError) {
+    return NextResponse.json(
+      { ok: false, error: "Permesso insufficiente." },
+      { status: 403 },
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Protegge un handler di route: prima dell'handler verifica sessione e permessi.
+ *   export const POST = withPermission("manage_staff", handlePOST);
+ */
+export function withPermission<Args extends unknown[]>(
+  permission: string | string[],
+  handler: (...args: Args) => Promise<Response>,
+) {
+  const required = Array.isArray(permission) ? permission : [permission];
+
+  return async (...args: Args): Promise<Response> => {
+    try {
+      await requirePermission(...required);
+    } catch (error) {
+      const failure = authFailureResponse(error);
+      if (failure) return failure;
+      throw error;
+    }
+
+    return handler(...args);
   };
 }
