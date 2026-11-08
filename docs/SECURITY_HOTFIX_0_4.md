@@ -1,0 +1,77 @@
+# BodyGate HOTFIX 0.4 — chiusura accesso diretto anon/authenticated
+
+## Scopo
+
+Eliminare la lettura pubblica dei dati dello schema `public` tramite la chiave
+anon di Supabase, che e' incorporata nel bundle del browser
+(`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+
+## Problema (verificato il 2026-11-08 sul database di produzione)
+
+Con il solo ruolo `anon` erano leggibili, senza alcun login:
+
+| Tabella | Righe leggibili |
+|---|---|
+| `customers` | 1.784 (tutte) |
+| `customer_subscriptions` | 2.310 |
+| `customer_membership_fees` | 2.352 |
+| `customer_access_logs` | 3.996 |
+
+`customers` contiene codice fiscale, contatti, indirizzo, documento
+d'identita', consensi privacy e stato del certificato medico (dato sanitario,
+GDPR art. 9). La causa erano policy `Allow anon read ...` con `using (true)` e
+`GRANT SELECT` a `anon`. In piu', `anon` e `authenticated` avevano su ogni
+tabella i privilegi `TRUNCATE`, `TRIGGER`, `REFERENCES`, e 53 policy di SELECT
+aperte `to authenticated` (sfruttabili se la registrazione Supabase Auth fosse
+abilitata).
+
+## Perche' la correzione non rompe nulla
+
+- Tutte le letture/scritture applicative passano da API server con service
+  role, che bypassa le RLS.
+- Il solo uso browser della chiave anon e' il Realtime
+  (`app/lib/supabaseClient.ts`). La publication `supabase_realtime` contiene
+  solo `access_logs`, tabella che `anon` gia' non leggeva: le sottoscrizioni a
+  `customers`, `payments`, `audit_logs` ecc. non ricevevano eventi gia' prima.
+  I componenti ricaricano comunque i dati via `fetch` alle API.
+- Bucket storage (`customer-photos`, `documents`, `medical-certificates`):
+  privati, nessuna policy storage. Invariati.
+
+## Cosa fa la migrazione
+
+`supabase/migrations/20261108120000_revoke_anon_authenticated_public_access_v1.sql`
+
+1. Snapshot di policy e grant in `archive.security_hardening_20261108_*`.
+2. Elimina le 53 policy di SELECT con `using (true)` per anon/authenticated.
+3. `REVOKE ALL` su tutte le tabelle e sequenze di `public` da anon e
+   authenticated.
+4. `ALTER DEFAULT PRIVILEGES` perche' le nuove tabelle non siano piu'
+   accessibili a quei ruoli.
+5. Revoca `EXECUTE` su `nextval_dnake_user_id()`.
+
+## Verifica eseguita
+
+- `anon` su `customers`: `permission denied`.
+- `authenticated` su `payments`: `permission denied`.
+- `service_role`: legge ancora 1.784 clienti, 2.310 abbonamenti, 3.996 log.
+- Advisor di sicurezza Supabase: nessun WARN residuo (solo INFO
+  "RLS enabled, no policy", che qui e' il deny-all voluto).
+- Policy: 78 -> 25 (restano le `No direct ... = false` e quella condizionata
+  della libreria esercizi, priva di grant).
+
+## Rollback
+
+`scripts/sql/security-hardening-1-0-rollback.sql` ripristina grant e policy
+dallo snapshot. Riapre l'esposizione: usarlo solo in emergenza.
+
+## Da fare dopo (non incluso)
+
+- Valutare con il DPO/consulente privacy se l'esposizione pregressa richieda
+  valutazione come violazione di dati personali (GDPR art. 33-34); controllare
+  i log API di Supabase per accessi anonimi anomali.
+- Valutare se ruotare la chiave anon (non indispensabile ora che non da' piu'
+  accesso a dati).
+- Reintrodurre aggiornamenti live con un canale Realtime *broadcast* privo di
+  dati personali (solo "tabella X cambiata"), invece di `postgres_changes`.
+- Impostare `BODYGATE_MACHINE_AUTH_MODE=enforce` in produzione.
+- Decidere la conservazione dello schema `archive` (backup con PII).
