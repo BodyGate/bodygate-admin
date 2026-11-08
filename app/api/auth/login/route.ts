@@ -3,11 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { shouldUseSecureCookie } from "../../../lib/auth/cookie-security";
 import {
-  checkLoginThrottle,
   clearLoginFailures,
   clientIpFromHeaders,
   normalizeKey,
-  recordLoginFailure,
+  reserveLoginAttempt,
   throttleMessage,
 } from "../../../lib/auth/loginThrottle";
 import { createLoginAttemptStore } from "../../../lib/server/loginAttemptStore";
@@ -47,10 +46,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // Limite ai tentativi: prima di toccare utenti e password.
+    // Limite ai tentativi: decisione e prenotazione atomiche, prima di toccare utenti e password.
     const attemptStore = createLoginAttemptStore(supabase);
     const throttleKey = normalizeKey(email, clientIpFromHeaders((name) => req.headers.get(name)));
-    const throttle = await checkLoginThrottle(attemptStore, throttleKey);
+    const throttle = await reserveLoginAttempt(attemptStore, throttleKey);
 
     if (!throttle.allowed) {
       return NextResponse.json(
@@ -72,7 +71,6 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (error || !user || !user.active) {
-      await recordLoginFailure(attemptStore, throttleKey);
       return NextResponse.json(
         { ok: false, message: "Credenziali non valide." },
         { status: 401 }
@@ -82,7 +80,6 @@ export async function POST(req: Request) {
     const passwordValid = await bcrypt.compare(password, user.password);
 
     if (!passwordValid) {
-      await recordLoginFailure(attemptStore, throttleKey);
       return NextResponse.json(
         { ok: false, message: "Credenziali non valide." },
         { status: 401 }

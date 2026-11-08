@@ -15,7 +15,7 @@ accessi) non e' in nessuna delle migrazioni di `supabase/migrations/`.
 |---|---|
 | `01_extensions_types_tables.sql` | estensioni, 6 enum, 1 sequenza, 67 tabelle (715 colonne) |
 | `02_constraints_indexes.sql` | 230 vincoli (PK, unique, esclusioni, check, FK) e 136 indici |
-| `03_functions.sql` | 27 funzioni (RPC atomiche, ricevute, trigger helper) con i loro permessi |
+| `03_functions.sql` | 28 funzioni (RPC atomiche, ricevute, trigger helper) con i loro permessi |
 | `04_triggers_views_security.sql` | 17 trigger, 2 viste, RLS su tutte le tabelle, 25 policy, privilegi, 3 bucket storage |
 | `05_reference_seed.sql` | dati di configurazione: 5 ruoli, 15 permessi, 45 assegnazioni, 5 metodi di pagamento, 8 moduli |
 
@@ -42,7 +42,7 @@ simulati) e confrontata con produzione. Tutti gli indicatori coincidono:
 | Viste | 2 | 2 |
 | Vincoli | 230 | 230 |
 | Indici (esclusi quelli dei vincoli) | 136 | 136 |
-| Funzioni | 27 | 27 |
+| Funzioni | 28 | 28 |
 | Trigger | 17 | 17 |
 | Enum | 6 | 6 |
 | Policy | 25 | 25 |
