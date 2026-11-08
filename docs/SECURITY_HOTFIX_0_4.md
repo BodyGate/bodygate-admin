@@ -124,3 +124,15 @@ Inoltre il login usa un solo account in `app_users`: senza account personali
 non c'e' tracciabilita' per operatore (`audit_logs.user_email` e' sempre lo
 stesso) e la matrice ruoli non ha effetto pratico. Da risolvere prima di
 vendere a piu' palestre.
+
+## Valutazione privacy: cosa i log permettono di dire
+
+Controllati i log dell'API Supabase (query al 2026-11-08): sono disponibili solo
+8 richieste edge (una raffica del 2026-11-07 ~20:06 UTC), tutte con ruolo
+`service_role` e user agent `node`, cioe' il server dell'app. **Nessuna richiesta
+con ruolo `anon`** nella finestra disponibile. Il campione e' troppo piccolo e
+recente per escludere accessi passati: la valutazione sull'esposizione storica
+(GDPR art. 33-34) resta da fare con un consulente privacy, partendo dal fatto che
+i dati erano leggibili senza login da quando esistono le policy `Allow anon read`
+(la migrazione `narrow_anon_authenticated_select_to_realtime_tables` e'
+del 2026-08-31).
