@@ -15,6 +15,11 @@
 -- creato qui sotto nello schema archive).
 
 -- 1) Snapshot di policy e grant (solo metadati, nessun dato personale).
+--    Lo schema `archive` esiste in produzione (backup ClubManager) ma non in un
+--    ambiente nuovo: va creato, chiuso ai ruoli pubblici e solo poi usato.
+create schema if not exists archive;
+revoke all on schema archive from public, anon, authenticated;
+
 create table if not exists archive.security_hardening_20261108_policies as
 select schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
 from pg_policies
