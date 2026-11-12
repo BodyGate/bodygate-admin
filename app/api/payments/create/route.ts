@@ -1,6 +1,7 @@
 import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { insertPaymentLedgerPair } from "../../../lib/server/paymentLedgerInsert";
 
 export const dynamic = "force-dynamic";
 
@@ -157,9 +158,9 @@ async function handlePOST(req: Request) {
 
     const paymentMethodName = method?.method_key || method?.name || "cash";
 
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
+    const ledgerResult = await insertPaymentLedgerPair(
+      supabase,
+      {
         customer_id: customerId,
         payment_method_id: paymentMethodId,
         amount,
@@ -168,39 +169,28 @@ async function handlePOST(req: Request) {
         status: "paid",
         paid_at: nowIso,
         created_by: "admin@bodygate.it",
-      })
-      .select("id")
-      .single();
+      },
+      {
+        customer_id: customerId,
+        amount,
+        type: paymentType,
+        description: description || null,
+        payment_method: paymentMethodName,
+        status: "paid",
+        paid_at: nowIso,
+        notes: null,
+      },
+    );
 
-    if (paymentError) {
+    if (!ledgerResult.ok) {
       return NextResponse.json(
-        { ok: false, error: paymentError.message },
+        { ok: false, error: ledgerResult.error },
         { status: 500 },
       );
     }
 
-    const { data: customerPayment, error: customerPaymentError } =
-      await supabase
-        .from("customer_payments")
-        .insert({
-          customer_id: customerId,
-          amount,
-          type: paymentType,
-          description: description || null,
-          payment_method: paymentMethodName,
-          status: "paid",
-          paid_at: nowIso,
-          notes: null,
-        })
-        .select("id")
-        .single();
-
-    if (customerPaymentError) {
-      return NextResponse.json(
-        { ok: false, error: customerPaymentError.message },
-        { status: 500 },
-      );
-    }
+    const payment = { id: ledgerResult.paymentId };
+    const customerPayment = { id: ledgerResult.customerPaymentId };
 
     /*
       Importante:
