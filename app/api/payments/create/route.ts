@@ -50,8 +50,6 @@ async function handlePOST(req: Request) {
     );
     const amount = parseAmount(body.amount);
     const description = normalizeDescription(body.description);
-    const now = new Date();
-    const nowIso = now.toISOString();
     if (!paymentType) {
       return NextResponse.json(
         { ok: false, error: "Tipo pagamento mancante." },
@@ -158,29 +156,15 @@ async function handlePOST(req: Request) {
 
     const paymentMethodName = method?.method_key || method?.name || "cash";
 
-    const ledgerResult = await insertPaymentLedgerPair(
-      supabase,
-      {
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        amount,
-        payment_type: paymentType,
-        description: description || null,
-        status: "paid",
-        paid_at: nowIso,
-        created_by: "admin@bodygate.it",
-      },
-      {
-        customer_id: customerId,
-        amount,
-        type: paymentType,
-        description: description || null,
-        payment_method: paymentMethodName,
-        status: "paid",
-        paid_at: nowIso,
-        notes: null,
-      },
-    );
+    const ledgerResult = await insertPaymentLedgerPair(supabase, {
+      customerId,
+      paymentMethodId,
+      amount,
+      paymentType,
+      description: description || null,
+      paymentMethodName,
+      createdBy: "admin@bodygate.it",
+    });
 
     if (!ledgerResult.ok) {
       return NextResponse.json(
