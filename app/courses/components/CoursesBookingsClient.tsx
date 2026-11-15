@@ -6,9 +6,11 @@ import {
   BGCard,
   BGEmptyState,
   BGInput,
+  BGListRow,
   BGPageHeader,
   BGPageShell,
   BGSelect,
+  BGStack,
   BGStatusBadge,
 } from "@/components/bodygate-ui";
 import { safeRandomId } from "../../lib/safeRandomId";
@@ -320,14 +322,14 @@ export default function CoursesBookingsClient() {
 
       <CoursesNav />
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+      <BGStack direction="row" gap="sm" wrap style={{ marginBottom: 18 }}>
         <BGButton variant={activeTab === "bookings" ? "primary" : "secondary"} onClick={() => setActiveTab("bookings")}>
           Prenotazioni per sessione
         </BGButton>
         <BGButton variant={activeTab === "enrollments" ? "primary" : "secondary"} onClick={() => setActiveTab("enrollments")}>
           Iscrizioni a orario fisso
         </BGButton>
-      </div>
+      </BGStack>
 
       {message && (
         <BGCard variant="soft" style={{ marginBottom: 18 }}>
@@ -347,37 +349,27 @@ export default function CoursesBookingsClient() {
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 20, alignItems: "start" }}>
           {activeTab === "bookings" ? (
             <>
-              <BGCard>
-                <h2 style={{ marginTop: 0 }}>Prenotazioni</h2>
-                {!sessionId ? (
-                  <BGEmptyState title="Seleziona una sessione" description="Scegli una sessione dal pannello a destra per vedere le prenotazioni." />
-                ) : bookings.length === 0 ? (
-                  <BGEmptyState title="Nessuna prenotazione" description="Nessuno ha ancora prenotato questa sessione." />
-                ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {bookings.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{customerFullName(item.customers)}</div>
-                          <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                            {item.customers?.phone || ""}
-                            {item.waitlist_position ? ` · posizione lista ${item.waitlist_position}` : ""}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <BGCard>
+                          <h2 style={{ marginTop: 0 }}>Prenotazioni</h2>
+                          {!sessionId ? (
+                          <BGEmptyState title="Seleziona una sessione" description="Scegli una sessione dal pannello a destra per vedere le prenotazioni." />
+                          ) : bookings.length === 0 ? (
+                          <BGEmptyState title="Nessuna prenotazione" description="Nessuno ha ancora prenotato questa sessione." />
+                          ) : (
+                          <BGStack gap="xs">
+                            {bookings.map((item) => (
+                              <BGListRow
+                                key={item.id}
+                                variant="soft"
+                                title={customerFullName(item.customers)}
+                                meta={
+                          <>
+                          {item.customers?.phone || ""}
+                          {item.waitlist_position ? ` · posizione lista ${item.waitlist_position}` : ""}
+                          </>
+                        }
+                        actions={
+                          <>
                           <BGStatusBadge tone={BOOKING_STATUS_TONE[item.status] || "neutral"}>{item.status}</BGStatusBadge>
                           {item.status === "confirmed" && (
                             <BGButton variant="secondary" onClick={() => checkInBooking(item.id)} disabled={busyBookingId === item.id}>
@@ -389,16 +381,17 @@ export default function CoursesBookingsClient() {
                               Annulla
                             </BGButton>
                           )}
-                        </div>
-                      </div>
+                          </>
+                        }
+                      />
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </BGCard>
 
               <BGCard variant="soft">
                 <h3 style={{ marginTop: 0 }}>Nuova prenotazione</h3>
-                <div style={{ display: "grid", gap: 10 }}>
+                <BGStack gap="sm">
                   <label>
                     Sessione
                     <BGSelect value={sessionId} onChange={(e) => handleSessionChange(e.target.value)}>
@@ -429,7 +422,7 @@ export default function CoursesBookingsClient() {
                   <BGButton onClick={createBooking} disabled={booking}>
                     {booking ? "Prenotazione..." : "Prenota"}
                   </BGButton>
-                </div>
+                </BGStack>
               </BGCard>
             </>
           ) : (
@@ -441,47 +434,38 @@ export default function CoursesBookingsClient() {
                 ) : enrollments.length === 0 ? (
                   <BGEmptyState title="Nessun iscritto" description="Nessuno è ancora iscritto a questo orario." />
                 ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <BGStack gap="xs">
                     {enrollments.map((item) => (
-                      <div
+                      <BGListRow
                         key={item.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: 14,
-                          borderRadius: 14,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-soft)",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{customerFullName(item.customers)}</div>
-                          <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                            {item.pricing_mode === "fixed"
-                              ? `€ ${Number(item.fixed_price).toFixed(2)} / ${item.billing_cycle}`
-                              : "A lezione"}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        variant="soft"
+                        title={customerFullName(item.customers)}
+                        meta={
+                          <>
+                          {item.pricing_mode === "fixed"
+                          ? `€ ${Number(item.fixed_price).toFixed(2)} / ${item.billing_cycle}`
+                          : "A lezione"}
+                          </>
+                        }
+                        actions={
+                          <>
                           <BGStatusBadge tone={ENROLLMENT_STATUS_TONE[item.status] || "neutral"}>{item.status}</BGStatusBadge>
                           {item.status === "active" && (
                             <BGButton variant="secondary" onClick={() => cancelEnrollment(item.id)} disabled={busyEnrollmentId === item.id}>
                               Annulla
                             </BGButton>
                           )}
-                        </div>
-                      </div>
+                          </>
+                        }
+                      />
                     ))}
-                  </div>
+                  </BGStack>
                 )}
               </BGCard>
 
               <BGCard variant="soft">
                 <h3 style={{ marginTop: 0 }}>Nuova iscrizione</h3>
-                <div style={{ display: "grid", gap: 10 }}>
+                <BGStack gap="sm">
                   <label>
                     Orario ricorrente
                     <BGSelect value={scheduleId} onChange={(e) => handleScheduleChange(e.target.value)}>
@@ -537,7 +521,7 @@ export default function CoursesBookingsClient() {
                   <BGButton onClick={createEnrollment} disabled={enrolling}>
                     {enrolling ? "Iscrizione..." : "Iscrivi"}
                   </BGButton>
-                </div>
+                </BGStack>
               </BGCard>
             </>
           )}
