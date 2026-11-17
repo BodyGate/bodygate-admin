@@ -56,3 +56,28 @@ test("two payments with same day and amount are ambiguous: no match", () => {
   ];
   assert.equal(findMatchingAccountingPayment(rows, existing), null);
 });
+
+// update-subscription/route.ts matches a subscription's unlinked accounting
+// row the same way, but has no specific payment id or paid_at to go on
+// (it's reconciling by old amount + description only, already pre-filtered
+// by amount): existing.id is "" and paid_at is omitted.
+const subscriptionLookup = {
+  id: "",
+  amount: 50,
+  description: "Rinnovo abbonamento Mensile (2026-01-01 - 2026-01-31)",
+};
+
+test("subscription lookup (no id, no paid_at): unique description match is used", () => {
+  const rows = [
+    { id: "p-1", amount: 50, description: "Rinnovo abbonamento Mensile (2026-01-01 - 2026-01-31)" },
+  ];
+  assert.equal(findMatchingAccountingPayment(rows, subscriptionLookup)?.id, "p-1");
+});
+
+test("subscription lookup (no id, no paid_at): two unrelated renewals with the same amount+description are left untouched", () => {
+  const rows = [
+    { id: "p-1", amount: 50, description: "Rinnovo abbonamento Mensile (2026-01-01 - 2026-01-31)" },
+    { id: "p-2", amount: 50, description: "Rinnovo abbonamento Mensile (2026-01-01 - 2026-01-31)" },
+  ];
+  assert.equal(findMatchingAccountingPayment(rows, subscriptionLookup), null);
+});
