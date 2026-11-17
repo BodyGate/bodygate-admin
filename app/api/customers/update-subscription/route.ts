@@ -2,6 +2,7 @@ import { withPermission } from "../../../lib/server/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { normalizePaymentMethod } from "../../../lib/server/paymentMethod";
+import { findMatchingAccountingPayment } from "../../../lib/server/accountingPaymentMatch";
 
 export const dynamic = "force-dynamic";
 
@@ -361,19 +362,40 @@ async function handlePOST(req: Request) {
         .in("id", activeLinkedPaymentIds);
     }
 
-    await supabaseAdmin
+    // Catch-all for an accounting `payments` row with no linked receipt
+    // (so it wasn't covered by the block above): matched heuristically on
+    // the old amount + description, since nothing links a subscription to
+    // its `payments` row directly. Two unrelated payments can share that
+    // same amount+description (e.g. two past renewals of the same plan for
+    // the same period); updating every match would silently rewrite the
+    // other one's accounting record. Reuse the same ambiguity rule as
+    // update-payment/route.ts: only touch it when exactly one candidate
+    // matches, otherwise leave all of them alone.
+    const { data: unlinkedAccountingCandidates } = await supabaseAdmin
       .from("payments")
-      .update({
-        amount,
-        description: newDescription,
-        payment_type: "subscription",
-        status: "paid",
-      })
+      .select("id, amount, description, paid_at, created_at")
       .eq("customer_id", customerId)
       .eq("payment_type", "subscription")
       .eq("status", "paid")
-      .eq("amount", oldAmount)
-      .eq("description", oldDescription);
+      .eq("amount", oldAmount);
+
+    const unlinkedAccountingPayment = findMatchingAccountingPayment(
+      unlinkedAccountingCandidates || [],
+      { id: "", amount: oldAmount, description: oldDescription },
+    );
+
+    if (unlinkedAccountingPayment?.id) {
+      await supabaseAdmin
+        .from("payments")
+        .update({
+          amount,
+          description: newDescription,
+          payment_type: "subscription",
+          status: "paid",
+        })
+        .eq("id", unlinkedAccountingPayment.id)
+        .eq("customer_id", customerId);
+    }
 
     await supabaseAdmin.from("customer_timeline").insert({
       customer_id: customerId,
