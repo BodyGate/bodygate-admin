@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isRateLimited } from "../../../lib/server/rateLimit";
 import { businessTodayISO } from "../../../lib/server/businessDate";
+import { isMedicalCertificateValid } from "../../../lib/server/accessEligibility";
 
 async function handlePOST(req: Request) {
   try {
@@ -121,7 +122,10 @@ async function handlePOST(req: Request) {
         payment_status,
         contract_status,
         medical_certificate_status,
-        medical_certificate_end_date
+        medical_certificate_start_date,
+        medical_certificate_start,
+        medical_certificate_end_date,
+        medical_certificate_end
       `
       )
       .eq("id", customerId)
@@ -169,6 +173,9 @@ async function handlePOST(req: Request) {
     const subscriptionOk = Boolean(subscription);
     const credentialOk = Boolean(credential);
     const noActiveBlock = !activeBlock;
+    const medicalCertificateOk = customer
+      ? isMedicalCertificateValid(customer, today)
+      : false;
 
     const canActivate =
       paymentOk &&
@@ -176,7 +183,8 @@ async function handlePOST(req: Request) {
       membershipOk &&
       subscriptionOk &&
       credentialOk &&
-      noActiveBlock;
+      noActiveBlock &&
+      medicalCertificateOk;
 
     await supabase
       .from("customers")
@@ -205,6 +213,7 @@ async function handlePOST(req: Request) {
               !subscriptionOk ? "abbonamento mancante/scaduto" : "",
               !credentialOk ? "credenziale accesso mancante" : "",
               !noActiveBlock ? "blocco cliente attivo" : "",
+              !medicalCertificateOk ? "certificato medico mancante/scaduto" : "",
             ]
               .filter(Boolean)
               .join(", ") || "verifica manuale richiesta"
@@ -225,6 +234,7 @@ async function handlePOST(req: Request) {
         subscriptionOk,
         credentialOk,
         noActiveBlock,
+        medicalCertificateOk,
       },
     });
   } catch (err: any) {
