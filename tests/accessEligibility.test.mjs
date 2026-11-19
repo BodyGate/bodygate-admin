@@ -7,7 +7,10 @@ import test from "node:test";
 // See package.json's "qa:access-eligibility" script, which uses `node
 // --experimental-strip-types` (Node 22+, matches the CI node-version) to run
 // this file directly against the .ts source with zero build step.
-import { evaluateAccessEligibility } from "../app/lib/server/accessEligibility.ts";
+import {
+  evaluateAccessEligibility,
+  isMedicalCertificateValid,
+} from "../app/lib/server/accessEligibility.ts";
 
 const TODAY = "2026-09-09";
 
@@ -183,6 +186,56 @@ test("denies access when there is no valid subscription", () => {
 
   assert.equal(result.allowed, false);
   assert.equal(result.reason, "Abbonamento assente o scaduto");
+});
+
+// isMedicalCertificateValid is exported separately so flows other than the
+// physical gate (e.g. contract OTP signature activation) can apply the exact
+// same certificate rule instead of re-deriving or forgetting it.
+test("isMedicalCertificateValid: valid when dates bracket today and status isn't expired", () => {
+  assert.equal(isMedicalCertificateValid(baseCustomer(), TODAY), true);
+});
+
+test("isMedicalCertificateValid: invalid when missing entirely", () => {
+  assert.equal(
+    isMedicalCertificateValid(
+      baseCustomer({ medical_certificate_start_date: null, medical_certificate_end_date: null }),
+      TODAY
+    ),
+    false
+  );
+});
+
+test("isMedicalCertificateValid: invalid when expired by date", () => {
+  assert.equal(
+    isMedicalCertificateValid(
+      baseCustomer({ medical_certificate_start_date: "2025-01-01", medical_certificate_end_date: "2026-01-01" }),
+      TODAY
+    ),
+    false
+  );
+});
+
+test("isMedicalCertificateValid: invalid when status is explicitly 'expired' inside the date window", () => {
+  assert.equal(
+    isMedicalCertificateValid(baseCustomer({ medical_certificate_status: "EXPIRED" }), TODAY),
+    false
+  );
+});
+
+test("isMedicalCertificateValid: falls back to legacy start/end columns when the dated ones are absent", () => {
+  assert.equal(
+    isMedicalCertificateValid(
+      {
+        medical_certificate_start_date: null,
+        medical_certificate_end_date: null,
+        medical_certificate_start: "2026-01-01",
+        medical_certificate_end: "2027-01-01",
+        medical_certificate_status: "valid",
+      },
+      TODAY
+    ),
+    true
+  );
 });
 
 test("checks block before medical certificate (block takes priority)", () => {

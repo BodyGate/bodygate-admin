@@ -26,6 +26,37 @@ export type EligibilityResult =
   | { allowed: true; reason: "Accesso consentito" }
   | { allowed: false; reason: string };
 
+// Exported separately so other flows that decide whether to mark a customer
+// "active" (e.g. contract OTP signature) can check the same certificate rule
+// as the physical gate, instead of re-deriving (or forgetting) it.
+export function isMedicalCertificateValid(
+  customer: Pick<
+    CustomerRecord,
+    | "medical_certificate_start_date"
+    | "medical_certificate_start"
+    | "medical_certificate_end_date"
+    | "medical_certificate_end"
+    | "medical_certificate_status"
+  >,
+  today: string
+): boolean {
+  const medicalCertificateStart =
+    customer.medical_certificate_start_date || customer.medical_certificate_start;
+  const medicalCertificateEnd =
+    customer.medical_certificate_end_date || customer.medical_certificate_end;
+  const medicalCertificateStatus = String(
+    customer.medical_certificate_status || ""
+  ).toLowerCase();
+
+  return !(
+    !medicalCertificateStart ||
+    !medicalCertificateEnd ||
+    medicalCertificateStart > today ||
+    medicalCertificateEnd < today ||
+    medicalCertificateStatus === "expired"
+  );
+}
+
 export function evaluateAccessEligibility(params: {
   customer: CustomerRecord;
   today: string;
@@ -54,21 +85,7 @@ export function evaluateAccessEligibility(params: {
     };
   }
 
-  const medicalCertificateStart =
-    customer.medical_certificate_start_date || customer.medical_certificate_start;
-  const medicalCertificateEnd =
-    customer.medical_certificate_end_date || customer.medical_certificate_end;
-  const medicalCertificateStatus = String(
-    customer.medical_certificate_status || ""
-  ).toLowerCase();
-
-  if (
-    !medicalCertificateStart ||
-    !medicalCertificateEnd ||
-    medicalCertificateStart > today ||
-    medicalCertificateEnd < today ||
-    medicalCertificateStatus === "expired"
-  ) {
+  if (!isMedicalCertificateValid(customer, today)) {
     return {
       allowed: false,
       reason: "Certificato medico scaduto o mancante",
