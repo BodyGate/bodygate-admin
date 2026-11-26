@@ -168,7 +168,7 @@ async function handlePOST(req: Request) {
     }
 
     if (normalizedBadge) {
-      await supabaseAdmin
+      const { error: accessCredentialError } = await supabaseAdmin
         .from("access_credentials")
         .upsert(
           {
@@ -181,7 +181,19 @@ async function handlePOST(req: Request) {
           { onConflict: "code" }
         );
 
-      await supabaseAdmin
+      if (accessCredentialError) {
+        console.error(
+          "update-profile: upsert access_credentials failed",
+          accessCredentialError
+        );
+      }
+
+      // onConflict richiede un vincolo UNIQUE su badge_code (vedi migration
+      // customer_badges_badge_code_unique_v1): senza, Postgres rifiuta
+      // l'upsert (42P10) ad ogni chiamata e, se l'errore non viene
+      // controllato, la riga in customer_badges resta non aggiornata mentre
+      // la risposta dichiara comunque successo.
+      const { error: customerBadgeError } = await supabaseAdmin
         .from("customer_badges")
         .upsert(
           {
@@ -191,6 +203,13 @@ async function handlePOST(req: Request) {
           },
           { onConflict: "badge_code" }
         );
+
+      if (customerBadgeError) {
+        console.error(
+          "update-profile: upsert customer_badges failed",
+          customerBadgeError
+        );
+      }
     }
 
     await supabaseAdmin.from("customer_timeline").insert({
