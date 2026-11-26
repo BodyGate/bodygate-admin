@@ -27,7 +27,11 @@ using (
     id,
     row_number() over (
       partition by badge_code
-      order by is_active desc, created_at desc, id desc
+      -- `is_active desc` alone would sort a NULL row first (Postgres's
+      -- default for DESC is NULLS FIRST), keeping an inactive/unset row over
+      -- a genuinely active one. `nulls last` makes true rank before both
+      -- false and null, matching the "keep the active row" intent.
+      order by is_active desc nulls last, created_at desc, id desc
     ) as rn
   from public.customer_badges
 ) ranked
